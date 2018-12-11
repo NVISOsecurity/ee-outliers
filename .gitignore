@@ -1,0 +1,8 @@
+.idea
+virtualenv
+venv
+*.pyc
+*.log
+.DS_Store
+scripts/output
+tmp/

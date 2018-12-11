@@ -1,0 +1,159 @@
+{
+  "_index": "logstash-eagleeye-osqueryfilter-2018.08.23",
+  "_type": "doc",
+  "_id": "7OhmZmUBfFPwYT1ux6pQ",
+  "_version": 2,
+  "_score": null,
+  "_source": {
+    "tags": [
+      "endpoint",
+      "outlier"
+    ],
+    "timestamp": "2018-08-23T10:48:16.200315+00:00",
+    "OsqueryFilter": {
+      "enabled": "1",
+      "action": " C:\\Windows\\system32\\msfeedssync.exe sync",
+      "next_run_time": "1535026336",
+      "last_run_code": "0",
+      "state": "ready",
+      "last_run_time": "1535003275",
+      "name": "User_Feed_Synchronization-{9CD0CFAD-350E-46BA-8338-932284EF7332}",
+      "hidden": "1",
+      "last_run_message": "The operation completed successfully.",
+      "path": "\\User_Feed_Synchronization-{9CD0CFAD-350E-46BA-8338-932284EF7332}"
+    },
+    "@timestamp": "2018-08-23T10:48:16.200Z",
+    "smoky_filter_name": "OsqueryFilter",
+    "slave_name": "eaglesnest.cloud",
+    "type": "eagleeye",
+    "filename": "1535017696_osquery_get_all_scheduled_tasks.log",
+    "meta": {
+      "timestamp": "2018-08-23T10:48:16.200315+00:00",
+      "system_info": {
+        "hardware_version": "-1",
+        "cpu_type": "x86_64",
+        "local_hostname": "DUMMY-PC",
+        "physical_memory": "4294430720",
+        "uuid": "2F794D56-1522-C329-D58E-6DE1A2D71B1E",
+        "hardware_serial": "VMware-56 4d 79 2f 22 15 29 c3-d5 8e 6d e1 a2 d7 1b 1e",
+        "hardware_vendor": "VMware, Inc.",
+        "cpu_subtype": "-1",
+        "hardware_model": "VMware Virtual Platform",
+        "hostname": "NVISO-WIN10-JVZ.nviso.be",
+        "cpu_brand": "Intel(R) Core(TM) i7-6820HQ CPU @ 2.70GHz",
+        "cpu_logical_cores": "2",
+        "computer_name": "NVISO-WIN10-JVZ",
+        "cpu_physical_cores": "2"
+      },
+      "command": {
+        "name": "get_all_scheduled_tasks",
+        "query": "SELECT * FROM scheduled_tasks;",
+        "mode": "base_scan"
+      },
+      "deployment_name": "NVISO Workstations",
+      "iface_addresses": [
+        "fe80::787a:6a42:b06f:7a2a",
+        "172.16.63.129",
+        "fe80::bdb7:3cb8:b503:b8bc",
+        "169.254.184.188",
+        "fe80::491a:881a:b1bf:b539",
+        "169.254.181.57",
+        "::1",
+        "127.0.0.1"
+      ],
+      "logged_in_users_details": [
+        {
+          "user": "",
+          "host": "",
+          "time": "0",
+          "pid": "-1",
+          "tty": "Services",
+          "type": "disconnected"
+        },
+        {
+          "user": "jvanderzweep",
+          "host": "",
+          "time": "1533915004",
+          "pid": "-1",
+          "tty": "Console",
+          "type": "active"
+        }
+      ],
+      "toolname": "osquery",
+      "filename": "osquery_get_all_scheduled_tasks.log",
+      "hostname": "NVISO-WIN10-JVZ",
+      "logged_in_users": [
+        "jvanderzweep"
+      ],
+      "output_file_path": "osquery_get_all_scheduled_tasks.log"
+    },
+    "@version": "1",
+    "outliers": {
+      "summary": [
+        "rare scheduled task: User_Feed_Synchronization-{9CD0CFAD-350E-46BA-8338-932284EF7332}"
+      ],
+      "total_outliers": 1,
+      "reason": [
+        "rare scheduled task"
+      ],
+      "assets": [
+        [
+          "user:jvanderzweep",
+          "host:NVISO-WIN10-JVZ"
+        ]
+      ],
+      "aggregator": [
+        "User_Feed_Synchronization-{9CD0CFAD-350E-46BA-8338-932284EF7332}"
+      ],
+      "confidence": [
+        0.10000000000000009
+      ],
+      "trigger_method": [
+        "pct_of_max_value"
+      ],
+      "term": [
+        "NVISO-WIN10-JVZ"
+      ],
+      "decision_frontier": [
+        1.1
+      ],
+      "term_count": [
+        1
+      ],
+      "type": [
+        "scheduled tasks"
+      ],
+      "value": [
+        "User_Feed_Synchronization-{9CD0CFAD-350E-46BA-8338-932284EF7332}"
+      ]
+    }
+  },
+  "fields": {
+    "@timestamp": [
+      "2018-08-23T10:48:16.200Z"
+    ],
+    "meta.timestamp": [
+      "2018-08-23T10:48:16.200Z"
+    ],
+    "timestamp": [
+      "2018-08-23T10:48:16.200Z"
+    ]
+  },
+  "highlight": {
+    "meta.deployment_name.raw": [
+      "@kibana-highlighted-field@NVISO Workstations@/kibana-highlighted-field@"
+    ],
+    "outliers.summary.raw": [
+      "@kibana-highlighted-field@rare scheduled task: User_Feed_Synchronization-{9CD0CFAD-350E-46BA-8338-932284EF7332}@/kibana-highlighted-field@"
+    ],
+    "outliers.reason.raw": [
+      "@kibana-highlighted-field@rare scheduled task@/kibana-highlighted-field@"
+    ],
+    "tags": [
+      "@kibana-highlighted-field@outlier@/kibana-highlighted-field@"
+    ]
+  },
+  "sort": [
+    1535021296200
+  ]
+}
