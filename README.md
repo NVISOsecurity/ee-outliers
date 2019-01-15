@@ -130,7 +130,7 @@ Possible ``trigger_method`` values:
 
  - ``percentile``: percentile. ``trigger_sensitivity`` ranges from ``0-100``.
  - ``pct_of_max_value``: percentage of maximum value. ``trigger_sensitivity`` ranges from ``0-100``.
- - ``pct_of_median_value``: percentage of media value. ``trigger_sensitivity`` ranges from ``0-100``.
+ - ``pct_of_median_value``: percentage of median value. ``trigger_sensitivity`` ranges from ``0-100``.
  - ``pct_of_avg_value``: percentage of average value. ``trigger_sensitivity`` ranges from ``0-100``.
  - ``mad``: Median Average Deviation. ``trigger_sensitivity`` defines the total number of deviations and ranges from``0-Inf.``.
  - ``madpos``: same as ``mad`` but the trigger value will always be positive. In case mad is negative, it will result 0.
