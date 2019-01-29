@@ -35,5 +35,5 @@ done
 if [ "$TARGET_HOST" == "" ] ; then
     display_usage
 fi
-fswatch -e tmp/ -o . | xargs -n 1 -I{} sh -c "rsync -rav --delete $(pwd)/requirements.txt $(pwd)/*.sh $(pwd)/defaults $(pwd)/scripts $(pwd)/Dockerfile $(pwd)/app $TARGET_HOST:$TEMP_FOLDER/ee-outliers/;afplay /System/Library/Sounds/Pop.aiff"
+fswatch -e tmp/ -o . | xargs -n 1 -I{} sh -c "rsync -rav --delete $(pwd)/requirements.txt $(pwd)/defaults $(pwd)/scripts $(pwd)/Dockerfile $(pwd)/app $TARGET_HOST:$TEMP_FOLDER/ee-outliers/;afplay /System/Library/Sounds/Pop.aiff"
 
