@@ -96,9 +96,12 @@ def evaluate_model(model_name=None, model_settings=None):
             # ------------------------------------
             # Example: numerical_value("2") => 2
             if model_settings["metric"] == "numerical_value":
-                metric = float(target_value)
-                total_metrics_added = total_metrics_added + 1
-
+                try:
+                    metric = float(target_value)
+                    total_metrics_added = total_metrics_added + 1
+                except ValueError:
+                    # number can not be casted to a Float, just continue
+                    pass
             # ------------------------------------
             # METRIC: Calculate length of a string
             # ------------------------------------
