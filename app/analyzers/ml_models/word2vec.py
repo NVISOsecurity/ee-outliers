@@ -105,7 +105,7 @@ class Word2Vec:
 
             # Compute the cosine similarity between minibatch examples and all embeddings.
             norm = tf.sqrt(tf.reduce_sum(tf.square(embeddings), 1, keepdims=True), name="norm")
-            normalized_embeddings = embeddings / norm
+            # normalized_embeddings = embeddings / norm
 
             # Merge all summaries.
             merged = tf.summary.merge_all()
@@ -131,7 +131,7 @@ class Word2Vec:
             logging.logger.debug(norm)
 
             average_loss = 0
-            average_historical_loss=list()
+            average_historical_loss = list()
 
             step = 0
             while step < self.num_steps:
@@ -197,7 +197,7 @@ class Word2Vec:
 
     def is_trained(self):
         try:
-            with open(self.words_to_indices_filename, "r") as f:
+            with open(self.words_to_indices_filename, "r"):
                 return True
         except FileNotFoundError:
             return False
@@ -260,7 +260,7 @@ class Word2Vec:
 
                         for target_word in sentence:
                             if target_word not in words_to_indices.keys():
-                                    logging.logger.debug("word " + target_word + " not known, skipping.")
+                                logging.logger.debug("word " + target_word + " not known, skipping.")
                             else:
                                 target_word_prob = word_probs[words_to_indices[target_word]]
                                 tmp_probs.append(target_word_prob)
@@ -367,4 +367,3 @@ def generate_batch(batch_size, skip_window, sentences, sentence_index):
     batch_out = np.asarray(batch, dtype=np.int32)
     labels_out = np.asarray(labels, dtype=np.int32)
     return batch_out, labels_out, sentence_index
-

@@ -11,13 +11,13 @@ import helpers.utils
 def perform_analysis():
     for name in settings.config.sections():
         if name.startswith("beaconing_"):
-                param, model_name = name.split("beaconing_", 1)
-                should_test_model = settings.config.getboolean("general", "run_models") and settings.config.getboolean(name, "run_model")
-                should_run_model = settings.config.getboolean("general", "test_models") and settings.config.getboolean(name, "test_model")
+            param, model_name = name.split("beaconing_", 1)
+            should_test_model = settings.config.getboolean("general", "run_models") and settings.config.getboolean(name, "run_model")
+            should_run_model = settings.config.getboolean("general", "test_models") and settings.config.getboolean(name, "test_model")
 
-                if should_test_model or should_run_model:
-                    model_settings = extract_model_settings(name)
-                    evaluate_model(model_name=model_name, model_settings=model_settings)
+            if should_test_model or should_run_model:
+                model_settings = extract_model_settings(name)
+                evaluate_model(model_name=model_name, model_settings=model_settings)
 
 
 def extract_model_settings(section_name):

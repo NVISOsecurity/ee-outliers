@@ -83,4 +83,3 @@ class Logging:
 
 def print_readable_numbers(big_num):
     return "{:,}".format(big_num)
-

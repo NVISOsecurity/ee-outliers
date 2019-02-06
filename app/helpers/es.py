@@ -56,7 +56,7 @@ class ES:
 
     def filter_by_query_string(self, query=None):
         bool_clause = {"must": [
-            {"query_string": { "query": query}}
+            {"query_string": {"query": query}}
         ]}
         return bool_clause
 
@@ -146,7 +146,7 @@ class ES:
                     self.notifier.notify_on_outlier(doc=doc, outlier=outlier)
 
                 if self.settings.config.getboolean("general", "print_outliers_to_console"):
-                        self.logging.logger.info("outlier - " + outlier.get_summary())
+                    self.logging.logger.info("outlier - " + outlier.get_summary())
 
     def save_outlier(self, doc=None, outlier=None):
         # add the derived fields as outlier observations
@@ -300,5 +300,3 @@ def get_time_filter(days=None, hours=None, timestamp_field="timestamp"):
         }
     }
     return time_filter
-
-

@@ -91,4 +91,3 @@ class Outlier:
             _str += (str(key) + "\t -> " + str(value) + "\n")
 
         return _str
-

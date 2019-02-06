@@ -6,5 +6,4 @@ class TestUnicode(unittest.TestCase):
         pass
 
     def test_print_string(self):
-        self.assertEqual("ボールト","ボールト")
-
+        self.assertEqual("ボールト", "ボールト")

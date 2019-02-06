@@ -126,7 +126,7 @@ if settings.args.run_mode == "interactive":
         perform_analysis()
     except KeyboardInterrupt:
         logging.logger.info("keyboard interrupt received, stopping housekeeping thread")
-    except Exception as e:
+    except Exception:
         logging.logger.error(traceback.format_exc())
     finally:
         housekeeping_job.shutdown_flag.set()
@@ -143,4 +143,3 @@ if settings.args.run_mode == "tests":
     suite = unittest.TestLoader().discover(test_directory, pattern=test_filename)
     unittest.TextTestRunner(verbosity=settings.config.getint("general", "log_verbosity")).run(suite)
     logging.logger.info("finished running tests")
-

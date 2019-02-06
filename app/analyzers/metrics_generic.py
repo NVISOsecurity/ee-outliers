@@ -10,14 +10,14 @@ import helpers.utils
 def perform_analysis():
     for name in settings.config.sections():
         if name.startswith("metrics_"):
-                param, model_name = name.split("metrics_", 1)
+            param, model_name = name.split("metrics_", 1)
 
-                should_test_model = settings.config.getboolean("general", "run_models") and settings.config.getboolean(name, "run_model")
-                should_run_model = settings.config.getboolean("general", "test_models") and settings.config.getboolean(name, "test_model")
+            should_test_model = settings.config.getboolean("general", "run_models") and settings.config.getboolean(name, "run_model")
+            should_run_model = settings.config.getboolean("general", "test_models") and settings.config.getboolean(name, "test_model")
 
-                if should_test_model or should_run_model:
-                    model_settings = extract_model_settings(name)
-                    run_generic_metrics_model(section_name=name, model_name=model_name, model_settings=model_settings)
+            if should_test_model or should_run_model:
+                model_settings = extract_model_settings(name)
+                run_generic_metrics_model(section_name=name, model_name=model_name, model_settings=model_settings)
 
 
 def extract_model_settings(section_name):
@@ -123,7 +123,7 @@ def evaluate_model(model_name=None, model_settings=None):
             # ------------------------------------------------------------------------------------
             if model_settings["metric"] == "hex_encoded_length":
                 hex_encoded_words = list()
-                target_value_words = re.split("[^a-fA-F0-9+]", str(target_value)) # at least length 10 to have 5 encoded characters
+                target_value_words = re.split("[^a-fA-F0-9+]", str(target_value))  # at least length 10 to have 5 encoded characters
 
                 for word in target_value_words:
                     if len(word) > 10 and helpers.utils.is_hex_encoded(word):  # let's match at least 5 characters, meaning 10 hex digits
@@ -267,4 +267,3 @@ def evaluate_batch_for_outliers(metrics=None, model_settings=None, last_batch=Fa
                 es.process_outliers(doc=metrics[aggregator_value]["raw_docs"][ii], outliers=[outlier], should_notify=model_settings["should_notify"])
 
     return outliers, remaining_metrics
-

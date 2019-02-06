@@ -1,23 +1,19 @@
 import json
 from configparser import NoOptionError
-
-from helpers.outlier import Outlier
 from helpers.singletons import settings, es, logging
-import re
-import helpers.utils
 
 
 def perform_analysis():
     for name in settings.config.sections():
         if name.startswith("test_"):
-                param, model_name = name.split("test_", 1)
+            param, model_name = name.split("test_", 1)
 
-                should_test_model = settings.config.getboolean("general", "run_models") and settings.config.getboolean(name, "run_model")
-                should_run_model = settings.config.getboolean("general", "test_models") and settings.config.getboolean(name, "test_model")
+            should_test_model = settings.config.getboolean("general", "run_models") and settings.config.getboolean(name, "run_model")
+            should_run_model = settings.config.getboolean("general", "test_models") and settings.config.getboolean(name, "test_model")
 
-                if should_test_model or should_run_model:
-                    model_settings = extract_model_settings(name)
-                    run_test_model(section_name=name, model_name=model_name, model_settings=model_settings)
+            if should_test_model or should_run_model:
+                model_settings = extract_model_settings(name)
+                run_test_model(section_name=name, model_name=model_name, model_settings=model_settings)
 
 
 def extract_model_settings(section_name):
@@ -43,7 +39,6 @@ def evaluate_model(model_name=None, model_settings=None):
     logging.print_analysis_intro(event_type="evaluating " + model_name, total_events=total_events)
     logging.init_ticker(total_steps=total_events, desc=model_name + " - evaluating simplequery model")
 
-    outliers = list()
     for doc in es.scan(lucene_query=lucene_query):
         logging.tick()
         fields = es.extract_fields_from_document(doc)
@@ -55,4 +50,3 @@ def evaluate_model(model_name=None, model_settings=None):
 def run_test_model(section_name=None, model_name=None, model_settings=None):
     # Evaluate against the model
     evaluate_model(model_name=model_name, model_settings=model_settings)
-

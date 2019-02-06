@@ -1,25 +1,19 @@
-import numpy as np
 from configparser import NoOptionError
-
-from helpers.outlier import Outlier
 from helpers.singletons import settings, es, logging
-import analyzers.ml_models.word2vec as word2vec
-import re
-import helpers.utils
-import time
+
 
 def perform_analysis():
     for name in settings.config.sections():
         if name.startswith("svm_"):
-                param, model_name = name.split("svm_", 1)
+            param, model_name = name.split("svm_", 1)
 
-                should_test_model = settings.config.getboolean("general", "run_models") and settings.config.getboolean(name, "run_model")
-                should_run_model = settings.config.getboolean("general", "test_models") and settings.config.getboolean(name, "test_model")
-                should_train_model = settings.config.getboolean("general", "train_models") and settings.config.getboolean(name, "train_model")
+            should_test_model = settings.config.getboolean("general", "run_models") and settings.config.getboolean(name, "run_model")
+            should_run_model = settings.config.getboolean("general", "test_models") and settings.config.getboolean(name, "test_model")
+            should_train_model = settings.config.getboolean("general", "train_models") and settings.config.getboolean(name, "train_model")
 
-                if should_test_model or should_run_model or should_train_model:
-                    model_settings = extract_model_settings(name)
-                    run_generic_svm_model(section_name=name, model_name=model_name, model_settings=model_settings)
+            if should_test_model or should_run_model or should_train_model:
+                model_settings = extract_model_settings(name)
+                run_generic_svm_model(section_name=name, model_name=model_name, model_settings=model_settings)
 
 
 def extract_model_settings(section_name):
@@ -62,7 +56,7 @@ def train_model(model_name=None, model_settings=None):
 
     # Now, train the model
     if len(train_data) > 0:
-        pass # Train!!
+        pass  # Train!!
     else:
         logging.logger.warning("no sentences to train model on. Are you sure the sentence configuration is correctly defined?")
 

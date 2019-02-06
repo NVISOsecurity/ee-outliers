@@ -1,4 +1,3 @@
-import json
 from configparser import NoOptionError
 
 from helpers.outlier import Outlier
@@ -10,14 +9,14 @@ import helpers.utils
 def perform_analysis():
     for name in settings.config.sections():
         if name.startswith("simplequery_"):
-                param, model_name = name.split("simplequery_", 1)
+            param, model_name = name.split("simplequery_", 1)
 
-                should_test_model = settings.config.getboolean("general", "run_models") and settings.config.getboolean(name, "run_model")
-                should_run_model = settings.config.getboolean("general", "test_models") and settings.config.getboolean(name, "test_model")
+            should_test_model = settings.config.getboolean("general", "run_models") and settings.config.getboolean(name, "run_model")
+            should_run_model = settings.config.getboolean("general", "test_models") and settings.config.getboolean(name, "test_model")
 
-                if should_test_model or should_run_model:
-                    model_settings = extract_model_settings(name)
-                    run_simplequery_model(section_name=name, model_name=model_name, model_settings=model_settings)
+            if should_test_model or should_run_model:
+                model_settings = extract_model_settings(name)
+                run_simplequery_model(section_name=name, model_name=model_name, model_settings=model_settings)
 
 
 def extract_model_settings(section_name):
@@ -56,7 +55,7 @@ def evaluate_model(model_name=None, model_settings=None):
 
         outliers.append(outlier)
 
-        es.process_outliers(doc=doc, outliers=[outlier], should_notify= model_settings["should_notify"])
+        es.process_outliers(doc=doc, outliers=[outlier], should_notify=model_settings["should_notify"])
 
     if len(outliers) > 0:
         unique_summaries = len(set(o.get_observation("summary") for o in outliers))
