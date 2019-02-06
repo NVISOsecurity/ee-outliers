@@ -12,54 +12,54 @@ import helpers.utils
 def perform_analysis():
     for name in settings.config.sections():
         if name.startswith("terms_"):
-                param, model_name = name.split("terms_", 1)
-                should_test_model = settings.config.getboolean("general", "run_models") and settings.config.getboolean(name, "run_model")
-                should_run_model = settings.config.getboolean("general", "test_models") and settings.config.getboolean(name, "test_model")
+            param, model_name = name.split("terms_", 1)
+            should_test_model = settings.config.getboolean("general", "run_models") and settings.config.getboolean(name, "run_model")
+            should_run_model = settings.config.getboolean("general", "test_models") and settings.config.getboolean(name, "test_model")
 
-                if should_test_model or should_run_model:
-                    model_settings = extract_model_settings(name)
-                    if "*" in model_settings["target"]:
-                        original_model_name = model_name
+            if should_test_model or should_run_model:
+                model_settings = extract_model_settings(name)
+                if "*" in model_settings["target"]:
+                    original_model_name = model_name
 
-                        logging.logger.warning("running terms model in brute force mode, could take a long time!")
+                    logging.logger.warning("running terms model in brute force mode, could take a long time!")
 
-                        lucene_query = es.filter_by_query_string(model_settings["es_query_filter"])
-                        batch_size = settings.config.getint("terms", "terms_batch_eval_size")
+                    lucene_query = es.filter_by_query_string(model_settings["es_query_filter"])
+                    batch_size = settings.config.getint("terms", "terms_batch_eval_size")
 
-                        total_events = es.count_documents(lucene_query=lucene_query)
-                        logging.init_ticker(total_steps=min(total_events, batch_size), desc=model_name + " - extracting brute force fields")
+                    total_events = es.count_documents(lucene_query=lucene_query)
+                    logging.init_ticker(total_steps=min(total_events, batch_size), desc=model_name + " - extracting brute force fields")
 
-                        field_names = set()
-                        num_docs_processed = 0
-                        for doc in es.scan(lucene_query=lucene_query):
-                            logging.tick()
-                            fields = es.extract_fields_from_document(doc)
-                            fields = helpers.utils.flatten_dict(fields)
+                    field_names = set()
+                    num_docs_processed = 0
+                    for doc in es.scan(lucene_query=lucene_query):
+                        logging.tick()
+                        fields = es.extract_fields_from_document(doc)
+                        fields = helpers.utils.flatten_dict(fields)
 
-                            # skip all fields that are related to outliers, we don't want to brute force them
-                            for field_name in list(fields.keys()):  # create list instead of iterator so we can mutate the dictionary when iterating
-                                if field_name.startswith('outliers.'):
-                                    logging.logger.debug("not brute forcing outliers field " + str(field_name))
-                                    fields.pop(field_name)
+                        # skip all fields that are related to outliers, we don't want to brute force them
+                        for field_name in list(fields.keys()):  # create list instead of iterator so we can mutate the dictionary when iterating
+                            if field_name.startswith('outliers.'):
+                                logging.logger.debug("not brute forcing outliers field " + str(field_name))
+                                fields.pop(field_name)
 
-                            field_names.update(fields.keys())
+                        field_names.update(fields.keys())
 
-                            if num_docs_processed == batch_size:
-                                break
-                            else:
-                                num_docs_processed += 1
+                        if num_docs_processed == batch_size:
+                            break
+                        else:
+                            num_docs_processed += 1
 
-                        logging.logger.info("going to brute force " + str(len(field_names)) + " fields")
-                        for field_name in field_names:
-                            model_name = original_model_name + " [" + field_name + "]"
-                            # only brute force nested fields, so not the top level fields such as timestamp, deployment name, etc.
-                            if "." in field_name:
-                                model_settings["target"] = list([field_name])
-                                model_settings["brute_forced_field"] = field_name  # so it can be added to the outlier events automatically
-                                evaluate_model(model_name=model_name, model_settings=model_settings, brute_force=True)
+                    logging.logger.info("going to brute force " + str(len(field_names)) + " fields")
+                    for field_name in field_names:
+                        model_name = original_model_name + " [" + field_name + "]"
+                        # only brute force nested fields, so not the top level fields such as timestamp, deployment name, etc.
+                        if "." in field_name:
+                            model_settings["target"] = list([field_name])
+                            model_settings["brute_forced_field"] = field_name  # so it can be added to the outlier events automatically
+                            evaluate_model(model_name=model_name, model_settings=model_settings, brute_force=True)
 
-                    else:
-                        evaluate_model(model_name=model_name, model_settings=model_settings)
+                else:
+                    evaluate_model(model_name=model_name, model_settings=model_settings)
 
 
 def extract_model_settings(section_name):

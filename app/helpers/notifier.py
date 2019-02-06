@@ -51,7 +51,3 @@ class Notifier:
             s.quit()
         except Exception as ex:
             self.logging.logger.error("something went wrong sending notification e-mail: " + str(ex))
-
-
-
-

@@ -3,6 +3,7 @@ import helpers.utils
 from millify import millify
 import numpy as np
 
+
 class TestUtils(unittest.TestCase):
     def setUp(self):
         pass
@@ -41,7 +42,7 @@ class TestUtils(unittest.TestCase):
         test_sentence = ["test", "123"]
         self.assertEqual("test - 123", helpers.utils.flatten_sentence(test_sentence))
 
-        test_sentence = ["test", ["123", "234"]] # Too complex, we don't flatten this, there is no reasonable way
+        test_sentence = ["test", ["123", "234"]]  # Too complex, we don't flatten this, there is no reasonable way
         self.assertEqual(None, helpers.utils.flatten_sentence(test_sentence))
 
         test_sentence = 1
@@ -129,7 +130,7 @@ class TestUtils(unittest.TestCase):
         self.assertEqual(res, 1)
 
         # Test MAD
-        res = helpers.utils.get_decision_frontier("mad", [1, 1, 2, 2, 4, 6, 9], 1, "high") # MAD should be 2
+        res = helpers.utils.get_decision_frontier("mad", [1, 1, 2, 2, 4, 6, 9], 1, "high")  # MAD should be 2
 
         median = np.nanmedian([1, 1, 2, 2, 4, 6, 9])
         sensitivity = 1
@@ -139,8 +140,3 @@ class TestUtils(unittest.TestCase):
         res = helpers.utils.get_decision_frontier("mad", [1, 1, 2, 2, 4, 6, 9], 2, "high")  # MAD should be 4
         sensitivity = 2
         self.assertEqual(median + sensitivity * mad, res)  # 2 = sensitivity, 1 = MAD, median = 2
-
-
-
-
-

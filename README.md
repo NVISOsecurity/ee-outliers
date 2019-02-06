@@ -344,6 +344,24 @@ docker build -t "outliers-dev" .
 docker run --cap-add SYS_PTRACE -t --network=sensor_network -v "$PWD/defaults:/mappedvolumes/config" -i  outliers-dev:latest py-spy -- python3 outliers.py interactive --config /mappedvolumes/config/outliers.conf
 ```
 
+### Checking code style and PEP8 compliance
+In this mode, flake8 is used to check potential issues with style and PEP8.
+
+Running outliers in this mode:
+
+```
+# Build the image
+docker build -t "outliers-dev" .
+
+# Run the image
+docker run -v "$PWD/defaults:/mappedvolumes/config" -i outliers-dev:latest flake8 /app
+```
+
+You can also provide additional arguments to flake8, for example to ignore certain checks (such as the one around long lines):
+
+```
+docker run -v "$PWD/defaults:/mappedvolumes/config" -i outliers-dev:latest flake8 /app "--ignore=E501"
+```
 
 ## Screenshots
 

@@ -10,4 +10,3 @@ class TestSingletons(unittest.TestCase):
         type(settings)
         type(logging)
         type(es)
-

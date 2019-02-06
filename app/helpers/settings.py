@@ -1,4 +1,5 @@
-import configparser, argparse
+import configparser
+import argparse
 from tldextract import tldextract
 from helpers.singleton import singleton
 from . import es

@@ -48,7 +48,7 @@ def dict_contains_dotkey(dict_value, key_name):
     try:
         get_dotkey_value(dict_value, key_name)
         return True
-    except KeyError as e:
+    except KeyError:
         return False
 
 
@@ -70,7 +70,7 @@ def get_dotkey_value(dict_value, key_name):
 
 
 class DictQuery(dict):
-    def get(self, path, default = None):
+    def get(self, path, default=None):
         keys = path.split(".")
         val = None
 
@@ -136,7 +136,7 @@ def shannon_entropy(data):
 
 
 # Don't care about div by zero
-def safe_div(x,y):
+def safe_div(x, y):
     if y == 0:
         return 0
     return x / y
@@ -259,7 +259,7 @@ def is_base64_encoded(_str):
         decoded_bytes = base64.b64decode(_str)
         if base64.b64encode(decoded_bytes) == _str.encode("ascii"):
             return decoded_bytes.decode("ascii")
-    except Exception as e:
+    except Exception:
         return False
 
 
@@ -267,7 +267,7 @@ def is_hex_encoded(_str):
     try:
         decoded = int(_str, 16)
         return str(decoded)
-    except Exception as e:
+    except Exception:
         return False
 
 
@@ -275,7 +275,7 @@ def is_url(_str):
     try:
         if validators.url(_str):
             return True
-    except Exception as e:
+    except Exception:
         return False
 
 
@@ -283,7 +283,7 @@ def transform_value(transformation, value):
     if transformation == "extract_tld":
         try:
             transformed_value = get_tld(value, fix_protocol=True)
-        except:
+        except Exception:
             transformed_value = None
     else:
         transformed_value = None
