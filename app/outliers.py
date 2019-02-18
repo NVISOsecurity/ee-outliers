@@ -4,8 +4,7 @@ import traceback
 from datetime import datetime
 from croniter import croniter
 
-from helpers.singletons import settings
-from helpers.singletons import logging, es
+from helpers.singletons import settings, logging, es
 from helpers.utils import FileModificationWatcher
 from helpers.housekeeping import HousekeepingJob
 

@@ -19,7 +19,7 @@ class HousekeepingJob(threading.Thread):
         # Remove all existing whitelisted items if needed
         while not self.shutdown_flag.is_set():
             if settings.config.getboolean("general", "es_wipe_all_whitelisted_outliers"):
-                settings.reload_configuration_file()  # reload configuration file, in case new whitelisted items were added by the analyst, they should be processed!
+                settings.reload_configuration_files()  # reload configuration file, in case new whitelisted items were added by the analyst, they should be processed!
 
                 try:
                     total_docs_whitelisted = es.remove_all_whitelisted_outliers()

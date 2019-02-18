@@ -38,7 +38,8 @@ class Settings:
         args = parser.parse_args()
         self.args = args
 
-        self.process_configuration_file(args.config)
+        print("processing args")
+        self.process_configuration_files(args.config)
 
         search_range = es.get_time_filter(days=self.config.getint("general", "history_window_days"), hours=self.config.getint("general", "history_window_hours"), timestamp_field=self.config.get("general", "timestamp_field", fallback="timestamp"))
 
@@ -52,14 +53,17 @@ class Settings:
         if args.run_mode == "interactive":
             pass
 
-    def reload_configuration_file(self):
-        self.process_configuration_file(self.args.config)
+    def reload_configuration_files(self):
+        self.process_configuration_files(self.args.config)
 
-    def process_configuration_file(self, path):
-        # Read configuration file
+    def process_configuration_files(self, config_paths):
+        # Read configuration files
         config = configparser.ConfigParser(interpolation=None)
         config.optionxform = str  # preserve case sensitivity in config keys, important for derived field names
-        config.read_file(open(path))
+
+        print(str(config_paths))
+        read_configuration_files = config.read(config_paths)
+        print(str(len(read_configuration_files)))
         self.config = config
 
     def get_sample_size(self, total_events=None, threshold_name=None):
