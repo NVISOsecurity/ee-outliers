@@ -1,6 +1,5 @@
 import configparser
 import argparse
-from tldextract import tldextract
 from helpers.singleton import singleton
 from . import es
 
@@ -12,13 +11,13 @@ daemon_parser = subparsers.add_parser('daemon')
 tests_parser = subparsers.add_parser('tests')
 
 # Interactive mode - options
-interactive_parser.add_argument("--config", help="Configuration file location", required=True)
+interactive_parser.add_argument("--config", action='append', help="Configuration file location", required=True)
 
 # Daemon mode - options
-daemon_parser.add_argument("--config", help="Configuration file location", required=True)
+daemon_parser.add_argument("--config", action='append', help="Configuration file location", required=True)
 
 # Tests mode - options
-tests_parser.add_argument("--config", help="Configuration file location", required=True)
+tests_parser.add_argument("--config", action='append', help="Configuration file location", required=True)
 
 
 @singleton
@@ -32,9 +31,6 @@ class Settings:
         self.search_range_start = None
         self.search_range_end = None
         self.search_range = None
-
-        # TLD extractor - no internet required
-        self.offline_tld_extract = tldextract.TLDExtract(suffix_list_urls=None)
 
         self.process_arguments()
 
