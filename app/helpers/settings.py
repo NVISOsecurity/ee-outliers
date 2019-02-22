@@ -26,6 +26,10 @@ class Settings:
     def __init__(self):
         self.args = None
         self.config = None
+
+        self.loaded_config_paths = None
+        self.failed_config_paths = None
+
         self.known_processes = None
 
         self.search_range_start = None
@@ -60,7 +64,9 @@ class Settings:
         config = configparser.ConfigParser(interpolation=None)
         config.optionxform = str  # preserve case sensitivity in config keys, important for derived field names
 
-        config.read(config_paths)
+        self.loaded_config_paths = config.read(config_paths)
+        self.failed_config_paths = set(config_paths) - set(self.loaded_config_paths)
+
         self.config = config
 
     def get_sample_size(self, total_events=None, threshold_name=None):

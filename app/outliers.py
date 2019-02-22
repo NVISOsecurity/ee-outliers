@@ -37,7 +37,15 @@ else:
 
 logging.logger.info("outliers.py started - contact: research@nviso.be")
 logging.logger.info("run mode: " + settings.args.run_mode)
+
 logging.print_generic_intro("initializing")
+logging.logger.info("loaded " + str(len(settings.loaded_config_paths)) + " configuration files")
+
+if len(settings.failed_config_paths) > 0:
+    logging.logger.warning("failed to load " + str(len(settings.failed_config_paths)) + " configuration files")
+
+    for failed_config_path in settings.failed_config_paths:
+        logging.logger.warning("failed to load " + str(failed_config_path))
 
 
 def perform_analysis():
