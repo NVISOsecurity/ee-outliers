@@ -67,9 +67,11 @@ time_window_info = "processing events between " + search_start_range_printable +
 if settings.args.run_mode == "daemon":
     # In daemon mode, we also want to monitor the configuration file for changes.
     # In case of a change, we need to make sure that we are using this new configuration file
-    logging.logger.info("monitoring configuration file " + settings.args.config + " for changes")
+    for config_file in settings.args.config:
+        logging.logger.info("monitoring configuration file " + config_file + " for changes")
+
     file_mod_watcher = FileModificationWatcher()
-    file_mod_watcher.add_files([settings.args.config])
+    file_mod_watcher.add_files(settings.args.config)
 
     num_runs = 0
     while True:
