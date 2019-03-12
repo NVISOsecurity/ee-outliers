@@ -4,8 +4,7 @@ import traceback
 from datetime import datetime
 from croniter import croniter
 
-from helpers.singletons import settings
-from helpers.singletons import logging, es
+from helpers.singletons import settings, logging, es
 from helpers.utils import FileModificationWatcher
 from helpers.housekeeping import HousekeepingJob
 
@@ -38,7 +37,15 @@ else:
 
 logging.logger.info("outliers.py started - contact: research@nviso.be")
 logging.logger.info("run mode: " + settings.args.run_mode)
+
 logging.print_generic_intro("initializing")
+logging.logger.info("loaded " + str(len(settings.loaded_config_paths)) + " configuration files")
+
+if len(settings.failed_config_paths) > 0:
+    logging.logger.warning("failed to load " + str(len(settings.failed_config_paths)) + " configuration files")
+
+    for failed_config_path in settings.failed_config_paths:
+        logging.logger.warning("failed to load " + str(failed_config_path))
 
 
 def perform_analysis():
@@ -60,9 +67,11 @@ time_window_info = "processing events between " + search_start_range_printable +
 if settings.args.run_mode == "daemon":
     # In daemon mode, we also want to monitor the configuration file for changes.
     # In case of a change, we need to make sure that we are using this new configuration file
-    logging.logger.info("monitoring configuration file " + settings.args.config + " for changes")
+    for config_file in settings.args.config:
+        logging.logger.info("monitoring configuration file " + config_file + " for changes")
+
     file_mod_watcher = FileModificationWatcher()
-    file_mod_watcher.add_files([settings.args.config])
+    file_mod_watcher.add_files(settings.args.config)
 
     num_runs = 0
     while True:

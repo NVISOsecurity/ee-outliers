@@ -2,6 +2,11 @@ import unittest
 import helpers.utils
 from millify import millify
 import numpy as np
+import copy
+import json
+
+doc_with_outlier_test_file = json.load(open("/app/tests/unit_tests/files/doc_with_outlier.json"))
+doc_with_asset_edgecases = json.load(open("/app/tests/unit_tests/files/doc_with_asset_edgecases.json"))
 
 
 class TestUtils(unittest.TestCase):
@@ -140,3 +145,20 @@ class TestUtils(unittest.TestCase):
         res = helpers.utils.get_decision_frontier("mad", [1, 1, 2, 2, 4, 6, 9], 2, "high")  # MAD should be 4
         sensitivity = 2
         self.assertEqual(median + sensitivity * mad, res)  # 2 = sensitivity, 1 = MAD, median = 2
+
+    def test_extract_outlier_asset_information(self):
+        from helpers.singletons import settings, es
+
+        orig_doc = copy.deepcopy(doc_with_outlier_test_file)
+        fields = es.extract_fields_from_document(orig_doc)
+
+        outlier_assets = helpers.utils.extract_outlier_asset_information(fields, settings)
+        self.assertIn("user: dummyuser", outlier_assets)
+        self.assertIn("host: DUMMY-PC", outlier_assets)
+
+        orig_doc = copy.deepcopy(doc_with_asset_edgecases)
+        fields = es.extract_fields_from_document(orig_doc)
+
+        outlier_assets = helpers.utils.extract_outlier_asset_information(fields, settings)
+        self.assertIn("user: dummyuser1, dummyuser2", outlier_assets)  # test case for array assets
+        self.assertEqual(len(outlier_assets), 1)  # blank asset fields, such as the PC name in the JSON file, should NOT be added as assets

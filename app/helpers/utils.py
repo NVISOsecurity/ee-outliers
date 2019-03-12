@@ -162,9 +162,10 @@ def is_in_top_x(array, el, top_n):
 def extract_outlier_asset_information(fields, settings):
     outlier_assets = list()
     for (asset_field_name, asset_field_type) in settings.config.items("assets"):
-
         if dict_contains_dotkey(fields, asset_field_name):
-            outlier_assets.append(replace_placeholder_fields_with_values(asset_field_type + ": {" + asset_field_name + "}", fields))
+            asset_field_value = replace_placeholder_fields_with_values("{" + asset_field_name + "}", fields)
+            if asset_field_value:  # make sure we don't process empty process information, for example an empty user field
+                outlier_assets.append(replace_placeholder_fields_with_values(asset_field_type + ": {" + asset_field_name + "}", fields))
 
     return outlier_assets
 
