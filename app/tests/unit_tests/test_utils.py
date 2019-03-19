@@ -162,3 +162,12 @@ class TestUtils(unittest.TestCase):
         outlier_assets = helpers.utils.extract_outlier_asset_information(fields, settings)
         self.assertIn("user: dummyuser1, dummyuser2", outlier_assets)  # test case for array assets
         self.assertEqual(len(outlier_assets), 1)  # blank asset fields, such as the PC name in the JSON file, should NOT be added as assets
+
+    def test_dict_contains_dotkey(self):
+        # case sensitive key matching
+        test_key = "_source.OsqueryFilter.total_size"
+        self.assertTrue(helpers.utils.dict_contains_dotkey(doc_with_asset_edgecases, test_key))
+
+        # case insensitive key mtching
+        test_key = "_source.Osqueryfilter.total_size"
+        self.assertTrue(helpers.utils.dict_contains_dotkey(doc_with_asset_edgecases, test_key))

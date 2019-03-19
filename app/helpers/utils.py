@@ -160,6 +160,11 @@ def is_in_top_x(array, el, top_n):
 
 
 def extract_outlier_asset_information(fields, settings):
+    """
+    :param fields: the dictionary containing all the event information
+    :param settings: the settings object which also includes the configuration file that is used
+    :return:
+    """
     outlier_assets = list()
     for (asset_field_name, asset_field_type) in settings.config.items("assets"):
         if dict_contains_dotkey(fields, asset_field_name):
