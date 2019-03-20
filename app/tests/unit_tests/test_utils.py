@@ -72,7 +72,7 @@ class TestUtils(unittest.TestCase):
 
     # fields: {hostname: [WIN-DRA, WIN-EVB], draman}
     # output: [[WIN-DRA, draman], [WIN-EVB, draman]]
-    def test_flatten_fields_into_sentences(self):
+    def test_flatten_fields_into_sentences_1(self):
         sentence_format = ["hostname", "username"]
         fields = dict({"hostname": ["WIN-A", "WIN-B"], "username": "draman"})
 
@@ -81,12 +81,16 @@ class TestUtils(unittest.TestCase):
         expected_res = [['WIN-A', 'draman'], ['WIN-B', 'draman']]
         self.assertEqual(res, expected_res)
 
+    def test_flatten_fields_into_sentences_2(self):
+        sentence_format = ["hostname", "username"]
         fields = dict({"hostname": ["WIN-A", "WIN-B"], "username": ["evb", "draman"]})
         res = helpers.utils.flatten_fields_into_sentences(fields, sentence_format)
 
         expected_res = [['WIN-A', 'evb'], ['WIN-B', 'evb'], ['WIN-A', 'draman'], ['WIN-B', 'draman']]
         self.assertEqual(res, expected_res)
 
+    def test_flatten_fields_into_sentences_3(self):
+        sentence_format = ["hostname", "username"]
         fields = dict({"hostname": ["WIN-A", "WIN-A"], "username": ["evb", "draman"]})
         res = helpers.utils.flatten_fields_into_sentences(fields, sentence_format)
 
@@ -94,6 +98,7 @@ class TestUtils(unittest.TestCase):
         expected_res = [['WIN-A', 'evb'], ['WIN-A', 'evb'], ['WIN-A', 'draman'], ['WIN-A', 'draman']]
         self.assertEqual(res, expected_res)
 
+    def test_flatten_fields_into_sentences_complex(self):
         # More complex example
         sentence_format = ["intro", "event_type", "source_ip", "ip_summary_legacy", "info"]
         fields = {'intro': ['Intro 1', 'Intro 2'], 'event_type': 'test_event', 'source_ip': '8.8.8.8', 'ip_summary_legacy': ['Summary 1', 'Summary 2'], 'info': ['Info 1', 'Info 2']}
