@@ -46,22 +46,27 @@ class TestUtils(unittest.TestCase):
         mill_str = millify(1000000)
         self.assertEqual(mill_str, "1M")
 
-    def test_flatten_sentence(self):
+    def test_flatten_sentence_two_elements(self):
         test_sentence = ["test", "123"]
         self.assertEqual("test - 123", helpers.utils.flatten_sentence(test_sentence))
 
+    def test_flatten_sentence_complex_nested_list(self):
         test_sentence = ["test", ["123", "234"]]  # Too complex, we don't flatten this, there is no reasonable way
         self.assertEqual(None, helpers.utils.flatten_sentence(test_sentence))
 
+    def test_flatten_single_number(self):
         test_sentence = 1
         self.assertEqual("1", helpers.utils.flatten_sentence(test_sentence))
 
+    def test_flatten_list_of_two_numbers(self):
         test_sentence = [1, 2]
         self.assertEqual("1 - 2", helpers.utils.flatten_sentence(test_sentence))
 
+    def test_flatten_none(self):
         test_sentence = None
         self.assertEqual(None, helpers.utils.flatten_sentence(test_sentence))
 
+    def test_flatten_test_string(self):
         test_sentence = "test"
         self.assertEqual("test", helpers.utils.flatten_sentence(test_sentence))
 
