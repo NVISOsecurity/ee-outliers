@@ -23,23 +23,26 @@ class TestUtils(unittest.TestCase):
         if helpers.utils.match_ip_ranges("127.0.0.1", ["192.0.0.1/16"]):
             raise AssertionError("Error matching IP ranges!")
 
-    def test_shannon_entropy(self):
+    def test_shannon_entropy_dummy(self):
         _str = "dummy"
         entropy = helpers.utils.shannon_entropy(_str)
         self.assertAlmostEqual(entropy, 1.921928094887)
 
+    def test_shannon_entropy_empty_string(self):
         _str = ""
         entropy = helpers.utils.shannon_entropy(_str)
         self.assertAlmostEqual(entropy, 0)
 
-    def test_millify(self):
+    def test_millify_25k(self):
         mill_str = millify(25000)
         self.assertEqual(mill_str, "25k")
 
+    def test_millify_1000k(self):
         # This is a bug in the library!!
         mill_str = millify(999999)
         self.assertEqual(mill_str, "1000k")
 
+    def test_millify_1M(self):
         mill_str = millify(1000000)
         self.assertEqual(mill_str, "1M")
 
