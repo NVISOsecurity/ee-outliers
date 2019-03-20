@@ -196,7 +196,7 @@ def replace_placeholder_string_with_fields(placeholder, fields):
 
     for field_name in field_name_list:
         try:
-            placeholder = placeholder.replace('{' + field_name + '}', flatten_field(helpers.utils.get_dotkey_value(fields, field_name)))
+            placeholder = placeholder.replace('{' + field_name + '}', flatten_field(helpers.utils.get_dotkey_value(fields, field_name, case_sensitive=False)))
         except KeyError:
             placeholder = placeholder.replace('{' + field_name + '}', "{field " + field_name + " not found in event}")
 

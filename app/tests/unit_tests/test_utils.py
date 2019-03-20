@@ -99,15 +99,21 @@ class TestUtils(unittest.TestCase):
 
         self.assertEqual(len(sentences), expected_sentences_length)
 
-    def test_replace_placeholder_fields_with_values(self):
+    def test_replace_placeholder_fields_with_values_no_match(self):
         res = helpers.utils.replace_placeholder_fields_with_values(placeholder="this one has no placeholders", fields=None)
         self.assertEqual(res, "this one has no placeholders")
 
+    def test_replace_placeholder_fields_with_values_single_match(self):
         res = helpers.utils.replace_placeholder_fields_with_values(placeholder="this one has {one} placeholders", fields=dict({"one": "hello"}))
         self.assertEqual(res, "this one has hello placeholders")
 
+    def test_replace_placeholder_fields_with_values_two_matches(self):
         res = helpers.utils.replace_placeholder_fields_with_values(placeholder="{one} {two}!", fields=dict({"one": "hello", "two": "world"}))
         self.assertEqual(res, "hello world!")
+
+    def test_replace_placeholder_fields_with_values_case_insensitive_match(self):
+        res = helpers.utils.replace_placeholder_fields_with_values(placeholder="this one has {OnE} case insensitive placeholders", fields=dict({"one": "hello", "two":"world"}))
+        self.assertEqual(res, "this one has hello case insensitive placeholders")
 
     def test_is_base64_encoded(self):
         test_str = None
@@ -152,6 +158,7 @@ class TestUtils(unittest.TestCase):
         orig_doc = copy.deepcopy(doc_with_outlier_test_file)
         fields = es.extract_fields_from_document(orig_doc)
 
+        # test case for simple asset matching
         outlier_assets = helpers.utils.extract_outlier_asset_information(fields, settings)
         self.assertIn("user: dummyuser", outlier_assets)
         self.assertIn("host: DUMMY-PC", outlier_assets)
@@ -159,15 +166,49 @@ class TestUtils(unittest.TestCase):
         orig_doc = copy.deepcopy(doc_with_asset_edgecases)
         fields = es.extract_fields_from_document(orig_doc)
 
+        # test case for asset fields containing multiple values in an array
         outlier_assets = helpers.utils.extract_outlier_asset_information(fields, settings)
         self.assertIn("user: dummyuser1, dummyuser2", outlier_assets)  # test case for array assets
-        self.assertEqual(len(outlier_assets), 1)  # blank asset fields, such as the PC name in the JSON file, should NOT be added as assets
+        self.assertEqual(len(outlier_assets), 2)  # blank asset fields, such as the PC name in the JSON file, should NOT be added as assets. Both IP and user should match, so 2 matches.
 
-    def test_dict_contains_dotkey(self):
-        # case sensitive key matching
+        # test case for case insensitive asset matching
+        orig_doc = copy.deepcopy(doc_with_outlier_test_file)
+        fields = es.extract_fields_from_document(orig_doc)
+        outlier_assets = helpers.utils.extract_outlier_asset_information(fields, settings)
+        self.assertIn("ip: 192.168.67.175", outlier_assets)
+
+    def test_dict_contains_dotkey_case_sensitive_matches(self):
+        # case sensitive key matching - match
         test_key = "_source.OsqueryFilter.total_size"
-        self.assertTrue(helpers.utils.dict_contains_dotkey(doc_with_asset_edgecases, test_key))
+        self.assertTrue(helpers.utils.dict_contains_dotkey(doc_with_asset_edgecases, test_key, case_sensitive=True))
 
-        # case insensitive key mtching
+        # case sensitive key matching - match
+        test_key = "_source.OsqueryFilter"
+        self.assertTrue(helpers.utils.dict_contains_dotkey(doc_with_asset_edgecases, test_key, case_sensitive=True))
+
+    def test_dict_contains_dotkey_case_sensitive_mismatches(self):
+        # case sensitive key matching - mismatch
         test_key = "_source.Osqueryfilter.total_size"
-        self.assertTrue(helpers.utils.dict_contains_dotkey(doc_with_asset_edgecases, test_key))
+        self.assertFalse(helpers.utils.dict_contains_dotkey(doc_with_asset_edgecases, test_key, case_sensitive=True))
+
+    def test_dict_contains_dotkey_case_insensitive_matches(self):
+        # case insensitive key matching - match
+        test_key = "_source.OsqueryFilter.total_size"
+        self.assertTrue(helpers.utils.dict_contains_dotkey(doc_with_asset_edgecases, test_key, case_sensitive=False))
+
+        # case insensitive key matching - match
+        test_key = "_sOurCe.OsqueryfIltEr.TotAl_Size"
+        self.assertTrue(helpers.utils.dict_contains_dotkey(doc_with_asset_edgecases, test_key, case_sensitive=False))
+
+    def test_dict_contains_dotkey_case_insensitive_mismatches(self):
+        # case insensitive key matching - mismatch
+        test_key = "_sourceS.OsqueryFilter.total_size"
+        self.assertFalse(helpers.utils.dict_contains_dotkey(doc_with_asset_edgecases, test_key, case_sensitive=False))
+
+        # case insensitive key matching - mismatch
+        test_key = "_source.OsqueryFilterZ.total_size"
+        self.assertFalse(helpers.utils.dict_contains_dotkey(doc_with_asset_edgecases, test_key, case_sensitive=False))
+
+        # case insensitive key matching - mismatch
+        test_key = "_sOurCez"
+        self.assertFalse(helpers.utils.dict_contains_dotkey(doc_with_asset_edgecases, test_key, case_sensitive=False))

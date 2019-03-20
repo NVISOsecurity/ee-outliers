@@ -1,5 +1,6 @@
 import time
 import os
+import sys
 
 import traceback
 from datetime import datetime
@@ -22,6 +23,16 @@ from analyzers import beaconing_generic
 ##############
 # Entrypoint #
 ##############
+if settings.args.run_mode == "tests":
+    import unittest
+
+    test_filename = 'test_*.py'
+    test_directory = '/app/tests/unit_tests'
+
+    suite = unittest.TestLoader().discover(test_directory, pattern=test_filename)
+    unittest.TextTestRunner(verbosity=settings.config.getint("general", "log_verbosity")).run(suite)
+    sys.exit()
+
 # Configuration for which we need access to both settings and logging singletons should happen here
 logging.verbosity = settings.config.getint("general", "log_verbosity")
 logging.logger.setLevel(settings.config.get("general", "log_level"))
@@ -143,13 +154,3 @@ if settings.args.run_mode == "interactive":
         housekeeping_job.join()
 
     logging.logger.info("finished performing outlier detection")
-
-if settings.args.run_mode == "tests":
-    import unittest
-
-    test_filename = 'test_*.py'
-    test_directory = '/app/tests/unit_tests'
-
-    suite = unittest.TestLoader().discover(test_directory, pattern=test_filename)
-    unittest.TextTestRunner(verbosity=settings.config.getint("general", "log_verbosity")).run(suite)
-    logging.logger.info("finished running tests")
