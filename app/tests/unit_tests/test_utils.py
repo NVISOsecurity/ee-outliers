@@ -128,24 +128,27 @@ class TestUtils(unittest.TestCase):
         res = helpers.utils.replace_placeholder_fields_with_values(placeholder="this one has {OnE} case insensitive placeholders", fields=dict({"one": "hello", "two":"world"}))
         self.assertEqual(res, "this one has hello case insensitive placeholders")
 
-    def test_is_base64_encoded(self):
+    def test_is_base64_encoded_none(self):
         test_str = None
         res = helpers.utils.is_base64_encoded(test_str)
         self.assertEqual(res, False)
 
+    def test_is_base64_encoded_hello_world(self):
         test_str = "hello world"
         res = helpers.utils.is_base64_encoded(test_str)
         self.assertEqual(res, False)
 
+    def test_is_base64_encoded_actual_encoded_string(self):
         test_str = "QVlCQUJUVQ=="
         res = helpers.utils.is_base64_encoded(test_str)
         self.assertEqual(res, "AYBABTU")
 
+    def test_is_base64_encoded_empty_string(self):
         test_str = ""
         res = helpers.utils.is_base64_encoded(test_str)
         self.assertEqual(res, "")
 
-    def test_decision_frontier(self):
+    def test_decision_frontier_percentile(self):
         with self.assertRaises(ValueError):
             helpers.utils.get_decision_frontier("does_not_exist", [0, 1, 2], 2, "high")
 
@@ -153,6 +156,7 @@ class TestUtils(unittest.TestCase):
         res = helpers.utils.get_decision_frontier("percentile", [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 10)
         self.assertEqual(res, 1)
 
+    def test_decision_frontier_mad_1(self):
         # Test MAD
         res = helpers.utils.get_decision_frontier("mad", [1, 1, 2, 2, 4, 6, 9], 1, "high")  # MAD should be 2
 
@@ -161,11 +165,15 @@ class TestUtils(unittest.TestCase):
         mad = 1
         self.assertEqual(median + sensitivity * mad, res)  # 1 = sensitivity, 1 = MAD, median = 2
 
+    def test_decision_mad_2(self):
         res = helpers.utils.get_decision_frontier("mad", [1, 1, 2, 2, 4, 6, 9], 2, "high")  # MAD should be 4
+
+        median = np.nanmedian([1, 1, 2, 2, 4, 6, 9])
         sensitivity = 2
+        mad = 1
         self.assertEqual(median + sensitivity * mad, res)  # 2 = sensitivity, 1 = MAD, median = 2
 
-    def test_extract_outlier_asset_information(self):
+    def test_extract_outlier_asset_information_simple_matching(self):
         from helpers.singletons import settings, es
 
         orig_doc = copy.deepcopy(doc_with_outlier_test_file)
@@ -176,6 +184,9 @@ class TestUtils(unittest.TestCase):
         self.assertIn("user: dummyuser", outlier_assets)
         self.assertIn("host: DUMMY-PC", outlier_assets)
 
+    def test_extract_outlier_asset_information_list_values(self):
+        from helpers.singletons import settings, es
+
         orig_doc = copy.deepcopy(doc_with_asset_edgecases)
         fields = es.extract_fields_from_document(orig_doc)
 
@@ -184,17 +195,21 @@ class TestUtils(unittest.TestCase):
         self.assertIn("user: dummyuser1, dummyuser2", outlier_assets)  # test case for array assets
         self.assertEqual(len(outlier_assets), 2)  # blank asset fields, such as the PC name in the JSON file, should NOT be added as assets. Both IP and user should match, so 2 matches.
 
+    def test_extract_outlier_asset_information_case_insensitive_value(self):
+        from helpers.singletons import settings, es
+
         # test case for case insensitive asset matching
         orig_doc = copy.deepcopy(doc_with_outlier_test_file)
         fields = es.extract_fields_from_document(orig_doc)
         outlier_assets = helpers.utils.extract_outlier_asset_information(fields, settings)
         self.assertIn("ip: 192.168.67.175", outlier_assets)
 
-    def test_dict_contains_dotkey_case_sensitive_matches(self):
+    def test_dict_contains_dotkey_case_sensitive_matches_full_dictionary_match(self):
         # case sensitive key matching - match
         test_key = "_source.OsqueryFilter.total_size"
         self.assertTrue(helpers.utils.dict_contains_dotkey(doc_with_asset_edgecases, test_key, case_sensitive=True))
 
+    def test_dict_contains_dotkey_case_sensitive_matches_partial_dictionary_match(self):
         # case sensitive key matching - match
         test_key = "_source.OsqueryFilter"
         self.assertTrue(helpers.utils.dict_contains_dotkey(doc_with_asset_edgecases, test_key, case_sensitive=True))
@@ -204,24 +219,27 @@ class TestUtils(unittest.TestCase):
         test_key = "_source.Osqueryfilter.total_size"
         self.assertFalse(helpers.utils.dict_contains_dotkey(doc_with_asset_edgecases, test_key, case_sensitive=True))
 
-    def test_dict_contains_dotkey_case_insensitive_matches(self):
+    def test_dict_contains_dotkey_case_insensitive_matches_full_match(self):
         # case insensitive key matching - match
         test_key = "_source.OsqueryFilter.total_size"
         self.assertTrue(helpers.utils.dict_contains_dotkey(doc_with_asset_edgecases, test_key, case_sensitive=False))
 
+    def test_dict_contains_dotkey_case_insensitive_matches_lots_of_case_changes_match(self):
         # case insensitive key matching - match
         test_key = "_sOurCe.OsqueryfIltEr.TotAl_Size"
         self.assertTrue(helpers.utils.dict_contains_dotkey(doc_with_asset_edgecases, test_key, case_sensitive=False))
 
-    def test_dict_contains_dotkey_case_insensitive_mismatches(self):
+    def test_dict_contains_dotkey_case_insensitive_mismatches_first_element(self):
         # case insensitive key matching - mismatch
         test_key = "_sourceS.OsqueryFilter.total_size"
         self.assertFalse(helpers.utils.dict_contains_dotkey(doc_with_asset_edgecases, test_key, case_sensitive=False))
 
+    def test_dict_contains_dotkey_case_insensitive_mismatches_second_element(self):
         # case insensitive key matching - mismatch
         test_key = "_source.OsqueryFilterZ.total_size"
         self.assertFalse(helpers.utils.dict_contains_dotkey(doc_with_asset_edgecases, test_key, case_sensitive=False))
 
+    def test_dict_contains_dotkey_case_insensitive_mismatches_first_and_only_element(self):
         # case insensitive key matching - mismatch
         test_key = "_sOurCez"
         self.assertFalse(helpers.utils.dict_contains_dotkey(doc_with_asset_edgecases, test_key, case_sensitive=False))
