@@ -1,5 +1,7 @@
 import configparser
 import argparse
+import dateutil.parser
+
 from helpers.singleton import singleton
 from . import es
 
@@ -80,3 +82,8 @@ class Settings:
 
     def get_items(self, section=None):
         return self.config.items(section)
+
+    def get_time_window_info(self):
+        search_start_range_printable = dateutil.parser.parse(self.search_range_start).strftime('%Y-%m-%d %H:%M:%S')
+        search_end_range_printable = dateutil.parser.parse(self.search_range_end).strftime('%Y-%m-%d %H:%M:%S')
+        return "processing events between " + search_start_range_printable + " and " + search_end_range_printable

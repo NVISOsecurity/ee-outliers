@@ -69,12 +69,6 @@ def perform_analysis():
     svm_generic.perform_analysis()
     word2vec_generic.perform_analysis()
 
-
-# Prepare log messages
-search_start_range_printable = dateutil.parser.parse(settings.search_range_start).strftime('%Y-%m-%d %H:%M:%S')
-search_end_range_printable = dateutil.parser.parse(settings.search_range_end).strftime('%Y-%m-%d %H:%M:%S')
-time_window_info = "processing events between " + search_start_range_printable + " and " + search_end_range_printable
-
 # Run modes
 if settings.args.run_mode == "daemon":
     # In daemon mode, we also want to monitor the configuration file for changes.
@@ -115,7 +109,7 @@ if settings.args.run_mode == "daemon":
             logging.logger.info("wiping all existing outliers on first run")
             es.remove_all_outliers()
 
-        logging.logger.info(time_window_info)
+        logging.logger.info(settings.get_time_window_info())
 
         # We place all of this in a try catch-all, so that any errors thrown by the analysis (timeouts, errors) won't make the daemon loop stop
         housekeeping_job = HousekeepingJob()
@@ -138,7 +132,7 @@ if settings.args.run_mode == "interactive":
         logging.logger.info("wiping all existing outliers")
         es.remove_all_outliers()
 
-    logging.logger.info(time_window_info)
+    logging.logger.info(settings.get_time_window_info())
 
     housekeeping_job = HousekeepingJob()
     housekeeping_job.start()
