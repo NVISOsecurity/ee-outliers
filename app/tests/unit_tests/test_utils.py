@@ -125,7 +125,7 @@ class TestUtils(unittest.TestCase):
         self.assertEqual(res, "hello world!")
 
     def test_replace_placeholder_fields_with_values_case_insensitive_match(self):
-        res = helpers.utils.replace_placeholder_fields_with_values(placeholder="this one has {OnE} case insensitive placeholders", fields=dict({"one": "hello", "two":"world"}))
+        res = helpers.utils.replace_placeholder_fields_with_values(placeholder="this one has {OnE} case insensitive placeholders", fields=dict({"one": "hello", "two": "world"}))
         self.assertEqual(res, "this one has hello case insensitive placeholders")
 
     def test_is_base64_encoded_none(self):
