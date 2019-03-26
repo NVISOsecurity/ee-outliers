@@ -61,9 +61,6 @@ class Outlier:
         # If nothing of this matches, the item does not match
         return False
 
-    def get_summary(self):
-        return self.outlier_dict["summary"]
-
     def get_outlier_dict_of_arrays(self):
         outlier_dict_of_arrays = dict()
 

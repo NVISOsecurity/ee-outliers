@@ -109,7 +109,7 @@ class ES:
         for outlier in outliers:
             if outlier.is_whitelisted(additional_dict_values_to_check=doc):
                 if self.settings.config.getboolean("general", "print_outliers_to_console"):
-                    self.logging.logger.info(outlier.get_summary() + " [whitelisted outlier]")
+                    self.logging.logger.info(outlier.outlier_dict["summary"] + " [whitelisted outlier]")
             else:
                 if self.settings.config.getboolean("general", "es_save_results"):
                     self.save_outlier(doc=doc, outlier=outlier)
@@ -118,7 +118,7 @@ class ES:
                     self.notifier.notify_on_outlier(doc=doc, outlier=outlier)
 
                 if self.settings.config.getboolean("general", "print_outliers_to_console"):
-                    self.logging.logger.info("outlier - " + outlier.get_summary())
+                    self.logging.logger.info("outlier - " + outlier.outlier_dict["summary"])
 
     def save_outlier(self, doc=None, outlier=None):
         # add the derived fields as outlier observations
@@ -167,7 +167,7 @@ def add_outlier_to_document(doc, outlier):
     doc = add_tag_to_document(doc, "outlier")
 
     if "outliers" in doc["_source"]:
-        if outlier.get_summary() not in doc["_source"]["outliers"]["summary"]:
+        if outlier.outlier_dict["summary"] not in doc["_source"]["outliers"]["summary"]:
             merged_outliers = defaultdict(list)
             for k, v in chain(doc["_source"]["outliers"].items(), outlier.get_outlier_dict_of_arrays().items()):
 
