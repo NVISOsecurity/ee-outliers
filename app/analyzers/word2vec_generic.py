@@ -119,7 +119,7 @@ def evaluate_model(model_name=None, model_settings=None):
                 outliers = evaluate_batch_for_outliers(w2v_model=w2v_model, eval_sentences=eval_sentences, raw_docs=raw_docs, model_settings=model_settings)
 
                 if len(outliers) > 0:
-                    unique_summaries = len(set(o.get_observation("summary") for o in outliers))
+                    unique_summaries = len(set(o.outlier_dict["summary"] for o in outliers))
                     logging.logger.info("total outliers in batch processed: " + str(len(outliers)) + " [" + str(unique_summaries) + " unique]")
 
                 # Reset data structures for next batch
@@ -179,7 +179,7 @@ def evaluate_batch_for_outliers(w2v_model=None, eval_sentences=None, raw_docs=No
             outlier_summary = replace_placeholder_string_with_fields(outlier_summary, fields)
 
             outlier = Outlier(type=model_settings["outlier_type"], reason=model_settings["outlier_reason"], summary=outlier_summary)
-            outlier.add_observation("probability", str(single_sentence_prob))
+            outlier.outlier_dict["probability"] = str(single_sentence_prob)
 
             outliers.append(outlier)
             es.process_outliers(doc=raw_docs[i], outliers=[outlier], should_notify=model_settings["should_notify"])

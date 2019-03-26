@@ -51,14 +51,14 @@ def evaluate_model(model_name=None, model_settings=None):
         outlier = Outlier(type=model_settings["outlier_type"], reason=model_settings["outlier_reason"], summary=outlier_summary)
 
         if len(outlier_assets) > 0:
-            outlier.add_observation("assets", outlier_assets)
+            outlier.outlier_dict["assets"] = outlier_assets
 
         outliers.append(outlier)
 
         es.process_outliers(doc=doc, outliers=[outlier], should_notify=model_settings["should_notify"])
 
     if len(outliers) > 0:
-        unique_summaries = len(set(o.get_observation("summary") for o in outliers))
+        unique_summaries = len(set(o.outlier_dict["summary"] for o in outliers))
         logging.logger.info("total outliers in batch processed: " + str(len(outliers)) + " [" + str(unique_summaries) + " unique]")
 
 

@@ -202,7 +202,7 @@ def evaluate_model(model_name=None, model_settings=None):
             outliers, remaining_metrics = evaluate_batch_for_outliers(metrics=eval_metrics, model_settings=model_settings, last_batch=last_batch)
 
             if len(outliers) > 0:
-                unique_summaries = len(set(o.get_observation("summary") for o in outliers))
+                unique_summaries = len(set(o.outlier_dict["summary"] for o in outliers))
                 logging.logger.info("total outliers in batch processed: " + str(len(outliers)) + " [" + str(unique_summaries) + " unique summaries]")
             else:
                 logging.logger.info("no outliers detected in batch")
@@ -256,12 +256,12 @@ def evaluate_batch_for_outliers(metrics=None, model_settings=None, last_batch=Fa
 
                 outlier = Outlier(type=model_settings["outlier_type"], reason=model_settings["outlier_reason"], summary=outlier_summary)
 
-                outlier.add_observation("metric", metric_value)
-                outlier.add_observation("decision_frontier", decision_frontier)
-                outlier.add_observation("confidence", confidence)
+                outlier.outlier_dict["metric"] = metric_value
+                outlier.outlier_dict["decision_frontier"] = decision_frontier
+                outlier.outlier_dict["confidence"] = confidence
 
                 for k, v in observations.items():
-                    outlier.add_observation(k, v)
+                    outlier.outlier_dict[k] = v
 
                 outliers.append(outlier)
                 es.process_outliers(doc=metrics[aggregator_value]["raw_docs"][ii], outliers=[outlier], should_notify=model_settings["should_notify"])

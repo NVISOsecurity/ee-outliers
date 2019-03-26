@@ -124,7 +124,7 @@ class ES:
         # add the derived fields as outlier observations
         derived_fields = self.extract_derived_fields(doc["_source"])
         for derived_field, derived_value in derived_fields.items():
-            outlier.add_observation("derived_" + derived_field, derived_value)
+            outlier.outlier_dict["derived_" + derived_field] = derived_value
 
         doc = add_outlier_to_document(doc, outlier)
 

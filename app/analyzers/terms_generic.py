@@ -152,7 +152,7 @@ def evaluate_model(model_name=None, model_settings=None, brute_force=False):
             outliers = evaluate_batch_for_outliers(terms=eval_terms_array, model_settings=model_settings)
 
             if len(outliers) > 0:
-                unique_summaries = len(set(o.get_observation("summary") for o in outliers))
+                unique_summaries = len(set(o.outlier_dict["summary"] for o in outliers))
                 logging.logger.info("total outliers in batch processed: " + str(len(outliers)) + " [" + str(unique_summaries) + " unique summaries]")
                 outlier_batches_trend += 1
             else:
@@ -278,7 +278,7 @@ def process_outlier(decision_frontier, non_outlier_values_sample, term_value_cou
     outlier = Outlier(type=model_settings["outlier_type"], reason=model_settings["outlier_reason"], summary=outlier_summary)
 
     for k, v in observations.items():
-        outlier.add_observation(k, v)
+        outlier.outlier_dict[k] = v
 
     es.process_outliers(doc=terms[aggregator_value]["raw_docs"][ii], outliers=[outlier], should_notify=model_settings["should_notify"])
     return outlier

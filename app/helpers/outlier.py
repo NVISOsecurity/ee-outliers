@@ -10,12 +10,6 @@ class Outlier:
         self.outlier_dict["reason"] = reason
         self.outlier_dict["summary"] = summary
 
-    def add_observation(self, field_name, field_value):
-        self.outlier_dict[field_name] = field_value
-
-    def get_observation(self, field_name):
-        return self.outlier_dict[field_name]
-
     def is_whitelisted(self, additional_dict_values_to_check=None):
         # Check if value is whitelisted as literal
         for (each_whitelist_key, each_whitelist_val) in settings.config.items("whitelist_literals"):
