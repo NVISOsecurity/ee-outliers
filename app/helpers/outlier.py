@@ -1,6 +1,7 @@
 from helpers.singletons import settings
 import re
 import helpers.utils
+import textwrap
 
 
 class Outlier:
@@ -8,7 +9,7 @@ class Outlier:
         self.outlier_dict = dict()
         self.outlier_dict["type"] = type.split(",")  # can be multiple types, for example: malware, powershell
         self.outlier_dict["reason"] = reason
-        self.outlier_dict["summary"] = summary
+        self.outlier_dict["summary"] = textwrap.wrap(summary, width=300) # hard-wrap the length of a summary line to 300 characters to make it easier to visualize
 
     def is_whitelisted(self, additional_dict_values_to_check=None):
         # Check if value is whitelisted as literal
