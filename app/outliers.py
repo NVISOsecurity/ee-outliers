@@ -111,7 +111,7 @@ if settings.args.run_mode == "daemon":
 
         logging.logger.info(settings.get_time_window_info())
 
-        # We place all of this in a try catch-all, so that any errors thrown by the analysis (timeouts, errors) won't make the daemon loop stop
+        # We place all of this in a try catch-all, so that any errors thrown by the analyzers (timeouts, errors) won't make the daemon loop stop
         housekeeping_job = HousekeepingJob()
         housekeeping_job.start()
 
