@@ -1,4 +1,6 @@
 import time
+import os
+import sys
 
 import traceback
 from datetime import datetime
@@ -8,7 +10,6 @@ from helpers.singletons import settings, logging, es
 from helpers.utils import FileModificationWatcher
 from helpers.housekeeping import HousekeepingJob
 
-import os
 import dateutil.parser
 
 from analyzers import metrics_generic
@@ -22,18 +23,28 @@ from analyzers import beaconing_generic
 ##############
 # Entrypoint #
 ##############
+if settings.args.run_mode == "tests":
+    import unittest
+
+    test_filename = 'test_*.py'
+    test_directory = '/app/tests/unit_tests'
+
+    suite = unittest.TestLoader().discover(test_directory, pattern=test_filename)
+    unittest.TextTestRunner(verbosity=settings.config.getint("general", "log_verbosity")).run(suite)
+    sys.exit()
+
 # Configuration for which we need access to both settings and logging singletons should happen here
 logging.verbosity = settings.config.getint("general", "log_verbosity")
 logging.logger.setLevel(settings.config.get("general", "log_level"))
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = settings.config.get("machine_learning", "tensorflow_log_level")
 
 # Log Handlers
-log_file = settings.config.get("general", "log_file")
+LOG_FILE = settings.config.get("general", "log_file")
 
-if os.path.exists(os.path.dirname(log_file)):
-    logging.add_file_handler(log_file)
+if os.path.exists(os.path.dirname(LOG_FILE)):
+    logging.add_file_handler(LOG_FILE)
 else:
-    logging.logger.warning("log directory for log file " + log_file + " does not exist, check your settings! Only logging to stdout.")
+    logging.logger.warning("log directory for log file %s does not exist, check your settings! Only logging to stdout.", LOG_FILE)
 
 logging.logger.info("outliers.py started - contact: research@nviso.be")
 logging.logger.info("run mode: " + settings.args.run_mode)
@@ -41,7 +52,7 @@ logging.logger.info("run mode: " + settings.args.run_mode)
 logging.print_generic_intro("initializing")
 logging.logger.info("loaded " + str(len(settings.loaded_config_paths)) + " configuration files")
 
-if len(settings.failed_config_paths) > 0:
+if settings.failed_config_paths:
     logging.logger.warning("failed to load " + str(len(settings.failed_config_paths)) + " configuration files")
 
     for failed_config_path in settings.failed_config_paths:
@@ -49,6 +60,7 @@ if len(settings.failed_config_paths) > 0:
 
 
 def perform_analysis():
+    """ The entrypoint for analysis """
     test_generic.perform_analysis()
     beaconing_generic.perform_analysis()
     metrics_generic.perform_analysis()
@@ -142,13 +154,3 @@ if settings.args.run_mode == "interactive":
         housekeeping_job.join()
 
     logging.logger.info("finished performing outlier detection")
-
-if settings.args.run_mode == "tests":
-    import unittest
-
-    test_filename = 'test_*.py'
-    test_directory = '/app/tests/unit_tests'
-
-    suite = unittest.TestLoader().discover(test_directory, pattern=test_filename)
-    unittest.TextTestRunner(verbosity=settings.config.getint("general", "log_verbosity")).run(suite)
-    logging.logger.info("finished running tests")

@@ -44,49 +44,38 @@ def flatten_dict(d, parent_key='', sep='.'):
     return dict(items)
 
 
-def dict_contains_dotkey(dict_value, key_name):
+def dict_contains_dotkey(dict_value, key_name, case_sensitive=True):
     try:
-        get_dotkey_value(dict_value, key_name)
+        get_dotkey_value(dict_value, key_name, case_sensitive)
         return True
     except KeyError:
         return False
 
 
-def get_safe_dotkey_value(dict_value, key_name):
-    try:
-        v = get_dotkey_value(dict_value, key_name)
-        return v
-    except KeyError:
-        return None
-
-
-def get_dotkey_value(dict_value, key_name):
-    """Get value by dot key in dictionary"""
+def get_dotkey_value(dict_value, key_name, case_sensitive=True):
+    """
+    Get value by dot key in dictionary
+    By default, the dotkey is matched case sensitive; for example, key "OsqueryFilter.process_name" will only match if
+    the event contains a nested dictionary with keys "OsqueryFilter" and "process_name".
+    By changing the case_sensitive parameter to "False", all elements of the dot key will be matched case insensitive.
+    For example, key "OsqueryFilter.process_name" will also match a nested dictionary with keys "osqueryfilter" and "prOcEss_nAme".
+    """
     keys = key_name.split(".")
+
     for k in keys:
-        dict_value = dict_value[k]
+        if not case_sensitive:
+            dict_keys = list(dict_value.keys())
+            lowercase_keys = list(map(str.lower, dict_keys))
+            lowercase_key_to_match = k.lower()
+            if lowercase_key_to_match in lowercase_keys:
+                matched_index = lowercase_keys.index(lowercase_key_to_match)
+                dict_value = dict_value[dict_keys[matched_index]]
+            else:
+                raise KeyError
+        else:
+            dict_value = dict_value[k]
 
     return dict_value
-
-
-class DictQuery(dict):
-    def get(self, path, default=None):
-        keys = path.split(".")
-        val = None
-
-        for key in keys:
-            if val:
-                if isinstance(val, list):
-                    val = [v.get(key, default) if v else None for v in val]
-                else:
-                    val = val.get(key, default)
-            else:
-                val = dict.get(self, key, default)
-
-            if not val:
-                break
-
-        return val
 
 
 def parse_datestring(datestr=None, _format="auto"):
@@ -160,9 +149,14 @@ def is_in_top_x(array, el, top_n):
 
 
 def extract_outlier_asset_information(fields, settings):
+    """
+    :param fields: the dictionary containing all the event information
+    :param settings: the settings object which also includes the configuration file that is used
+    :return:
+    """
     outlier_assets = list()
     for (asset_field_name, asset_field_type) in settings.config.items("assets"):
-        if dict_contains_dotkey(fields, asset_field_name):
+        if dict_contains_dotkey(fields, asset_field_name, case_sensitive=False):
             asset_field_value = replace_placeholder_fields_with_values("{" + asset_field_name + "}", fields)
             if asset_field_value:  # make sure we don't process empty process information, for example an empty user field
                 outlier_assets.append(replace_placeholder_fields_with_values(asset_field_type + ": {" + asset_field_name + "}", fields))
@@ -202,15 +196,15 @@ def flatten_fields_into_sentences(fields=None, sentence_format=None):
 
     for i, field_name in enumerate(sentence_format):
         new_sentences = []
-        if type(get_dotkey_value(fields, field_name)) is list:
-            for field_value in get_dotkey_value(fields, field_name):
+        if type(get_dotkey_value(fields, field_name, case_sensitive=True)) is list:
+            for field_value in get_dotkey_value(fields, field_name, case_sensitive=True):
                 for sentence in sentences:
                     sentence_copy = sentence.copy()
                     sentence_copy.append(flatten_sentence(field_value))
                     new_sentences.append(sentence_copy)
         else:
             for sentence in sentences:
-                sentence.append(flatten_sentence(get_dotkey_value(fields, field_name)))
+                sentence.append(flatten_sentence(get_dotkey_value(fields, field_name, case_sensitive=True)))
                 new_sentences.append(sentence)
 
         sentences = new_sentences.copy()
@@ -239,14 +233,14 @@ def replace_placeholder_fields_with_values(placeholder, fields):
     field_name_list = regex.findall(placeholder)  # ['source_ip','destination_ip'] for example
 
     for field_name in field_name_list:
-        if dict_contains_dotkey(fields, field_name):
-            if type(get_dotkey_value(fields, field_name)) is list:
+        if dict_contains_dotkey(fields, field_name, case_sensitive=False):
+            if type(get_dotkey_value(fields, field_name, case_sensitive=False)) is list:
                 try:
-                    field_value = ", ".join(get_dotkey_value(fields, field_name))
+                    field_value = ", ".join(get_dotkey_value(fields, field_name, case_sensitive=False))
                 except TypeError:
                     field_value = "complex field " + field_name
             else:
-                field_value = str(get_dotkey_value(fields, field_name))
+                field_value = str(get_dotkey_value(fields, field_name, case_sensitive=False))
 
             placeholder = placeholder.replace('{' + field_name + '}', field_value)
         else:

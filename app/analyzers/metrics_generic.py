@@ -81,7 +81,7 @@ def evaluate_model(model_name=None, model_settings=None):
         will_process_doc = False
 
         try:
-            target_value = helpers.utils.flatten_sentence(helpers.utils.get_dotkey_value(fields, model_settings["target"]))
+            target_value = helpers.utils.flatten_sentence(helpers.utils.get_dotkey_value(fields, model_settings["target"], case_sensitive=True))
             aggregator_sentences = helpers.utils.flatten_fields_into_sentences(fields=fields, sentence_format=model_settings["aggregator"])
             will_process_doc = True
         except (KeyError, TypeError):
