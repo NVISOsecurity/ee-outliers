@@ -1,7 +1,6 @@
 import math
 import urllib3
 import logging
-import json
 
 from helpers.singleton import singleton
 
