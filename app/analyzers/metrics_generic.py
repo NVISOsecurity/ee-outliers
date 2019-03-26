@@ -5,7 +5,7 @@ from helpers.outlier import Outlier
 from configparser import NoOptionError
 from helpers.utils import is_base64_encoded
 from helpers.singletons import settings, es, logging
-from helpers.outliers_detection import outliers_detection
+from helpers.utils import get_decision_frontier
 
 
 def perform_analysis():
@@ -54,13 +54,19 @@ def perform_analysis():
                     metrics = np.array(metrics)
                     docs = np.array(docs)
 
-                    outliers = outliers_detection(
-                        metrics,
+                    frontier = get_decision_frontier(
                         model_settings["trigger_method"],
+                        metrics,
                         model_settings["trigger_sensitivity"],
-                        model_settings["n_neighbors"],
                         model_settings["trigger_on"]
                     )
+
+                    if model_settings["trigger_on"] == 'low':
+                        outliers = np.arange(len(metrics))[metrics < frontier]
+                    elif model_settings["trigger_on"] == 'high':
+                        outliers = np.arange(len(metrics))[metrics > frontier]
+                    else:
+                        raise Exception('Wrong trigger_on value')
 
                     # Process outliers
                     for outlier in outliers:

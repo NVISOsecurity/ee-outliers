@@ -74,17 +74,14 @@ class ES:
         return field
 
     def scan(
-        self, bool_clause=None, sort_clause=None,
-        query_fields=None, lucene_query=None, sort=None
+        self, bool_clause=None, query_fields=None,
+        lucene_query=None, sort=None
     ):
-        preserve_order = True if sort_clause is not None else False
-
         if self.settings.config.getint("general", "ignore_history_window"):
             self.settings.search_range = None
 
         query = build_search_query(
             bool_clause=bool_clause,
-            sort_clause=sort_clause,
             search_range=self.settings.search_range,
             query_fields=query_fields,
             lucene_query=lucene_query
@@ -152,7 +149,9 @@ class ES:
         aggregations_iterator.stop = False
 
         while not aggregations_iterator.stop:
+            # yield aggregation, documents
             yield aggregations_iterator.agg, aggregations_iterator()
+
     def count_documents(self, bool_clause=None, query_fields=None, lucene_query=None):
         res = self.conn.search(index=self.index, body=build_search_query(bool_clause=bool_clause, search_range=self.settings.search_range, query_fields=query_fields, lucene_query=lucene_query), size=self.settings.config.getint("general", "es_scan_size"), scroll=self.settings.config.get("general", "es_scroll_time"))
         return res["hits"]["total"]
@@ -276,14 +275,14 @@ class ES:
     def extract_derived_fields(self, doc_fields):
         derived_fields = dict()
         for field_name, grok_pattern in self.settings.config.items("derivedfields"):
-            if helpers.utils.dict_contains_dotkey(doc_fields, field_name):
+            if helpers.utils.dict_contains_dotkey(doc_fields, field_name, case_sensitive=False):
                 if grok_pattern in self.grok_filters.keys():
                     grok = self.grok_filters[grok_pattern]
                 else:
                     grok = Grok(grok_pattern)
                     self.grok_filters[grok_pattern] = grok
 
-                match_dict = grok.match(helpers.utils.get_dotkey_value(doc_fields, field_name))
+                match_dict = grok.match(helpers.utils.get_dotkey_value(doc_fields, field_name, case_sensitive=False))
 
                 if match_dict:
                     for match_dict_k, match_dict_v in match_dict.items():

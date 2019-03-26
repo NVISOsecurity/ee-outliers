@@ -18,12 +18,18 @@ class TestOutlierOperations(unittest.TestCase):
     def setUp(self):
         pass
 
-    def test_add_remove_outlier_from_doc(self):
+    def test_add_outlier_to_doc(self):
         test_outlier = Outlier(type="dummy type", reason="dummy reason", summary="dummy summary")
         test_outlier.add_observation(field_name="observation", field_value="dummy observation")
 
         doc_with_outlier = helpers.es.add_outlier_to_document(doc_without_outlier_test_file, test_outlier)
         self.assertDictEqual(doc_with_outlier_test_file, doc_with_outlier)
+
+    def test_remove_outlier_from_doc(self):
+        test_outlier = Outlier(type="dummy type", reason="dummy reason", summary="dummy summary")
+        test_outlier.add_observation(field_name="observation", field_value="dummy observation")
+
+        doc_with_outlier = helpers.es.add_outlier_to_document(doc_without_outlier_test_file, test_outlier)
 
         doc_without_outlier = helpers.es.remove_outliers_from_document(doc_with_outlier)
         self.assertDictEqual(doc_without_outlier, doc_without_outlier_test_file)
@@ -81,13 +87,30 @@ class TestOutlierOperations(unittest.TestCase):
         if "outlier" in doc["_source"]["tags"]:
             raise AssertionError("Tag still present in document, even after removal!")
 
-    def test_whitelist(self):
+    def test_whitelist_literal_match(self):
         whitelist_item = r"C:\Windows\system32\msfeedssync.exe sync"
         test_outlier = Outlier(type="dummy type", reason="dummy reason", summary="dummy summary")
 
         result = test_outlier.matches_specific_whitelist_item(whitelist_item, "literal", additional_dict_values_to_check=doc_for_whitelist_testing_file)
         self.assertTrue(result)
 
+    def test_whitelist_literal_mismatch(self):
         whitelist_item = r"C:\Windows\system32\msfeedssync.exe syncWRONG"
+        test_outlier = Outlier(type="dummy type", reason="dummy reason", summary="dummy summary")
+
         result = test_outlier.matches_specific_whitelist_item(whitelist_item, "literal", additional_dict_values_to_check=doc_for_whitelist_testing_file)
+        self.assertFalse(result)
+
+    def test_whitelist_regexp_match(self):
+        whitelist_item = r"^.*.exe sync$"
+        test_outlier = Outlier(type="dummy type", reason="dummy reason", summary="dummy summary")
+
+        result = test_outlier.matches_specific_whitelist_item(whitelist_item, "regexp", additional_dict_values_to_check=doc_for_whitelist_testing_file)
+        self.assertTrue(result)
+
+    def test_whitelist_regexp_mismatch(self):
+        whitelist_item = r"^.*.exeZZZZZ sync$"
+        test_outlier = Outlier(type="dummy type", reason="dummy reason", summary="dummy summary")
+
+        result = test_outlier.matches_specific_whitelist_item(whitelist_item, "regexp", additional_dict_values_to_check=doc_for_whitelist_testing_file)
         self.assertFalse(result)
