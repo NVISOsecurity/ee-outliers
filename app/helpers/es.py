@@ -103,7 +103,7 @@ class ES:
         query["script"] = script
 
         if total_outliers > 0:
-            self.logging.logger.info("Wiping %d existing outliers", total_outliers)
+            self.logging.logger.info("wiping %d existing outliers", total_outliers)
             self.conn.update_by_query(index=idx, body=query, refresh=True, wait_for_completion=True)
             self.logging.logger.info("wiped outlier information of " + str(total_outliers) + " documents")
         else:
