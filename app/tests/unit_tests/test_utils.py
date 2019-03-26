@@ -192,8 +192,9 @@ class TestUtils(unittest.TestCase):
 
         # test case for asset fields containing multiple values in an array
         outlier_assets = helpers.utils.extract_outlier_asset_information(fields, settings)
-        self.assertIn("user: dummyuser1, dummyuser2", outlier_assets)  # test case for array assets
-        self.assertEqual(len(outlier_assets), 2)  # blank asset fields, such as the PC name in the JSON file, should NOT be added as assets. Both IP and user should match, so 2 matches.
+        self.assertIn("user: dummyuser1", outlier_assets)  # test case for array assets
+        self.assertIn("user: dummyuser2", outlier_assets)  # test case for array assets
+        self.assertEqual(len(outlier_assets), 3)  # blank asset fields, such as the PC name in the JSON file, should NOT be added as assets. Both IP and user should match, so 2 matches.
 
     def test_extract_outlier_asset_information_case_insensitive_value(self):
         from helpers.singletons import settings, es

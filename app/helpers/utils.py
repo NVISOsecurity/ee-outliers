@@ -98,9 +98,12 @@ def extract_outlier_asset_information(fields, settings):
     outlier_assets = list()
     for (asset_field_name, asset_field_type) in settings.config.items("assets"):
         if dict_contains_dotkey(fields, asset_field_name, case_sensitive=False):
-            asset_field_value = replace_placeholder_fields_with_values("{" + asset_field_name + "}", fields)
-            if asset_field_value:  # make sure we don't process empty process information, for example an empty user field
-                outlier_assets.append(replace_placeholder_fields_with_values(asset_field_type + ": {" + asset_field_name + "}", fields))
+
+            asset_field_values_including_empty = flatten_fields_into_sentences(fields, sentence_format=[asset_field_name])
+            asset_field_values = [sentence[0] for sentence in asset_field_values_including_empty if "" not in sentence]  # also remove all empty asset strings
+
+            for asset_field_value in asset_field_values:  # make sure we don't process empty process information, for example an empty user field
+                outlier_assets.append(asset_field_type + ": " + asset_field_value)
 
     return outlier_assets
 
@@ -137,15 +140,15 @@ def flatten_fields_into_sentences(fields=None, sentence_format=None):
 
     for i, field_name in enumerate(sentence_format):
         new_sentences = []
-        if type(get_dotkey_value(fields, field_name, case_sensitive=True)) is list:
-            for field_value in get_dotkey_value(fields, field_name, case_sensitive=True):
+        if type(get_dotkey_value(fields, field_name, case_sensitive=False)) is list:
+            for field_value in get_dotkey_value(fields, field_name, case_sensitive=False):
                 for sentence in sentences:
                     sentence_copy = sentence.copy()
                     sentence_copy.append(flatten_sentence(field_value))
                     new_sentences.append(sentence_copy)
         else:
             for sentence in sentences:
-                sentence.append(flatten_sentence(get_dotkey_value(fields, field_name, case_sensitive=True)))
+                sentence.append(flatten_sentence(get_dotkey_value(fields, field_name, case_sensitive=False)))
                 new_sentences.append(sentence)
 
         sentences = new_sentences.copy()
