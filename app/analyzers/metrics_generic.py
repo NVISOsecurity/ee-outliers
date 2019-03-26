@@ -99,9 +99,6 @@ def extract_metrics(target, model_settings):
     elif metric == 'length':
         target = len(target)
 
-    elif metric == 'entropy':
-        target = helpers.utils.shannon_entropy(target)
-
     elif metric == 'regex_len':
         regex = model_settings['regex']
         target = re.findall(regex, target)
