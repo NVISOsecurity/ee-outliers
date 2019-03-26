@@ -129,7 +129,6 @@ if settings.args.run_mode == "interactive":
     es.init_connection()
 
     if settings.config.getboolean("general", "es_wipe_all_existing_outliers"):
-        logging.logger.info("wiping all existing outliers")
         es.remove_all_outliers()
 
     logging.logger.info(settings.get_time_window_info())

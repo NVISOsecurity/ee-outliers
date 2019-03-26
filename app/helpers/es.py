@@ -1,6 +1,5 @@
 from elasticsearch import helpers as eshelpers, Elasticsearch
 import datetime
-import numpy
 import helpers.utils
 import helpers.logging
 from pygrok import Grok
@@ -89,18 +88,23 @@ class ES:
         return total_docs_whitelisted
 
     def remove_all_outliers(self):
+        idx = self.settings.config.get("general", "es_index_pattern")
+
         must_clause = {"must": [{"match": {"tags": "outlier"}}]}
         total_outliers = self.count_documents(bool_clause=must_clause)
-        self.logging.init_ticker(total_steps=total_outliers, desc="wiping existing outliers")
 
-        for doc in self.scan(bool_clause=must_clause):
-            self.logging.tick()
-            doc = remove_outliers_from_document(doc)
+        query = build_search_query(bool_clause=must_clause, search_range=self.settings.search_range)
 
-            self.conn.delete(index=doc["_index"], doc_type=doc["_type"], id=doc["_id"], refresh=True)
-            self.conn.create(index=doc["_index"], doc_type=doc["_type"], id=doc["_id"], body=doc["_source"], refresh=True)
+        script = {
+            "source": "ctx._source.remove(\"outliers\"); ctx._source.tags.remove(ctx._source.tags.indexOf(\"outlier\"))",
+            "lang": "painless"
+        }
+
+        query["script"] = script
 
         if total_outliers > 0:
+            self.logging.logger.info("Wiping %d existing outliers", total_outliers)
+            self.conn.update_by_query(index=idx, body=query, refresh=True, wait_for_completion=True)
             self.logging.logger.info("wiped outlier information of " + str(total_outliers) + " documents")
         else:
             self.logging.logger.info("no existing outliers were found, so nothing was wiped")
