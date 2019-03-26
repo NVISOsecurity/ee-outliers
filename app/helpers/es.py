@@ -5,6 +5,7 @@ import helpers.utils
 import helpers.logging
 from pygrok import Grok
 
+from functools import reduce
 from helpers.singleton import singleton
 from helpers.notifier import Notifier
 from collections import defaultdict
@@ -39,10 +40,119 @@ class ES:
 
         return self.conn
 
-    def scan(self, bool_clause=None, sort_clause=None, query_fields=None, lucene_query=None):
-        preserve_order = True if sort_clause is not None else False
-        return eshelpers.scan(self.conn, request_timeout=self.settings.config.getint("general", "es_timeout"), index=self.settings.config.get("general", "es_index_pattern"), query=build_search_query(bool_clause=bool_clause, sort_clause=sort_clause, search_range=self.settings.search_range, query_fields=query_fields, lucene_query=lucene_query), size=self.settings.config.getint("general", "es_scan_size"), scroll=self.settings.config.get("general", "es_scroll_time"), preserve_order=preserve_order, raise_on_error=True,)
+    def get_type(self, field):
+        '''
+        Params
+        - field (str) : Field we want to get the type
+                        (OsqueryFilter.name for example)
+        '''
+        mappings = self.conn.indices.get_mapping(
+            index=self.settings.config.get("general", "es_index_pattern"))
 
+        mappings = mappings[self.settings.config.get(
+            "general", "es_index_pattern")]["mappings"]
+        mappings = mappings[next(iter(mappings))]  # type
+        mappings = mappings['properties']
+
+        for v in field.split('.'):
+            mappings = mappings[v]
+            if 'properties' in mappings:
+                mappings = mappings['properties']
+
+        return mappings['type']
+
+    def get_field_by_path(self, doc, path):
+        '''
+        Return the field using the path
+        expl: OsqueryFilter.name
+        '''
+        fields = self.extract_fields_from_document(doc)
+        field = reduce(
+            (lambda x, y: x[y][-1] if isinstance(x[y], list) else x[y]),
+            [fields, *path.split('.')]
+        )
+        return field
+
+    def scan(
+        self, bool_clause=None, sort_clause=None,
+        query_fields=None, lucene_query=None, sort=None
+    ):
+        preserve_order = True if sort_clause is not None else False
+
+        if self.settings.config.getint("general", "ignore_history_window"):
+            self.settings.search_range = None
+
+        query = build_search_query(
+            bool_clause=bool_clause,
+            sort_clause=sort_clause,
+            search_range=self.settings.search_range,
+            query_fields=query_fields,
+            lucene_query=lucene_query
+        )
+
+        if sort:
+            preserve_order = True
+            query['sort'] = [
+                {v + '.keyword': {"order": "asc", "unmapped_type": "keyword"}}
+                # we don't need keyword to sort these types
+                if self.get_type(v) not in ['long', 'date']
+                else {v: {"order": "asc"}}
+                for v in sort
+            ]
+
+        return eshelpers.scan(
+            self.conn,
+            request_timeout=self.settings.config.getint(
+                "general", "es_timeout"),
+            index=self.settings.config.get("general", "es_index_pattern"),
+            query=query,
+            size=self.settings.config.getint("general", "es_scan_size"),
+            scroll=self.settings.config.get("general", "es_scroll_time"),
+            preserve_order=preserve_order, raise_on_error=True,
+            terminate_after=self.settings.config.get(
+                "general", "es_terminate_after")
+        )
+
+    def scan_aggregations(self, aggregator, es_query_filter):
+        '''
+        Usage
+        =====
+        for aggregation, documents in es.scan_aggregations(...):
+            for doc in documents:
+                pass
+        '''
+        lucene_query = self.filter_by_query_string(es_query_filter)
+
+        def aggregations_iterator():
+            yield aggregations_iterator.doc
+
+            for doc in aggregations_iterator.es_scan:
+                agg = self.get_field_by_path(doc, aggregator)
+
+                if agg != aggregations_iterator.agg:
+                    aggregations_iterator.agg = agg
+                    aggregations_iterator.doc = doc
+                    break
+
+                yield doc
+
+            else:
+                aggregations_iterator.stop = True
+
+        aggregations_iterator.es_scan = self.scan(
+            lucene_query=lucene_query, sort=[aggregator])
+
+        aggregations_iterator.doc = next(aggregations_iterator.es_scan)
+
+        aggregations_iterator.agg = self.get_field_by_path(
+            aggregations_iterator.doc,
+            aggregator
+        )
+
+        aggregations_iterator.stop = False
+
+        while not aggregations_iterator.stop:
+            yield aggregations_iterator.agg, aggregations_iterator()
     def count_documents(self, bool_clause=None, query_fields=None, lucene_query=None):
         res = self.conn.search(index=self.index, body=build_search_query(bool_clause=bool_clause, search_range=self.settings.search_range, query_fields=query_fields, lucene_query=lucene_query), size=self.settings.config.getint("general", "es_scan_size"), scroll=self.settings.config.get("general", "es_scroll_time"))
         return res["hits"]["total"]
