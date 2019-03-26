@@ -47,38 +47,10 @@ class ES:
         res = self.conn.search(index=self.index, body=build_search_query(bool_clause=bool_clause, search_range=self.settings.search_range, query_fields=query_fields, lucene_query=lucene_query), size=self.settings.config.getint("general", "es_scan_size"), scroll=self.settings.config.get("general", "es_scroll_time"))
         return res["hits"]["total"]
 
-    def sort_by_field_name(self, field_name, ascending=True):
-        order = 'asc' if ascending else 'desc'
-        sort_clause = {"sort": [
-            {field_name + ".raw": order}
-        ]}
-        return sort_clause
-
     def filter_by_query_string(self, query=None):
         bool_clause = {"must": [
             {"query_string": {"query": query}}
         ]}
-        return bool_clause
-
-    def filter_by_field_value(self, field_name=None, field_value=None):
-        bool_clause = {"must": [
-            {"match": {field_name + ".raw": field_value}},
-        ]}
-        return bool_clause
-
-    def filter_by_field_existance(self, field_name=None):
-        bool_clause = {"must": [
-            {"exists": {"field": field_name + ".raw"}}
-        ]}
-        return bool_clause
-
-    def filter_by_field_value_list(self, field_name=None, field_value_list=None):
-        bool_clause = {"should": [], "minimum_should_match": 1}
-
-        for field_value in field_value_list:
-            should_clause = dict({"match": {field_name + ".raw": field_value}})
-            bool_clause.get("should").append(should_clause)
-
         return bool_clause
 
     # this is part of housekeeping, so we should not access non-threat-save objects, such as logging progress to the console using ticks!
@@ -189,20 +161,6 @@ class ES:
             doc_fields[k] = v
 
         return doc_fields
-
-    # Filters
-    def filter_doc_id(self, event_id):
-        if isinstance(event_id, numpy.ndarray):
-            id_list = event_id.tolist()
-        elif isinstance(event_id, list):
-            id_list = event_id
-        else:
-            id_list = [event_id]
-
-        bool_clause = {"must": [
-            {"terms": {"_id": id_list}}
-        ]}
-        return bool_clause
 
 
 def add_outlier_to_document(doc, outlier):

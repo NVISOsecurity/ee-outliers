@@ -60,9 +60,6 @@ class Logging:
         if should_log:
             self.logger.info(self.desc + " [" + '{:.2f}'.format(round(float(self.current_step) / float(self.total_steps) * 100, 2)) + "% done" + "]")
 
-    def print_section_divider(self):
-        self.logger.info("-" * 50)
-
     def print_generic_intro(self, title):
         self.logger.info("")
         self.logger.info("===== " + title + " =====")
@@ -74,15 +71,3 @@ class Logging:
 
         if total_events == 0:
             self.logger.warning("no events to analyze! If you expected events, make sure the history_window_days and timestamp_field configuration options are correctly configured")
-
-    def print_analysis_abort(self, event_type):
-        self.logger.info("")
-        self.logger.info("===== " + event_type + " outlier detection aborted =====")
-        self.logger.info("No " + event_type + " events in the specified time window")
-
-    def pretty_print_dict(self, _dict):
-        self.logger.info(json.dumps(_dict, sort_keys=True, indent=4))
-
-
-def print_readable_numbers(big_num):
-    return "{:,}".format(big_num)

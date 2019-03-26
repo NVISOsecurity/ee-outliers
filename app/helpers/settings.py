@@ -32,8 +32,6 @@ class Settings:
         self.loaded_config_paths = None
         self.failed_config_paths = None
 
-        self.known_processes = None
-
         self.search_range_start = None
         self.search_range_end = None
         self.search_range = None
@@ -70,18 +68,6 @@ class Settings:
         self.failed_config_paths = set(config_paths) - set(self.loaded_config_paths)
 
         self.config = config
-
-    def get_sample_size(self, total_events=None, threshold_name=None):
-        sample_size = self.config.getint("thresholds", threshold_name)
-
-        # Calculate number of iterations
-        if not (sample_size <= 0):
-            return min(sample_size, total_events)
-        else:
-            return total_events
-
-    def get_items(self, section=None):
-        return self.config.items(section)
 
     def get_time_window_info(self):
         search_start_range_printable = dateutil.parser.parse(self.search_range_start).strftime('%Y-%m-%d %H:%M:%S')

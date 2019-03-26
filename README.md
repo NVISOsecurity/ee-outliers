@@ -344,7 +344,7 @@ docker build -t "outliers-dev" .
 docker run --cap-add SYS_PTRACE -t --network=sensor_network -v "$PWD/defaults:/mappedvolumes/config" -i  outliers-dev:latest py-spy -- python3 outliers.py interactive --config /mappedvolumes/config/outliers.conf
 ```
 
-### Checking code style and PEP8 compliance
+### Checking code style, PEP8 compliance & dead code
 In this mode, flake8 is used to check potential issues with style and PEP8.
 
 Running outliers in this mode:
@@ -361,6 +361,12 @@ You can also provide additional arguments to flake8, for example to ignore certa
 
 ```
 docker run -v "$PWD/defaults:/mappedvolumes/config" -i outliers-dev:latest flake8 /app "--ignore=E501"
+```
+
+To check the code for signs of dead code, we can use vulture:
+
+```
+docker run -v "$PWD/defaults:/mappedvolumes/config" -i  outliers-dev:latest python3 -m vulture /app
 ```
 
 ## Screenshots

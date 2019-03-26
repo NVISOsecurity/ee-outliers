@@ -78,39 +78,8 @@ def get_dotkey_value(dict_value, key_name, case_sensitive=True):
     return dict_value
 
 
-def parse_datestring(datestr=None, _format="auto"):
-    if _format == "auto":
-        # First try ISO parsing. If that fails go auto
-        try:
-            date_obj = iso8601.parse_date(datestr)
-        except Exception:
-            date_obj = dateparser.parse(datestr, settings={'RETURN_AS_TIMEZONE_AWARE': True})
-    else:
-        date_obj = datetime.datetime.strptime(datestr, _format)
-
-    return date_obj
-
-
-def time_to_string(_datetime):
-    # INPUT : a datetime object (e.g. '2017-07-24T12:46:11.000Z')
-    # OUTPUT : the string corresponding to the time parameter (e.g. 12:46:11)
-    return _datetime.strftime('%H:%M:%S')
-
-
 def match_ip_ranges(source_ip, ip_cidr):
     return False if len(netaddr.all_matching_cidrs(source_ip, ip_cidr)) <= 0 else True
-
-
-def is_weekend(_datetime):
-    return True if _datetime.weekday() >= 5 else False
-
-
-def datetime_to_date_string(_datetime):
-    return _datetime.strftime('%d-%m-%Y')
-
-
-def day_to_datetime(_datetime):
-    return _datetime.strptime(_datetime, '%d-%m-%Y')
 
 
 def shannon_entropy(data):
@@ -122,30 +91,6 @@ def shannon_entropy(data):
         if p_x > 0:
             entropy += - p_x * math.log(p_x, 2)
     return entropy
-
-
-# Don't care about div by zero
-def safe_div(x, y):
-    if y == 0:
-        return 0
-    return x / y
-
-
-def incremental_range(start, stop, step, inc):
-    value = start
-    while value <= stop:
-        yield value
-        value += step
-        step += inc
-
-
-def is_in_top_x(array, el, top_n):
-    top_n_indices = (array[np.argsort(array)[-top_n:]])
-
-    if el in top_n_indices:
-        return True
-    else:
-        return False
 
 
 def extract_outlier_asset_information(fields, settings):
@@ -216,17 +161,6 @@ def flatten_fields_into_sentences(fields=None, sentence_format=None):
     return sentences
 
 
-# if _objis a list of strings, convert it into a single list of strings. if it's a string, just return it
-def flatten_into_list_of_strings(_obj):
-    if isinstance(_obj, list):
-        _lst = list()
-        for value in _obj:
-            _lst.append(value)
-        return _obj
-    else:
-        return str(_obj)
-
-
 def replace_placeholder_fields_with_values(placeholder, fields):
     # Replace fields from fieldmappings in summary
     regex = re.compile(r'\{([^\}]*)\}')
@@ -272,18 +206,6 @@ def is_url(_str):
             return True
     except Exception:
         return False
-
-
-def transform_value(transformation, value):
-    if transformation == "extract_tld":
-        try:
-            transformed_value = get_tld(value, fix_protocol=True)
-        except Exception:
-            transformed_value = None
-    else:
-        transformed_value = None
-
-    return transformed_value
 
 
 def merge_two_dicts(x, y):

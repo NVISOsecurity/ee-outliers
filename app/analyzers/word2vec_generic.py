@@ -203,28 +203,6 @@ def replace_placeholder_string_with_fields(placeholder, fields):
     return placeholder
 
 
-def is_outlier_cutoff_percentage(prob, cutoff):
-    if prob < cutoff:
-        return True
-    else:
-        return False
-
-
-def is_outlier_top_n(prob, probs, w2v_model):
-    if helpers.utils.is_in_top_x(probs, prob, int(0.1 * w2v_model.vocabulary_size)):
-        return False
-    else:
-        return True
-
-
-def is_outlier_std(prob, probs, model_settings):
-    std = np.std(probs)
-    if prob < np.nanmean(probs) - model_settings["outlier_sensitivity_stdevs"] * std:
-        return True
-    else:
-        return False
-
-
 def is_outlier_mad(prob, probs, model_settings):
     mad = np.nanmedian(np.absolute(probs - np.nanmedian(probs, 0)), 0)  # median absolute deviation
     decision_frontier = np.nanmedian(probs) - model_settings["outlier_sensitivity_stdevs"] * mad
