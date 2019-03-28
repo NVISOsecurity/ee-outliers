@@ -44,6 +44,7 @@ def perform_analysis():
 
                         field_names.update(fields.keys())
 
+                        # only process a single batch of events in order to decide which fields to brute force
                         if num_docs_processed == batch_size:
                             break
                         else:
