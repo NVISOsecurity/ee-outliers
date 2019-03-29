@@ -69,4 +69,4 @@ class Logging:
         self.logger.info("analyzing " + "{:,}".format(total_events) + " events")
 
         if total_events == 0:
-            self.logger.warning("no events to analyze! If you expected events, make sure the history_window_days and timestamp_field configuration options are correctly configured")
+            self.logger.warning("no events to analyze!")

@@ -16,7 +16,6 @@ class ES:
     conn = None
     settings = None
 
-    outliers_dict = []
     grok_filters = dict()
 
     notifier = None

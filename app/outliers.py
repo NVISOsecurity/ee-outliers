@@ -11,13 +11,9 @@ from helpers.singletons import settings, logging, es
 from helpers.utils import FileModificationWatcher
 from helpers.housekeeping import HousekeepingJob
 
-from analyzers import metrics_generic
+from analyzers.metrics import MetricsAnalyzer
 from analyzers.simplequery import SimplequeryAnalyzer
-from analyzers import terms_generic
-from analyzers import svm_generic
-from analyzers import word2vec_generic
-from analyzers import test_generic
-from analyzers import beaconing_generic
+
 
 ##############
 # Entrypoint #
@@ -59,23 +55,26 @@ if settings.failed_config_paths:
 
 def perform_analysis():
     """ The entrypoint for analysis """
-    for name in settings.config.sections():
-        if name.startswith("simplequery_"):
-            param, model_name = name.split("simplequery_", 1)
+    analyzers = list()
 
-            should_test_model = settings.config.getboolean("general", "run_models") and settings.config.getboolean(name, "run_model")
-            should_run_model = settings.config.getboolean("general", "test_models") and settings.config.getboolean(name, "test_model")
+    for config_section_name in settings.config.sections():
+        if config_section_name.startswith("simplequery_"):
+            simplequery_analyzer = SimplequeryAnalyzer(config_section_name=config_section_name)
+            analyzers.append(simplequery_analyzer)
 
-            if should_test_model or should_run_model:
-                simplequery_analyzer = SimplequeryAnalyzer(model_name=name)
-                simplequery_analyzer.evaluate_model()
+        if config_section_name.startswith("metrics_"):
+            metrics_analyzer = MetricsAnalyzer(config_section_name=config_section_name)
+            analyzers.append(metrics_analyzer)
 
-    test_generic.perform_analysis()
-    beaconing_generic.perform_analysis()
-    metrics_generic.perform_analysis()
-    terms_generic.perform_analysis()
-    svm_generic.perform_analysis()
-    word2vec_generic.perform_analysis()
+    for analyzer in analyzers:
+        if analyzer.should_run_model or analyzer.should_test_model:
+            analyzer.evaluate_model()
+
+    #test_generic.perform_analysis()
+    #beaconing_generic.perform_analysis()
+    #terms_generic.perform_analysis()
+    #svm_generic.perform_analysis()
+    #word2vec_generic.perform_analysis()
 
 
 # Run modes

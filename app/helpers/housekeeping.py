@@ -27,7 +27,7 @@ class HousekeepingJob(threading.Thread):
                     if total_docs_whitelisted > 0:
                         logging.logger.info("housekeeping - total whitelisted documents cleared from outliers: " + str(total_docs_whitelisted))
                     else:
-                        logging.logger.info("housekeeping - whitelist did not remove any outliers")
+                        logging.logger.debug("housekeeping - whitelist did not remove any outliers")
 
                 except Exception as e:
                     logging.logger.error("housekeeping - something went removing whitelisted outliers")

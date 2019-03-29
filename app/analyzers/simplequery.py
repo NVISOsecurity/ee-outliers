@@ -5,15 +5,13 @@ from helpers.analyzer import Analyzer
 class SimplequeryAnalyzer(Analyzer):
 
     def evaluate_model(self):
-        outliers = list()
+        self.total_events = es.count_documents(lucene_query=self.lucene_query)
+        logging.print_analysis_intro(event_type="evaluating " + self.config_section_name, total_events=self.total_events)
 
-        logging.init_ticker(total_steps=self.total_events, desc=self.model_name + " - evaluating simplequery model")
+        logging.init_ticker(total_steps=self.total_events, desc=self.model_name + " - evaluating " + self.model_type + " model")
         for doc in es.scan(lucene_query=self.lucene_query):
             logging.tick()
             fields = es.extract_fields_from_document(doc)
-            outlier = self.create_outlier(fields)
-            outliers.append(outlier)
+            self.process_outlier(fields, doc)
 
-            es.process_outliers(doc=doc, outliers=[outlier], should_notify=self.model_settings["should_notify"])
-
-        self.print_batch_summary()
+        self.print_analysis_summary()
