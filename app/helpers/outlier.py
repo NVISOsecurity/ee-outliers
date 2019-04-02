@@ -13,12 +13,12 @@ class Outlier:
 
     def is_whitelisted(self, additional_dict_values_to_check=None):
         # Check if value is whitelisted as literal
-        for (each_whitelist_key, each_whitelist_val) in settings.config.items("whitelist_literals"):
+        for (_, each_whitelist_val) in settings.config.items("whitelist_literals"):
             if self.matches_specific_whitelist_item(each_whitelist_val, "literal", additional_dict_values_to_check):
                 return True
 
         # Check if value is whitelisted as regexp
-        for (each_whitelist_key, each_whitelist_val) in settings.config.items("whitelist_regexps"):
+        for (_, each_whitelist_val) in settings.config.items("whitelist_regexps"):
             if self.matches_specific_whitelist_item(each_whitelist_val, "regexp", additional_dict_values_to_check):
                 return True
 

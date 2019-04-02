@@ -7,7 +7,6 @@ from helpers.singleton import singleton
 
 @singleton
 class Logging:
-    logger_name = None
     logger = None
 
     current_step = None
@@ -16,8 +15,6 @@ class Logging:
     verbosity = None
 
     def __init__(self, logger_name):
-        self.logger_name = logger_name
-
         # Disable HTTPS warnings
         urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
         logging.getLogger('urllib3').setLevel(logging.CRITICAL)

@@ -13,7 +13,7 @@ from helpers.housekeeping import HousekeepingJob
 
 from analyzers.metrics import MetricsAnalyzer
 from analyzers.simplequery import SimplequeryAnalyzer
-
+from analyzers.terms import TermsAnalyzer
 
 ##############
 # Entrypoint #
@@ -66,15 +66,18 @@ def perform_analysis():
             metrics_analyzer = MetricsAnalyzer(config_section_name=config_section_name)
             analyzers.append(metrics_analyzer)
 
+        if config_section_name.startswith("terms_"):
+            terms_analyzer = TermsAnalyzer(config_section_name=config_section_name)
+            analyzers.append(terms_analyzer)
+
     for analyzer in analyzers:
         if analyzer.should_run_model or analyzer.should_test_model:
             analyzer.evaluate_model()
 
-    #test_generic.perform_analysis()
-    #beaconing_generic.perform_analysis()
-    #terms_generic.perform_analysis()
-    #svm_generic.perform_analysis()
-    #word2vec_generic.perform_analysis()
+    # test_generic.perform_analysis()
+    # beaconing_generic.perform_analysis()
+    # svm_generic.perform_analysis()
+    # word2vec_generic.perform_analysis()
 
 
 # Run modes

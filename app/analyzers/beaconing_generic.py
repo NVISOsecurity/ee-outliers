@@ -107,11 +107,6 @@ def evaluate_model(model_name=None, model_settings=None):
 def evaluate_batch_for_outliers(terms=None, model_settings=None):
     # Initialize
     outliers = list()
-    total_terms_processing = 0
-
-    # Count the total number of terms for each aggregator
-    for i, aggregator_value in enumerate(terms):
-        total_terms_processing += len(terms[aggregator_value]["targets"])
 
     # In case we want to count terms within an aggregator, it's a bit easier.
     # For example:

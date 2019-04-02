@@ -23,6 +23,7 @@ class MetricsAnalyzer(Analyzer):
         logging.init_ticker(total_steps=self.total_events, desc=self.model_name + " - evaluating " + self.model_type + " model")
         for doc in es.scan(lucene_query=self.lucene_query):
             logging.tick()
+
             fields = es.extract_fields_from_document(doc)
 
             try:
@@ -55,6 +56,8 @@ class MetricsAnalyzer(Analyzer):
                 # Reset data structures for next batch
                 eval_metrics = remaining_metrics.copy()
                 total_metrics_added = 0
+
+        self.print_analysis_summary()
 
     def extract_additional_model_settings(self):
         self.model_settings["target"] = settings.config.get(self.config_section_name, "target")
@@ -91,15 +94,15 @@ class MetricsAnalyzer(Analyzer):
 
         for _, aggregator_value in enumerate(metrics):
 
-            # Check if we have sufficient data, meaning at least 100 unique metrics. if not, continue. Else, evaluate for outliers.
-            if len(set(metrics[aggregator_value]["metrics"])) < 100 and last_batch is False:
+            # Check if we have sufficient data, meaning at least 100 metrics. if not, continue. Else, evaluate for outliers.
+            if len(metrics[aggregator_value]["metrics"]) < 100 and last_batch is False:
                 continue
             else:
                 # Remove from remaining metrics, as we will be handling it in a second
                 del remaining_metrics[aggregator_value]
 
-            # Calculate the decision frontier - we convert all metrics to a set because we want to calculate metrics based on unique values, not duplicates!
-            decision_frontier = helpers.utils.get_decision_frontier(model_settings["trigger_method"], list(set(metrics[aggregator_value]["metrics"])), model_settings["trigger_sensitivity"], model_settings["trigger_on"])
+            # Calculate the decision frontier
+            decision_frontier = helpers.utils.get_decision_frontier(model_settings["trigger_method"], metrics[aggregator_value]["metrics"], model_settings["trigger_sensitivity"], model_settings["trigger_on"])
             logging.logger.debug("using decision frontier " + str(decision_frontier) + " for aggregator " + str(aggregator_value) + " - " + model_settings["metric"])
             logging.logger.debug("example metric from batch for " + metrics[aggregator_value]["observations"][0]["target"] + ": " + str(metrics[aggregator_value]["metrics"][0]))
 

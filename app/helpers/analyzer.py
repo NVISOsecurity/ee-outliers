@@ -50,7 +50,7 @@ class Analyzer(abc.ABC):
             unique_summaries = len(set(o.outlier_dict["summary"] for o in self.outliers))
             logging.logger.info("total outliers processed for use case: " + str(len(self.outliers)) + " [" + str(unique_summaries) + " unique]")
         else:
-            logging.logger.info("no outliers detected")
+            logging.logger.info("no outliers detected for use case")
 
     def print_batch_summary(self):
         if len(self.outliers) > 0:
