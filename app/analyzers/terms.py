@@ -61,7 +61,6 @@ class TermsAnalyzer(Analyzer):
             lucene_query = es.filter_by_query_string(self.model_settings["es_query_filter"])
 
         total_events = es.count_documents(lucene_query=lucene_query)
-        logging.logger.info(lucene_query)
 
         logging.print_analysis_intro(event_type="evaluating " + self.model_name, total_events=total_events)
         logging.init_ticker(total_steps=total_events, desc=self.model_name + " - evaluating terms model")
