@@ -188,7 +188,7 @@ class TermsAnalyzer(Analyzer):
                 if is_outlier:
                     for ii, term_value in enumerate(terms[aggregator_value]["targets"]):
                         non_outlier_values_sample = ",".join(random.sample(non_outlier_values, min(3, len(non_outlier_values))))
-                        outliers.append(self.process_outlier_test(decision_frontier, non_outlier_values_sample, unique_target_count_across_aggregators, terms, aggregator_value, ii, term_value, self.model_settings))
+                        outliers.append(self.prepare_and_process_outlier(decision_frontier, non_outlier_values_sample, unique_target_count_across_aggregators, terms, aggregator_value, ii, term_value, self.model_settings))
                 else:
                     for ii, term_value in enumerate(terms[aggregator_value]["targets"]):
                         non_outlier_values.add(term_value)
@@ -220,12 +220,12 @@ class TermsAnalyzer(Analyzer):
 
                     if is_outlier:
                         non_outlier_values_sample = ",".join(random.sample(non_outlier_values, min(3, len(non_outlier_values))))
-                        outliers.append(self.process_outlier_test(decision_frontier, non_outlier_values_sample, term_value_count, terms, aggregator_value, ii, term_value, self.model_settings))
+                        outliers.append(self.prepare_and_process_outlier(decision_frontier, non_outlier_values_sample, term_value_count, terms, aggregator_value, ii, term_value, self.model_settings))
                     else:
                         non_outlier_values.add(term_value)
         return outliers
 
-    def process_outlier_test(self, decision_frontier, non_outlier_values_sample, term_value_count, terms, aggregator_value, ii, term_value, model_settings):
+    def prepare_and_process_outlier(self, decision_frontier, non_outlier_values_sample, term_value_count, terms, aggregator_value, ii, term_value, model_settings):
         # Extract fields from raw document
         fields = es.extract_fields_from_document(terms[aggregator_value]["raw_docs"][ii])
 
@@ -242,7 +242,6 @@ class TermsAnalyzer(Analyzer):
         merged_fields_and_observations = helpers.utils.merge_two_dicts(fields, observations)
 
         outlier_summary = helpers.utils.replace_placeholder_fields_with_values(model_settings["outlier_summary"], merged_fields_and_observations)
-
         outlier_assets = helpers.utils.extract_outlier_asset_information(fields, settings)
 
         if len(outlier_assets) > 0:

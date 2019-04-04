@@ -106,7 +106,7 @@ class ES:
         if total_outliers > 0:
             self.logging.logger.info("wiping %s existing outliers", "{:,}".format(total_outliers))
             self.conn.update_by_query(index=idx, body=query, refresh=True, wait_for_completion=True)
-            self.logging.logger.info("wiped outlier information of " + str(total_outliers) + " documents")
+            self.logging.logger.info("wiped outlier information of " + "{:,}".format(total_outliers) + " documents")
         else:
             self.logging.logger.info("no existing outliers were found, so nothing was wiped")
 
