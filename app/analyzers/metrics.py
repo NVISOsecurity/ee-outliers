@@ -74,19 +74,6 @@ class MetricsAnalyzer(Analyzer):
         if self.model_settings["trigger_on"] not in SUPPORTED_TRIGGERS:
             raise ValueError("Unexpected outlier trigger condition " + self.model_settings["trigger_on"])
 
-    def add_metric_to_batch(self, eval_metrics_array, aggregator_value, target_value, metrics_value, observations, doc):
-        observations["target"] = target_value
-        observations["aggregator"] = aggregator_value
-
-        if aggregator_value not in eval_metrics_array.keys():
-            eval_metrics_array[aggregator_value] = defaultdict(list)
-
-        eval_metrics_array[aggregator_value]["metrics"].append(metrics_value)
-        eval_metrics_array[aggregator_value]["observations"].append(observations)
-        eval_metrics_array[aggregator_value]["raw_docs"].append(doc)
-
-        return eval_metrics_array
-
     def evaluate_batch_for_outliers(self, metrics=None, model_settings=None, last_batch=False):
         # Initialize
         outliers = list()
@@ -125,7 +112,22 @@ class MetricsAnalyzer(Analyzer):
 
         return outliers, remaining_metrics
 
-    def calculate_metric(self, metric, value):
+    @staticmethod
+    def add_metric_to_batch(eval_metrics_array, aggregator_value, target_value, metrics_value, observations, doc):
+        observations["target"] = target_value
+        observations["aggregator"] = aggregator_value
+
+        if aggregator_value not in eval_metrics_array.keys():
+            eval_metrics_array[aggregator_value] = defaultdict(list)
+
+        eval_metrics_array[aggregator_value]["metrics"].append(metrics_value)
+        eval_metrics_array[aggregator_value]["observations"].append(observations)
+        eval_metrics_array[aggregator_value]["raw_docs"].append(doc)
+
+        return eval_metrics_array
+
+    @staticmethod
+    def calculate_metric(metric, value):
 
         observations = dict()
 

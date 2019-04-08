@@ -1,7 +1,6 @@
 import numpy as np
 import random
 
-from helpers.outlier import Outlier
 from helpers.singletons import settings, es, logging
 from collections import defaultdict
 from collections import Counter
@@ -141,7 +140,8 @@ class TermsAnalyzer(Analyzer):
         if self.model_settings["trigger_on"] not in {"high", "low"}:
             raise ValueError("Unexpected outlier trigger condition " + self.model_settings["trigger_on"])
 
-    def add_term_to_batch(self, eval_terms_array, aggregator_value, target_value, observations, doc):
+    @staticmethod
+    def add_term_to_batch(eval_terms_array, aggregator_value, target_value, observations, doc):
         if aggregator_value not in eval_terms_array.keys():
             eval_terms_array[aggregator_value] = defaultdict(list)
 
@@ -239,18 +239,4 @@ class TermsAnalyzer(Analyzer):
         observations["trigger_method"] = str(model_settings["trigger_method"])
         observations["confidence"] = np.abs(decision_frontier - term_value_count)
 
-        merged_fields_and_observations = helpers.utils.merge_two_dicts(fields, observations)
-
-        outlier_summary = helpers.utils.replace_placeholder_fields_with_values(model_settings["outlier_summary"], merged_fields_and_observations)
-        outlier_assets = helpers.utils.extract_outlier_asset_information(fields, settings)
-
-        if len(outlier_assets) > 0:
-            observations["assets"] = outlier_assets
-
-        outlier = Outlier(type=model_settings["outlier_type"], reason=model_settings["outlier_reason"], summary=outlier_summary)
-
-        for k, v in observations.items():
-            outlier.outlier_dict[k] = v
-
-        es.process_outliers(doc=terms[aggregator_value]["raw_docs"][ii], outliers=[outlier], should_notify=model_settings["should_notify"])
-        return outlier
+        return self.process_outlier(fields, terms[aggregator_value]["raw_docs"][ii], extra_outlier_information=observations)

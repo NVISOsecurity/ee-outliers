@@ -120,7 +120,7 @@ def evaluate_model(model_name=None, model_settings=None):
 
                 if len(outliers) > 0:
                     unique_summaries = len(set(o.outlier_dict["summary"] for o in outliers))
-                    logging.logger.info("total outliers in batch processed: " + str(len(outliers)) + " [" + str(unique_summaries) + " unique]")
+                    logging.logger.info("total outliers in batch processed: " + str(len(outliers)) + " [" + str(unique_summaries) + " unique summaries]")
 
                 # Reset data structures for next batch
                 raw_docs = list()
