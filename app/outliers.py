@@ -14,6 +14,7 @@ from helpers.housekeeping import HousekeepingJob
 from analyzers.metrics import MetricsAnalyzer
 from analyzers.simplequery import SimplequeryAnalyzer
 from analyzers.terms import TermsAnalyzer
+from analyzers.beaconing import BeaconingAnalyzer
 
 ##############
 # Entrypoint #
@@ -70,12 +71,15 @@ def perform_analysis():
             terms_analyzer = TermsAnalyzer(config_section_name=config_section_name)
             analyzers.append(terms_analyzer)
 
+        if config_section_name.startswith("beaconing_"):
+            beaconing_analyzer = BeaconingAnalyzer(config_section_name=config_section_name)
+            analyzers.append(beaconing_analyzer)
+
     for analyzer in analyzers:
         if analyzer.should_run_model or analyzer.should_test_model:
             analyzer.evaluate_model()
 
     # test_generic.perform_analysis()
-    # beaconing_generic.perform_analysis()
     # svm_generic.perform_analysis()
     # word2vec_generic.perform_analysis()
 
@@ -131,6 +135,7 @@ if settings.args.run_mode == "daemon":
         except Exception:
             logging.logger.error(traceback.format_exc())
         finally:
+            logging.logger.info("asking housekeeping jobs to shutdown after finishing")
             housekeeping_job.shutdown_flag.set()
             housekeeping_job.join()
 
@@ -154,6 +159,7 @@ if settings.args.run_mode == "interactive":
     except Exception:
         logging.logger.error(traceback.format_exc())
     finally:
+        logging.logger.info("asking housekeeping jobs to shutdown after finishing")
         housekeeping_job.shutdown_flag.set()
         housekeeping_job.join()
 
