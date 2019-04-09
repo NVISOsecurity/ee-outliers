@@ -19,6 +19,10 @@ from analyzers.beaconing import BeaconingAnalyzer
 ##############
 # Entrypoint #
 ##############
+if os.environ.get("SENTRY_SDK_URL"):
+    import sentry_sdk
+    sentry_sdk.init(os.environ.get("SENTRY_SDK_URL"))
+
 if settings.args.run_mode == "tests":
 
     test_filename = 'test_*.py'
@@ -79,7 +83,6 @@ def perform_analysis():
         if analyzer.should_run_model or analyzer.should_test_model:
             analyzer.evaluate_model()
 
-    # test_generic.perform_analysis()
     # svm_generic.perform_analysis()
     # word2vec_generic.perform_analysis()
 
