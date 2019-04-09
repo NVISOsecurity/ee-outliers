@@ -67,6 +67,9 @@ class Analyzer(abc.ABC):
         outlier_assets = helpers.utils.extract_outlier_asset_information(fields, settings)
         outlier = Outlier(type=outlier_type, reason=outlier_reason, summary=outlier_summary)
 
+        extra_outlier_information["model_name"] = self.model_name
+        extra_outlier_information["model_type"] = self.model_type
+
         if len(outlier_assets) > 0:
             outlier.outlier_dict["assets"] = outlier_assets
 
