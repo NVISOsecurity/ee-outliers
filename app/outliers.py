@@ -15,6 +15,7 @@ from analyzers.metrics import MetricsAnalyzer
 from analyzers.simplequery import SimplequeryAnalyzer
 from analyzers.terms import TermsAnalyzer
 from analyzers.beaconing import BeaconingAnalyzer
+from analyzers.word2vec import Word2VecAnalyzer
 
 ##############
 # Entrypoint #
@@ -79,12 +80,15 @@ def perform_analysis():
             beaconing_analyzer = BeaconingAnalyzer(config_section_name=config_section_name)
             analyzers.append(beaconing_analyzer)
 
+        if config_section_name.startswith("word2vec_"):
+            word2vec_analyzer = Word2VecAnalyzer(config_section_name=config_section_name)
+            analyzers.append(word2vec_analyzer)
+
     for analyzer in analyzers:
         if analyzer.should_run_model or analyzer.should_test_model:
             analyzer.evaluate_model()
 
     # svm_generic.perform_analysis()
-    # word2vec_generic.perform_analysis()
 
 
 # Run modes

@@ -14,6 +14,8 @@ class TermsAnalyzer(Analyzer):
         self.extract_additional_model_settings()
 
         if "*" in self.model_settings["target"]:
+            brute_force = False
+
             logging.logger.warning("running terms model in brute force mode, could take a long time!")
 
             lucene_query = es.filter_by_query_string(self.model_settings["es_query_filter"])
