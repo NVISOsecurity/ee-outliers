@@ -48,7 +48,7 @@ class ES:
         return res["hits"]["total"]
 
     def filter_by_query_string(self, query=None):
-        bool_clause = {"must": [
+        bool_clause = {"filter": [
             {"query_string": {"query": query}}
         ]}
         return bool_clause
@@ -57,7 +57,7 @@ class ES:
     def remove_all_whitelisted_outliers(self):
         from helpers.outlier import Outlier  # import goes here to avoid issues with singletons & circular requirements ... //TODO: fix this
 
-        must_clause = {"must": [{"match": {"tags": "outlier"}}]}
+        must_clause = {"filter": [{"term": {"tags": "outlier"}}]}
         total_docs_whitelisted = 0
 
         for doc in self.scan(bool_clause=must_clause):
@@ -91,7 +91,7 @@ class ES:
     def remove_all_outliers(self):
         idx = self.settings.config.get("general", "es_index_pattern")
 
-        must_clause = {"must": [{"match": {"tags": "outlier"}}]}
+        must_clause = {"filter": [{"term": {"tags": "outlier"}}]}
         total_outliers = self.count_documents(bool_clause=must_clause)
 
         query = build_search_query(bool_clause=must_clause, search_range=self.settings.search_range)
@@ -224,13 +224,13 @@ def build_search_query(bool_clause=None, sort_clause=None, search_range=None, qu
     query = dict()
     query["query"] = dict()
     query["query"]["bool"] = dict()
-    query["query"]["bool"]["must"] = list()
+    query["query"]["bool"]["filter"] = list()
 
     if query_fields:
         query["_source"] = query_fields
 
     if bool_clause:
-        query["query"]["bool"]["must"] = bool_clause["must"].copy()  # To avoid side effects (multiple search_range) when calling multiple times the function on the same bool_clause
+        query["query"]["bool"]["filter"] = bool_clause["filter"].copy()  # To avoid side effects (multiple search_range) when calling multiple times the function on the same bool_clause
 
     if sort_clause:
         query.update(sort_clause)
@@ -244,7 +244,7 @@ def build_search_query(bool_clause=None, sort_clause=None, search_range=None, qu
         query["query"]["bool"]["filter"].append(search_range)
 
     if lucene_query:
-        query["query"]["bool"]["must"].append(lucene_query["must"].copy())
+        query["query"]["bool"]["filter"].append(lucene_query["filter"].copy())
 
     return query
 
