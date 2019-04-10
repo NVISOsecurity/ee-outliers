@@ -5,7 +5,8 @@ import re
 import helpers.utils
 from helpers.analyzer import Analyzer
 
-SUPPORTED_METRICS = ["length", "numerical_value", "entropy", "base64_encoded_length", "hex_encoded_length", "url_length"]
+SUPPORTED_METRICS = ["length", "numerical_value", "entropy", "base64_encoded_length", "hex_encoded_length",
+                     "url_length", "normalized_entropy", "relative_url_entropy"]
 SUPPORTED_TRIGGERS = ["high", "low"]
 
 
@@ -156,6 +157,18 @@ class MetricsAnalyzer(Analyzer):
         elif metric == "entropy":
             return helpers.utils.shannon_entropy(value), dict()
 
+        # ----------------------------------------------------------------------
+        # METRIC: Calculate entropy of a string, normalised by the max entropy
+        # ----------------------------------------------------------------------
+        # Example: normalised_entropy("abcde") => 1 : string is completely "random"
+        # Example: normalised_entropy("aaaaa") => 0 : string is perfectly repetitive
+        elif metric == "normalized_entropy":
+            max_shannon_entropy = helpers.utils.max_shannon_entropy(value)
+            if max_shannon_entropy == 0:
+                return 0, dict()
+            else:
+                return (helpers.utils.shannon_entropy(value)/max_shannon_entropy), dict()
+
         # ------------------------------------------------------------------------------------
         # METRIC: Calculate total length of hexadecimal encoded substrings embedded in string
         # ------------------------------------------------------------------------------------
@@ -222,6 +235,46 @@ class MetricsAnalyzer(Analyzer):
                 observations["extracted_urls"] = ','.join(extracted_urls)
 
             return extracted_urls_length, observations
+
+        # ---------------------------------------------------------
+        # METRIC: Compare entropy of observed URL's with entropy of the majestic million domains
+        # The more a URL diverges from those seen in the majestic million, the higher this entropy value will be
+        # ---------------------------------------------------------
+        elif metric == "relative_url_entropy":
+            majestic_million_frequencies = \
+                {'g': 0.02706810814315049, 'o': 0.07421531631063037, 'l': 0.04660619075683699, 'e': 0.0938650686651803,
+                 'f': 0.016087468884472687, 'a': 0.08965206537963542,'c': 0.046178435692422186, 'b': 0.021492396761465096,
+                 'k': 0.017011742091988323,'y': 0.017683540507870608, 'u': 0.03113815167654972, 't': 0.05877603780957555,
+                 'w': 0.012812697524051385, 'i': 0.07074249978897978, 'r': 0.06343497059722608,'m': 0.033597415407595026,
+                 's': 0.06260194430883878, 'n': 0.06262892491736954, 'd': 0.031030885021106236,'p': 0.026214752715696614,
+                 'v': 0.013545577039801925, 'h': 0.027979827873085842, 'z': 0.007096836870275642,'-': 0.010803953745868712,
+                 '3': 0.0020435937308682425, 'q': 0.002948193577996864, 'x': 0.006551510056881306,'j': 0.006711051641353142,
+                 '0': 0.0027525841661488358, '1': 0.0029865097894172872,'2': 0.0027598914142925837, '6': 0.0017662930320798498,
+                 '4': 0.001964712923983166,'5': 0.0017608594373062934, '8': 0.0021597602398201366, '9': 0.0017470880850353834,
+                 '7': 0.0015831434151435972}
+
+            extracted_urls = []
+
+            # if the target value is a list of strings, convert it into a single list of strings
+            target_value_words = value.replace('"', ' ').split()  # splits on whitespace by default, and on quotes, since we most likely will apply this to parameter arguments
+
+            for word in target_value_words:
+                is_url = helpers.utils.is_url(word)
+                if is_url:
+                    extracted_urls.append(word)
+
+                observations["extracted_urls"] = ','.join(extracted_urls)
+
+            # Calculate Kullback Leibler entropy of URL compared to majestic million distribution
+            entropy_values = [helpers.utils.kl_divergence(url, majestic_million_frequencies) for url in extracted_urls]
+
+            # Return highest observed entropy
+            if entropy_values:
+                max_entropy = max(entropy_values)
+            else:
+                max_entropy = 0
+
+            return max_entropy, observations
 
         else:
             # metric method does not exist, we don't return anything useful

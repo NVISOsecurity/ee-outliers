@@ -227,6 +227,7 @@ The metrics model looks for outliers based on a calculated metric of a specific 
 - ``numerical_value``: use the numerical value of the target field as metric. Example: numerical_value("2") => 2
 - ``length``: use the target field length as metric. Example: length("outliers") => 8
 - ``entropy``: use the entropy of the field as metric. Example: entropy("houston") => 2.5216406363433186
+- ``normalized_entropy``: use the entropy of the field as metric, normalized by the maximum possible entropy of a string with the same length. Example: normalized_entropy("houston") => 0.8982265179691364
 - ``hex_encoded_length``: calculate total length of hexadecimal encoded substrings in the target and use this as metric.
 - ``base64_encoded_length``: calculate total length of base64 encoded substrings in the target and use this as metric. Example: base64_encoded_length("houston we have a cHJvYmxlbQ==") => base64_decoded_string: problem, base64_encoded_length: 7
 - ``url_length``: extract all URLs from the target value and use this as metric. Example: url_length("why don't we go http://www.dance.com") => extracted_urls_length: 20, extracted_urls: http://www.dance.com

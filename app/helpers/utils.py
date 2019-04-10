@@ -8,6 +8,7 @@ import re
 from statistics import mean, median
 import os
 import validators
+from collections import Counter
 
 
 class FileModificationWatcher:
@@ -88,6 +89,37 @@ def shannon_entropy(data):
             entropy += - p_x * math.log(p_x, 2)
     return entropy
 
+def max_shannon_entropy(data):
+    """
+    :param data: String of length N
+    :return: The shannon entropy of a perfectly random string of length N
+    """
+    if not data:
+        return 0
+    length = len(data)
+    prob = 1.0 / length
+    max_entropy = -1.0 * length * prob * math.log(prob) / math.log(2.0)
+
+    return max_entropy
+
+def kl_divergence(data, baseline_distribution):
+    """
+    :param data: String data
+    :param baseline_distribution: non-malicious character frequency distribution
+    :return: Relative entropy of string compared to known distribution
+    """
+    if not data:
+        return 0
+
+    distribution = Counter(data)
+    data_length = sum(distribution.values())
+    frequencies = {k: v/data_length for k, v in dict(distribution).items()}
+
+    entropy = 0
+    for character, frequency in frequencies.items():
+        entropy += frequency * math.log(frequency/baseline_distribution[character], 2)
+
+    return entropy
 
 def extract_outlier_asset_information(fields, settings):
     """
@@ -133,7 +165,7 @@ def flatten_sentence(sentence=None):
 # Convert a sentence format and a fields dictionary into a list of sentences.
 # Example:
 # sentence_format: hostname, username
-# fields: {hostname: [WIN-DRA, WIN-EVB], draman}
+# fields: {hostname: [WIN-DRA, WIN-EVB], username: draman}
 # output: [[WIN-DRA, draman], [WIN-EVB, draman]]
 def flatten_fields_into_sentences(fields=None, sentence_format=None):
     sentences = [[]]
