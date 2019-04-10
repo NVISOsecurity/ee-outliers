@@ -361,6 +361,20 @@ Total count: 5
 These buckets will be created for ALL combinations possible for the aggregator.
 In this case, for all combinations of unique server names, source IPs and days in the range of the events processed by ee-outliers.
 
+In order to give the model access to these timestamp fields, we need to calculate some derived fields, based on the timestamp.
+For this example, this can be done as following:
+
+```
+##############################
+# DERIVED FIELDS
+##############################
+[derivedfields]
+# These fields will be extracted from all processed events, and added as new fields in case an outlier event is found.
+# The format for the new field will be: outlier.<field_name>, for example: outliers.initials
+# The format to use is GROK. These fields are extracted BEFORE the analysis happens, which means that these fields can also be used as for example aggregators or targets in use cases.
+timestamp=%{YEAR:timestamp_year}-%{MONTHNUM:timestamp_month}-%{MONTHDAY:timestamp_day}[T ]%{HOUR:timestamp_hour}:?%{MINUTE:timestamp_minute}(?::?%{SECOND:timestamp_second})?%{ISO8601_TIMEZONE:timestamp_timezone}?
+```
+
 The trigger sensitivity finally defines how many “standard deviations” tolerance we allow in order to still consider something beaconing.
 In our example above, our bucket for 01:00 AM only has 4 requests instead of 5.
 Without some tolerance, these would thus not be spotted as being outliers!
