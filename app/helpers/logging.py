@@ -1,6 +1,7 @@
 import math
 import urllib3
 import logging
+import datetime as dt
 
 from helpers.singleton import singleton
 
@@ -10,6 +11,7 @@ class Logging:
     logger = None
 
     current_step = None
+    start_time = None
     total_steps = None
     desc = None
     verbosity = None
@@ -37,6 +39,7 @@ class Logging:
 
     def init_ticker(self, total_steps=None, desc=None):
         self.total_steps = total_steps
+        self.start_time = dt.datetime.today().timestamp()
         self.desc = desc
         self.current_step = 0
 
@@ -54,7 +57,9 @@ class Logging:
                 should_log = True
 
         if should_log:
-            self.logger.info(self.desc + " [" + '{:.2f}'.format(round(float(self.current_step) / float(self.total_steps) * 100, 2)) + "% done" + "]")
+            time_diff = max(float(1), float(dt.datetime.today().timestamp() - self.start_time))  # avoid a division by zero
+            ticks_per_second = "{:,}".format(round(float(self.current_step) / time_diff))
+            self.logger.info(self.desc + " [" + ticks_per_second + " eps. - " + '{:.2f}'.format(round(float(self.current_step) / float(self.total_steps) * 100, 2)) + "% done" + "]")
 
     def print_generic_intro(self, title):
         self.logger.info("")
