@@ -397,5 +397,8 @@ For any other communication, you can reach out by sending us an e-mail at resear
 
 Thank you for using ee-outliers and we look forward to your feedback! 🐀
 
+## Acknowledgements
+
+We are grateful for the support received by [INNOVIRIS](https://innoviris.brussels/) and the Brussels region in funding our Research & Development activities. 
 
 
