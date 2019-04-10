@@ -110,6 +110,8 @@ The different types of detection models that can be configured are listed below.
 
 - **terms models**:  the terms model looks for outliers by calculting rare combinations of a certain field(s) in combination with other field(s). Example use case: tag all events that represent Windows network processes that are rarely observed across all reporting endpoints in order to detect C2 phone home activity.
 
+- **beaconing models**:  the beaconing model can be used to look for events that occur repeatedly with a fixed time interval. Example use case: look for signs of a piece of malware sending out beacons to a Command & Control server at fixed time intervals each minute, hour or day. 
+
 - **word2vec models (BETA)**: the word2vec model is the first Machine Learning model defined in ee-outliers. It allows the analyst to train a model based on a set of features that are expected to appear in the same context. After initial training, the model is then able to spot anomalies in unexected combinations of the trained features. Example use case: train a model to learn which usernames, workstations and user roles are expected to appear together in order to alert on breached Windows accounts that are used to laterally move in the network.
 
 
@@ -221,6 +223,10 @@ test_model=0
 should_notify=0
 ```
 
+**Parameters**
+
+All required options are visible in the example, and are required.
+
 **How it works**
 
 The metrics model looks for outliers based on a calculated metric of a specific field of events. These metrics include the following:
@@ -269,6 +275,10 @@ run_model=1
 test_model=0
 ```
 
+**Parameters**
+
+All required options are visible in the example, and are required.
+
 **How it works**
 
 The terms model looks for outliers by calculting rare combinations of a certain field(s) in combination with other field(s).It works as following:
@@ -280,6 +290,92 @@ The terms model looks for outliers by calculting rare combinations of a certain 
 3. Outlier events are tagged with a range of new fields, all prefixed with ``outliers.<outlier_field_name>``. 
 
 The ``target_count_method`` parameter can be used to define if the analysis should be performed across all values of the aggregator at the same time, or for each value of the aggregator separately. 
+
+## beaconing models
+
+the beaconing model can be used to look for events that occur repeatedly with a fixed time interval. Example use case: look for signs of a piece of malware sending out beacons to a Command & Control server at fixed time intervals each minute, hour or day. 
+Each metrics model section in the configuration file should be prefixed by ``beaconing_``.
+
+**Example model**
+
+```
+##############################
+# DERIVED FIELDS
+##############################
+[derivedfields]
+# These fields will be extracted from all processed events, and added as new fields in case an outlier event is found.
+# The format for the new field will be: outlier.<field_name>, for example: outliers.initials
+# The format to use is GROK. These fields are extracted BEFORE the analysis happens, which means that these fields can also be used as for example aggregators or targets in use cases.
+timestamp=%{YEAR:timestamp_year}-%{MONTHNUM:timestamp_month}-%{MONTHDAY:timestamp_day}[T ]%{HOUR:timestamp_hour}:?%{MINUTE:timestamp_minute}(?::?%{SECOND:timestamp_second})?%{ISO8601_TIMEZONE:timestamp_timezone}?
+
+##############################
+# BEACONING - DETECT OUTBOUND SSL BEACONING - TLS
+##############################
+[beaconing_ssl_outbound]
+es_query_filter=BroFilter.event_type:"ssl.log" AND _exists_:BroFilter.server_name
+
+aggregator=BroFilter.server_name,BroFilter.id_orig_h,timestamp_day
+target=timestamp_hour
+trigger_sensitivity=1
+
+outlier_type=suspicious connection
+outlier_reason=beaconing TLS connection
+outlier_summary=beaconing TLS connection to {BroFilter.server_name}
+
+run_model=1
+test_model=0
+```
+
+**Parameters**
+
+All required options are visible in the example, and are required.
+
+**How it works**
+
+The beaconing model works as following:
+
+The model starts by taking into account all the events defined in the ``es_query_filter`` parameter.
+This should be a valid Elasticsearch query. The best way of testing if the query is valid is by copy-pasting it from a working Kibana query.
+ 
+The model will then count all unique instances of the target field, for each individual aggregator field.
+In this specific case, this means that ee-outliers will create “buckets” for each hour of the day (timestamp_hour – one of the derived fields we created earlier) and fill these buckets for each unique combination of the aggregator.
+
+As an example: let’s say that there are events for TLS connections in the cluster to the domain “sneaky.com” that appear about 5 each hour, for a specific source IP (192.168.0.2) for a specific day (19/12).
+ee-outliers will then create the following buckets in order to spot outliers:
+
+```
+Aggregator: "sneaky.com - 192.168.0.2 - 19/12"
+Target: 00 (midnight)
+Total count: 5
+
+Aggregator: "sneaky.com - 192.168.0.2 - 19/12"
+Target: 01 (01:00 AM)
+Total count: 4
+
+Aggregator: "sneaky.com - 192.168.0.2 - 19/12"
+Target: 02 (02:00 AM)
+Total count: 5
+...
+```
+
+These buckets will be created for ALL combinations possible for the aggregator.
+In this case, for all combinations of unique server names, source IPs and days in the range of the events processed by ee-outliers.
+
+The trigger sensitivity finally defines how many “standard deviations” tolerance we allow in order to still consider something beaconing.
+In our example above, our bucket for 01:00 AM only has 4 requests instead of 5.
+Without some tolerance, these would thus not be spotted as being outliers!
+By defining the trigger sensitivity and setting it to 1 (or higher for more tolerance), we allow for small changes in the bucket counts to still be considered outliers.
+For example, the following 24 count values (1 for each hour of the day) would still be flagged as beaconing with a trigger_sensitivity set to 1:
+
+```
+5 5 5 4 4 5 5 5 5 3 5 5 5 2 5 5 5 5 4 5 5 5 5 5
+```
+
+In the above example, the standard deviation is 0.74; as it’s smaller than 1, all the events beloning to these 24 buckets will be flagged as outliers.
+The “beaconing” model has a built-in requirement where at least 10 buckets should be available; otherwise, no beaconing will be detected
+(in other words: if the series above only had 9 values instead of 24 or the minimum of 10, it would not be flagged as outliers).
+
+Beaconing events are tagged with a range of new fields, all prefixed with ``outliers.<outlier_field_name>``. 
 
 ## Whitelisting
 
