@@ -15,6 +15,8 @@ pipeline {
         stage('Build docker image') {
             steps {
                 script {
+                    sh 'echo hello'
+                    sh 'touch /tmp/hello'
                     if(env.NO_CACHE == "1") {
                         app = docker.build("eagleeye/outliers", "--no-cache .")
                     } else {
