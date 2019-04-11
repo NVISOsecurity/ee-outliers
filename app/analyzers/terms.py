@@ -190,7 +190,21 @@ class TermsAnalyzer(Analyzer):
                 if is_outlier:
                     for ii, term_value in enumerate(terms[aggregator_value]["targets"]):
                         non_outlier_values_sample = ",".join(random.sample(non_outlier_values, min(3, len(non_outlier_values))))
-                        outliers.append(self.prepare_and_process_outlier(decision_frontier, non_outlier_values_sample, unique_target_count_across_aggregators, terms, aggregator_value, ii, term_value, self.model_settings))
+
+                        observations = dict()
+                        observations["non_outlier_values_sample"] = non_outlier_values_sample
+                        observations["term_count"] = unique_target_count_across_aggregators
+                        observations["aggregator"] = aggregator_value
+                        observations["term"] = term_value
+                        observations["decision_frontier"] = decision_frontier
+                        observations["trigger_method"] = str(self.model_settings["trigger_method"])
+
+                        calculated_observations = terms[observations["aggregator"]]["observations"][ii]
+                        calculated_observations.update(observations)
+
+                        raw_doc = terms[observations["aggregator"]]["raw_docs"][ii]
+                        fields = es.extract_fields_from_document(raw_doc)
+                        outliers.append(self.process_outlier(fields, raw_doc, extra_outlier_information=calculated_observations))
                 else:
                     for ii, term_value in enumerate(terms[aggregator_value]["targets"]):
                         non_outlier_values.add(term_value)
@@ -222,23 +236,21 @@ class TermsAnalyzer(Analyzer):
 
                     if is_outlier:
                         non_outlier_values_sample = ",".join(random.sample(non_outlier_values, min(3, len(non_outlier_values))))
-                        outliers.append(self.prepare_and_process_outlier(decision_frontier, non_outlier_values_sample, term_value_count, terms, aggregator_value, ii, term_value, self.model_settings))
+
+                        observations = dict()
+                        observations["non_outlier_values_sample"] = non_outlier_values_sample
+                        observations["term_count"] = term_value_count
+                        observations["aggregator"] = aggregator_value
+                        observations["term"] = term_value
+                        observations["decision_frontier"] = decision_frontier
+                        observations["trigger_method"] = str(self.model_settings["trigger_method"])
+
+                        calculated_observations = terms[observations["aggregator"]]["observations"][ii]
+                        calculated_observations.update(observations)
+
+                        raw_doc = terms[observations["aggregator"]]["raw_docs"][ii]
+                        fields = es.extract_fields_from_document(raw_doc)
+                        outliers.append(self.process_outlier(fields, raw_doc, extra_outlier_information=calculated_observations))
                     else:
                         non_outlier_values.add(term_value)
         return outliers
-
-    def prepare_and_process_outlier(self, decision_frontier, non_outlier_values_sample, term_value_count, terms, aggregator_value, ii, term_value, model_settings):
-        # Extract fields from raw document
-        fields = es.extract_fields_from_document(terms[aggregator_value]["raw_docs"][ii])
-
-        observations = terms[aggregator_value]["observations"][ii]
-
-        observations["non_outlier_values_sample"] = non_outlier_values_sample
-        observations["aggregator"] = aggregator_value
-        observations["term"] = term_value
-        observations["term_count"] = term_value_count
-        observations["decision_frontier"] = decision_frontier
-        observations["trigger_method"] = str(model_settings["trigger_method"])
-        observations["confidence"] = np.abs(decision_frontier - term_value_count)
-
-        return self.process_outlier(fields, terms[aggregator_value]["raw_docs"][ii], extra_outlier_information=observations)
