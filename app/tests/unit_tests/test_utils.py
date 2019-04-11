@@ -23,6 +23,36 @@ class TestUtils(unittest.TestCase):
         if helpers.utils.match_ip_ranges("127.0.0.1", ["192.0.0.1/16"]):
             raise AssertionError("Error matching IP ranges!")
 
+    def test_flatten_dict_separator_in_field_name(self):
+        test_dict = {'i.': {'j': 0}}
+        test_dict_2 = {'i': {'.j': 0}}
+
+        self.assertEqual(helpers.utils.flatten_dict(test_dict), helpers.utils.flatten_dict(test_dict_2))
+
+    def test_flatten_dict_simple_case_1(self):
+        test_dict = {'i.': {'j': 0}}
+        test_dict_res = {'i..j': 0}
+
+        self.assertEqual(helpers.utils.flatten_dict(test_dict), test_dict_res)
+
+    def test_flatten_dict_simple_case_2(self):
+        test_dict_res = {'i.j': 0}
+        self.assertEqual(helpers.utils.flatten_dict(test_dict_res), test_dict_res)
+
+    def test_flatten_dict_simple_case_3(self):
+        test_dict_res = {'i': 'testing'}
+        self.assertEqual(helpers.utils.flatten_dict(test_dict_res), test_dict_res)
+
+    def test_flatten_dict_complex_case_1(self):
+        test_dict = {'i': {'j' : {'k' : 'test'}}}
+        test_dict_res = {'i.j.k' : 'test'}
+        self.assertEqual(helpers.utils.flatten_dict(test_dict), test_dict_res)
+
+    def test_flatten_dict_complex_case_custom_separator(self):
+        test_dict = {'i': {'j': {'k': 'test'}}}
+        test_dict_res = {'i+j+k': 'test'}
+        self.assertEqual(helpers.utils.flatten_dict(test_dict, sep="+"), test_dict_res)
+
     def test_shannon_entropy_dummy(self):
         _str = "dummy"
         entropy = helpers.utils.shannon_entropy(_str)
@@ -125,7 +155,7 @@ class TestUtils(unittest.TestCase):
         self.assertEqual(res, "hello world!")
 
     def test_replace_placeholder_fields_with_values_case_insensitive_match(self):
-        res = helpers.utils.replace_placeholder_fields_with_values(placeholder="this one has {OnE} case insensitive placeholders", fields=dict({"one": "hello", "two":"world"}))
+        res = helpers.utils.replace_placeholder_fields_with_values(placeholder="this one has {OnE} case insensitive placeholders", fields=dict({"one": "hello", "two": "world"}))
         self.assertEqual(res, "this one has hello case insensitive placeholders")
 
     def test_is_base64_encoded_none(self):
@@ -192,8 +222,9 @@ class TestUtils(unittest.TestCase):
 
         # test case for asset fields containing multiple values in an array
         outlier_assets = helpers.utils.extract_outlier_asset_information(fields, settings)
-        self.assertIn("user: dummyuser1, dummyuser2", outlier_assets)  # test case for array assets
-        self.assertEqual(len(outlier_assets), 2)  # blank asset fields, such as the PC name in the JSON file, should NOT be added as assets. Both IP and user should match, so 2 matches.
+        self.assertIn("user: dummyuser1", outlier_assets)  # test case for array assets
+        self.assertIn("user: dummyuser2", outlier_assets)  # test case for array assets
+        self.assertEqual(len(outlier_assets), 3)  # blank asset fields, such as the PC name in the JSON file, should NOT be added as assets. Both IP and user should match, so 2 matches.
 
     def test_extract_outlier_asset_information_case_insensitive_value(self):
         from helpers.singletons import settings, es

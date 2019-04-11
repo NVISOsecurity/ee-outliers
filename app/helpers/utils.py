@@ -1,15 +1,11 @@
 import math
 
 import collections
-import datetime
-import iso8601
-import dateparser
 import netaddr
 import numpy as np
 import base64
 import re
 from statistics import mean, median
-from tld import get_tld
 import os
 import validators
 
@@ -78,39 +74,8 @@ def get_dotkey_value(dict_value, key_name, case_sensitive=True):
     return dict_value
 
 
-def parse_datestring(datestr=None, _format="auto"):
-    if _format == "auto":
-        # First try ISO parsing. If that fails go auto
-        try:
-            date_obj = iso8601.parse_date(datestr)
-        except Exception:
-            date_obj = dateparser.parse(datestr, settings={'RETURN_AS_TIMEZONE_AWARE': True})
-    else:
-        date_obj = datetime.datetime.strptime(datestr, _format)
-
-    return date_obj
-
-
-def time_to_string(_datetime):
-    # INPUT : a datetime object (e.g. '2017-07-24T12:46:11.000Z')
-    # OUTPUT : the string corresponding to the time parameter (e.g. 12:46:11)
-    return _datetime.strftime('%H:%M:%S')
-
-
 def match_ip_ranges(source_ip, ip_cidr):
     return False if len(netaddr.all_matching_cidrs(source_ip, ip_cidr)) <= 0 else True
-
-
-def is_weekend(_datetime):
-    return True if _datetime.weekday() >= 5 else False
-
-
-def datetime_to_date_string(_datetime):
-    return _datetime.strftime('%d-%m-%Y')
-
-
-def day_to_datetime(_datetime):
-    return _datetime.strptime(_datetime, '%d-%m-%Y')
 
 
 def shannon_entropy(data):
@@ -124,30 +89,6 @@ def shannon_entropy(data):
     return entropy
 
 
-# Don't care about div by zero
-def safe_div(x, y):
-    if y == 0:
-        return 0
-    return x / y
-
-
-def incremental_range(start, stop, step, inc):
-    value = start
-    while value <= stop:
-        yield value
-        value += step
-        step += inc
-
-
-def is_in_top_x(array, el, top_n):
-    top_n_indices = (array[np.argsort(array)[-top_n:]])
-
-    if el in top_n_indices:
-        return True
-    else:
-        return False
-
-
 def extract_outlier_asset_information(fields, settings):
     """
     :param fields: the dictionary containing all the event information
@@ -157,9 +98,12 @@ def extract_outlier_asset_information(fields, settings):
     outlier_assets = list()
     for (asset_field_name, asset_field_type) in settings.config.items("assets"):
         if dict_contains_dotkey(fields, asset_field_name, case_sensitive=False):
-            asset_field_value = replace_placeholder_fields_with_values("{" + asset_field_name + "}", fields)
-            if asset_field_value:  # make sure we don't process empty process information, for example an empty user field
-                outlier_assets.append(replace_placeholder_fields_with_values(asset_field_type + ": {" + asset_field_name + "}", fields))
+
+            asset_field_values_including_empty = flatten_fields_into_sentences(fields, sentence_format=[asset_field_name])
+            asset_field_values = [sentence[0] for sentence in asset_field_values_including_empty if "" not in sentence]  # also remove all empty asset strings
+
+            for asset_field_value in asset_field_values:  # make sure we don't process empty process information, for example an empty user field
+                outlier_assets.append(asset_field_type + ": " + asset_field_value)
 
     return outlier_assets
 
@@ -196,15 +140,15 @@ def flatten_fields_into_sentences(fields=None, sentence_format=None):
 
     for i, field_name in enumerate(sentence_format):
         new_sentences = []
-        if type(get_dotkey_value(fields, field_name, case_sensitive=True)) is list:
-            for field_value in get_dotkey_value(fields, field_name, case_sensitive=True):
+        if type(get_dotkey_value(fields, field_name, case_sensitive=False)) is list:
+            for field_value in get_dotkey_value(fields, field_name, case_sensitive=False):
                 for sentence in sentences:
                     sentence_copy = sentence.copy()
                     sentence_copy.append(flatten_sentence(field_value))
                     new_sentences.append(sentence_copy)
         else:
             for sentence in sentences:
-                sentence.append(flatten_sentence(get_dotkey_value(fields, field_name, case_sensitive=True)))
+                sentence.append(flatten_sentence(get_dotkey_value(fields, field_name, case_sensitive=False)))
                 new_sentences.append(sentence)
 
         sentences = new_sentences.copy()
@@ -214,17 +158,6 @@ def flatten_fields_into_sentences(fields=None, sentence_format=None):
     sentences = [sentence for sentence in sentences if None not in sentence]
 
     return sentences
-
-
-# if _objis a list of strings, convert it into a single list of strings. if it's a string, just return it
-def flatten_into_list_of_strings(_obj):
-    if isinstance(_obj, list):
-        _lst = list()
-        for value in _obj:
-            _lst.append(value)
-        return _obj
-    else:
-        return str(_obj)
 
 
 def replace_placeholder_fields_with_values(placeholder, fields):
@@ -272,18 +205,6 @@ def is_url(_str):
             return True
     except Exception:
         return False
-
-
-def transform_value(transformation, value):
-    if transformation == "extract_tld":
-        try:
-            transformed_value = get_tld(value, fix_protocol=True)
-        except Exception:
-            transformed_value = None
-    else:
-        transformed_value = None
-
-    return transformed_value
 
 
 def merge_two_dicts(x, y):

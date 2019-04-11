@@ -1,5 +1,5 @@
 import unittest
-from helpers.singletons import settings, logging, es
+from helpers.singletons import settings, logging
 
 
 class TestSingletons(unittest.TestCase):
@@ -13,4 +13,3 @@ class TestSingletons(unittest.TestCase):
         self.assertIsNotNone(logging.logger)
 
     # TODO: add unit tests for Elasticsearch singleton
-

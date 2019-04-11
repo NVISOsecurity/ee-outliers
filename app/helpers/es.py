@@ -1,6 +1,7 @@
+import json
+
 from elasticsearch import helpers as eshelpers, Elasticsearch
 import datetime
-import numpy
 import helpers.utils
 import helpers.logging
 from pygrok import Grok
@@ -17,7 +18,6 @@ class ES:
     conn = None
     settings = None
 
-    outliers_dict = []
     grok_filters = dict()
 
     notifier = None
@@ -47,45 +47,17 @@ class ES:
         res = self.conn.search(index=self.index, body=build_search_query(bool_clause=bool_clause, search_range=self.settings.search_range, query_fields=query_fields, lucene_query=lucene_query), size=self.settings.config.getint("general", "es_scan_size"), scroll=self.settings.config.get("general", "es_scroll_time"))
         return res["hits"]["total"]
 
-    def sort_by_field_name(self, field_name, ascending=True):
-        order = 'asc' if ascending else 'desc'
-        sort_clause = {"sort": [
-            {field_name + ".raw": order}
-        ]}
-        return sort_clause
-
     def filter_by_query_string(self, query=None):
-        bool_clause = {"must": [
+        bool_clause = {"filter": [
             {"query_string": {"query": query}}
         ]}
-        return bool_clause
-
-    def filter_by_field_value(self, field_name=None, field_value=None):
-        bool_clause = {"must": [
-            {"match": {field_name + ".raw": field_value}},
-        ]}
-        return bool_clause
-
-    def filter_by_field_existance(self, field_name=None):
-        bool_clause = {"must": [
-            {"exists": {"field": field_name + ".raw"}}
-        ]}
-        return bool_clause
-
-    def filter_by_field_value_list(self, field_name=None, field_value_list=None):
-        bool_clause = {"should": [], "minimum_should_match": 1}
-
-        for field_value in field_value_list:
-            should_clause = dict({"match": {field_name + ".raw": field_value}})
-            bool_clause.get("should").append(should_clause)
-
         return bool_clause
 
     # this is part of housekeeping, so we should not access non-threat-save objects, such as logging progress to the console using ticks!
     def remove_all_whitelisted_outliers(self):
         from helpers.outlier import Outlier  # import goes here to avoid issues with singletons & circular requirements ... //TODO: fix this
 
-        must_clause = {"must": [{"match": {"tags": "outlier"}}]}
+        must_clause = {"filter": [{"term": {"tags": "outlier"}}]}
         total_docs_whitelisted = 0
 
         for doc in self.scan(bool_clause=must_clause):
@@ -117,19 +89,24 @@ class ES:
         return total_docs_whitelisted
 
     def remove_all_outliers(self):
-        must_clause = {"must": [{"match": {"tags": "outlier"}}]}
+        idx = self.settings.config.get("general", "es_index_pattern")
+
+        must_clause = {"filter": [{"term": {"tags": "outlier"}}]}
         total_outliers = self.count_documents(bool_clause=must_clause)
-        self.logging.init_ticker(total_steps=total_outliers, desc="wiping existing outliers")
 
-        for doc in self.scan(bool_clause=must_clause):
-            self.logging.tick()
-            doc = remove_outliers_from_document(doc)
+        query = build_search_query(bool_clause=must_clause, search_range=self.settings.search_range)
 
-            self.conn.delete(index=doc["_index"], doc_type=doc["_type"], id=doc["_id"], refresh=True)
-            self.conn.create(index=doc["_index"], doc_type=doc["_type"], id=doc["_id"], body=doc["_source"], refresh=True)
+        script = {
+            "source": "ctx._source.remove(\"outliers\"); ctx._source.tags.remove(ctx._source.tags.indexOf(\"outlier\"))",
+            "lang": "painless"
+        }
+
+        query["script"] = script
 
         if total_outliers > 0:
-            self.logging.logger.info("wiped outlier information of " + str(total_outliers) + " documents")
+            self.logging.logger.info("wiping %s existing outliers", "{:,}".format(total_outliers))
+            self.conn.update_by_query(index=idx, body=query, refresh=True, wait_for_completion=True)
+            self.logging.logger.info("wiped outlier information of " + "{:,}".format(total_outliers) + " documents")
         else:
             self.logging.logger.info("no existing outliers were found, so nothing was wiped")
 
@@ -137,7 +114,7 @@ class ES:
         for outlier in outliers:
             if outlier.is_whitelisted(additional_dict_values_to_check=doc):
                 if self.settings.config.getboolean("general", "print_outliers_to_console"):
-                    self.logging.logger.info(outlier.get_summary() + " [whitelisted outlier]")
+                    self.logging.logger.info(outlier.outlier_dict["summary"] + " [whitelisted outlier]")
             else:
                 if self.settings.config.getboolean("general", "es_save_results"):
                     self.save_outlier(doc=doc, outlier=outlier)
@@ -146,13 +123,13 @@ class ES:
                     self.notifier.notify_on_outlier(doc=doc, outlier=outlier)
 
                 if self.settings.config.getboolean("general", "print_outliers_to_console"):
-                    self.logging.logger.info("outlier - " + outlier.get_summary())
+                    self.logging.logger.info("outlier - " + outlier.outlier_dict["summary"])
 
     def save_outlier(self, doc=None, outlier=None):
         # add the derived fields as outlier observations
         derived_fields = self.extract_derived_fields(doc["_source"])
         for derived_field, derived_value in derived_fields.items():
-            outlier.add_observation("derived_" + derived_field, derived_value)
+            outlier.outlier_dict["derived_" + derived_field] = derived_value
 
         doc = add_outlier_to_document(doc, outlier)
 
@@ -190,26 +167,12 @@ class ES:
 
         return doc_fields
 
-    # Filters
-    def filter_doc_id(self, event_id):
-        if isinstance(event_id, numpy.ndarray):
-            id_list = event_id.tolist()
-        elif isinstance(event_id, list):
-            id_list = event_id
-        else:
-            id_list = [event_id]
-
-        bool_clause = {"must": [
-            {"terms": {"_id": id_list}}
-        ]}
-        return bool_clause
-
 
 def add_outlier_to_document(doc, outlier):
     doc = add_tag_to_document(doc, "outlier")
 
     if "outliers" in doc["_source"]:
-        if outlier.get_summary() not in doc["_source"]["outliers"]["summary"]:
+        if outlier.outlier_dict["summary"] not in doc["_source"]["outliers"]["summary"]:
             merged_outliers = defaultdict(list)
             for k, v in chain(doc["_source"]["outliers"].items(), outlier.get_outlier_dict_of_arrays().items()):
 
@@ -261,13 +224,13 @@ def build_search_query(bool_clause=None, sort_clause=None, search_range=None, qu
     query = dict()
     query["query"] = dict()
     query["query"]["bool"] = dict()
-    query["query"]["bool"]["must"] = list()
+    query["query"]["bool"]["filter"] = list()
 
     if query_fields:
         query["_source"] = query_fields
 
     if bool_clause:
-        query["query"]["bool"]["must"] = bool_clause["must"].copy()  # To avoid side effects (multiple search_range) when calling multiple times the function on the same bool_clause
+        query["query"]["bool"]["filter"] = bool_clause["filter"].copy()  # To avoid side effects (multiple search_range) when calling multiple times the function on the same bool_clause
 
     if sort_clause:
         query.update(sort_clause)
@@ -281,7 +244,7 @@ def build_search_query(bool_clause=None, sort_clause=None, search_range=None, qu
         query["query"]["bool"]["filter"].append(search_range)
 
     if lucene_query:
-        query["query"]["bool"]["must"].append(lucene_query["must"].copy())
+        query["query"]["bool"]["filter"].append(lucene_query["filter"].copy())
 
     return query
 

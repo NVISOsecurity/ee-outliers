@@ -1,6 +1,7 @@
 from helpers.singletons import settings
 import re
 import helpers.utils
+import textwrap
 
 
 class Outlier:
@@ -8,22 +9,16 @@ class Outlier:
         self.outlier_dict = dict()
         self.outlier_dict["type"] = type.split(",")  # can be multiple types, for example: malware, powershell
         self.outlier_dict["reason"] = reason
-        self.outlier_dict["summary"] = summary
-
-    def add_observation(self, field_name, field_value):
-        self.outlier_dict[field_name] = field_value
-
-    def get_observation(self, field_name):
-        return self.outlier_dict[field_name]
+        self.outlier_dict["summary"] = textwrap.fill(summary, width=150)  # hard-wrap the length of a summary line to 300 characters to make it easier to visualize
 
     def is_whitelisted(self, additional_dict_values_to_check=None):
         # Check if value is whitelisted as literal
-        for (each_whitelist_key, each_whitelist_val) in settings.config.items("whitelist_literals"):
+        for (_, each_whitelist_val) in settings.config.items("whitelist_literals"):
             if self.matches_specific_whitelist_item(each_whitelist_val, "literal", additional_dict_values_to_check):
                 return True
 
         # Check if value is whitelisted as regexp
-        for (each_whitelist_key, each_whitelist_val) in settings.config.items("whitelist_regexps"):
+        for (_, each_whitelist_val) in settings.config.items("whitelist_regexps"):
             if self.matches_specific_whitelist_item(each_whitelist_val, "regexp", additional_dict_values_to_check):
                 return True
 
@@ -66,9 +61,6 @@ class Outlier:
 
         # If nothing of this matches, the item does not match
         return False
-
-    def get_summary(self):
-        return self.outlier_dict["summary"]
 
     def get_outlier_dict_of_arrays(self):
         outlier_dict_of_arrays = dict()

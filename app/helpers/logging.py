@@ -1,24 +1,22 @@
 import math
 import urllib3
 import logging
-import json
+import datetime as dt
 
 from helpers.singleton import singleton
 
 
 @singleton
 class Logging:
-    logger_name = None
     logger = None
 
     current_step = None
+    start_time = None
     total_steps = None
     desc = None
     verbosity = None
 
     def __init__(self, logger_name):
-        self.logger_name = logger_name
-
         # Disable HTTPS warnings
         urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
         logging.getLogger('urllib3').setLevel(logging.CRITICAL)
@@ -41,6 +39,7 @@ class Logging:
 
     def init_ticker(self, total_steps=None, desc=None):
         self.total_steps = total_steps
+        self.start_time = dt.datetime.today().timestamp()
         self.desc = desc
         self.current_step = 0
 
@@ -58,10 +57,9 @@ class Logging:
                 should_log = True
 
         if should_log:
-            self.logger.info(self.desc + " [" + '{:.2f}'.format(round(float(self.current_step) / float(self.total_steps) * 100, 2)) + "% done" + "]")
-
-    def print_section_divider(self):
-        self.logger.info("-" * 50)
+            time_diff = max(float(1), float(dt.datetime.today().timestamp() - self.start_time))  # avoid a division by zero
+            ticks_per_second = "{:,}".format(round(float(self.current_step) / time_diff))
+            self.logger.info(self.desc + " [" + ticks_per_second + " eps. - " + '{:.2f}'.format(round(float(self.current_step) / float(self.total_steps) * 100, 2)) + "% done" + "]")
 
     def print_generic_intro(self, title):
         self.logger.info("")
@@ -73,16 +71,4 @@ class Logging:
         self.logger.info("analyzing " + "{:,}".format(total_events) + " events")
 
         if total_events == 0:
-            self.logger.warning("no events to analyze! If you expected events, make sure the history_window_days and timestamp_field configuration options are correctly configured")
-
-    def print_analysis_abort(self, event_type):
-        self.logger.info("")
-        self.logger.info("===== " + event_type + " outlier detection aborted =====")
-        self.logger.info("No " + event_type + " events in the specified time window")
-
-    def pretty_print_dict(self, _dict):
-        self.logger.info(json.dumps(_dict, sort_keys=True, indent=4))
-
-
-def print_readable_numbers(big_num):
-    return "{:,}".format(big_num)
+            self.logger.warning("no events to analyze!")

@@ -1,6 +1,7 @@
 import time
 import os
 import sys
+import unittest
 
 import traceback
 from datetime import datetime
@@ -10,21 +11,20 @@ from helpers.singletons import settings, logging, es
 from helpers.utils import FileModificationWatcher
 from helpers.housekeeping import HousekeepingJob
 
-import dateutil.parser
-
-from analyzers import metrics_generic
-from analyzers import simplequery_generic
-from analyzers import terms_generic
-from analyzers import svm_generic
-from analyzers import word2vec_generic
-from analyzers import test_generic
-from analyzers import beaconing_generic
+from analyzers.metrics import MetricsAnalyzer
+from analyzers.simplequery import SimplequeryAnalyzer
+from analyzers.terms import TermsAnalyzer
+from analyzers.beaconing import BeaconingAnalyzer
+from analyzers.word2vec import Word2VecAnalyzer
 
 ##############
 # Entrypoint #
 ##############
+if os.environ.get("SENTRY_SDK_URL"):
+    import sentry_sdk
+    sentry_sdk.init(os.environ.get("SENTRY_SDK_URL"))
+
 if settings.args.run_mode == "tests":
-    import unittest
 
     test_filename = 'test_*.py'
     test_directory = '/app/tests/unit_tests'
@@ -61,19 +61,35 @@ if settings.failed_config_paths:
 
 def perform_analysis():
     """ The entrypoint for analysis """
-    test_generic.perform_analysis()
-    beaconing_generic.perform_analysis()
-    metrics_generic.perform_analysis()
-    simplequery_generic.perform_analysis()
-    terms_generic.perform_analysis()
-    svm_generic.perform_analysis()
-    word2vec_generic.perform_analysis()
+    analyzers = list()
 
+    for config_section_name in settings.config.sections():
+        if config_section_name.startswith("simplequery_"):
+            simplequery_analyzer = SimplequeryAnalyzer(config_section_name=config_section_name)
+            analyzers.append(simplequery_analyzer)
 
-# Prepare log messages
-search_start_range_printable = dateutil.parser.parse(settings.search_range_start).strftime('%Y-%m-%d %H:%M:%S')
-search_end_range_printable = dateutil.parser.parse(settings.search_range_end).strftime('%Y-%m-%d %H:%M:%S')
-time_window_info = "processing events between " + search_start_range_printable + " and " + search_end_range_printable
+        if config_section_name.startswith("metrics_"):
+            metrics_analyzer = MetricsAnalyzer(config_section_name=config_section_name)
+            analyzers.append(metrics_analyzer)
+
+        if config_section_name.startswith("terms_"):
+            terms_analyzer = TermsAnalyzer(config_section_name=config_section_name)
+            analyzers.append(terms_analyzer)
+
+        if config_section_name.startswith("beaconing_"):
+            beaconing_analyzer = BeaconingAnalyzer(config_section_name=config_section_name)
+            analyzers.append(beaconing_analyzer)
+
+        if config_section_name.startswith("word2vec_"):
+            word2vec_analyzer = Word2VecAnalyzer(config_section_name=config_section_name)
+            analyzers.append(word2vec_analyzer)
+
+    for analyzer in analyzers:
+        if analyzer.should_run_model or analyzer.should_test_model:
+            analyzer.evaluate_model()
+
+    # svm_generic.perform_analysis()
+
 
 # Run modes
 if settings.args.run_mode == "daemon":
@@ -115,9 +131,9 @@ if settings.args.run_mode == "daemon":
             logging.logger.info("wiping all existing outliers on first run")
             es.remove_all_outliers()
 
-        logging.logger.info(time_window_info)
+        logging.logger.info(settings.get_time_window_info())
 
-        # We place all of this in a try catch-all, so that any errors thrown by the analysis (timeouts, errors) won't make the daemon loop stop
+        # We place all of this in a try catch-all, so that any errors thrown by the analyzers (timeouts, errors) won't make the daemon loop stop
         housekeeping_job = HousekeepingJob()
         housekeeping_job.start()
 
@@ -126,6 +142,7 @@ if settings.args.run_mode == "daemon":
         except Exception:
             logging.logger.error(traceback.format_exc())
         finally:
+            logging.logger.info("asking housekeeping jobs to shutdown after finishing")
             housekeeping_job.shutdown_flag.set()
             housekeeping_job.join()
 
@@ -135,10 +152,9 @@ if settings.args.run_mode == "interactive":
     es.init_connection()
 
     if settings.config.getboolean("general", "es_wipe_all_existing_outliers"):
-        logging.logger.info("wiping all existing outliers")
         es.remove_all_outliers()
 
-    logging.logger.info(time_window_info)
+    logging.logger.info(settings.get_time_window_info())
 
     housekeeping_job = HousekeepingJob()
     housekeeping_job.start()
@@ -150,6 +166,7 @@ if settings.args.run_mode == "interactive":
     except Exception:
         logging.logger.error(traceback.format_exc())
     finally:
+        logging.logger.info("asking housekeeping jobs to shutdown after finishing")
         housekeeping_job.shutdown_flag.set()
         housekeeping_job.join()
 
