@@ -20,8 +20,8 @@ class TermsAnalyzer(Analyzer):
             lucene_query = es.filter_by_query_string(self.model_settings["es_query_filter"])
             batch_size = settings.config.getint("terms", "terms_batch_eval_size")
 
-            total_events = es.count_documents(lucene_query=lucene_query)
-            logging.init_ticker(total_steps=min(total_events, batch_size), desc=self.model_name + " - extracting brute force fields")
+            self.total_events = es.count_documents(lucene_query=lucene_query)
+            logging.init_ticker(total_steps=min(self.total_events, batch_size), desc=self.model_name + " - extracting brute force fields")
 
             field_names = set()
             num_docs_processed = 0
@@ -60,10 +60,10 @@ class TermsAnalyzer(Analyzer):
         else:
             lucene_query = es.filter_by_query_string(self.model_settings["es_query_filter"])
 
-        total_events = es.count_documents(lucene_query=lucene_query)
+        self.total_events = es.count_documents(lucene_query=lucene_query)
 
-        logging.print_analysis_intro(event_type="evaluating " + self.model_name, total_events=total_events)
-        logging.init_ticker(total_steps=total_events, desc=self.model_name + " - evaluating terms model")
+        logging.print_analysis_intro(event_type="evaluating " + self.model_name, total_events=self.total_events)
+        logging.init_ticker(total_steps=self.total_events, desc=self.model_name + " - evaluating terms model")
 
         eval_terms_array = defaultdict()
         total_terms_added = 0
@@ -97,7 +97,7 @@ class TermsAnalyzer(Analyzer):
                 total_terms_added += len(target_sentences)
 
             # Evaluate batch of events against the model
-            last_batch = (logging.current_step == total_events)
+            last_batch = (logging.current_step == self.total_events)
             if last_batch or total_terms_added >= settings.config.getint("terms", "terms_batch_eval_size"):
                 logging.logger.info("evaluating batch of " + "{:,}".format(total_terms_added) + " terms")
                 outliers = self.evaluate_batch_for_outliers(terms=eval_terms_array)
