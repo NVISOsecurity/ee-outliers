@@ -1,7 +1,6 @@
 import numpy as np
 
 from helpers.analyzer import Analyzer
-from helpers.outlier import Outlier
 from helpers.singletons import settings, es, logging
 from collections import defaultdict
 from collections import Counter
@@ -14,9 +13,9 @@ class BeaconingAnalyzer(Analyzer):
         self.extract_additional_model_settings()
 
         lucene_query = es.filter_by_query_string(self.model_settings["es_query_filter"])
-        total_events = es.count_documents(lucene_query=lucene_query)
+        self.total_events = es.count_documents(lucene_query=lucene_query)
 
-        logging.print_analysis_intro(event_type="evaluating " + self.model_name, total_events=total_events)
+        logging.print_analysis_intro(event_type="evaluating " + self.model_name, total_events=self.total_events)
         logging.init_ticker(total_steps=self.total_events, desc=self.model_name + " - evaluating " + self.model_type + " model")
 
         eval_terms_array = defaultdict()
@@ -48,7 +47,7 @@ class BeaconingAnalyzer(Analyzer):
                 total_terms_added += len(target_sentences)
 
             # Evaluate batch of events against the model
-            last_batch = (logging.current_step == total_events)
+            last_batch = (logging.current_step == self.total_events)
             if last_batch or total_terms_added >= self.model_settings["batch_eval_size"] :
                 logging.logger.info("evaluating batch of " + "{:,}".format(total_terms_added) + " terms")
                 outliers = self.evaluate_batch_for_outliers(terms=eval_terms_array)
