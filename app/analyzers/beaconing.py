@@ -1,3 +1,5 @@
+from configparser import NoOptionError
+
 import numpy as np
 
 from helpers.analyzer import Analyzer
@@ -6,6 +8,7 @@ from collections import defaultdict
 from collections import Counter
 import helpers.utils
 
+DEFAULT_MIN_TARGET_BUCKETS = 10
 
 class BeaconingAnalyzer(Analyzer):
 
@@ -72,6 +75,11 @@ class BeaconingAnalyzer(Analyzer):
         self.model_settings["trigger_sensitivity"] = settings.config.getint(self.config_section_name, "trigger_sensitivity")
         self.model_settings["batch_eval_size"] = settings.config.getint("beaconing", "beaconing_batch_eval_size")
 
+        try:
+            self.model_settings["min_target_buckets"] = settings.config.getint(self.config_section_name, "min_target_buckets")
+        except NoOptionError:
+            self.model_settings["min_target_buckets"] = DEFAULT_MIN_TARGET_BUCKETS
+
     @staticmethod
     def add_term_to_batch(eval_terms_array, aggregator_value, target_value, observations, doc):
         if aggregator_value not in eval_terms_array.keys():
@@ -103,8 +111,8 @@ class BeaconingAnalyzer(Analyzer):
 
             logging.logger.debug("terms count for aggregator value " + aggregator_value + " -> " + str(counted_targets))
 
-            if len(counted_targets) < 10:
-                logging.logger.debug("less than 10 time buckets, skipping analysis")
+            if len(counted_targets) < self.model_settings["min_target_buckets"]:
+                logging.logger.debug("less than " + str(self.model_settings["min_target_buckets"]) + " time buckets, skipping analysis")
                 continue
 
             stdev = np.std(counted_target_values)
