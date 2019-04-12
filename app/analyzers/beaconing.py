@@ -1,3 +1,5 @@
+from configparser import NoOptionError
+
 import numpy as np
 
 from helpers.analyzer import Analyzer
@@ -6,6 +8,7 @@ from collections import defaultdict
 from collections import Counter
 import helpers.utils
 
+DEFAULT_MIN_TARGET_BUCKETS = 10
 
 class BeaconingAnalyzer(Analyzer):
 
@@ -71,7 +74,11 @@ class BeaconingAnalyzer(Analyzer):
         self.model_settings["aggregator"] = settings.config.get(self.config_section_name, "aggregator").replace(' ', '').split(",")  # remove unnecessary whitespace, split fields
         self.model_settings["trigger_sensitivity"] = settings.config.getint(self.config_section_name, "trigger_sensitivity")
         self.model_settings["batch_eval_size"] = settings.config.getint("beaconing", "beaconing_batch_eval_size")
-        self.model_settings["min_target_buckets"] = settings.config.getint("beaconing", "min_target_buckets", "10")
+
+        try:
+            self.model_settings["min_target_buckets"] = settings.config.getint(self.config_section_name, "min_target_buckets")
+        except NoOptionError:
+            self.model_settings["min_target_buckets"] = DEFAULT_MIN_TARGET_BUCKETS
 
     @staticmethod
     def add_term_to_batch(eval_terms_array, aggregator_value, target_value, observations, doc):
