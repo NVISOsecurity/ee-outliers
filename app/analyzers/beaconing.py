@@ -48,7 +48,7 @@ class BeaconingAnalyzer(Analyzer):
 
             # Evaluate batch of events against the model
             last_batch = (logging.current_step == self.total_events)
-            if last_batch or total_terms_added >= self.model_settings["batch_eval_size"] :
+            if last_batch or total_terms_added >= self.model_settings["batch_eval_size"]:
                 logging.logger.info("evaluating batch of " + "{:,}".format(total_terms_added) + " terms")
                 outliers = self.evaluate_batch_for_outliers(terms=eval_terms_array)
 

@@ -52,13 +52,6 @@ class Analyzer(abc.ABC):
         else:
             logging.logger.info("no outliers detected for use case")
 
-    def print_batch_summary(self):
-        if len(self.outliers) > 0:
-            unique_summaries = len(set(o.outlier_dict["summary"] for o in self.outliers))
-            logging.logger.info("total outliers processed in batch: " + str(len(self.outliers)) + " [" + str(unique_summaries) + " unique summaries]")
-        else:
-            logging.logger.info("no outliers detected in batch")
-
     def process_outlier(self, fields, doc, extra_outlier_information=dict()):
         outlier_summary = helpers.utils.replace_placeholder_fields_with_values(self.model_settings["outlier_summary"], fields)
         outlier_type = helpers.utils.replace_placeholder_fields_with_values(self.model_settings["outlier_type"], fields)
