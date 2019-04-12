@@ -60,9 +60,6 @@ class Logging:
             time_diff = max(float(1), float(dt.datetime.today().timestamp() - self.start_time))  # avoid a division by zero
             ticks_per_second = "{:,}".format(round(float(self.current_step) / time_diff))
 
-            self.logger.info("current step:" + str(self.current_step))
-            self.logger.info("total steps:" + str(self.total_steps))
-
             self.logger.info(self.desc + " [" + ticks_per_second + " eps. - " + '{:.2f}'.format(round(float(self.current_step) / float(self.total_steps) * 100, 2)) + "% done" + "]")
 
     def print_generic_intro(self, title):
