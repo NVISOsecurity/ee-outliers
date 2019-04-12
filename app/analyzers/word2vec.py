@@ -24,12 +24,12 @@ class Word2VecAnalyzer(Analyzer):
 
         sentences = list()
 
-        total_events = es.count_documents(lucene_query=lucene_query)
+        self.total_events = es.count_documents(lucene_query=lucene_query)
         training_data_size_pct = settings.config.getint("machine_learning", "training_data_size_pct")
-        training_data_size = total_events / 100 * training_data_size_pct
+        training_data_size = self.total_events / 100 * training_data_size_pct
 
-        logging.print_analysis_intro(event_type="training " + self.model_name, total_events=total_events)
-        total_training_events = int(min(training_data_size, total_events))
+        logging.print_analysis_intro(event_type="training " + self.model_name, total_events=self.total_events)
+        total_training_events = int(min(training_data_size, self.total_events))
 
         logging.init_ticker(total_steps=total_training_events, desc=self.model_name + " - preparing word2vec training set")
         for doc in es.scan(lucene_query=lucene_query):
@@ -73,10 +73,10 @@ class Word2VecAnalyzer(Analyzer):
                 self.evaluate_test_sentences(w2v_model=w2v_model)
                 return
 
-            total_events = es.count_documents(lucene_query=lucene_query)
-            logging.print_analysis_intro(event_type="evaluating " + self.model_name, total_events=total_events)
+            self.total_events = es.count_documents(lucene_query=lucene_query)
+            logging.print_analysis_intro(event_type="evaluating " + self.model_name, total_events=self.total_events)
 
-            logging.init_ticker(total_steps=total_events, desc=self.model_name + " - evaluating word2vec model")
+            logging.init_ticker(total_steps=self.total_events, desc=self.model_name + " - evaluating word2vec model")
 
             raw_docs = list()
             eval_sentences = list()
@@ -96,7 +96,7 @@ class Word2VecAnalyzer(Analyzer):
                     raw_docs.append(doc)
 
                 # Evaluate batch of events against the model
-                if logging.current_step == total_events or len(eval_sentences) >= settings.config.getint("machine_learning", "word2vec_batch_eval_size"):
+                if logging.current_step == self.total_events or len(eval_sentences) >= settings.config.getint("machine_learning", "word2vec_batch_eval_size"):
                     logging.logger.info("evaluating batch of " + str(len(eval_sentences)) + " sentences")
                     outliers = self.evaluate_batch_for_outliers(w2v_model=w2v_model, eval_sentences=eval_sentences, raw_docs=raw_docs)
 
