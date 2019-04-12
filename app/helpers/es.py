@@ -1,5 +1,3 @@
-import json
-
 from elasticsearch import helpers as eshelpers, Elasticsearch
 import datetime
 import helpers.utils

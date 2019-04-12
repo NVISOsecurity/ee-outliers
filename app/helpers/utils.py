@@ -207,13 +207,6 @@ def is_url(_str):
         return False
 
 
-def merge_two_dicts(x, y):
-    """Given two dicts, merge them into a new dict as a shallow copy."""
-    z = x.copy()
-    z.update(y)
-    return z
-
-
 def get_decision_frontier(trigger_method, values_array, trigger_sensitivity, trigger_on=None):
     if trigger_method == "percentile":
         return get_percentile_decision_frontier(values_array, trigger_sensitivity)

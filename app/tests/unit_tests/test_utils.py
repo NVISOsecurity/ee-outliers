@@ -44,8 +44,8 @@ class TestUtils(unittest.TestCase):
         self.assertEqual(helpers.utils.flatten_dict(test_dict_res), test_dict_res)
 
     def test_flatten_dict_complex_case_1(self):
-        test_dict = {'i': {'j' : {'k' : 'test'}}}
-        test_dict_res = {'i.j.k' : 'test'}
+        test_dict = {'i': {'j': {'k': 'test'}}}
+        test_dict_res = {'i.j.k': 'test'}
         self.assertEqual(helpers.utils.flatten_dict(test_dict), test_dict_res)
 
     def test_flatten_dict_complex_case_custom_separator(self):
