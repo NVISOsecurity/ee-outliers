@@ -43,7 +43,7 @@ pipeline {
                 script{
                     withCredentials([string(credentialsId: 'sonar-login-key', variable: 'LOGIN')]) {
                         sh '''
-                            /home/nviso/sonar-scanner-3.3.0.1492-linux/bin/sonar-scanner -Dsonar.login=$LOGIN -Dproject.settings=./sonar-project.properties
+                            /home/nviso/sonar-scanner-3.3.0.1492-linux/bin/sonar-scanner -Dsonar.login=$LOGIN
                         '''
                     }
                 }
