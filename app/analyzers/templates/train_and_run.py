@@ -23,7 +23,7 @@ class TemplateAnalyzer(Analyzer):
 
         self.total_events = es.count_documents(lucene_query=lucene_query)
         training_data_size_pct = settings.config.getint("machine_learning", "training_data_size_pct")
-        training_data_size = total_events / 100 * training_data_size_pct
+        training_data_size = self.total_events / 100 * training_data_size_pct
 
         logging.print_analysis_intro(event_type="training " + self.model_name, total_events=self.total_events)
         total_training_events = int(min(training_data_size, self.total_events))
