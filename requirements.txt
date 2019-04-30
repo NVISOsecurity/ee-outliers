@@ -23,7 +23,7 @@ ruamel.yaml==0.15.34
 SecretStorage==2.3.1
 six==1.11.0
 tzlocal==1.4
-urllib3==1.23
+urllib3==1.24.2
 pandas==0.22.0
 netaddr==0.7.19
 lxml==4.2.1
