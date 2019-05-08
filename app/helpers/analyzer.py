@@ -22,7 +22,7 @@ class Analyzer(abc.ABC):
             self.search_query = es.filter_by_query_string(self.model_settings["es_query_filter"])
 
         if self.model_settings["es_dsl_filter"]:
-
+            self.search_query = es.filter_by_dsl_query(self.model_settings["es_dsl_filter"])
 
         self.total_events = 0
         self.outliers = list()

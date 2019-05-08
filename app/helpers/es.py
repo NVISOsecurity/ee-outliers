@@ -2,6 +2,7 @@ from elasticsearch import helpers as eshelpers, Elasticsearch
 import datetime
 import helpers.utils
 import helpers.logging
+import json
 from pygrok import Grok
 
 from helpers.singleton import singleton
@@ -45,9 +46,17 @@ class ES:
         res = self.conn.search(index=self.index, body=build_search_query(bool_clause=bool_clause, search_range=self.settings.search_range, query_fields=query_fields, search_query=search_query), size=self.settings.config.getint("general", "es_scan_size"), scroll=self.settings.config.get("general", "es_scroll_time"))
         return res["hits"]["total"]
 
-    def filter_by_query_string(self, query=None):
+    def filter_by_query_string(self, query_string=None):
         bool_clause = {"filter": [
-            {"query_string": {"query": query}}
+            {"query_string": {"query": query_string}}
+        ]}
+        return bool_clause
+
+    def filter_by_dsl_query(self, dsl_query=None):
+        dsl_query = json.loads(dsl_query)
+
+        bool_clause = {"filter": [
+            dsl_query["query"]
         ]}
         return bool_clause
 
