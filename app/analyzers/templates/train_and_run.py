@@ -17,11 +17,11 @@ class TemplateAnalyzer(Analyzer):
         self.model_settings["train_model"] = settings.config.getboolean(self.config_section_name, "train_model")
 
     def train_model(self):
-        lucene_query = es.filter_by_query_string(self.model_settings["es_query_filter"])
+        search_query = es.filter_by_query_string(self.model_settings["es_query_filter"])
 
         train_data = list()
 
-        self.total_events = es.count_documents(lucene_query=lucene_query)
+        self.total_events = es.count_documents(search_query=search_query)
         training_data_size_pct = settings.config.getint("machine_learning", "training_data_size_pct")
         training_data_size = self.total_events / 100 * training_data_size_pct
 
@@ -29,7 +29,7 @@ class TemplateAnalyzer(Analyzer):
         total_training_events = int(min(training_data_size, self.total_events))
 
         logging.init_ticker(total_steps=total_training_events, desc=self.model_name + " - preparing SVM training set")
-        for doc in es.scan(lucene_query=lucene_query):
+        for doc in es.scan(search_query=search_query):
             if len(train_data) < total_training_events:
                 logging.tick()
                 fields = es.extract_fields_from_document(doc)

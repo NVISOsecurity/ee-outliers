@@ -18,14 +18,28 @@ class Analyzer(abc.ABC):
         # extract all settings for this use case
         self.model_settings = self._extract_model_settings()
 
-        self.lucene_query = es.filter_by_query_string(self.model_settings["es_query_filter"])
+        if self.model_settings["es_query_filter"]:
+            self.search_query = es.filter_by_query_string(self.model_settings["es_query_filter"])
+
+        if self.model_settings["es_dsl_filter"]:
+
 
         self.total_events = 0
         self.outliers = list()
 
     def _extract_model_settings(self):
         model_settings = dict()
-        model_settings["es_query_filter"] = settings.config.get(self.config_section_name, "es_query_filter")
+
+        try:
+            model_settings["es_query_filter"] = settings.config.get(self.config_section_name, "es_query_filter")
+        except NoOptionError:
+            model_settings["es_query_filter"] = None
+
+        try:
+            model_settings["es_dsl_filter"] = settings.config.get(self.config_section_name, "es_dsl_filter")
+        except NoOptionError:
+            model_settings["es_dsl_filter"] = None
+
         model_settings["outlier_reason"] = settings.config.get(self.config_section_name, "outlier_reason")
         model_settings["outlier_type"] = settings.config.get(self.config_section_name, "outlier_type")
         model_settings["outlier_summary"] = settings.config.get(self.config_section_name, "outlier_summary")

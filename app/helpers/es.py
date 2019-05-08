@@ -37,12 +37,12 @@ class ES:
 
         return self.conn
 
-    def scan(self, bool_clause=None, sort_clause=None, query_fields=None, lucene_query=None):
+    def scan(self, bool_clause=None, sort_clause=None, query_fields=None, search_query=None):
         preserve_order = True if sort_clause is not None else False
-        return eshelpers.scan(self.conn, request_timeout=self.settings.config.getint("general", "es_timeout"), index=self.settings.config.get("general", "es_index_pattern"), query=build_search_query(bool_clause=bool_clause, sort_clause=sort_clause, search_range=self.settings.search_range, query_fields=query_fields, lucene_query=lucene_query), size=self.settings.config.getint("general", "es_scan_size"), scroll=self.settings.config.get("general", "es_scroll_time"), preserve_order=preserve_order, raise_on_error=True,)
+        return eshelpers.scan(self.conn, request_timeout=self.settings.config.getint("general", "es_timeout"), index=self.settings.config.get("general", "es_index_pattern"), query=build_search_query(bool_clause=bool_clause, sort_clause=sort_clause, search_range=self.settings.search_range, query_fields=query_fields, search_query=search_query), size=self.settings.config.getint("general", "es_scan_size"), scroll=self.settings.config.get("general", "es_scroll_time"), preserve_order=preserve_order, raise_on_error=True,)
 
-    def count_documents(self, bool_clause=None, query_fields=None, lucene_query=None):
-        res = self.conn.search(index=self.index, body=build_search_query(bool_clause=bool_clause, search_range=self.settings.search_range, query_fields=query_fields, lucene_query=lucene_query), size=self.settings.config.getint("general", "es_scan_size"), scroll=self.settings.config.get("general", "es_scroll_time"))
+    def count_documents(self, bool_clause=None, query_fields=None, search_query=None):
+        res = self.conn.search(index=self.index, body=build_search_query(bool_clause=bool_clause, search_range=self.settings.search_range, query_fields=query_fields, search_query=search_query), size=self.settings.config.getint("general", "es_scan_size"), scroll=self.settings.config.get("general", "es_scroll_time"))
         return res["hits"]["total"]
 
     def filter_by_query_string(self, query=None):
@@ -218,7 +218,7 @@ def remove_tag_from_document(doc, tag):
     return doc
 
 
-def build_search_query(bool_clause=None, sort_clause=None, search_range=None, query_fields=None, lucene_query=None):
+def build_search_query(bool_clause=None, sort_clause=None, search_range=None, query_fields=None, search_query=None):
     query = dict()
     query["query"] = dict()
     query["query"]["bool"] = dict()
@@ -241,8 +241,8 @@ def build_search_query(bool_clause=None, sort_clause=None, search_range=None, qu
             query["query"]["bool"]["filter"] = list()
         query["query"]["bool"]["filter"].append(search_range)
 
-    if lucene_query:
-        query["query"]["bool"]["filter"].append(lucene_query["filter"].copy())
+    if search_query:
+        query["query"]["bool"]["filter"].append(search_query["filter"].copy())
 
     return query
 
