@@ -96,7 +96,7 @@ def perform_analysis():
         try:
             if analyzer.should_run_model or analyzer.should_test_model:
                 analyzer.evaluate_model()
-                logging.logger.info("finished processing use case - " + str(idx) + "/" + str(total_analyzers_to_process) + " [" + '{:.2f}'.format(round(float(idx) / float(total_analyzers_to_process) * 100, 2)) + "% done" + "]")
+                logging.logger.info("finished processing use case - " + str(idx + 1) + "/" + str(total_analyzers_to_process) + " [" + '{:.2f}'.format(round(float(idx + 1) / float(total_analyzers_to_process) * 100, 2)) + "% done" + "]")
         except Exception:
             logging.logger.error(traceback.format_exc())
 

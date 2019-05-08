@@ -55,9 +55,14 @@ class ES:
     def filter_by_dsl_query(self, dsl_query=None):
         dsl_query = json.loads(dsl_query)
 
-        bool_clause = {"filter": [
-            dsl_query["query"]
-        ]}
+        if isinstance(dsl_query, list):
+            bool_clause = {"filter": []}
+            for query in dsl_query:
+                bool_clause["filter"].append(query["query"])
+        else:
+            bool_clause = {"filter": [
+                dsl_query["query"]
+            ]}
         return bool_clause
 
     # this is part of housekeeping, so we should not access non-threat-save objects, such as logging progress to the console using ticks!
