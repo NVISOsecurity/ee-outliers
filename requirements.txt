@@ -1,5 +1,5 @@
 scikit-learn==0.19.1
-tensorflow==1.8.0
+tensorflow>=1.12.1
 certifi==2017.7.27.1
 chardet==3.0.4
 configparser==3.5.0
