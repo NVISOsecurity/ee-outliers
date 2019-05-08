@@ -87,12 +87,18 @@ def perform_analysis():
         except Exception:
             logging.logger.error(traceback.format_exc())
 
-        for analyzer in analyzers:
-            try:
-                if analyzer.should_run_model or analyzer.should_test_model:
-                    analyzer.evaluate_model()
-            except Exception:
-                logging.logger.error(traceback.format_exc())
+    total_analyzers_to_process = 0
+    for idx, analyzer in enumerate(analyzers):
+        if analyzer.should_run_model or analyzer.should_test_model:
+            total_analyzers_to_process = total_analyzers_to_process + 1
+
+    for idx, analyzer in enumerate(analyzers):
+        try:
+            if analyzer.should_run_model or analyzer.should_test_model:
+                analyzer.evaluate_model()
+                logging.logger.info("finished processing use case - " + str(idx + 1) + "/" + str(total_analyzers_to_process) + " [" + '{:.2f}'.format(round(float(idx + 1) / float(total_analyzers_to_process) * 100, 2)) + "% done" + "]")
+        except Exception:
+            logging.logger.error(traceback.format_exc())
 
 
 # Run modes

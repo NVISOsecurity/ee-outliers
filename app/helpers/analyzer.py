@@ -18,14 +18,28 @@ class Analyzer(abc.ABC):
         # extract all settings for this use case
         self.model_settings = self._extract_model_settings()
 
-        self.lucene_query = es.filter_by_query_string(self.model_settings["es_query_filter"])
+        if self.model_settings["es_query_filter"]:
+            self.search_query = es.filter_by_query_string(self.model_settings["es_query_filter"])
+
+        if self.model_settings["es_dsl_filter"]:
+            self.search_query = es.filter_by_dsl_query(self.model_settings["es_dsl_filter"])
 
         self.total_events = 0
         self.outliers = list()
 
     def _extract_model_settings(self):
         model_settings = dict()
-        model_settings["es_query_filter"] = settings.config.get(self.config_section_name, "es_query_filter")
+
+        try:
+            model_settings["es_query_filter"] = settings.config.get(self.config_section_name, "es_query_filter")
+        except NoOptionError:
+            model_settings["es_query_filter"] = None
+
+        try:
+            model_settings["es_dsl_filter"] = settings.config.get(self.config_section_name, "es_dsl_filter")
+        except NoOptionError:
+            model_settings["es_dsl_filter"] = None
+
         model_settings["outlier_reason"] = settings.config.get(self.config_section_name, "outlier_reason")
         model_settings["outlier_type"] = settings.config.get(self.config_section_name, "outlier_type")
         model_settings["outlier_summary"] = settings.config.get(self.config_section_name, "outlier_summary")
@@ -53,15 +67,18 @@ class Analyzer(abc.ABC):
             logging.logger.info("no outliers detected for use case")
 
     def process_outlier(self, fields, doc, extra_outlier_information=dict()):
-        outlier_summary = helpers.utils.replace_placeholder_fields_with_values(self.model_settings["outlier_summary"], fields)
-        outlier_type = helpers.utils.replace_placeholder_fields_with_values(self.model_settings["outlier_type"], fields)
-        outlier_reason = helpers.utils.replace_placeholder_fields_with_values(self.model_settings["outlier_reason"], fields)
+        extra_outlier_information["model_name"] = self.model_name
+        extra_outlier_information["model_type"] = self.model_type
+
+        fields_and_extra_outlier_information = fields.copy()
+        fields_and_extra_outlier_information.update(extra_outlier_information)
+
+        outlier_summary = helpers.utils.replace_placeholder_fields_with_values(self.model_settings["outlier_summary"], fields_and_extra_outlier_information)
+        outlier_type = helpers.utils.replace_placeholder_fields_with_values(self.model_settings["outlier_type"], fields_and_extra_outlier_information)
+        outlier_reason = helpers.utils.replace_placeholder_fields_with_values(self.model_settings["outlier_reason"], fields_and_extra_outlier_information)
 
         outlier_assets = helpers.utils.extract_outlier_asset_information(fields, settings)
         outlier = Outlier(type=outlier_type, reason=outlier_reason, summary=outlier_summary)
-
-        extra_outlier_information["model_name"] = self.model_name
-        extra_outlier_information["model_type"] = self.model_type
 
         if len(outlier_assets) > 0:
             outlier.outlier_dict["assets"] = outlier_assets
