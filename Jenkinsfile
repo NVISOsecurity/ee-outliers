@@ -24,7 +24,6 @@ pipeline {
             }
         }
 
-
         stage('Test image') {
             steps {
                 script {
@@ -34,6 +33,21 @@ pipeline {
                 }
             }
             
+        }
+
+        stage('Sonarqube analysis') {
+            when{
+                branch "development"
+            }
+            steps {
+                script{
+                    withCredentials([string(credentialsId: 'sonar-login-key', variable: 'LOGIN')]) {
+                        sh '''
+                            /opt/sonar-scanner -Dsonar.login=$LOGIN
+                        '''
+                    }
+                }
+            }
         }
 
         stage('Push image') {

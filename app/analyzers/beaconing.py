@@ -15,8 +15,8 @@ class BeaconingAnalyzer(Analyzer):
     def evaluate_model(self):
         self.extract_additional_model_settings()
 
-        lucene_query = es.filter_by_query_string(self.model_settings["es_query_filter"])
-        self.total_events = es.count_documents(lucene_query=lucene_query)
+        search_query = es.filter_by_query_string(self.model_settings["es_query_filter"])
+        self.total_events = es.count_documents(search_query=search_query)
 
         logging.print_analysis_intro(event_type="evaluating " + self.model_name, total_events=self.total_events)
         logging.init_ticker(total_steps=self.total_events, desc=self.model_name + " - evaluating " + self.model_type + " model")
@@ -25,7 +25,7 @@ class BeaconingAnalyzer(Analyzer):
         total_terms_added = 0
 
         outlier_batches_trend = 0
-        for doc in es.scan(lucene_query=lucene_query):
+        for doc in es.scan(search_query=search_query):
             logging.tick()
             fields = es.extract_fields_from_document(doc)
 

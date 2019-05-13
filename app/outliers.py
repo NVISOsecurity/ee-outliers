@@ -64,31 +64,41 @@ def perform_analysis():
     analyzers = list()
 
     for config_section_name in settings.config.sections():
-        if config_section_name.startswith("simplequery_"):
-            simplequery_analyzer = SimplequeryAnalyzer(config_section_name=config_section_name)
-            analyzers.append(simplequery_analyzer)
+        try:
+            if config_section_name.startswith("simplequery_"):
+                simplequery_analyzer = SimplequeryAnalyzer(config_section_name=config_section_name)
+                analyzers.append(simplequery_analyzer)
 
-        if config_section_name.startswith("metrics_"):
-            metrics_analyzer = MetricsAnalyzer(config_section_name=config_section_name)
-            analyzers.append(metrics_analyzer)
+            if config_section_name.startswith("metrics_"):
+                metrics_analyzer = MetricsAnalyzer(config_section_name=config_section_name)
+                analyzers.append(metrics_analyzer)
 
-        if config_section_name.startswith("terms_"):
-            terms_analyzer = TermsAnalyzer(config_section_name=config_section_name)
-            analyzers.append(terms_analyzer)
+            if config_section_name.startswith("terms_"):
+                terms_analyzer = TermsAnalyzer(config_section_name=config_section_name)
+                analyzers.append(terms_analyzer)
 
-        if config_section_name.startswith("beaconing_"):
-            beaconing_analyzer = BeaconingAnalyzer(config_section_name=config_section_name)
-            analyzers.append(beaconing_analyzer)
+            if config_section_name.startswith("beaconing_"):
+                beaconing_analyzer = BeaconingAnalyzer(config_section_name=config_section_name)
+                analyzers.append(beaconing_analyzer)
 
-        if config_section_name.startswith("word2vec_"):
-            word2vec_analyzer = Word2VecAnalyzer(config_section_name=config_section_name)
-            analyzers.append(word2vec_analyzer)
+            if config_section_name.startswith("word2vec_"):
+                word2vec_analyzer = Word2VecAnalyzer(config_section_name=config_section_name)
+                analyzers.append(word2vec_analyzer)
+        except Exception:
+            logging.logger.error(traceback.format_exc())
 
-    for analyzer in analyzers:
+    total_analyzers_to_process = 0
+    for idx, analyzer in enumerate(analyzers):
         if analyzer.should_run_model or analyzer.should_test_model:
-            analyzer.evaluate_model()
+            total_analyzers_to_process = total_analyzers_to_process + 1
 
-    # svm_generic.perform_analysis()
+    for idx, analyzer in enumerate(analyzers):
+        try:
+            if analyzer.should_run_model or analyzer.should_test_model:
+                analyzer.evaluate_model()
+                logging.logger.info("finished processing use case - " + str(idx + 1) + "/" + str(total_analyzers_to_process) + " [" + '{:.2f}'.format(round(float(idx + 1) / float(total_analyzers_to_process) * 100, 2)) + "% done" + "]")
+        except Exception:
+            logging.logger.error(traceback.format_exc())
 
 
 # Run modes

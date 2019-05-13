@@ -20,11 +20,11 @@ class Word2VecAnalyzer(Analyzer):
 
     def train_model(self):
         w2v_model = word2vec.Word2Vec(name=self.model_name)
-        lucene_query = es.filter_by_query_string(self.model_settings["es_query_filter"])
+        search_query = es.filter_by_query_string(self.model_settings["es_query_filter"])
 
         sentences = list()
 
-        self.total_events = es.count_documents(lucene_query=lucene_query)
+        self.total_events = es.count_documents(search_query=search_query)
         training_data_size_pct = settings.config.getint("machine_learning", "training_data_size_pct")
         training_data_size = self.total_events / 100 * training_data_size_pct
 
@@ -32,7 +32,7 @@ class Word2VecAnalyzer(Analyzer):
         total_training_events = int(min(training_data_size, self.total_events))
 
         logging.init_ticker(total_steps=total_training_events, desc=self.model_name + " - preparing word2vec training set")
-        for doc in es.scan(lucene_query=lucene_query):
+        for doc in es.scan(search_query=search_query):
             if len(sentences) < total_training_events:
                 logging.tick()
                 fields = es.extract_fields_from_document(doc)
@@ -62,7 +62,7 @@ class Word2VecAnalyzer(Analyzer):
             return
 
         w2v_model = word2vec.Word2Vec(name=self.model_name)
-        lucene_query = es.filter_by_query_string(self.model_settings["es_query_filter"])
+        search_query = es.filter_by_query_string(self.model_settings["es_query_filter"])
 
         if not w2v_model.is_trained():
             logging.logger.warning("model was not trained! Skipping analysis.")
@@ -73,7 +73,7 @@ class Word2VecAnalyzer(Analyzer):
                 self.evaluate_test_sentences(w2v_model=w2v_model)
                 return
 
-            self.total_events = es.count_documents(lucene_query=lucene_query)
+            self.total_events = es.count_documents(search_query=search_query)
             logging.print_analysis_intro(event_type="evaluating " + self.model_name, total_events=self.total_events)
 
             logging.init_ticker(total_steps=self.total_events, desc=self.model_name + " - evaluating word2vec model")
@@ -81,7 +81,7 @@ class Word2VecAnalyzer(Analyzer):
             raw_docs = list()
             eval_sentences = list()
 
-            for doc in es.scan(lucene_query=lucene_query):
+            for doc in es.scan(search_query=search_query):
                 logging.tick()
                 fields = es.extract_fields_from_document(doc)
 
