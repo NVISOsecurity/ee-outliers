@@ -112,12 +112,13 @@ if settings.args.run_mode == "daemon":
     file_mod_watcher.add_files(settings.args.config)
 
     num_runs = 0
+    first_run = True
     while True:
         num_runs += 1
         next_run = None
         should_schedule_next_run = False
 
-        while next_run is None or datetime.now() < next_run:
+        while (next_run is None or datetime.now() < next_run) and first_run is False:
             if next_run is None:
                 should_schedule_next_run = True
 
@@ -133,6 +134,10 @@ if settings.args.run_mode == "daemon":
                 should_schedule_next_run = False
 
             time.sleep(5)
+
+        if first_run:
+            first_run = False
+            logging.logger.info("first run, so we will start immediately - after this, we will respect the cron schedule defined in the configuration file")
 
         settings.process_arguments()  # Refresh settings
         es.init_connection()
