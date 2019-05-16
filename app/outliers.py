@@ -1,3 +1,4 @@
+import random
 import time
 import os
 import sys
@@ -87,16 +88,19 @@ def perform_analysis():
         except Exception:
             logging.logger.error(traceback.format_exc())
 
-    total_analyzers_to_process = 0
-    for idx, analyzer in enumerate(analyzers):
-        if analyzer.should_run_model or analyzer.should_test_model:
-            total_analyzers_to_process = total_analyzers_to_process + 1
+    analyzers_to_evaluate = list()
 
     for idx, analyzer in enumerate(analyzers):
+        if analyzer.should_run_model or analyzer.should_test_model:
+            analyzers_to_evaluate.append(analyzer)
+
+    random.shuffle(analyzers_to_evaluate)
+    analyzed_models = 0
+    for analyzer in analyzers_to_evaluate:
         try:
-            if analyzer.should_run_model or analyzer.should_test_model:
-                analyzer.evaluate_model()
-                logging.logger.info("finished processing use case - " + str(idx + 1) + "/" + str(total_analyzers_to_process) + " [" + '{:.2f}'.format(round(float(idx + 1) / float(total_analyzers_to_process) * 100, 2)) + "% done" + "]")
+            analyzer.evaluate_model()
+            analyzed_models = analyzed_models + 1
+            logging.logger.info("finished processing use case - " + str(analyzed_models + 1) + "/" + str(len(analyzers_to_evaluate)) + " [" + '{:.2f}'.format(round(float(analyzed_models + 1) / float(len(analyzers_to_evaluate)) * 100, 2)) + "% done" + "]")
         except Exception:
             logging.logger.error(traceback.format_exc())
 
@@ -152,14 +156,11 @@ if settings.args.run_mode == "daemon":
         housekeeping_job = HousekeepingJob()
         housekeeping_job.start()
 
-        try:
-            perform_analysis()
-        except Exception:
-            logging.logger.error(traceback.format_exc())
-        finally:
-            logging.logger.info("asking housekeeping jobs to shutdown after finishing")
-            housekeeping_job.shutdown_flag.set()
-            housekeeping_job.join()
+        perform_analysis()
+
+        logging.logger.info("asking housekeeping jobs to shutdown after finishing")
+        housekeeping_job.shutdown_flag.set()
+        housekeeping_job.join()
 
         logging.logger.info("finished performing outlier detection")
 
