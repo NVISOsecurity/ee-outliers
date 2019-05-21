@@ -1,5 +1,4 @@
 import math
-
 import collections
 import netaddr
 import numpy as np
@@ -208,20 +207,22 @@ def is_url(_str):
 
 
 def get_decision_frontier(trigger_method, values_array, trigger_sensitivity, trigger_on=None):
+    decision_frontier = None
+
     if trigger_method == "percentile":
-        return get_percentile_decision_frontier(values_array, trigger_sensitivity)
+        decision_frontier = get_percentile_decision_frontier(values_array, trigger_sensitivity)
 
     elif trigger_method == "pct_of_max_value":
         max_value = max(values_array)
-        return np.float64(max_value * (trigger_sensitivity / 100))
+        decision_frontier = np.float64(max_value * (trigger_sensitivity / 100))
 
     elif trigger_method == "pct_of_median_value":
         median_value = median(values_array)
-        return np.float64(median_value * (trigger_sensitivity / 100))
+        decision_frontier = np.float64(median_value * (trigger_sensitivity / 100))
 
     elif trigger_method == "pct_of_avg_value":
         avg_value = mean(values_array)
-        return np.float64(avg_value * (trigger_sensitivity / 100))
+        decision_frontier = np.float64(avg_value * (trigger_sensitivity / 100))
 
     elif trigger_method == "mad" or trigger_method == "madpos":
         decision_frontier = get_mad_decision_frontier(values_array, trigger_sensitivity, trigger_on)
@@ -234,15 +235,18 @@ def get_decision_frontier(trigger_method, values_array, trigger_sensitivity, tri
         if trigger_method == "madpos":
             decision_frontier = np.float64(max([decision_frontier, 0]))
 
-        return decision_frontier
-
     elif trigger_method == "stdev":
-        return get_stdev_decision_frontier(values_array, trigger_sensitivity, trigger_on)
+        decision_frontier = get_stdev_decision_frontier(values_array, trigger_sensitivity, trigger_on)
     elif trigger_method == "float":
-        return np.float64(trigger_sensitivity)
+        decision_frontier = np.float64(trigger_sensitivity)
     else:
         raise ValueError("Unexpected trigger method " + trigger_method + ", could not calculate decision frontier")
 
+    if decision_frontier < 0:
+        from helpers.singletons import logging  # TODO - Fix by making this a global import, which doesn't work for the moment
+        logging.logger.warning("negative decision frontier %.2f, this will not generate any outliers", decision_frontier)
+
+    return decision_frontier
 
 # Calculate percentile decision frontier
 # Example: values array is [0 5 10 20 30 2 5 5]
