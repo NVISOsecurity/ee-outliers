@@ -162,6 +162,9 @@ if settings.args.run_mode == "daemon":
 
         run_succeeded_without_errors = perform_analysis()
 
+        if not run_succeeded_without_errors:
+            logging.logger.warning("ran into errors while analyzing use cases - not going to wait for the cron schedule, we just start analyzing again")
+
         logging.logger.info("asking housekeeping jobs to shutdown after finishing")
         housekeeping_job.shutdown_flag.set()
         housekeeping_job.join()
