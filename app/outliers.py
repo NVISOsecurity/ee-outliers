@@ -104,6 +104,8 @@ def perform_analysis():
         except Exception:
             logging.logger.error(traceback.format_exc())
 
+    return analyzed_models == len(analyzers_to_evaluate)
+
 
 # Run modes
 if settings.args.run_mode == "daemon":
@@ -117,12 +119,14 @@ if settings.args.run_mode == "daemon":
 
     num_runs = 0
     first_run = True
+    run_succeeded_without_errors = None
+
     while True:
         num_runs += 1
         next_run = None
         should_schedule_next_run = False
 
-        while (next_run is None or datetime.now() < next_run) and first_run is False:
+        while (next_run is None or datetime.now() < next_run) and first_run is False and run_succeeded_without_errors is True:
             if next_run is None:
                 should_schedule_next_run = True
 
@@ -156,7 +160,7 @@ if settings.args.run_mode == "daemon":
         housekeeping_job = HousekeepingJob()
         housekeeping_job.start()
 
-        perform_analysis()
+        run_succeeded_without_errors = perform_analysis()
 
         logging.logger.info("asking housekeeping jobs to shutdown after finishing")
         housekeeping_job.shutdown_flag.set()
