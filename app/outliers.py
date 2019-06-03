@@ -164,8 +164,15 @@ if settings.args.run_mode == "daemon":
 
         # Make sure we are connected to Elasticsearch before analyzing, in case something went wrong with the connection in between runs
         es.init_connection()
-        run_succeeded_without_errors = perform_analysis()
 
+        # Make sure housekeeping is still up and running
+        if not housekeeping_job.is_alive():
+            housekeeping_job = HousekeepingJob()
+            housekeeping_job.start()
+
+        # Perform analysis
+        logging.print_generic_intro("starting outlier detection")
+        run_succeeded_without_errors = perform_analysis()
         logging.print_generic_intro("finished performing outlier detection")
         if not run_succeeded_without_errors:
             logging.logger.warning("ran into errors while analyzing use cases - not going to wait for the cron schedule, we just start analyzing again")
