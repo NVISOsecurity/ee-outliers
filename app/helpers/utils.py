@@ -248,6 +248,7 @@ def get_decision_frontier(trigger_method, values_array, trigger_sensitivity, tri
 
     return decision_frontier
 
+
 # Calculate percentile decision frontier
 # Example: values array is [0 5 10 20 30 2 5 5]
 # trigger_sensitivity is 10 (meaning: 10th percentile)

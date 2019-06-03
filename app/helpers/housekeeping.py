@@ -31,7 +31,7 @@ class HousekeepingJob(threading.Thread):
                     else:
                         logging.logger.info("housekeeping - whitelist did not remove any outliers")
 
-                except Exception as e:
+                except Exception:
                     logging.logger.error("housekeeping - something went removing whitelisted outliers")
                     logging.logger.error(traceback.format_exc())
 
