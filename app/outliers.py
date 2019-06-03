@@ -100,9 +100,14 @@ def perform_analysis():
         try:
             analyzer.evaluate_model()
             analyzed_models = analyzed_models + 1
-            logging.logger.info("finished processing use case - " + str(analyzed_models + 1) + "/" + str(len(analyzers_to_evaluate)) + " [" + '{:.2f}'.format(round(float(analyzed_models + 1) / float(len(analyzers_to_evaluate)) * 100, 2)) + "% done" + "]")
+            logging.logger.info("finished processing use case - " + str(analyzed_models) + "/" + str(len(analyzers_to_evaluate)) + " [" + '{:.2f}'.format(round(float(analyzed_models) / float(len(analyzers_to_evaluate)) * 100, 2)) + "% done" + "]")
         except Exception:
             logging.logger.error(traceback.format_exc())
+
+    if analyzed_models == 0:
+        logging.logger.warning("no use cases were analyzed. are you sure your configuration file contains use cases, which are enabled?")
+
+    return analyzed_models == len(analyzers_to_evaluate)
 
 
 # Run modes
@@ -115,14 +120,23 @@ if settings.args.run_mode == "daemon":
     file_mod_watcher = FileModificationWatcher()
     file_mod_watcher.add_files(settings.args.config)
 
+    # Initialize Elasticsearch connection
+    es.init_connection()
+
+    # Start housekeeping activities
+    housekeeping_job = HousekeepingJob()
+    housekeeping_job.start()
+
     num_runs = 0
     first_run = True
+    run_succeeded_without_errors = None
+
     while True:
         num_runs += 1
         next_run = None
         should_schedule_next_run = False
 
-        while (next_run is None or datetime.now() < next_run) and first_run is False:
+        while (next_run is None or datetime.now() < next_run) and first_run is False and run_succeeded_without_errors is True:
             if next_run is None:
                 should_schedule_next_run = True
 
@@ -144,7 +158,6 @@ if settings.args.run_mode == "daemon":
             logging.logger.info("first run, so we will start immediately - after this, we will respect the cron schedule defined in the configuration file")
 
         settings.process_arguments()  # Refresh settings
-        es.init_connection()
 
         if settings.config.getboolean("general", "es_wipe_all_existing_outliers") and num_runs == 1:
             logging.logger.info("wiping all existing outliers on first run")
@@ -152,17 +165,24 @@ if settings.args.run_mode == "daemon":
 
         logging.logger.info(settings.get_time_window_info())
 
-        # We place all of this in a try catch-all, so that any errors thrown by the analyzers (timeouts, errors) won't make the daemon loop stop
-        housekeeping_job = HousekeepingJob()
-        housekeeping_job.start()
+        # Make sure we are connected to Elasticsearch before analyzing, in case something went wrong with the connection in between runs
+        es.init_connection()
 
-        perform_analysis()
+        # Make sure housekeeping is still up and running
+        if not housekeeping_job.is_alive():
+            housekeeping_job = HousekeepingJob()
+            housekeeping_job.start()
 
-        logging.logger.info("asking housekeeping jobs to shutdown after finishing")
-        housekeeping_job.shutdown_flag.set()
-        housekeeping_job.join()
+        # Perform analysis
+        logging.print_generic_intro("starting outlier detection")
+        run_succeeded_without_errors = perform_analysis()
+        if not run_succeeded_without_errors:
+            logging.logger.warning("ran into errors while analyzing use cases - not going to wait for the cron schedule, we just start analyzing again")
+        else:
+            logging.logger.info("no errors encountered while analyzing use cases")
 
-        logging.logger.info("finished performing outlier detection")
+        logging.print_generic_intro("finished performing outlier detection")
+
 
 if settings.args.run_mode == "interactive":
     es.init_connection()

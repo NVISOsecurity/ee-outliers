@@ -40,22 +40,27 @@ class Analyzer(abc.ABC):
         except NoOptionError:
             model_settings["es_dsl_filter"] = None
 
+        try:
+            model_settings["should_notify"] = settings.config.getboolean("notifier", "email_notifier") and settings.config.getboolean(self.config_section_name, "should_notify")
+        except NoOptionError:
+            model_settings["should_notify"] = False
+
+        try:
+            model_settings["use_derived_fields"] = settings.config.getboolean(self.config_section_name, "use_derived_fields")
+        except NoOptionError:
+            model_settings["use_derived_fields"] = False
+
+        try:
+            model_settings["should_notify"] = settings.config.getboolean("notifier", "email_notifier") and settings.config.getboolean(self.config_section_name, "should_notify")
+        except NoOptionError:
+            model_settings["should_notify"] = False
+
         model_settings["outlier_reason"] = settings.config.get(self.config_section_name, "outlier_reason")
         model_settings["outlier_type"] = settings.config.get(self.config_section_name, "outlier_type")
         model_settings["outlier_summary"] = settings.config.get(self.config_section_name, "outlier_summary")
 
-        try:
-            model_settings["should_notify"] = settings.config.getboolean("notifier", "email_notifier") and settings.config.getboolean(self.config_section_name, "should_notify")
-        except NoOptionError:
-            model_settings["should_notify"] = False
-
         self.should_test_model = settings.config.getboolean("general", "run_models") and settings.config.getboolean(self.config_section_name, "run_model")
         self.should_run_model = settings.config.getboolean("general", "test_models") and settings.config.getboolean(self.config_section_name, "test_model")
-
-        try:
-            model_settings["should_notify"] = settings.config.getboolean("notifier", "email_notifier") and settings.config.getboolean(self.config_section_name, "should_notify")
-        except NoOptionError:
-            model_settings["should_notify"] = False
 
         return model_settings
 

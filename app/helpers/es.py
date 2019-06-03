@@ -69,12 +69,14 @@ class ES:
     def remove_all_whitelisted_outliers(self):
         from helpers.outlier import Outlier  # import goes here to avoid issues with singletons & circular requirements ... //TODO: fix this
 
-        must_clause = {"filter": [{"term": {"tags": "outlier"}}]}
+        outliers_filter_query = {"filter": [{"term": {"tags": "outlier"}}]}
         total_docs_whitelisted = 0
 
-        for doc in self.scan(bool_clause=must_clause):
-            total_outliers = int(doc["_source"]["outliers"]["total_outliers"])
+        total_nr_outliers = self.count_documents(bool_clause=outliers_filter_query)
+        self.logging.logger.info("going to analyze %s outliers and remove all whitelisted items", "{:,}".format(total_nr_outliers))
 
+        for doc in self.scan(bool_clause=outliers_filter_query):
+            total_outliers = int(doc["_source"]["outliers"]["total_outliers"])
             # Generate all outlier objects for this document
             total_whitelisted = 0
 
@@ -170,12 +172,14 @@ class ES:
 
         return derived_fields
 
-    def extract_fields_from_document(self, doc):
+    def extract_fields_from_document(self, doc, extract_derived_fields=False):
         doc_fields = doc["_source"]
-        derived_fields = self.extract_derived_fields(doc_fields)
 
-        for k, v in derived_fields.items():
-            doc_fields[k] = v
+        if extract_derived_fields:
+            derived_fields = self.extract_derived_fields(doc_fields)
+
+            for k, v in derived_fields.items():
+                doc_fields[k] = v
 
         return doc_fields
 

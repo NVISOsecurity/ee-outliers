@@ -207,7 +207,7 @@ class TestUtils(unittest.TestCase):
         from helpers.singletons import settings, es
 
         orig_doc = copy.deepcopy(doc_with_outlier_test_file)
-        fields = es.extract_fields_from_document(orig_doc)
+        fields = es.extract_fields_from_document(orig_doc, extract_derived_fields=False)
 
         # test case for simple asset matching
         outlier_assets = helpers.utils.extract_outlier_asset_information(fields, settings)
@@ -218,7 +218,7 @@ class TestUtils(unittest.TestCase):
         from helpers.singletons import settings, es
 
         orig_doc = copy.deepcopy(doc_with_asset_edgecases)
-        fields = es.extract_fields_from_document(orig_doc)
+        fields = es.extract_fields_from_document(orig_doc, extract_derived_fields=False)
 
         # test case for asset fields containing multiple values in an array
         outlier_assets = helpers.utils.extract_outlier_asset_information(fields, settings)
@@ -231,7 +231,7 @@ class TestUtils(unittest.TestCase):
 
         # test case for case insensitive asset matching
         orig_doc = copy.deepcopy(doc_with_outlier_test_file)
-        fields = es.extract_fields_from_document(orig_doc)
+        fields = es.extract_fields_from_document(orig_doc, extract_derived_fields=False)
         outlier_assets = helpers.utils.extract_outlier_asset_information(fields, settings)
         self.assertIn("ip: 192.168.67.175", outlier_assets)
 
