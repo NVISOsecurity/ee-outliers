@@ -172,12 +172,14 @@ class ES:
 
         return derived_fields
 
-    def extract_fields_from_document(self, doc):
+    def extract_fields_from_document(self, doc, extract_derived_fields=False):
         doc_fields = doc["_source"]
-        derived_fields = self.extract_derived_fields(doc_fields)
 
-        for k, v in derived_fields.items():
-            doc_fields[k] = v
+        if extract_derived_fields:
+            derived_fields = self.extract_derived_fields(doc_fields)
+
+            for k, v in derived_fields.items():
+                doc_fields[k] = v
 
         return doc_fields
 

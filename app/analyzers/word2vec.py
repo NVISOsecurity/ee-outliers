@@ -35,7 +35,7 @@ class Word2VecAnalyzer(Analyzer):
         for doc in es.scan(search_query=search_query):
             if len(sentences) < total_training_events:
                 logging.tick()
-                fields = es.extract_fields_from_document(doc)
+                fields = es.extract_fields_from_document(doc, extract_derived_fields=self.model_settings["use_derived_fields"])
                 if set(self.model_settings["sentence_format"]).issubset(fields.keys()):
                     new_sentences = helpers.utils.flatten_fields_into_sentences(fields=fields, sentence_format=self.model_settings["sentence_format"])
                     for sentence in new_sentences:
@@ -83,7 +83,7 @@ class Word2VecAnalyzer(Analyzer):
 
             for doc in es.scan(search_query=search_query):
                 logging.tick()
-                fields = es.extract_fields_from_document(doc)
+                fields = es.extract_fields_from_document(doc, extract_derived_fields=self.model_settings["use_derived_fields"])
 
                 try:
                     new_sentences = helpers.utils.flatten_fields_into_sentences(fields=fields, sentence_format=self.model_settings["sentence_format"])
@@ -126,7 +126,7 @@ class Word2VecAnalyzer(Analyzer):
             decision_frontier = helpers.utils.get_decision_frontier(self.model_settings["trigger_method"], unique_probs, self.model_settings["trigger_sensitivity"], self.model_settings["trigger_on"])
             is_outlier = helpers.utils.is_outlier(single_sentence_prob, decision_frontier, self.model_settings["trigger_on"])
             if is_outlier:
-                fields = es.extract_fields_from_document(raw_docs[i])
+                fields = es.extract_fields_from_document(raw_docs[i], extract_derived_fields=self.model_settings["use_derived_fields"])
                 outliers.append(self.process_outlier(fields, raw_docs[i], extra_outlier_information=None))
             else:
                 if w2v_model.use_test_data:

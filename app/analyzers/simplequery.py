@@ -11,7 +11,7 @@ class SimplequeryAnalyzer(Analyzer):
         logging.init_ticker(total_steps=self.total_events, desc=self.model_name + " - evaluating " + self.model_type + " model")
         for doc in es.scan(search_query=self.search_query):
             logging.tick()
-            fields = es.extract_fields_from_document(doc)
+            fields = es.extract_fields_from_document(doc, extract_derived_fields=self.model_settings["use_derived_fields"])
             self.process_outlier(fields, doc)
 
         self.print_analysis_summary()

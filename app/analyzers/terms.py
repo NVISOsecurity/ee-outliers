@@ -27,7 +27,7 @@ class TermsAnalyzer(Analyzer):
             num_docs_processed = 0
             for doc in es.scan(search_query=search_query):
                 logging.tick()
-                fields = es.extract_fields_from_document(doc)
+                fields = es.extract_fields_from_document(doc, extract_derived_fields=self.model_settings["use_derived_fields"])
                 fields = helpers.utils.flatten_dict(fields)
 
                 # skip all fields that are related to outliers, we don't want to brute force them
@@ -71,7 +71,7 @@ class TermsAnalyzer(Analyzer):
         outlier_batches_trend = 0
         for doc in es.scan(search_query=search_query):
             logging.tick()
-            fields = es.extract_fields_from_document(doc)
+            fields = es.extract_fields_from_document(doc, extract_derived_fields=self.model_settings["use_derived_fields"])
 
             try:
                 target_sentences = helpers.utils.flatten_fields_into_sentences(fields=fields, sentence_format=self.model_settings["target"])
@@ -202,7 +202,7 @@ class TermsAnalyzer(Analyzer):
                         calculated_observations.update(observations)
 
                         raw_doc = terms[observations["aggregator"]]["raw_docs"][ii]
-                        fields = es.extract_fields_from_document(raw_doc)
+                        fields = es.extract_fields_from_document(raw_doc, extract_derived_fields=self.model_settings["use_derived_fields"])
                         outliers.append(self.process_outlier(fields, raw_doc, extra_outlier_information=calculated_observations))
                 else:
                     for ii, term_value in enumerate(terms[aggregator_value]["targets"]):
@@ -248,7 +248,7 @@ class TermsAnalyzer(Analyzer):
                         calculated_observations.update(observations)
 
                         raw_doc = terms[observations["aggregator"]]["raw_docs"][ii]
-                        fields = es.extract_fields_from_document(raw_doc)
+                        fields = es.extract_fields_from_document(raw_doc, extract_derived_fields=self.model_settings["use_derived_fields"])
                         outliers.append(self.process_outlier(fields, raw_doc, extra_outlier_information=calculated_observations))
                     else:
                         non_outlier_values.add(term_value)
