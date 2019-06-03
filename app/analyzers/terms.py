@@ -127,10 +127,7 @@ class TermsAnalyzer(Analyzer):
     def extract_additional_model_settings(self):
         self.model_settings["target"] = settings.config.get(self.config_section_name, "target").replace(' ', '').split(",")  # remove unnecessary whitespace, split fields
 
-        if "*" in self.model_settings["target"]:
-            self.model_settings["brute_force_target"] = True
-        else:
-            self.model_settings["brute_force_target"] = False
+        self.model_settings["brute_force_target"] = "*" in self.model_settings["target"]
 
         self.model_settings["aggregator"] = settings.config.get(self.config_section_name, "aggregator").replace(' ', '').split(",")  # remove unnecessary whitespace, split fields
 
