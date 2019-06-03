@@ -1,4 +1,8 @@
-#!/usr/bin/env bash
+#!/bin/bash
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+# Move to the project parent folder
+cd $DIR/..
 
 # Build the image
 docker build -t "outliers-dev" .
