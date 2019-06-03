@@ -104,6 +104,9 @@ def perform_analysis():
         except Exception:
             logging.logger.error(traceback.format_exc())
 
+    if analyzed_models == 0:
+        logging.logger.warning("no use cases were analyzed. are you sure your configuration file contains use cases, which are enabled?")
+
     return analyzed_models == len(analyzers_to_evaluate)
 
 
@@ -173,11 +176,12 @@ if settings.args.run_mode == "daemon":
         # Perform analysis
         logging.print_generic_intro("starting outlier detection")
         run_succeeded_without_errors = perform_analysis()
-        logging.print_generic_intro("finished performing outlier detection")
         if not run_succeeded_without_errors:
             logging.logger.warning("ran into errors while analyzing use cases - not going to wait for the cron schedule, we just start analyzing again")
         else:
             logging.logger.info("no errors encountered while analyzing use cases")
+
+        logging.print_generic_intro("finished performing outlier detection")
 
 
 if settings.args.run_mode == "interactive":
