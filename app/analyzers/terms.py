@@ -12,58 +12,25 @@ class TermsAnalyzer(Analyzer):
     def evaluate_model(self):
         self.extract_additional_model_settings()
 
-        if "*" in self.model_settings["target"]:
-            brute_force = False
-
+        if self.model_settings["brute_force_target"]:
             logging.logger.warning("running terms model in brute force mode, could take a long time!")
+            target_fields_to_brute_force = self.calculate_target_fields_to_brute_force()
 
-            search_query = es.filter_by_query_string(self.model_settings["es_query_filter"])
-            batch_size = settings.config.getint("terms", "terms_batch_eval_size")
-
-            self.total_events = es.count_documents(search_query=search_query)
-            logging.init_ticker(total_steps=min(self.total_events, batch_size), desc=self.model_name + " - extracting brute force fields")
-
-            field_names = set()
-            num_docs_processed = 0
-            for doc in es.scan(search_query=search_query):
-                logging.tick()
-                fields = es.extract_fields_from_document(doc, extract_derived_fields=self.model_settings["use_derived_fields"])
-                fields = helpers.utils.flatten_dict(fields)
-
-                # skip all fields that are related to outliers, we don't want to brute force them
-                for field_name in list(fields.keys()):  # create list instead of iterator so we can mutate the dictionary when iterating
-                    if field_name.startswith('outliers.'):
-                        logging.logger.debug("not brute forcing outliers field " + str(field_name))
-                        fields.pop(field_name)
-
-                field_names.update(fields.keys())
-
-                # only process a single batch of events in order to decide which fields to brute force
-                if num_docs_processed == batch_size:
-                    break
-                else:
-                    num_docs_processed += 1
-
-            logging.logger.info("going to brute force " + str(len(field_names)) + " fields")
-            for field_name in field_names:
-                # only brute force nested fields, so not the top level fields such as timestamp, deployment name, etc.
-                if "." in field_name:
-                    self.model_settings["target"] = list([field_name])
-                    self.model_settings["brute_forced_field"] = field_name  # so it can be added to the outlier events automatically
-                    brute_force = True
-
+            for target_field in target_fields_to_brute_force:
+                self.model_settings["brute_forced_field"] = target_field
+                search_query = es.filter_by_query_string(self.model_settings["es_query_filter"] + " AND _exists_:" + self.model_settings["brute_forced_field"])
+                self.evaluate_target(target=[self.model_settings["brute_forced_field"]], search_query=search_query, brute_force=True)
         else:
-            brute_force = False
+            self.evaluate_target(target=self.model_settings["target"], search_query=es.filter_by_query_string(self.model_settings["es_query_filter"]), brute_force=False)
 
-        if brute_force:
-            search_query = es.filter_by_query_string(self.model_settings["es_query_filter"] + " AND _exists_:" + self.model_settings["brute_forced_field"])
-        else:
-            search_query = es.filter_by_query_string(self.model_settings["es_query_filter"])
-
+    def evaluate_target(self, target, search_query, brute_force=False):
         self.total_events = es.count_documents(search_query=search_query)
 
         logging.print_analysis_intro(event_type="evaluating " + self.model_name, total_events=self.total_events)
         logging.init_ticker(total_steps=self.total_events, desc=self.model_name + " - evaluating terms model")
+
+        if brute_force:
+            logging.logger.info("brute forcing field %s", str(target[0]))
 
         eval_terms_array = defaultdict()
         total_terms_added = 0
@@ -74,7 +41,7 @@ class TermsAnalyzer(Analyzer):
             fields = es.extract_fields_from_document(doc, extract_derived_fields=self.model_settings["use_derived_fields"])
 
             try:
-                target_sentences = helpers.utils.flatten_fields_into_sentences(fields=fields, sentence_format=self.model_settings["target"])
+                target_sentences = helpers.utils.flatten_fields_into_sentences(fields=fields, sentence_format=target)
                 aggregator_sentences = helpers.utils.flatten_fields_into_sentences(fields=fields, sentence_format=self.model_settings["aggregator"])
                 will_process_doc = True
             except (KeyError, TypeError):
@@ -124,8 +91,47 @@ class TermsAnalyzer(Analyzer):
 
         self.print_analysis_summary()
 
+    def calculate_target_fields_to_brute_force(self):
+        search_query = es.filter_by_query_string(self.model_settings["es_query_filter"])
+        batch_size = settings.config.getint("terms", "terms_batch_eval_size")
+
+        self.total_events = es.count_documents(search_query=search_query)
+        logging.init_ticker(total_steps=min(self.total_events, batch_size), desc=self.model_name + " - extracting brute force fields")
+
+        field_names_to_brute_force = set()
+        num_docs_processed = 0
+        for doc in es.scan(search_query=search_query):
+            logging.tick()
+            fields = es.extract_fields_from_document(doc, extract_derived_fields=self.model_settings["use_derived_fields"])
+            fields = helpers.utils.flatten_dict(fields)
+
+            for field_name in list(fields.keys()):  # create list instead of iterator so we can mutate the dictionary when iterating
+                # skip all fields that are related to outliers, we don't want to brute force them
+                if field_name.startswith('outliers.'):
+                    logging.logger.debug("not brute forcing outliers field " + str(field_name))
+                    continue
+
+                # only brute force nested fields, so not the top level fields such as timestamp, deployment name, etc.
+                if "." in field_name:
+                    field_names_to_brute_force.add(field_name)
+
+            # only process a single batch of events in order to decide which fields to brute force
+            if num_docs_processed == batch_size:
+                break
+            else:
+                num_docs_processed += 1
+
+        logging.logger.info("going to brute force " + str(len(field_names_to_brute_force)) + " fields")
+        return field_names_to_brute_force
+
     def extract_additional_model_settings(self):
         self.model_settings["target"] = settings.config.get(self.config_section_name, "target").replace(' ', '').split(",")  # remove unnecessary whitespace, split fields
+
+        if "*" in self.model_settings["target"]:
+            self.model_settings["brute_force_target"] = True
+        else:
+            self.model_settings["brute_force_target"] = False
+
         self.model_settings["aggregator"] = settings.config.get(self.config_section_name, "aggregator").replace(' ', '').split(",")  # remove unnecessary whitespace, split fields
 
         self.model_settings["trigger_on"] = settings.config.get(self.config_section_name, "trigger_on")
