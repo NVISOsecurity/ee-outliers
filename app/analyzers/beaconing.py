@@ -10,6 +10,7 @@ import helpers.utils
 
 DEFAULT_MIN_TARGET_BUCKETS = 10
 
+
 class BeaconingAnalyzer(Analyzer):
 
     def evaluate_model(self):
@@ -27,7 +28,7 @@ class BeaconingAnalyzer(Analyzer):
         outlier_batches_trend = 0
         for doc in es.scan(search_query=search_query):
             logging.tick()
-            fields = es.extract_fields_from_document(doc)
+            fields = es.extract_fields_from_document(doc, extract_derived_fields=self.model_settings["use_derived_fields"])
 
             try:
                 target_sentences = helpers.utils.flatten_fields_into_sentences(fields=fields, sentence_format=self.model_settings["target"])
@@ -133,7 +134,7 @@ class BeaconingAnalyzer(Analyzer):
 
     def prepare_and_process_outlier(self, decision_frontier, term_value_count, terms, aggregator_value, term_counter):
         # Extract fields from raw document
-        fields = es.extract_fields_from_document(terms[aggregator_value]["raw_docs"][term_counter])
+        fields = es.extract_fields_from_document(terms[aggregator_value]["raw_docs"][term_counter], extract_derived_fields=self.model_settings["use_derived_fields"])
 
         observations = terms[aggregator_value]["observations"][term_counter]
 

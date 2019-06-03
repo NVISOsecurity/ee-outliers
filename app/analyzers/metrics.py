@@ -24,7 +24,7 @@ class MetricsAnalyzer(Analyzer):
         for doc in es.scan(search_query=self.search_query):
             logging.tick()
 
-            fields = es.extract_fields_from_document(doc)
+            fields = es.extract_fields_from_document(doc, extract_derived_fields=self.model_settings["use_derived_fields"])
 
             try:
                 target_value = helpers.utils.flatten_sentence(helpers.utils.get_dotkey_value(fields, self.model_settings["target"], case_sensitive=True))
@@ -101,7 +101,7 @@ class MetricsAnalyzer(Analyzer):
                     confidence = np.abs(decision_frontier - metric_value)
 
                     # Extract fields from raw document
-                    fields = es.extract_fields_from_document(metrics[aggregator_value]["raw_docs"][ii])
+                    fields = es.extract_fields_from_document(metrics[aggregator_value]["raw_docs"][ii], extract_derived_fields=self.model_settings["use_derived_fields"])
 
                     observations = metrics[aggregator_value]["observations"][ii]
                     observations["metric"] = metric_value

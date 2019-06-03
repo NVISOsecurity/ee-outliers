@@ -32,7 +32,7 @@ class TemplateAnalyzer(Analyzer):
         for doc in es.scan(search_query=search_query):
             if len(train_data) < total_training_events:
                 logging.tick()
-                fields = es.extract_fields_from_document(doc)
+                fields = es.extract_fields_from_document(doc, extract_derived_fields=self.model_settings["use_derived_fields"])
                 train_data.append(fields)
             else:
                 # We have collected sufficient training data
