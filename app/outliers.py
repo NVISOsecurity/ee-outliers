@@ -103,6 +103,8 @@ def perform_analysis():
             logging.logger.info("finished processing use case - " + str(analyzed_models) + "/" + str(len(analyzers_to_evaluate)) + " [" + '{:.2f}'.format(round(float(analyzed_models) / float(len(analyzers_to_evaluate)) * 100, 2)) + "% done" + "]")
         except Exception:
             logging.logger.error(traceback.format_exc())
+        finally:
+            es.flush_bulk_actions(refresh=True)
 
     if analyzed_models == 0:
         logging.logger.warning("no use cases were analyzed. are you sure your configuration file contains use cases, which are enabled?")
