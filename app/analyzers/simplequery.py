@@ -6,7 +6,7 @@ class SimplequeryAnalyzer(Analyzer):
 
     def evaluate_model(self):
 
-        fil = {
+        model_filter = {
             "bool": {
                 "filter": [{
                     "term": {
@@ -27,7 +27,7 @@ class SimplequeryAnalyzer(Analyzer):
 
         exclude_hits_filter = {
             "bool": {
-                "must_not": fil
+                "must_not": model_filter
             }
         }
 
