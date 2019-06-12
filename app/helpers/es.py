@@ -10,6 +10,8 @@ from helpers.notifier import Notifier
 from collections import defaultdict
 from itertools import chain
 
+BULK_FLUSH_SIZE = 1000
+
 
 @singleton
 class ES:
@@ -20,6 +22,8 @@ class ES:
     grok_filters = dict()
 
     notifier = None
+
+    bulk_actions = []
 
     def __init__(self, settings=None, logging=None):
         self.settings = settings
@@ -139,6 +143,17 @@ class ES:
                 if self.settings.config.getboolean("general", "print_outliers_to_console"):
                     self.logging.logger.info("outlier - " + outlier.outlier_dict["summary"])
 
+    def add_bulk_action(self, action):
+        self.bulk_actions.append(action)
+        if len(self.bulk_actions) > BULK_FLUSH_SIZE:
+            self.flush_bulk_actions()
+
+    def flush_bulk_actions(self, refresh=False):
+        if len(self.bulk_actions) == 0:
+            return
+        eshelpers.bulk(self.conn, self.bulk_actions, stats_only=True, refresh=refresh)
+        self.bulk_actions = []
+
     def save_outlier(self, doc=None, outlier=None):
         # add the derived fields as outlier observations
         derived_fields = self.extract_derived_fields(doc["_source"])
@@ -147,12 +162,15 @@ class ES:
 
         doc = add_outlier_to_document(doc, outlier)
 
-        if "tags" in doc["_source"]:
-            doc_body = dict(doc={"tags": doc["_source"]["tags"], "outliers": doc["_source"]["outliers"]})
-        else:
-            doc_body = dict(doc={"outliers": doc["_source"]["outliers"]})
-
-        self.conn.update(index=doc["_index"], doc_type=doc["_type"], id=doc["_id"], body=doc_body, refresh=True)
+        action = {
+            '_op_type': 'update',
+            '_index': doc["_index"],
+            '_type': doc["_type"],
+            '_id': doc["_id"],
+            'retry_on_conflict': 10,
+            'doc': doc["_source"]
+        }
+        self.add_bulk_action(action)
 
     def extract_derived_fields(self, doc_fields):
         derived_fields = dict()
