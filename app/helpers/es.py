@@ -89,7 +89,7 @@ class ES:
                 outlier_reason = doc["_source"]["outliers"]["reason"][i]
                 outlier_summary = doc["_source"]["outliers"]["summary"][i]
 
-                outlier = Outlier(type=outlier_type, reason=outlier_reason, summary=outlier_summary)
+                outlier = Outlier(outlier_type=outlier_type, outlier_reason=outlier_reason, outlier_summary=outlier_summary)
                 if outlier.is_whitelisted(additional_dict_values_to_check=doc):
                     total_whitelisted += 1
 

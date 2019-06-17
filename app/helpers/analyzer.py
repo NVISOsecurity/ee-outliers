@@ -90,7 +90,7 @@ class Analyzer(abc.ABC):
         outlier_reason = [item.strip() for item in outlier_reason]
 
         outlier_assets = helpers.utils.extract_outlier_asset_information(fields, settings)
-        outlier = Outlier(type=outlier_type, reason=outlier_reason, summary=outlier_summary)
+        outlier = Outlier(outlier_type=outlier_type, outlier_reason=outlier_reason, outlier_summary=outlier_summary)
 
         if len(outlier_assets) > 0:
             outlier.outlier_dict["assets"] = outlier_assets
