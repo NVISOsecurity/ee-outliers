@@ -7,8 +7,8 @@ import textwrap
 class Outlier:
     def __init__(self, type, reason, summary):
         self.outlier_dict = dict()
-        self.outlier_dict["type"] = type.split(",")  # can be multiple types, for example: malware, powershell
-        self.outlier_dict["reason"] = reason
+        self.outlier_dict["type"] = type  # can be multiple types, for example: malware, powershell
+        self.outlier_dict["reason"] = reason  # can be multiple reasons, for example: DNS tunneling, IDS alert
         self.outlier_dict["summary"] = textwrap.fill(summary, width=150)  # hard-wrap the length of a summary line to 300 characters to make it easier to visualize
 
     def is_whitelisted(self, additional_dict_values_to_check=None):

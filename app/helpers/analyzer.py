@@ -79,8 +79,15 @@ class Analyzer(abc.ABC):
         fields_and_extra_outlier_information.update(extra_outlier_information)
 
         outlier_summary = helpers.utils.replace_placeholder_fields_with_values(self.model_settings["outlier_summary"], fields_and_extra_outlier_information)
-        outlier_type = helpers.utils.replace_placeholder_fields_with_values(self.model_settings["outlier_type"], fields_and_extra_outlier_information)
-        outlier_reason = helpers.utils.replace_placeholder_fields_with_values(self.model_settings["outlier_reason"], fields_and_extra_outlier_information)
+
+        # for both outlier types and reasons, we also allow the case where multiples values are provided at once.
+        # example: type = malware, IDS
+        outlier_type = helpers.utils.replace_placeholder_fields_with_values(self.model_settings["outlier_type"], fields_and_extra_outlier_information).split(",")
+        outlier_reason = helpers.utils.replace_placeholder_fields_with_values(self.model_settings["outlier_reason"], fields_and_extra_outlier_information).split(",")
+
+        # remove any leading or trailing whitespace from either. For example: "type = malware,  IDS" should just return ["malware","IDS"] instead of ["malware", "  IDS"]
+        outlier_type = [item.strip() for item in outlier_type]
+        outlier_reason = [item.strip() for item in outlier_reason]
 
         outlier_assets = helpers.utils.extract_outlier_asset_information(fields, settings)
         outlier = Outlier(type=outlier_type, reason=outlier_reason, summary=outlier_summary)
