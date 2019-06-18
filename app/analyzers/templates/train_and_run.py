@@ -21,7 +21,7 @@ class TemplateAnalyzer(Analyzer):
 
         train_data = list()
 
-        self.total_events = es.count_documents(search_query=search_query)
+        self.total_events = es.count_documents(index=self.es_index, search_query=search_query)
         training_data_size_pct = settings.config.getint("machine_learning", "training_data_size_pct")
         training_data_size = self.total_events / 100 * training_data_size_pct
 
@@ -29,7 +29,7 @@ class TemplateAnalyzer(Analyzer):
         total_training_events = int(min(training_data_size, self.total_events))
 
         logging.init_ticker(total_steps=total_training_events, desc=self.model_name + " - preparing SVM training set")
-        for doc in es.scan(search_query=search_query):
+        for doc in es.scan(index=self.es_index, search_query=search_query):
             if len(train_data) < total_training_events:
                 logging.tick()
                 fields = es.extract_fields_from_document(doc, extract_derived_fields=self.model_settings["use_derived_fields"])
