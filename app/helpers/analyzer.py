@@ -55,6 +55,11 @@ class Analyzer(abc.ABC):
         except NoOptionError:
             model_settings["should_notify"] = False
 
+        try:
+            self.es_index = settings.config.get(self.config_section_name, "es_index")
+        except NoOptionError:
+            self.es_index = settings.config.get("general", "es_index_pattern")
+
         model_settings["outlier_reason"] = settings.config.get(self.config_section_name, "outlier_reason")
         model_settings["outlier_type"] = settings.config.get(self.config_section_name, "outlier_type")
         model_settings["outlier_summary"] = settings.config.get(self.config_section_name, "outlier_summary")
