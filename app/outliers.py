@@ -17,7 +17,6 @@ from analyzers.simplequery import SimplequeryAnalyzer
 from analyzers.terms import TermsAnalyzer
 from analyzers.beaconing import BeaconingAnalyzer
 from analyzers.word2vec import Word2VecAnalyzer
-from analyzers.autoencoder import AutoencoderAnalyzer
 
 ##############
 # Entrypoint #
@@ -86,10 +85,6 @@ def perform_analysis():
             if config_section_name.startswith("word2vec_"):
                 word2vec_analyzer = Word2VecAnalyzer(config_section_name=config_section_name)
                 analyzers.append(word2vec_analyzer)
-
-            if config_section_name.startswith("autoencoder_"):
-                autoencoder_analyzer = AutoencoderAnalyzer(config_section_name=config_section_name)
-                analyzers.append(autoencoder_analyzer)
 
         except Exception:
             logging.logger.error(traceback.format_exc())
