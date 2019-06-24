@@ -27,7 +27,7 @@ class Settings:
 
     def __init__(self):
         self.args = None
-        self.config = None
+        self.config: configparser.ConfigParser = None
 
         self.loaded_config_paths = None
         self.failed_config_paths = None
@@ -61,7 +61,7 @@ class Settings:
 
     def process_configuration_files(self, config_paths):
         # Read configuration files
-        config = configparser.ConfigParser(interpolation=None)
+        config: configparser.ConfigParser = configparser.ConfigParser(interpolation=None)
         config.optionxform = str  # preserve case sensitivity in config keys, important for derived field names
 
         self.loaded_config_paths = config.read(config_paths)

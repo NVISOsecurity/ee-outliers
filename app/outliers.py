@@ -27,25 +27,26 @@ if os.environ.get("SENTRY_SDK_URL"):
 
 if settings.args.run_mode == "tests":
 
-    test_filename = 'test_*.py'
-    test_directory = '/app/tests/unit_tests'
+    test_filename: str = 'test_*.py'
+    test_directory: str = '/app/tests/unit_tests'
 
-    suite = unittest.TestLoader().discover(test_directory, pattern=test_filename)
+    suite: unittest.TestSuite = unittest.TestLoader().discover(test_directory, pattern=test_filename)
     unittest.TextTestRunner(verbosity=settings.config.getint("general", "log_verbosity")).run(suite)
     sys.exit()
 
 # Configuration for which we need access to both settings and logging singletons should happen here
-logging.verbosity = settings.config.getint("general", "log_verbosity")
+logging.verbosity: int = settings.config.getint("general", "log_verbosity")
 logging.logger.setLevel(settings.config.get("general", "log_level"))
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = settings.config.get("machine_learning", "tensorflow_log_level")
+os.environ['TF_CPP_MIN_LOG_LEVEL']: str = settings.config.get("machine_learning", "tensorflow_log_level")
 
 # Log Handlers
-LOG_FILE = settings.config.get("general", "log_file")
+LOG_FILE: str = settings.config.get("general", "log_file")
 
 if os.path.exists(os.path.dirname(LOG_FILE)):
     logging.add_file_handler(LOG_FILE)
 else:
-    logging.logger.warning("log directory for log file %s does not exist, check your settings! Only logging to stdout.", LOG_FILE)
+    logging.logger.warning("log directory for log file %s does not exist, check your settings! Only logging to stdout.",
+                           LOG_FILE)
 
 logging.logger.info("outliers.py started - contact: research@nviso.be")
 logging.logger.info("run mode: " + settings.args.run_mode)
@@ -60,14 +61,14 @@ if settings.failed_config_paths:
         logging.logger.warning("failed to load " + str(failed_config_path))
 
 
-def perform_analysis():
+def perform_analysis() -> bool:
     """ The entrypoint for analysis """
-    analyzers = list()
+    analyzers: list = list()
 
     for config_section_name in settings.config.sections():
         try:
             if config_section_name.startswith("simplequery_"):
-                simplequery_analyzer = SimplequeryAnalyzer(config_section_name=config_section_name)
+                simplequery_analyzer: SimplequeryAnalyzer = SimplequeryAnalyzer(config_section_name=config_section_name)
                 analyzers.append(simplequery_analyzer)
 
             if config_section_name.startswith("metrics_"):
@@ -100,14 +101,19 @@ def perform_analysis():
         try:
             analyzer.evaluate_model()
             analyzed_models = analyzed_models + 1
-            logging.logger.info("finished processing use case - " + str(analyzed_models) + "/" + str(len(analyzers_to_evaluate)) + " [" + '{:.2f}'.format(round(float(analyzed_models) / float(len(analyzers_to_evaluate)) * 100, 2)) + "% done" + "]")
+            logging.logger.info("finished processing use case - " + str(analyzed_models) + "/" +
+                                str(len(analyzers_to_evaluate)) +
+                                " [" + '{:.2f}'.format(
+                                    round(float(analyzed_models) / float(len(analyzers_to_evaluate)) * 100, 2)) +
+                                "% done" + "]")
         except Exception:
             logging.logger.error(traceback.format_exc())
         finally:
             es.flush_bulk_actions(refresh=True)
 
     if analyzed_models == 0:
-        logging.logger.warning("no use cases were analyzed. are you sure your configuration file contains use cases, which are enabled?")
+        logging.logger.warning("no use cases were analyzed. are you sure your configuration file contains use cases" + \
+                               ", which are enabled?")
 
     return analyzed_models == len(analyzers_to_evaluate)
 
