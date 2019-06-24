@@ -11,6 +11,7 @@ from croniter import croniter
 from helpers.singletons import settings, logging, es
 from helpers.utils import FileModificationWatcher
 from helpers.housekeeping import HousekeepingJob
+from helpers.analyzer import Analyzer
 
 from analyzers.metrics import MetricsAnalyzer
 from analyzers.simplequery import SimplequeryAnalyzer
@@ -63,7 +64,7 @@ if settings.failed_config_paths:
 
 def perform_analysis() -> bool:
     """ The entrypoint for analysis """
-    analyzers: list = list()
+    analyzers: list[Analyzer] = list()
 
     for config_section_name in settings.config.sections():
         try:
@@ -72,35 +73,35 @@ def perform_analysis() -> bool:
                 analyzers.append(simplequery_analyzer)
 
             if config_section_name.startswith("metrics_"):
-                metrics_analyzer = MetricsAnalyzer(config_section_name=config_section_name)
+                metrics_analyzer: MetricsAnalyzer = MetricsAnalyzer(config_section_name=config_section_name)
                 analyzers.append(metrics_analyzer)
 
             if config_section_name.startswith("terms_"):
-                terms_analyzer = TermsAnalyzer(config_section_name=config_section_name)
+                terms_analyzer: TermsAnalyzer = TermsAnalyzer(config_section_name=config_section_name)
                 analyzers.append(terms_analyzer)
 
             if config_section_name.startswith("beaconing_"):
-                beaconing_analyzer = BeaconingAnalyzer(config_section_name=config_section_name)
+                beaconing_analyzer: BeaconingAnalyzer = BeaconingAnalyzer(config_section_name=config_section_name)
                 analyzers.append(beaconing_analyzer)
 
             if config_section_name.startswith("word2vec_"):
-                word2vec_analyzer = Word2VecAnalyzer(config_section_name=config_section_name)
+                word2vec_analyzer: Word2VecAnalyzer = Word2VecAnalyzer(config_section_name=config_section_name)
                 analyzers.append(word2vec_analyzer)
         except Exception:
             logging.logger.error(traceback.format_exc())
 
-    analyzers_to_evaluate = list()
+    analyzers_to_evaluate: list[Analyzer] = list()
 
     for idx, analyzer in enumerate(analyzers):
         if analyzer.should_run_model or analyzer.should_test_model:
             analyzers_to_evaluate.append(analyzer)
 
     random.shuffle(analyzers_to_evaluate)
-    analyzed_models = 0
+    analyzed_models: int = 0
     for analyzer in analyzers_to_evaluate:
         try:
             analyzer.evaluate_model()
-            analyzed_models = analyzed_models + 1
+            analyzed_models += 1
             logging.logger.info("finished processing use case - " + str(analyzed_models) + "/" +
                                 str(len(analyzers_to_evaluate)) +
                                 " [" + '{:.2f}'.format(
@@ -125,19 +126,19 @@ if settings.args.run_mode == "daemon":
     for config_file in settings.args.config:
         logging.logger.info("monitoring configuration file " + config_file + " for changes")
 
-    file_mod_watcher = FileModificationWatcher()
+    file_mod_watcher: FileModificationWatcher = FileModificationWatcher()
     file_mod_watcher.add_files(settings.args.config)
 
     # Initialize Elasticsearch connection
     es.init_connection()
 
     # Start housekeeping activities
-    housekeeping_job = HousekeepingJob()
+    housekeeping_job: HousekeepingJob = HousekeepingJob()
     housekeeping_job.start()
 
-    num_runs = 0
-    first_run = True
-    run_succeeded_without_errors = None
+    num_runs: int = 0
+    first_run: bool = True
+    run_succeeded_without_errors: bool = None
 
     while True:
         num_runs += 1
@@ -163,7 +164,8 @@ if settings.args.run_mode == "daemon":
 
         if first_run:
             first_run = False
-            logging.logger.info("first run, so we will start immediately - after this, we will respect the cron schedule defined in the configuration file")
+            logging.logger.info("first run, so we will start immediately - after this, we will respect the cron " + \
+                                "schedule defined in the configuration file")
 
         settings.process_arguments()  # Refresh settings
 
@@ -173,7 +175,8 @@ if settings.args.run_mode == "daemon":
 
         logging.logger.info(settings.get_time_window_info())
 
-        # Make sure we are connected to Elasticsearch before analyzing, in case something went wrong with the connection in between runs
+        # Make sure we are connected to Elasticsearch before analyzing, in case something went wrong with the
+        # connection in between runs
         es.init_connection()
 
         # Make sure housekeeping is still up and running
@@ -185,7 +188,8 @@ if settings.args.run_mode == "daemon":
         logging.print_generic_intro("starting outlier detection")
         run_succeeded_without_errors = perform_analysis()
         if not run_succeeded_without_errors:
-            logging.logger.warning("ran into errors while analyzing use cases - not going to wait for the cron schedule, we just start analyzing again")
+            logging.logger.warning("ran into errors while analyzing use cases - not going to wait for the cron " + \
+                                   "schedule, we just start analyzing again")
         else:
             logging.logger.info("no errors encountered while analyzing use cases")
 
