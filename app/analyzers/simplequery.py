@@ -8,20 +8,21 @@ class SimplequeryAnalyzer(Analyzer):
 
         model_filter = {
             "bool": {
-                "filter": [{
-                    "term": {
-                        "outliers.model_name.raw": {
-                            "value": self.model_name
-                        }
-                    }
-                },
+                "filter": [
                     {
-                    "term": {
-                        "outliers.model_type.raw": {
-                            "value": "simplequery"
+                        "term": {
+                            "outliers.model_name.raw": {
+                                "value": self.model_name
+                            }
                         }
-                    }
-                }]
+                    },
+                    {
+                        "term": {
+                            "outliers.model_type.raw": {
+                                "value": "simplequery"
+                            }
+                        }
+                    }]
             }
         }
 

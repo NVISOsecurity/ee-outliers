@@ -131,7 +131,8 @@ class TestUtils(unittest.TestCase):
     def test_flatten_fields_into_sentences_complex(self):
         # More complex example
         sentence_format = ["intro", "event_type", "source_ip", "ip_summary_legacy", "info"]
-        fields = {'intro': ['Intro 1', 'Intro 2'], 'event_type': 'test_event', 'source_ip': '8.8.8.8', 'ip_summary_legacy': ['Summary 1', 'Summary 2'], 'info': ['Info 1', 'Info 2']}
+        fields = {'intro': ['Intro 1', 'Intro 2'], 'event_type': 'test_event', 'source_ip': '8.8.8.8',
+                  'ip_summary_legacy': ['Summary 1', 'Summary 2'], 'info': ['Info 1', 'Info 2']}
 
         sentences = helpers.utils.flatten_fields_into_sentences(fields=fields, sentence_format=sentence_format)
 
@@ -143,19 +144,24 @@ class TestUtils(unittest.TestCase):
         self.assertEqual(len(sentences), expected_sentences_length)
 
     def test_replace_placeholder_fields_with_values_no_match(self):
-        res = helpers.utils.replace_placeholder_fields_with_values(placeholder="this one has no placeholders", fields=None)
+        res = helpers.utils.replace_placeholder_fields_with_values(placeholder="this one has no placeholders",
+                                                                   fields=None)
         self.assertEqual(res, "this one has no placeholders")
 
     def test_replace_placeholder_fields_with_values_single_match(self):
-        res = helpers.utils.replace_placeholder_fields_with_values(placeholder="this one has {one} placeholders", fields=dict({"one": "hello"}))
+        res = helpers.utils.replace_placeholder_fields_with_values(placeholder="this one has {one} placeholders",
+                                                                   fields=dict({"one": "hello"}))
         self.assertEqual(res, "this one has hello placeholders")
 
     def test_replace_placeholder_fields_with_values_two_matches(self):
-        res = helpers.utils.replace_placeholder_fields_with_values(placeholder="{one} {two}!", fields=dict({"one": "hello", "two": "world"}))
+        res = helpers.utils.replace_placeholder_fields_with_values(placeholder="{one} {two}!",
+                                                                   fields=dict({"one": "hello", "two": "world"}))
         self.assertEqual(res, "hello world!")
 
     def test_replace_placeholder_fields_with_values_case_insensitive_match(self):
-        res = helpers.utils.replace_placeholder_fields_with_values(placeholder="this one has {OnE} case insensitive placeholders", fields=dict({"one": "hello", "two": "world"}))
+        res = helpers.utils.replace_placeholder_fields_with_values(
+                                                        placeholder="this one has {OnE} case insensitive placeholders",
+                                                        fields=dict({"one": "hello", "two": "world"}))
         self.assertEqual(res, "this one has hello case insensitive placeholders")
 
     def test_is_base64_encoded_none(self):
@@ -224,7 +230,8 @@ class TestUtils(unittest.TestCase):
         outlier_assets = helpers.utils.extract_outlier_asset_information(fields, settings)
         self.assertIn("user: dummyuser1", outlier_assets)  # test case for array assets
         self.assertIn("user: dummyuser2", outlier_assets)  # test case for array assets
-        self.assertEqual(len(outlier_assets), 3)  # blank asset fields, such as the PC name in the JSON file, should NOT be added as assets. Both IP and user should match, so 2 matches.
+        self.assertEqual(len(outlier_assets), 3)  # blank asset fields, such as the PC name in the JSON file,
+        # should NOT be added as assets. Both IP and user should match, so 2 matches.
 
     def test_extract_outlier_asset_information_case_insensitive_value(self):
         from helpers.singletons import settings, es

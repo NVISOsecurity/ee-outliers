@@ -3,15 +3,18 @@ import re
 import helpers.utils
 import textwrap
 
+from typing import Dict, Any, List, Optional
+
 
 class Outlier:
-    def __init__(self, type, reason, summary):
-        self.outlier_dict = dict()
+    def __init__(self, type, reason, summary) -> None:
+        self.outlier_dict: Dict[str, Any] = dict()
         self.outlier_dict["type"] = type.split(",")  # can be multiple types, for example: malware, powershell
         self.outlier_dict["reason"] = reason
-        self.outlier_dict["summary"] = textwrap.fill(summary, width=150)  # hard-wrap the length of a summary line to 300 characters to make it easier to visualize
+        self.outlier_dict["summary"] = textwrap.fill(summary, width=150)  # hard-wrap the length of a summary line to
+        # 300 characters to make it easier to visualize
 
-    def is_whitelisted(self, additional_dict_values_to_check=None):
+    def is_whitelisted(self, additional_dict_values_to_check: Optional[Dict]=None) -> bool:
         # Check if value is whitelisted as literal
         for (_, each_whitelist_val) in settings.config.items("whitelist_literals"):
             if self.matches_specific_whitelist_item(each_whitelist_val, "literal", additional_dict_values_to_check):
@@ -25,7 +28,8 @@ class Outlier:
         # If we reach this point, then there is no whitelist match
         return False
 
-    def matches_specific_whitelist_item(self, whitelist_value, match_type, additional_dict_values_to_check=None):
+    def matches_specific_whitelist_item(self,whitelist_value: str, match_type: str,
+                                        additional_dict_values_to_check: Optional[Dict]=None) -> bool:
         if match_type == "literal":
             if self.outlier_dict["summary"] == whitelist_value.strip():
                 return True
@@ -62,8 +66,8 @@ class Outlier:
         # If nothing of this matches, the item does not match
         return False
 
-    def get_outlier_dict_of_arrays(self):
-        outlier_dict_of_arrays = dict()
+    def get_outlier_dict_of_arrays(self) -> Dict[str, List[str]]:
+        outlier_dict_of_arrays: Dict[str, List[str]] = dict()
 
         for k, v in self.outlier_dict.items():
             if isinstance(v, list):
@@ -73,7 +77,7 @@ class Outlier:
 
         return outlier_dict_of_arrays
 
-    def __str__(self):
+    def __str__(self) -> str:
         _str = "\n"
         _str += "=======\n"
         _str += "outlier\n"

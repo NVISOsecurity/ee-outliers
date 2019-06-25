@@ -5,6 +5,8 @@ import analyzers.ml_models.word2vec as word2vec
 from helpers.singletons import settings, es, logging
 from helpers.analyzer import Analyzer
 
+from typing import List
+
 
 class Word2VecAnalyzer(Analyzer):
 
@@ -18,11 +20,11 @@ class Word2VecAnalyzer(Analyzer):
         self.model_settings["trigger_method"] = settings.config.get(self.config_section_name, "trigger_method")
         self.model_settings["trigger_sensitivity"] = settings.config.getint(self.config_section_name, "trigger_sensitivity")
 
-    def train_model(self):
+    def train_model(self) -> None:
         w2v_model = word2vec.Word2Vec(name=self.model_name)
         search_query = es.filter_by_query_string(self.model_settings["es_query_filter"])
 
-        sentences = list()
+        sentences: List[tuple] = list()
 
         self.total_events = es.count_documents(search_query=search_query)
         training_data_size_pct = settings.config.getint("machine_learning", "training_data_size_pct")

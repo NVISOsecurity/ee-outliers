@@ -5,7 +5,7 @@ import helpers.logging
 import json
 from pygrok import Grok
 
-from typing import Dict, List
+from typing import Dict, List, Any
 from helpers.singleton import singleton
 from helpers.notifier import Notifier
 from collections import defaultdict
@@ -16,25 +16,25 @@ BULK_FLUSH_SIZE = 1000
 
 @singleton
 class ES:
-    # index = None # Always None ?
+    index = None # Always None ?
     # conn: Elasticsearch = None
     # settings: Settings = None
 
     grok_filters: Dict[str, Grok] = dict()
 
-    # notifier: Notifier = None
+    notifier: Notifier
 
     bulk_actions: List[dict] = []
 
-    def __init__(self, settings=None, logging=None):
+    def __init__(self, settings=None, logging=None) -> None:
         self.settings= settings
         self.logging= logging
 
         if self.settings.config.getboolean("notifier", "email_notifier"):
             self.notifier = Notifier(settings, logging)
 
-    def init_connection(self):
-        self.conn = Elasticsearch([self.settings.config.get("general", "es_url")], use_ssl=False,
+    def init_connection(self) -> Elasticsearch:
+        self.conn: Elasticsearch = Elasticsearch([self.settings.config.get("general", "es_url")], use_ssl=False,
                                   timeout=self.settings.config.getint("general", "es_timeout"),
                                   verify_certs=False, retry_on_timeout=True)
 
@@ -47,7 +47,7 @@ class ES:
 
         return self.conn
 
-    def scan(self, bool_clause=None, sort_clause=None, query_fields=None, search_query=None):
+    def scan(self, bool_clause=None, sort_clause=None, query_fields=None, search_query=None) -> Dict:
         preserve_order = True if sort_clause is not None else False
         return eshelpers.scan(self.conn, request_timeout=self.settings.config.getint("general", "es_timeout"),
                               index=self.settings.config.get("general", "es_index_pattern"),
@@ -58,7 +58,7 @@ class ES:
                               scroll=self.settings.config.get("general", "es_scroll_time"),
                               preserve_order=preserve_order, raise_on_error=False)
 
-    def count_documents(self, bool_clause=None, query_fields=None, search_query=None):
+    def count_documents(self, bool_clause=None, query_fields=None, search_query=None) -> int:
         res = self.conn.search(index=self.index,
                                body=build_search_query(bool_clause=bool_clause,
                                                        search_range=self.settings.search_range,
@@ -67,15 +67,16 @@ class ES:
                                scroll=self.settings.config.get("general", "es_scroll_time"))
         return res["hits"]["total"]["value"]
 
-    def filter_by_query_string(self, query_string=None):
-        bool_clause = {"filter": [
+    def filter_by_query_string(self, query_string=None) -> Dict[str, List]:
+        bool_clause: Dict[str, List] = {"filter": [
             {"query_string": {"query": query_string}}
         ]}
         return bool_clause
 
-    def filter_by_dsl_query(self, dsl_query=None):
+    def filter_by_dsl_query(self, dsl_query=None) -> Dict[str, List]:
         dsl_query = json.loads(dsl_query)
 
+        bool_clause: Dict[str, List]
         if isinstance(dsl_query, list):
             bool_clause = {"filter": []}
             for query in dsl_query:
@@ -88,28 +89,28 @@ class ES:
 
     # this is part of housekeeping, so we should not access non-threat-save objects, such as logging progress to
     # the console using ticks!
-    def remove_all_whitelisted_outliers(self):
+    def remove_all_whitelisted_outliers(self) -> int:
         from helpers.outlier import Outlier  # import goes here to avoid issues with singletons & circular
         # requirements ... //TODO: fix this
 
-        outliers_filter_query = {"filter": [{"term": {"tags": "outlier"}}]}
-        total_docs_whitelisted = 0
+        outliers_filter_query: Dict[str, List] = {"filter": [{"term": {"tags": "outlier"}}]}
+        total_docs_whitelisted: int = 0
 
         total_nr_outliers = self.count_documents(bool_clause=outliers_filter_query)
         self.logging.logger.info("going to analyze %s outliers and remove all whitelisted items", "{:,}"
                                  .format(total_nr_outliers))
 
         for doc in self.scan(bool_clause=outliers_filter_query):
-            total_outliers = int(doc["_source"]["outliers"]["total_outliers"])
+            total_outliers: int = int(doc["_source"]["outliers"]["total_outliers"])
             # Generate all outlier objects for this document
-            total_whitelisted = 0
+            total_whitelisted: int = 0
 
             for i in range(total_outliers):
                 outlier_type = doc["_source"]["outliers"]["type"][i]
                 outlier_reason = doc["_source"]["outliers"]["reason"][i]
                 outlier_summary = doc["_source"]["outliers"]["summary"][i]
 
-                outlier = Outlier(type=outlier_type, reason=outlier_reason, summary=outlier_summary)
+                outlier: Outlier = Outlier(type=outlier_type, reason=outlier_reason, summary=outlier_summary)
                 if outlier.is_whitelisted(additional_dict_values_to_check=doc):
                     total_whitelisted += 1
 
@@ -128,7 +129,7 @@ class ES:
 
         return total_docs_whitelisted
 
-    def remove_all_outliers(self):
+    def remove_all_outliers(self) -> None:
         idx = self.settings.config.get("general", "es_index_pattern")
 
         must_clause = {"filter": [{"term": {"tags": "outlier"}}]}
@@ -150,7 +151,7 @@ class ES:
         else:
             self.logging.logger.info("no existing outliers were found, so nothing was wiped")
 
-    def process_outliers(self, doc=None, outliers=None, should_notify=False):
+    def process_outliers(self, doc=None, outliers=None, should_notify=False) -> None:
         for outlier in outliers:
             if outlier.is_whitelisted(additional_dict_values_to_check=doc):
                 if self.settings.config.getboolean("general", "print_outliers_to_console"):
@@ -165,18 +166,18 @@ class ES:
                 if self.settings.config.getboolean("general", "print_outliers_to_console"):
                     self.logging.logger.info("outlier - " + outlier.outlier_dict["summary"])
 
-    def add_bulk_action(self, action: dict):
+    def add_bulk_action(self, action: dict) -> None:
         self.bulk_actions.append(action)
         if len(self.bulk_actions) > BULK_FLUSH_SIZE:
             self.flush_bulk_actions()
 
-    def flush_bulk_actions(self, refresh=False):
+    def flush_bulk_actions(self, refresh=False) -> None:
         if len(self.bulk_actions) == 0:
             return
         eshelpers.bulk(self.conn, self.bulk_actions, stats_only=True, refresh=refresh)
         self.bulk_actions = []
 
-    def save_outlier(self, doc=None, outlier=None):
+    def save_outlier(self, doc=None, outlier=None) -> None:
         # add the derived fields as outlier observations
         derived_fields = self.extract_derived_fields(doc["_source"])
         for derived_field, derived_value in derived_fields.items():
@@ -194,14 +195,15 @@ class ES:
         }
         self.add_bulk_action(action)
 
-    def extract_derived_fields(self, doc_fields) -> dict:
-        derived_fields: dict = dict()
+    def extract_derived_fields(self, doc_fields) -> Dict:
+        derived_fields: Dict = dict()
         for field_name, grok_pattern in self.settings.config.items("derivedfields"):
             if helpers.utils.dict_contains_dotkey(doc_fields, field_name, case_sensitive=False):
+                grok: Grok
                 if grok_pattern in self.grok_filters.keys():
                     grok = self.grok_filters[grok_pattern]
                 else:
-                    grok: Grok = Grok(grok_pattern)
+                    grok = Grok(grok_pattern)
                     self.grok_filters[grok_pattern] = grok
 
                 match_dict = grok.match(helpers.utils.get_dotkey_value(doc_fields, field_name, case_sensitive=False))
@@ -212,7 +214,7 @@ class ES:
 
         return derived_fields
 
-    def extract_fields_from_document(self, doc, extract_derived_fields: bool =False):
+    def extract_fields_from_document(self, doc: Dict, extract_derived_fields: bool= False) -> Dict:
         doc_fields = doc["_source"]
 
         if extract_derived_fields:
@@ -276,8 +278,9 @@ def remove_tag_from_document(doc, tag):
     return doc
 
 
-def build_search_query(bool_clause=None, sort_clause=None, search_range=None, query_fields=None, search_query=None):
-    query = dict()
+def build_search_query(bool_clause=None, sort_clause=None, search_range=None, query_fields=None, search_query=None) \
+        -> Dict[str, Dict]:
+    query: Dict[str, Dict] = dict()
     query["query"] = dict()
     query["query"]["bool"] = dict()
     query["query"]["bool"]["filter"] = list()
@@ -306,12 +309,12 @@ def build_search_query(bool_clause=None, sort_clause=None, search_range=None, qu
     return query
 
 
-def get_time_filter(days=None, hours=None, timestamp_field="timestamp"):
-    time_start = (datetime.datetime.now() - datetime.timedelta(days=days, hours=hours)).isoformat()
-    time_stop = datetime.datetime.now().isoformat()
+def get_time_filter(days=None, hours=None, timestamp_field="timestamp") -> Dict[str, Dict]:
+    time_start: str = (datetime.datetime.now() - datetime.timedelta(days=days, hours=hours)).isoformat()
+    time_stop: str = datetime.datetime.now().isoformat()
 
     # Construct absolute time range filter, increases cacheability
-    time_filter = {
+    time_filter: Dict[str, Dict] = {
         "range": {
             str(timestamp_field): {
                 "gte": time_start,

@@ -91,26 +91,30 @@ class TestOutlierOperations(unittest.TestCase):
         whitelist_item = r"C:\Windows\system32\msfeedssync.exe sync"
         test_outlier = Outlier(type="dummy type", reason="dummy reason", summary="dummy summary")
 
-        result = test_outlier.matches_specific_whitelist_item(whitelist_item, "literal", additional_dict_values_to_check=doc_for_whitelist_testing_file)
+        result = test_outlier.matches_specific_whitelist_item(whitelist_item, "literal",
+                                                      additional_dict_values_to_check=doc_for_whitelist_testing_file)
         self.assertTrue(result)
 
     def test_whitelist_literal_mismatch(self):
         whitelist_item = r"C:\Windows\system32\msfeedssync.exe syncWRONG"
         test_outlier = Outlier(type="dummy type", reason="dummy reason", summary="dummy summary")
 
-        result = test_outlier.matches_specific_whitelist_item(whitelist_item, "literal", additional_dict_values_to_check=doc_for_whitelist_testing_file)
+        result = test_outlier.matches_specific_whitelist_item(whitelist_item, "literal",
+                                                      additional_dict_values_to_check=doc_for_whitelist_testing_file)
         self.assertFalse(result)
 
     def test_whitelist_regexp_match(self):
         whitelist_item = r"^.*.exe sync$"
         test_outlier = Outlier(type="dummy type", reason="dummy reason", summary="dummy summary")
 
-        result = test_outlier.matches_specific_whitelist_item(whitelist_item, "regexp", additional_dict_values_to_check=doc_for_whitelist_testing_file)
+        result = test_outlier.matches_specific_whitelist_item(whitelist_item, "regexp",
+                                                      additional_dict_values_to_check=doc_for_whitelist_testing_file)
         self.assertTrue(result)
 
     def test_whitelist_regexp_mismatch(self):
         whitelist_item = r"^.*.exeZZZZZ sync$"
         test_outlier = Outlier(type="dummy type", reason="dummy reason", summary="dummy summary")
 
-        result = test_outlier.matches_specific_whitelist_item(whitelist_item, "regexp", additional_dict_values_to_check=doc_for_whitelist_testing_file)
+        result = test_outlier.matches_specific_whitelist_item(whitelist_item, "regexp",
+                                                      additional_dict_values_to_check=doc_for_whitelist_testing_file)
         self.assertFalse(result)

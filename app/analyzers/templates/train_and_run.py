@@ -1,10 +1,12 @@
 from helpers.singletons import settings, es, logging
 from helpers.analyzer import Analyzer
 
+from typing import List, Dict
+
 
 class TemplateAnalyzer(Analyzer):
 
-    def evaluate_model(self):
+    def evaluate_model(self) -> None:
         self.extract_extra_model_settings()
 
         if self.model_settings["train_model"]:
@@ -13,13 +15,13 @@ class TemplateAnalyzer(Analyzer):
         if self.model_settings["run_model"] or self.model_settings["test_model"]:
             self.run_model()
 
-    def extract_extra_model_settings(self):
+    def extract_extra_model_settings(self) -> None:
         self.model_settings["train_model"] = settings.config.getboolean(self.config_section_name, "train_model")
 
-    def train_model(self):
+    def train_model(self) -> None:
         search_query = es.filter_by_query_string(self.model_settings["es_query_filter"])
 
-        train_data = list()
+        train_data: List[Dict] = list()
 
         self.total_events = es.count_documents(search_query=search_query)
         training_data_size_pct = settings.config.getint("machine_learning", "training_data_size_pct")
