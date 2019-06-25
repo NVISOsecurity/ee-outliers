@@ -4,6 +4,8 @@ import os
 import sys
 import unittest
 
+from typing import List
+
 import traceback
 from datetime import datetime
 from croniter import croniter
@@ -36,9 +38,9 @@ if settings.args.run_mode == "tests":
     sys.exit()
 
 # Configuration for which we need access to both settings and logging singletons should happen here
-logging.verbosity: int = settings.config.getint("general", "log_verbosity")
+logging.verbosity = settings.config.getint("general", "log_verbosity")
 logging.logger.setLevel(settings.config.get("general", "log_level"))
-os.environ['TF_CPP_MIN_LOG_LEVEL']: str = settings.config.get("machine_learning", "tensorflow_log_level")
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = settings.config.get("machine_learning", "tensorflow_log_level")
 
 # Log Handlers
 LOG_FILE: str = settings.config.get("general", "log_file")
@@ -64,7 +66,7 @@ if settings.failed_config_paths:
 
 def perform_analysis() -> bool:
     """ The entrypoint for analysis """
-    analyzers: list[Analyzer] = list()
+    analyzers: List[Analyzer] = list()
 
     for config_section_name in settings.config.sections():
         try:
@@ -90,7 +92,7 @@ def perform_analysis() -> bool:
         except Exception:
             logging.logger.error(traceback.format_exc())
 
-    analyzers_to_evaluate: list[Analyzer] = list()
+    analyzers_to_evaluate: List[Analyzer] = list()
 
     for idx, analyzer in enumerate(analyzers):
         if analyzer.should_run_model or analyzer.should_test_model:
@@ -138,7 +140,7 @@ if settings.args.run_mode == "daemon":
 
     num_runs: int = 0
     first_run: bool = True
-    run_succeeded_without_errors: bool = None
+    run_succeeded_without_errors: bool = False
 
     while True:
         num_runs += 1

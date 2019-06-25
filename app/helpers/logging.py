@@ -3,25 +3,27 @@ import urllib3
 import logging
 import datetime as dt
 
+from typing import Optional
+
 from helpers.singleton import singleton
 
 
 @singleton
 class Logging:
-    logger = None
+    """logger: Optional[logging.Logger] = None
 
     current_step = None
     start_time = None
     total_steps = None
-    desc = None
-    verbosity = None
+    desc = None"""
+    verbosity: int = 0
 
     def __init__(self, logger_name):
         # Disable HTTPS warnings
         urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
         logging.getLogger('urllib3').setLevel(logging.CRITICAL)
 
-        self.logger = logging.getLogger(logger_name)
+        self.logger: logging.Logger = logging.getLogger(logger_name)
 
     def add_stdout_handler(self):
         ch = logging.StreamHandler()

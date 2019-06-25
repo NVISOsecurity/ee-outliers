@@ -5,6 +5,7 @@ import helpers.logging
 import json
 from pygrok import Grok
 
+from typing import Dict, List
 from helpers.singleton import singleton
 from helpers.notifier import Notifier
 from collections import defaultdict
@@ -15,39 +16,55 @@ BULK_FLUSH_SIZE = 1000
 
 @singleton
 class ES:
-    index = None
-    conn = None
-    settings = None
+    # index = None # Always None ?
+    # conn: Elasticsearch = None
+    # settings: Settings = None
 
-    grok_filters = dict()
+    grok_filters: Dict[str, Grok] = dict()
 
-    notifier = None
+    # notifier: Notifier = None
 
-    bulk_actions = []
+    bulk_actions: List[dict] = []
 
     def __init__(self, settings=None, logging=None):
-        self.settings = settings
-        self.logging = logging
+        self.settings= settings
+        self.logging= logging
 
         if self.settings.config.getboolean("notifier", "email_notifier"):
             self.notifier = Notifier(settings, logging)
 
     def init_connection(self):
-        self.conn = Elasticsearch([self.settings.config.get("general", "es_url")], use_ssl=False, timeout=self.settings.config.getint("general", "es_timeout"), verify_certs=False, retry_on_timeout=True)
+        self.conn = Elasticsearch([self.settings.config.get("general", "es_url")], use_ssl=False,
+                                  timeout=self.settings.config.getint("general", "es_timeout"),
+                                  verify_certs=False, retry_on_timeout=True)
 
         if self.conn.ping():
-            self.logging.logger.info("connected to Elasticsearch on host %s" % (self.settings.config.get("general", "es_url")))
+            self.logging.logger.info("connected to Elasticsearch on host %s" %
+                                     (self.settings.config.get("general", "es_url")))
         else:
-            self.logging.logger.error("could not connect to to host %s. Exiting!" % (self.settings.config.get("general", "es_url")))
+            self.logging.logger.error("could not connect to to host %s. Exiting!" %
+                                      (self.settings.config.get("general", "es_url")))
 
         return self.conn
 
     def scan(self, bool_clause=None, sort_clause=None, query_fields=None, search_query=None):
         preserve_order = True if sort_clause is not None else False
-        return eshelpers.scan(self.conn, request_timeout=self.settings.config.getint("general", "es_timeout"), index=self.settings.config.get("general", "es_index_pattern"), query=build_search_query(bool_clause=bool_clause, sort_clause=sort_clause, search_range=self.settings.search_range, query_fields=query_fields, search_query=search_query), size=self.settings.config.getint("general", "es_scan_size"), scroll=self.settings.config.get("general", "es_scroll_time"), preserve_order=preserve_order, raise_on_error=False)
+        return eshelpers.scan(self.conn, request_timeout=self.settings.config.getint("general", "es_timeout"),
+                              index=self.settings.config.get("general", "es_index_pattern"),
+                              query=build_search_query(bool_clause=bool_clause, sort_clause=sort_clause,
+                                                       search_range=self.settings.search_range,
+                                                       query_fields=query_fields, search_query=search_query),
+                              size=self.settings.config.getint("general", "es_scan_size"),
+                              scroll=self.settings.config.get("general", "es_scroll_time"),
+                              preserve_order=preserve_order, raise_on_error=False)
 
     def count_documents(self, bool_clause=None, query_fields=None, search_query=None):
-        res = self.conn.search(index=self.index, body=build_search_query(bool_clause=bool_clause, search_range=self.settings.search_range, query_fields=query_fields, search_query=search_query), size=self.settings.config.getint("general", "es_scan_size"), scroll=self.settings.config.get("general", "es_scroll_time"))
+        res = self.conn.search(index=self.index,
+                               body=build_search_query(bool_clause=bool_clause,
+                                                       search_range=self.settings.search_range,
+                                                       query_fields=query_fields, search_query=search_query),
+                               size=self.settings.config.getint("general", "es_scan_size"),
+                               scroll=self.settings.config.get("general", "es_scroll_time"))
         return res["hits"]["total"]["value"]
 
     def filter_by_query_string(self, query_string=None):
@@ -69,15 +86,18 @@ class ES:
             ]}
         return bool_clause
 
-    # this is part of housekeeping, so we should not access non-threat-save objects, such as logging progress to the console using ticks!
+    # this is part of housekeeping, so we should not access non-threat-save objects, such as logging progress to
+    # the console using ticks!
     def remove_all_whitelisted_outliers(self):
-        from helpers.outlier import Outlier  # import goes here to avoid issues with singletons & circular requirements ... //TODO: fix this
+        from helpers.outlier import Outlier  # import goes here to avoid issues with singletons & circular
+        # requirements ... //TODO: fix this
 
         outliers_filter_query = {"filter": [{"term": {"tags": "outlier"}}]}
         total_docs_whitelisted = 0
 
         total_nr_outliers = self.count_documents(bool_clause=outliers_filter_query)
-        self.logging.logger.info("going to analyze %s outliers and remove all whitelisted items", "{:,}".format(total_nr_outliers))
+        self.logging.logger.info("going to analyze %s outliers and remove all whitelisted items", "{:,}"
+                                 .format(total_nr_outliers))
 
         for doc in self.scan(bool_clause=outliers_filter_query):
             total_outliers = int(doc["_source"]["outliers"]["total_outliers"])
@@ -94,15 +114,17 @@ class ES:
                     total_whitelisted += 1
 
             # if all outliers for this document are whitelisted, removed them all. If not, don't touch the document.
-            # this is a limitation in the way our outliers are stored: if not ALL of them are whitelisted, we can't remove just the whitelisted ones
-            # from the Elasticsearch event, as they are stored as array elements and potentially contain observations that should be removed, too.
+            # this is a limitation in the way our outliers are stored: if not ALL of them are whitelisted, we can't
+            # remove just the whitelisted ones from the Elasticsearch event, as they are stored as array elements and
+            # potentially contain observations that should be removed, too.
             # In this case, just don't touch the document.
             if total_whitelisted == total_outliers:
                 total_docs_whitelisted += 1
                 doc = remove_outliers_from_document(doc)
 
                 self.conn.delete(index=doc["_index"], doc_type=doc["_type"], id=doc["_id"], refresh=True)
-                self.conn.create(index=doc["_index"], doc_type=doc["_type"], id=doc["_id"], body=doc["_source"], refresh=True)
+                self.conn.create(index=doc["_index"], doc_type=doc["_type"], id=doc["_id"], body=doc["_source"],
+                                 refresh=True)
 
         return total_docs_whitelisted
 
@@ -143,7 +165,7 @@ class ES:
                 if self.settings.config.getboolean("general", "print_outliers_to_console"):
                     self.logging.logger.info("outlier - " + outlier.outlier_dict["summary"])
 
-    def add_bulk_action(self, action):
+    def add_bulk_action(self, action: dict):
         self.bulk_actions.append(action)
         if len(self.bulk_actions) > BULK_FLUSH_SIZE:
             self.flush_bulk_actions()
@@ -162,7 +184,7 @@ class ES:
 
         doc = add_outlier_to_document(doc, outlier)
 
-        action = {
+        action: dict = {
             '_op_type': 'update',
             '_index': doc["_index"],
             '_type': doc["_type"],
@@ -172,14 +194,14 @@ class ES:
         }
         self.add_bulk_action(action)
 
-    def extract_derived_fields(self, doc_fields):
-        derived_fields = dict()
+    def extract_derived_fields(self, doc_fields) -> dict:
+        derived_fields: dict = dict()
         for field_name, grok_pattern in self.settings.config.items("derivedfields"):
             if helpers.utils.dict_contains_dotkey(doc_fields, field_name, case_sensitive=False):
                 if grok_pattern in self.grok_filters.keys():
                     grok = self.grok_filters[grok_pattern]
                 else:
-                    grok = Grok(grok_pattern)
+                    grok: Grok = Grok(grok_pattern)
                     self.grok_filters[grok_pattern] = grok
 
                 match_dict = grok.match(helpers.utils.get_dotkey_value(doc_fields, field_name, case_sensitive=False))
@@ -190,7 +212,7 @@ class ES:
 
         return derived_fields
 
-    def extract_fields_from_document(self, doc, extract_derived_fields=False):
+    def extract_fields_from_document(self, doc, extract_derived_fields: bool =False):
         doc_fields = doc["_source"]
 
         if extract_derived_fields:
@@ -264,7 +286,8 @@ def build_search_query(bool_clause=None, sort_clause=None, search_range=None, qu
         query["_source"] = query_fields
 
     if bool_clause:
-        query["query"]["bool"]["filter"] = bool_clause["filter"].copy()  # To avoid side effects (multiple search_range) when calling multiple times the function on the same bool_clause
+        query["query"]["bool"]["filter"] = bool_clause["filter"].copy()  # To avoid side effects (multiple search_
+        # range) when calling multiple times the function on the same bool_clause
 
     if sort_clause:
         query.update(sort_clause)

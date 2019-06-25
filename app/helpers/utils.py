@@ -8,19 +8,21 @@ from statistics import mean, median
 import os
 import validators
 
+from typing import Dict, List
+
 
 class FileModificationWatcher:
-    _previous_mtimes = {}
+    _previous_mtimes: Dict[str, float] = {}
 
-    def __init__(self, files=[]):
+    def __init__(self, files: List[str]=[]) -> None:
         self.add_files(files)
 
-    def add_files(self, files):
+    def add_files(self, files: List[str]) -> None:
         for f in files:
             self._previous_mtimes[f] = os.path.getmtime(f)
 
-    def files_changed(self):
-        changed = []
+    def files_changed(self) -> List[float]:
+        changed: List[float] = []
         for f in self._previous_mtimes:
             if self._previous_mtimes[f] != os.path.getmtime(f):
                 self._previous_mtimes[f] = os.path.getmtime(f)
@@ -28,7 +30,7 @@ class FileModificationWatcher:
         return changed
 
 
-def flatten_dict(d, parent_key='', sep='.'):
+def flatten_dict(d, parent_key: str='', sep: str='.') -> Dict:
     items = []
     for k, v in d.items():
         new_key = parent_key + sep + k if parent_key else k
@@ -39,7 +41,7 @@ def flatten_dict(d, parent_key='', sep='.'):
     return dict(items)
 
 
-def dict_contains_dotkey(dict_value, key_name, case_sensitive=True):
+def dict_contains_dotkey(dict_value, key_name, case_sensitive: bool=True) -> bool:
     try:
         get_dotkey_value(dict_value, key_name, case_sensitive)
         return True
@@ -47,7 +49,7 @@ def dict_contains_dotkey(dict_value, key_name, case_sensitive=True):
         return False
 
 
-def get_dotkey_value(dict_value, key_name, case_sensitive=True):
+def get_dotkey_value(dict_value, key_name, case_sensitive: bool=True):
     """
     Get value by dot key in dictionary
     By default, the dotkey is matched case sensitive; for example, key "OsqueryFilter.process_name" will only match if
@@ -73,14 +75,14 @@ def get_dotkey_value(dict_value, key_name, case_sensitive=True):
     return dict_value
 
 
-def match_ip_ranges(source_ip, ip_cidr):
+def match_ip_ranges(source_ip, ip_cidr) -> bool:
     return False if len(netaddr.all_matching_cidrs(source_ip, ip_cidr)) <= 0 else True
 
 
-def shannon_entropy(data):
+def shannon_entropy(data) -> float:
     if not data:
         return 0
-    entropy = 0
+    entropy: float = 0
     for x in range(256):
         p_x = float(data.count(chr(x))) / len(data)
         if p_x > 0:
@@ -88,20 +90,23 @@ def shannon_entropy(data):
     return entropy
 
 
-def extract_outlier_asset_information(fields, settings):
+def extract_outlier_asset_information(fields, settings) -> List[str]:
     """
     :param fields: the dictionary containing all the event information
     :param settings: the settings object which also includes the configuration file that is used
     :return:
     """
-    outlier_assets = list()
+    outlier_assets: List[str] = list()
     for (asset_field_name, asset_field_type) in settings.config.items("assets"):
         if dict_contains_dotkey(fields, asset_field_name, case_sensitive=False):
 
             asset_field_values_including_empty = flatten_fields_into_sentences(fields, sentence_format=[asset_field_name])
-            asset_field_values = [sentence[0] for sentence in asset_field_values_including_empty if "" not in sentence]  # also remove all empty asset strings
+            # also remove all empty asset strings
+            asset_field_values = [sentence[0] for sentence in asset_field_values_including_empty if "" not in sentence]
 
-            for asset_field_value in asset_field_values:  # make sure we don't process empty process information, for example an empty user field
+
+            for asset_field_value in asset_field_values:  # make sure we don't process empty process information,
+                # for example an empty user field
                 outlier_assets.append(asset_field_type + ": " + asset_field_value)
 
     return outlier_assets
