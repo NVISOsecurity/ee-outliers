@@ -32,7 +32,7 @@ class Word2VecAnalyzer(Analyzer):
         total_training_events = int(min(training_data_size, self.total_events))
 
         logging.init_ticker(total_steps=total_training_events, desc=self.model_name + " - preparing word2vec training set")
-        for doc in es.scan(search_query=search_query):
+        for doc in es.scan(index=self.es_index, search_query=search_query):
             if len(sentences) < total_training_events:
                 logging.tick()
                 fields = es.extract_fields_from_document(doc, extract_derived_fields=self.model_settings["use_derived_fields"])
@@ -73,7 +73,7 @@ class Word2VecAnalyzer(Analyzer):
                 self.evaluate_test_sentences(w2v_model=w2v_model)
                 return
 
-            self.total_events = es.count_documents(search_query=search_query)
+            self.total_events = es.count_documents(index=self.es_index, search_query=search_query)
             logging.print_analysis_intro(event_type="evaluating " + self.model_name, total_events=self.total_events)
 
             logging.init_ticker(total_steps=self.total_events, desc=self.model_name + " - evaluating word2vec model")
@@ -81,7 +81,7 @@ class Word2VecAnalyzer(Analyzer):
             raw_docs = list()
             eval_sentences = list()
 
-            for doc in es.scan(search_query=search_query):
+            for doc in es.scan(index=self.es_index, search_query=search_query):
                 logging.tick()
                 fields = es.extract_fields_from_document(doc, extract_derived_fields=self.model_settings["use_derived_fields"])
 
