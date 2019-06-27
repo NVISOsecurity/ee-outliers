@@ -80,7 +80,7 @@ class Analyzer(abc.ABC):
         else:
             logging.logger.info("no outliers detected for use case")
 
-    def process_outlier(self, fields, doc, extra_outlier_information=dict()) -> Outlier:
+    def process_outlier(self, fields: Dict, doc: Dict[str, Any], extra_outlier_information: Dict=dict()) -> Outlier:
         extra_outlier_information["model_name"] = self.model_name
         extra_outlier_information["model_type"] = self.model_type
 

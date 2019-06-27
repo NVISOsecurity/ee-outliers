@@ -8,8 +8,10 @@ from statistics import mean, median
 import os
 import validators
 
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, MutableMapping, Any, Optional, Union, Iterable, TYPE_CHECKING
 
+if TYPE_CHECKING:
+    from helpers.settings import Settings
 
 class FileModificationWatcher:
     _previous_mtimes: Dict[str, float] = {}
@@ -30,7 +32,7 @@ class FileModificationWatcher:
         return changed
 
 
-def flatten_dict(d, parent_key: str='', sep: str='.') -> Dict:
+def flatten_dict(d: MutableMapping, parent_key: str='', sep: str='.') -> Dict:
     items: List = []
     for k, v in d.items():
         new_key = parent_key + sep + k if parent_key else k
@@ -41,7 +43,7 @@ def flatten_dict(d, parent_key: str='', sep: str='.') -> Dict:
     return dict(items)
 
 
-def dict_contains_dotkey(dict_value: Dict, key_name, case_sensitive: bool=True) -> bool:
+def dict_contains_dotkey(dict_value: Dict, key_name: str, case_sensitive: bool=True) -> bool:
     try:
         get_dotkey_value(dict_value, key_name, case_sensitive)
         return True
@@ -49,7 +51,7 @@ def dict_contains_dotkey(dict_value: Dict, key_name, case_sensitive: bool=True) 
         return False
 
 
-def get_dotkey_value(dict_value: Dict, key_name, case_sensitive: bool=True) -> Dict:
+def get_dotkey_value(dict_value: Dict, key_name: str, case_sensitive: bool=True) -> Dict:
     """
     Get value by dot key in dictionary
     By default, the dotkey is matched case sensitive; for example, key "OsqueryFilter.process_name" will only match if
@@ -76,11 +78,11 @@ def get_dotkey_value(dict_value: Dict, key_name, case_sensitive: bool=True) -> D
     return dict_value
 
 
-def match_ip_ranges(source_ip, ip_cidr) -> bool:
+def match_ip_ranges(source_ip: str, ip_cidr: List[str]) -> bool:
     return False if len(netaddr.all_matching_cidrs(source_ip, ip_cidr)) <= 0 else True
 
 
-def shannon_entropy(data) -> float:
+def shannon_entropy(data: Optional[str]) -> float:
     if not data:
         return 0
     entropy: float = 0
@@ -91,7 +93,7 @@ def shannon_entropy(data) -> float:
     return entropy
 
 
-def extract_outlier_asset_information(fields: Dict, settings) -> List[str]:
+def extract_outlier_asset_information(fields: Dict, settings: 'Settings') -> List[str]:
     """
     :param fields: the dictionary containing all the event information
     :param settings: the settings object which also includes the configuration file that is used
@@ -115,7 +117,7 @@ def extract_outlier_asset_information(fields: Dict, settings) -> List[str]:
 
 # Convert a sentence value into a flat string, if possible
 # If not, just return None
-def flatten_sentence(sentence=None) -> Optional[str]:
+def flatten_sentence(sentence: Any=None) -> Optional[str]:
     if sentence is None:
         return None
 
@@ -140,7 +142,7 @@ def flatten_sentence(sentence=None) -> Optional[str]:
 # sentence_format: hostname, username
 # fields: {hostname: [WIN-DRA, WIN-EVB], draman}
 # output: [[WIN-DRA, draman], [WIN-EVB, draman]]
-def flatten_fields_into_sentences(fields=None, sentence_format=None) -> List[List]:
+def flatten_fields_into_sentences(fields: Dict, sentence_format: List) -> List[List]:
     sentences: List[List] = [[]]
 
     for i, field_name in enumerate(sentence_format):
@@ -212,8 +214,8 @@ def is_url(_str: str) -> bool:
         return False
 
 
-def get_decision_frontier(trigger_method, values_array: List, trigger_sensitivity: int, trigger_on: Optional[str]=None):
-    decision_frontier = None
+def get_decision_frontier(trigger_method: str, values_array: List, trigger_sensitivity: int,
+                          trigger_on: Optional[str]=None) -> Union[int, float, np.float64]:
 
     if trigger_method == "percentile":
         decision_frontier = get_percentile_decision_frontier(values_array, trigger_sensitivity)
@@ -258,12 +260,13 @@ def get_decision_frontier(trigger_method, values_array: List, trigger_sensitivit
 # Calculate percentile decision frontier
 # Example: values array is [0 5 10 20 30 2 5 5]
 # trigger_sensitivity is 10 (meaning: 10th percentile)
-def get_percentile_decision_frontier(values_array: List, percentile: int):
+def get_percentile_decision_frontier(values_array: List, percentile: int) -> Union[int, float, np.float64]:
     res = np.percentile(list(set(values_array)), percentile)
     return res
 
 
-def get_stdev_decision_frontier(values_array: List, trigger_sensitivity: int, trigger_on: Optional[str]):
+def get_stdev_decision_frontier(values_array: List, trigger_sensitivity: int,
+                                trigger_on: Optional[str]) -> Union[None, int, float, np.float64]:
     stdev = np.std(values_array)
 
     if trigger_on == "high":
@@ -277,7 +280,8 @@ def get_stdev_decision_frontier(values_array: List, trigger_sensitivity: int, tr
     return decision_frontier
 
 
-def get_mad_decision_frontier(values_array: List, trigger_sensitivity: int, trigger_on: Optional[str]):
+def get_mad_decision_frontier(values_array: List, trigger_sensitivity: int,
+                              trigger_on: Optional[str]) -> Union[int, float, np.float64]:
     mad = np.nanmedian(np.absolute(values_array - np.nanmedian(values_array, 0)), 0)  # median absolute deviation
 
     if trigger_on == "high":
@@ -291,7 +295,8 @@ def get_mad_decision_frontier(values_array: List, trigger_sensitivity: int, trig
     return decision_frontier
 
 
-def is_outlier(term_value_count, decision_frontier, trigger_on: Optional[str]) -> bool:
+def is_outlier(term_value_count: int, decision_frontier: Union[int, float, np.float64],
+               trigger_on: Optional[str]) -> Union[int, float, np.float64, bool]:
     if trigger_on == "high":
         if term_value_count > decision_frontier:
             return True
@@ -306,7 +311,7 @@ def is_outlier(term_value_count, decision_frontier, trigger_on: Optional[str]) -
         raise ValueError("Unexpected outlier trigger condition " + str(trigger_on))
 
 
-def nested_dict_values(d: Dict):
+def nested_dict_values(d: Dict) -> Iterable[Any]:
     for v in d.values():
         if isinstance(v, dict):
             yield from nested_dict_values(v)

@@ -8,7 +8,7 @@ from collections import defaultdict
 from collections import Counter
 import helpers.utils
 
-from typing import Dict
+from typing import Dict, Optional
 
 DEFAULT_MIN_TARGET_BUCKETS = 10
 
@@ -19,7 +19,7 @@ class BeaconingAnalyzer(Analyzer):
         self.extract_additional_model_settings()
 
         search_query = es.filter_by_query_string(self.model_settings["es_query_filter"])
-        self.total_events = es.count_documents(search_query=search_query)
+        self.total_events: int = es.count_documents(search_query=search_query)
 
         logging.print_analysis_intro(event_type="evaluating " + self.model_name, total_events=self.total_events)
         logging.init_ticker(total_steps=self.total_events, desc=self.model_name + " - evaluating " +
@@ -49,10 +49,10 @@ class BeaconingAnalyzer(Analyzer):
                 observations: Dict = dict()
 
                 for target_sentence in target_sentences:
-                    flattened_target_sentence = helpers.utils.flatten_sentence(target_sentence)
+                    flattened_target_sentence: Optional[str] = helpers.utils.flatten_sentence(target_sentence)
 
                     for aggregator_sentence in aggregator_sentences:
-                        flattened_aggregator_sentence = helpers.utils.flatten_sentence(aggregator_sentence)
+                        flattened_aggregator_sentence:Optional[str] =helpers.utils.flatten_sentence(aggregator_sentence)
                         eval_terms_array = self.add_term_to_batch(eval_terms_array, flattened_aggregator_sentence,
                                                                   flattened_target_sentence, observations, doc)
 
@@ -95,7 +95,8 @@ class BeaconingAnalyzer(Analyzer):
             self.model_settings["min_target_buckets"] = DEFAULT_MIN_TARGET_BUCKETS
 
     @staticmethod
-    def add_term_to_batch(eval_terms_array: defaultdict, aggregator_value, target_value, observations, doc) -> defaultdict:
+    def add_term_to_batch(eval_terms_array: defaultdict, aggregator_value: Optional[str], target_value: Optional[str],
+                          observations: Dict, doc: Dict) -> defaultdict:
         if aggregator_value not in eval_terms_array.keys():
             eval_terms_array[aggregator_value] = defaultdict(list)
 
@@ -150,7 +151,7 @@ class BeaconingAnalyzer(Analyzer):
 
     def prepare_and_process_outlier(self, decision_frontier, term_value_count, terms, aggregator_value, term_counter):
         # Extract fields from raw document
-        fields = es.extract_fields_from_document(terms[aggregator_value]["raw_docs"][term_counter],
+        fields: Dict = es.extract_fields_from_document(terms[aggregator_value]["raw_docs"][term_counter],
                                                  extract_derived_fields=self.model_settings["use_derived_fields"])
 
         observations = terms[aggregator_value]["observations"][term_counter]

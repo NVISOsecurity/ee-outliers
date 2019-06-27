@@ -4,7 +4,7 @@ import os
 import sys
 import unittest
 
-from typing import List
+from typing import List, Optional
 
 import traceback
 from datetime import datetime
@@ -144,8 +144,8 @@ if settings.args.run_mode == "daemon":
 
     while True:
         num_runs += 1
-        next_run = None
-        should_schedule_next_run = False
+        next_run: Optional[datetime] = None
+        should_schedule_next_run: bool = False
 
         while (next_run is None or datetime.now() < next_run) and first_run is False and run_succeeded_without_errors is True:
             if next_run is None:

@@ -7,7 +7,7 @@ from typing import Dict, Any, List, Optional
 
 
 class Outlier:
-    def __init__(self, type, reason, summary) -> None:
+    def __init__(self, type: str, reason: str, summary: str) -> None:
         self.outlier_dict: Dict[str, Any] = dict()
         self.outlier_dict["type"] = type.split(",")  # can be multiple types, for example: malware, powershell
         self.outlier_dict["reason"] = reason

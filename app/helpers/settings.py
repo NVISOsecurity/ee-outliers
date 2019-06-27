@@ -67,7 +67,7 @@ class Settings:
     def reload_configuration_files(self) -> None:
         self.process_configuration_files(self.args.config)
 
-    def process_configuration_files(self, config_paths) -> None:
+    def process_configuration_files(self, config_paths: str) -> None:
         # Read configuration files
         config: configparser.ConfigParser = configparser.ConfigParser(interpolation=None)
         # preserve case sensitivity in config keys, important for derived field names

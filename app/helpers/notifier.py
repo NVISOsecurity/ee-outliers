@@ -4,7 +4,12 @@ import smtplib
 from email.mime.text import MIMEText
 from helpers.logging import Logging
 
-from typing import Dict
+from typing import Dict, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from helpers.settings import Settings
+    from helpers.outlier import Outlier
+
 
 class Notifier:
 
@@ -17,7 +22,7 @@ class Notifier:
     last_seen_ignore_queue: collections.deque
     # logging = None
 
-    def __init__(self, settings=None, logging=None) -> None:
+    def __init__(self, settings: 'Settings', logging: Logging) -> None:
         self.settings = settings
         self.logging: Logging = logging
 
@@ -29,7 +34,7 @@ class Notifier:
 
         self.last_seen_ignore_queue = collections.deque(maxlen=1000)
 
-    def notify_on_outlier(self, doc: Dict=None, outlier=None) -> None:
+    def notify_on_outlier(self, doc: Dict, outlier: 'Outlier'   ) -> None:
         if outlier.outlier_dict["summary"] in self.last_seen_ignore_queue:
             self.logging.logger.debug("not notifying on outlier because it is still in the ignore queue - " +
                                       outlier.outlier_dict["summary"])

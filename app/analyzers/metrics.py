@@ -4,8 +4,9 @@ from collections import defaultdict
 import re
 import helpers.utils
 from helpers.analyzer import Analyzer
+from numpy import float64
 
-from typing import Dict, Any, Tuple, List
+from typing import Dict, Any, Tuple, List, cast, Optional, Union
 
 SUPPORTED_METRICS = ["length", "numerical_value", "entropy", "base64_encoded_length", "hex_encoded_length","url_length"]
 SUPPORTED_TRIGGERS = ["high", "low"]
@@ -31,7 +32,7 @@ class MetricsAnalyzer(Analyzer):
                                                      extract_derived_fields=self.model_settings["use_derived_fields"])
 
             try:
-                target_value = helpers.utils.flatten_sentence(
+                target_value: Optional[str] = helpers.utils.flatten_sentence(
                             helpers.utils.get_dotkey_value(fields, self.model_settings["target"], case_sensitive=True))
                 aggregator_sentences = helpers.utils.flatten_fields_into_sentences(
                                                     fields=fields, sentence_format=self.model_settings["aggregator"])
@@ -40,14 +41,19 @@ class MetricsAnalyzer(Analyzer):
                                      "are processing. - [" + self.model_name + "]")
                 continue
 
-            metric, observations = self.calculate_metric(self.model_settings["metric"], target_value)
+            metric: Union[None, float, int]
+            observations: Dict
+            if target_value != None:
+                metric, observations = self.calculate_metric(self.model_settings["metric"], cast(str, target_value))
+            else:
+                metric = None
 
             if metric is not None:  # explicitly check for none, since "0" can be OK as a metric!
                 total_metrics_added += 1
                 for aggregator_sentence in aggregator_sentences:
-                    flattened_aggregator_sentence = helpers.utils.flatten_sentence(aggregator_sentence)
-                    eval_metrics = self.add_metric_to_batch(eval_metrics, flattened_aggregator_sentence, target_value,
-                                                            metric, observations, doc)
+                    flattened_aggregator_sentence: Optional[str] = helpers.utils.flatten_sentence(aggregator_sentence)
+                    eval_metrics = self.add_metric_to_batch(eval_metrics, flattened_aggregator_sentence,
+                                                                         target_value, metric, observations, doc)
 
             # Evaluate batch of events against the model
             last_batch = (logging.current_step == self.total_events)
@@ -65,7 +71,7 @@ class MetricsAnalyzer(Analyzer):
                     logging.logger.info("no outliers detected in batch")
 
                 # Reset data structures for next batch
-                eval_metrics = remaining_metrics.copy()
+                eval_metrics = cast(defaultdict, remaining_metrics.copy())
                 total_metrics_added = 0
 
         self.print_analysis_summary()
@@ -87,10 +93,11 @@ class MetricsAnalyzer(Analyzer):
         if self.model_settings["trigger_on"] not in SUPPORTED_TRIGGERS:
             raise ValueError("Unexpected outlier trigger condition " + self.model_settings["trigger_on"])
 
-    def evaluate_batch_for_outliers(self, metrics=None, model_settings=None, last_batch=False) -> tuple:
+    def evaluate_batch_for_outliers(self, metrics: defaultdict, model_settings: Dict[str, Any],
+                                    last_batch: bool=False) -> Tuple[List, defaultdict]:
         # Initialize
-        outliers: list = list() # TODO Never change ?
-        remaining_metrics: list = metrics.copy()
+        outliers: List = list() # TODO Never change ?
+        remaining_metrics: defaultdict = cast(defaultdict, metrics.copy())
 
         for _, aggregator_value in enumerate(metrics):
 
@@ -103,7 +110,8 @@ class MetricsAnalyzer(Analyzer):
                 del remaining_metrics[aggregator_value]
 
             # Calculate the decision frontier
-            decision_frontier = helpers.utils.get_decision_frontier(model_settings["trigger_method"],
+            decision_frontier: Union[int, float, float64] = helpers.utils.get_decision_frontier(
+                                                                    model_settings["trigger_method"],
                                                                     metrics[aggregator_value]["metrics"],
                                                                     model_settings["trigger_sensitivity"],
                                                                     model_settings["trigger_on"])
@@ -136,8 +144,9 @@ class MetricsAnalyzer(Analyzer):
         return outliers, remaining_metrics
 
     @staticmethod
-    def add_metric_to_batch(eval_metrics_array: defaultdict, aggregator_value, target_value, metrics_value,
-                            observations, doc) -> defaultdict:
+    def add_metric_to_batch(eval_metrics_array: defaultdict, aggregator_value: Optional[str],
+                            target_value: Optional[str], metrics_value: Union[None, float, int], observations: Dict,
+                            doc: Dict) -> defaultdict:
         observations["target"] = target_value
         observations["aggregator"] = aggregator_value
 
@@ -151,7 +160,7 @@ class MetricsAnalyzer(Analyzer):
         return eval_metrics_array
 
     @staticmethod
-    def calculate_metric(metric, value) -> Tuple[Any, Dict]:
+    def calculate_metric(metric: str, value: str) -> Tuple[Union[None, float, int], Dict]:
 
         observations: Dict[str, Any] = dict()
 
@@ -161,7 +170,7 @@ class MetricsAnalyzer(Analyzer):
         # Example: numerical_value("2") => 2
         if metric == "numerical_value":
             try:
-                return float(value), dict()
+                return float(value), dict() # type: ignore
             except ValueError:
                 # number can not be casted to a Float, just continue
                 return None, dict()
