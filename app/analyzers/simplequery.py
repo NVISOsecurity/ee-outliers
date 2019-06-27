@@ -4,7 +4,7 @@ from helpers.analyzer import Analyzer
 
 class SimplequeryAnalyzer(Analyzer):
 
-    def evaluate_model(self):
+    def evaluate_model(self) -> None:
 
         model_filter = {
             "bool": {

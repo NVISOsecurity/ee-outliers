@@ -71,7 +71,7 @@ class MetricsAnalyzer(Analyzer):
                     logging.logger.info("no outliers detected in batch")
 
                 # Reset data structures for next batch
-                eval_metrics = cast(defaultdict, remaining_metrics.copy())
+                eval_metrics = remaining_metrics.copy()
                 total_metrics_added = 0
 
         self.print_analysis_summary()
@@ -97,7 +97,7 @@ class MetricsAnalyzer(Analyzer):
                                     last_batch: bool=False) -> Tuple[List, defaultdict]:
         # Initialize
         outliers: List = list() # TODO Never change ?
-        remaining_metrics: defaultdict = cast(defaultdict, metrics.copy())
+        remaining_metrics: defaultdict = metrics.copy()
 
         for _, aggregator_value in enumerate(metrics):
 

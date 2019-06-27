@@ -29,18 +29,20 @@ class Logging:
     def add_stdout_handler(self) -> None:
         ch: logging.StreamHandler = logging.StreamHandler()
         ch.setLevel(self.logger.level)
-        formatter: logging.Formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s', "%Y-%m-%d %H:%M:%S")
+        formatter: logging.Formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s',
+                                                         "%Y-%m-%d %H:%M:%S")
         ch.setFormatter(formatter)
         self.logger.addHandler(ch)
 
     def add_file_handler(self, log_file: str) -> None:
         ch: logging.FileHandler = logging.FileHandler(log_file)
         ch.setLevel(self.logger.level)
-        formatter: logging.Formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s', "%Y-%m-%d %H:%M:%S")
+        formatter: logging.Formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s',
+                                                         "%Y-%m-%d %H:%M:%S")
         ch.setFormatter(formatter)
         self.logger.addHandler(ch)
 
-    def init_ticker(self, total_steps: Optional[int]=None, desc: str=None) -> None:
+    def init_ticker(self, total_steps: int, desc: str) -> None:
         self.total_steps = total_steps
         self.start_time = dt.datetime.today().timestamp()
         self.desc = desc

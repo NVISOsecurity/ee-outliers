@@ -221,8 +221,8 @@ class ES:
 
         return derived_fields
 
-    def extract_fields_from_document(self, doc: Dict, extract_derived_fields: bool= False) -> Dict:
-        doc_fields = doc["_source"]
+    def extract_fields_from_document(self, doc: Dict[str, Dict], extract_derived_fields: bool= False) -> Dict:
+        doc_fields: Dict = doc["_source"]
 
         if extract_derived_fields:
             derived_fields = self.extract_derived_fields(doc_fields)

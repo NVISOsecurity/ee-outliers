@@ -3,12 +3,13 @@ from configparser import NoOptionError
 import numpy as np
 
 from helpers.analyzer import Analyzer
+from helpers.outlier import Outlier
 from helpers.singletons import settings, es, logging
 from collections import defaultdict
 from collections import Counter
 import helpers.utils
 
-from typing import Dict, Optional
+from typing import Dict, DefaultDict, List, Any, Optional, Union
 
 DEFAULT_MIN_TARGET_BUCKETS = 10
 
@@ -106,9 +107,9 @@ class BeaconingAnalyzer(Analyzer):
 
         return eval_terms_array
 
-    def evaluate_batch_for_outliers(self, terms=None):
+    def evaluate_batch_for_outliers(self, terms: DefaultDict[str, Any]) -> List[Outlier]:
         # Initialize
-        outliers = list()
+        outliers: List[Outlier] = list()
 
         # In case we want to count terms within an aggregator, it's a bit easier.
         # For example:
@@ -132,11 +133,11 @@ class BeaconingAnalyzer(Analyzer):
                                                              "skipping analysis")
                 continue
 
-            stdev = np.std(counted_target_values)
+            stdev: Union[int, float, np.float64] = np.std(counted_target_values)
             logging.logger.debug("standard deviation: " + str(stdev))
 
             for term_counter, term_value in enumerate(terms[aggregator_value]["targets"]):
-                term_value_count = counted_targets[term_value]
+                term_value_count: int = counted_targets[term_value]
 
                 if stdev < self.model_settings["trigger_sensitivity"]:
                     is_outlier = True
@@ -149,7 +150,8 @@ class BeaconingAnalyzer(Analyzer):
 
         return outliers
 
-    def prepare_and_process_outlier(self, decision_frontier, term_value_count, terms, aggregator_value, term_counter):
+    def prepare_and_process_outlier(self, decision_frontier: Union[int, float, np.float64], term_value_count: int,
+                                    terms: DefaultDict, aggregator_value: str, term_counter: int) -> Outlier:
         # Extract fields from raw document
         fields: Dict = es.extract_fields_from_document(terms[aggregator_value]["raw_docs"][term_counter],
                                                  extract_derived_fields=self.model_settings["use_derived_fields"])
