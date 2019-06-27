@@ -9,7 +9,7 @@ class Outlier:
         self.outlier_dict = dict()
         self.outlier_dict["type"] = outlier_type  # can be multiple types, for example: malware, powershell
         self.outlier_dict["reason"] = outlier_reason  # can be multiple reasons, for example: DNS tunneling, IDS alert
-        self.outlier_dict["summary"] = textwrap.fill(outlier_summary, width=150)  # hard-wrap the length of a summary line to 300 characters to make it easier to visualize
+        self.outlier_dict["summary"] = textwrap.fill(outlier_summary, width=150)  # hard-wrap the length of a summary line to 150 characters to make it easier to visualize
 
     # Each whitelist item can contain multiple values to match across fields, separated with ",". So we need to support this too.
     # Example: "dns_tunneling_fp = rule_updates.et.com, intel_server" -> should match both values across the entire event (rule_updates.et.com and intel_server);
