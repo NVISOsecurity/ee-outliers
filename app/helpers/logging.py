@@ -22,6 +22,7 @@ class Logging:
         logging.getLogger('urllib3').setLevel(logging.CRITICAL)
 
         self.logger = logging.getLogger(logger_name)
+        self.logger.propagate = False
 
     def add_stdout_handler(self):
         ch = logging.StreamHandler()
