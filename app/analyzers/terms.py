@@ -18,12 +18,13 @@ class TermsAnalyzer(Analyzer):
 
         if self.model_settings["brute_force_target"]:
             logging.logger.warning("running terms model in brute force mode, could take a long time!")
-            target_fields_to_brute_force = self.calculate_target_fields_to_brute_force()
+            target_fields_to_brute_force: Set = self.calculate_target_fields_to_brute_force()
 
             for target_field in target_fields_to_brute_force:
                 self.model_settings["brute_forced_field"] = target_field
-                search_query = es.filter_by_query_string(self.model_settings["es_query_filter"] + " AND _exists_:" +
-                                                         self.model_settings["brute_forced_field"])
+                search_query: Dict[str, List] = es.filter_by_query_string(self.model_settings["es_query_filter"] + \
+                                                                          " AND _exists_:" + \
+                                                                          self.model_settings["brute_forced_field"])
                 self.evaluate_target(target=[self.model_settings["brute_forced_field"]], search_query=search_query,
                                      brute_force=True)
         else:
@@ -43,15 +44,17 @@ class TermsAnalyzer(Analyzer):
         eval_terms_array: DefaultDict = defaultdict()
         total_terms_added: int = 0
 
-        outlier_batches_trend = 0
+        outlier_batches_trend: int = 0
         for doc in es.scan(index=self.es_index, search_query=search_query):
             logging.tick()
-            fields = es.extract_fields_from_document(doc,
+            fields: Dict = es.extract_fields_from_document(doc,
                                                      extract_derived_fields=self.model_settings["use_derived_fields"])
 
+            will_process_doc: bool
             try:
-                target_sentences = helpers.utils.flatten_fields_into_sentences(fields=fields, sentence_format=target)
-                aggregator_sentences = helpers.utils.flatten_fields_into_sentences(fields=fields,
+                target_sentences: List[List] = helpers.utils.flatten_fields_into_sentences(fields=fields,
+                                                                                           sentence_format=target)
+                aggregator_sentences: List[List] = helpers.utils.flatten_fields_into_sentences(fields=fields,
                                                                     sentence_format=self.model_settings["aggregator"])
                 will_process_doc = True
             except (KeyError, TypeError):
@@ -60,7 +63,7 @@ class TermsAnalyzer(Analyzer):
                 will_process_doc = False
 
             if will_process_doc:
-                observations = dict()
+                observations: Dict[str, Any] = dict()
 
                 if brute_force:
                     observations["brute_forced_field"] = self.model_settings["brute_forced_field"]
@@ -76,13 +79,13 @@ class TermsAnalyzer(Analyzer):
                 total_terms_added += len(target_sentences)
 
             # Evaluate batch of events against the model
-            last_batch = (logging.current_step == self.total_events)
+            last_batch: bool = (logging.current_step == self.total_events)
             if last_batch or total_terms_added >= settings.config.getint("terms", "terms_batch_eval_size"):
                 logging.logger.info("evaluating batch of " + "{:,}".format(total_terms_added) + " terms")
-                outliers = self.evaluate_batch_for_outliers(terms=eval_terms_array)
+                outliers: List[Outlier] = self.evaluate_batch_for_outliers(terms=eval_terms_array)
 
                 if len(outliers) > 0:
-                    unique_summaries = len(set(o.outlier_dict["summary"] for o in outliers))
+                    unique_summaries: int = len(set(o.outlier_dict["summary"] for o in outliers))
                     logging.logger.info("total outliers in batch processed: " + str(len(outliers)) + " [" + \
                                         str(unique_summaries) + " unique summaries]")
                     outlier_batches_trend += 1
@@ -179,6 +182,14 @@ class TermsAnalyzer(Analyzer):
     def evaluate_batch_for_outliers(self, terms: DefaultDict) -> List[Outlier]:
         # Initialize
         outliers: List[Outlier] = list()
+        decision_frontier: Union[int, float, float64]
+        non_outlier_values: Set = set()
+        is_outlier: Union[int, float, float64]
+        non_outlier_values_sample: str
+        observations: Dict[str, Any]
+        calculated_observations: Dict
+        raw_doc: Dict[str, Dict]
+        fields: Dict
 
         # In case we want to count terms across different aggregators, we need to first iterate over all aggregators
         # and calculate the total number of unique terms for each aggregated value.
@@ -195,12 +206,12 @@ class TermsAnalyzer(Analyzer):
             for i, aggregator_value in enumerate(terms):
                 # unique_targets_in_aggregated_value = loop 0: [A, B, C, D, E], loop 1: [A, A, B]
                 # unique_target_counts_across_aggregators = loop 0: [5], loop 1: [5, 2]
-                unique_targets_in_aggregated_value = set(terms[aggregator_value]["targets"])
+                unique_targets_in_aggregated_value: Set = set(terms[aggregator_value]["targets"])
                 unique_target_counts_across_aggregators.append(len(unique_targets_in_aggregated_value))
 
             # Calculate the decision frontier
             # unique_target_counts_across_aggregators = [5, 2]
-            decision_frontier: Union[int, float, float64] = helpers.utils.get_decision_frontier(
+            decision_frontier = helpers.utils.get_decision_frontier(
                                                                     self.model_settings["trigger_method"],
                                                                     unique_target_counts_across_aggregators,
                                                                     self.model_settings["trigger_sensitivity"],
@@ -208,23 +219,22 @@ class TermsAnalyzer(Analyzer):
             logging.logger.debug("using " + self.model_settings["trigger_method"] + " decision frontier " + \
                                  str(decision_frontier) + " across all aggregators")
 
-            non_outlier_values: Set = set()
-
+            
             # loop 0: {i=0, aggregator_value = "smsc.exe"}, loop 1: {i=1, aggregator_value = "abc.exe"},
             for i, aggregator_value in enumerate(terms):
-                unique_target_count_across_aggregators = unique_target_counts_across_aggregators[i]
+                unique_target_count_across_aggregators: int = unique_target_counts_across_aggregators[i]
                 logging.logger.debug("unique target count for aggregator " + str(aggregator_value) + ": " + \
                                      str(unique_target_count_across_aggregators) + " - decision frontier " + \
                                      str(decision_frontier))
                 is_outlier = helpers.utils.is_outlier(unique_target_count_across_aggregators, decision_frontier,
-                                                      self.model_settings["trigger_on"])
+                                                        self.model_settings["trigger_on"])
 
                 if is_outlier:
                     for ii, term_value in enumerate(terms[aggregator_value]["targets"]):
                         non_outlier_values_sample = ",".join(random.sample(non_outlier_values,
                                                                            min(3, len(non_outlier_values))))
 
-                        observations: Dict[str, Any] = dict()
+                        observations = dict()
                         observations["non_outlier_values_sample"] = non_outlier_values_sample
                         observations["term_count"] = unique_target_count_across_aggregators
                         observations["aggregator"] = aggregator_value
@@ -256,8 +266,8 @@ class TermsAnalyzer(Analyzer):
         if self.model_settings["target_count_method"] == "within_aggregator":
             for i, aggregator_value in enumerate(terms):
                 # Count percentage of each target value occuring
-                counted_targets = Counter(terms[aggregator_value]["targets"])
-                counted_target_values = list(counted_targets.values())
+                counted_targets: Counter = Counter(terms[aggregator_value]["targets"])
+                counted_target_values: List = list(counted_targets.values())
 
                 logging.logger.debug("terms count for aggregator value " + aggregator_value + " -> " + \
                                      str(counted_targets))
@@ -269,9 +279,8 @@ class TermsAnalyzer(Analyzer):
                 logging.logger.debug("using " + self.model_settings["trigger_method"] + " decision frontier " + \
                                      str(decision_frontier) + " for aggregator " + str(aggregator_value))
 
-                non_outlier_values = set()
                 for ii, term_value in enumerate(terms[aggregator_value]["targets"]):
-                    term_value_count = counted_targets[term_value]
+                    term_value_count: int = counted_targets[term_value]
                     is_outlier = helpers.utils.is_outlier(term_value_count, decision_frontier,
                                                           self.model_settings["trigger_on"])
 

@@ -1,12 +1,13 @@
 from helpers.singletons import es, logging
 from helpers.analyzer import Analyzer
 
+from typing import Dict, List, Any
 
 class SimplequeryAnalyzer(Analyzer):
 
     def evaluate_model(self) -> None:
 
-        model_filter = {
+        model_filter: Dict[str, Any] = {
             "bool": {
                 "filter": [
                     {
@@ -26,13 +27,13 @@ class SimplequeryAnalyzer(Analyzer):
             }
         }
 
-        exclude_hits_filter = {
+        exclude_hits_filter: Dict[str, Any] = {
             "bool": {
                 "must_not": model_filter
             }
         }
 
-        query = self.search_query
+        query: Dict[str, List] = self.search_query
 
         if "filter" in query:
             query["filter"].append(exclude_hits_filter)
@@ -47,7 +48,7 @@ class SimplequeryAnalyzer(Analyzer):
                             desc=self.model_name + " - evaluating " + self.model_type + " model")
         for doc in es.scan(index=self.es_index, search_query=query):
             logging.tick()
-            fields = es.extract_fields_from_document(doc,
+            fields: Dict = es.extract_fields_from_document(doc,
                                                      extract_derived_fields=self.model_settings["use_derived_fields"])
             self.process_outlier(fields, doc)
 

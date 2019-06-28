@@ -6,7 +6,7 @@ from helpers.singletons import settings, es, logging
 from helpers.analyzer import Analyzer
 from helpers.outlier import Outlier
 
-from typing import List, Dict, Tuple
+from typing import List, Dict, Tuple, Union
 
 
 class Word2VecAnalyzer(Analyzer):
@@ -30,21 +30,21 @@ class Word2VecAnalyzer(Analyzer):
         sentences: List[Tuple] = list()
 
         self.total_events = es.count_documents(index=self.es_index, search_query=search_query)
-        training_data_size_pct = settings.config.getint("machine_learning", "training_data_size_pct")
-        training_data_size = self.total_events / 100 * training_data_size_pct
+        training_data_size_pct: int = settings.config.getint("machine_learning", "training_data_size_pct")
+        training_data_size: float = self.total_events / 100 * training_data_size_pct
 
         logging.print_analysis_intro(event_type="training " + self.model_name, total_events=self.total_events)
-        total_training_events = int(min(training_data_size, self.total_events))
+        total_training_events: int = int(min(training_data_size, self.total_events))
 
         logging.init_ticker(total_steps=total_training_events, 
                             desc=self.model_name + " - preparing word2vec training set")
         for doc in es.scan(index=self.es_index, search_query=search_query):
             if len(sentences) < total_training_events:
                 logging.tick()
-                fields = es.extract_fields_from_document(doc,
+                fields: Dict = es.extract_fields_from_document(doc,
                                                      extract_derived_fields=self.model_settings["use_derived_fields"])
                 if set(self.model_settings["sentence_format"]).issubset(fields.keys()):
-                    new_sentences = helpers.utils.flatten_fields_into_sentences(fields=fields,
+                    new_sentences: List[List] = helpers.utils.flatten_fields_into_sentences(fields=fields,
                                                                 sentence_format=self.model_settings["sentence_format"])
                     for sentence in new_sentences:
                         sentences.append(tuple(sentence))
@@ -71,7 +71,7 @@ class Word2VecAnalyzer(Analyzer):
             return
 
         w2v_model: word2vec.Word2Vec = word2vec.Word2Vec(name=self.model_name)
-        search_query = es.filter_by_query_string(self.model_settings["es_query_filter"])
+        search_query: Dict[str, List] = es.filter_by_query_string(self.model_settings["es_query_filter"])
 
         if not w2v_model.is_trained():
             logging.logger.warning("model was not trained! Skipping analysis.")
@@ -92,11 +92,11 @@ class Word2VecAnalyzer(Analyzer):
 
             for doc in es.scan(index=self.es_index, search_query=search_query):
                 logging.tick()
-                fields = es.extract_fields_from_document(doc,
+                fields: Dict = es.extract_fields_from_document(doc,
                                                      extract_derived_fields=self.model_settings["use_derived_fields"])
 
                 try:
-                    new_sentences = helpers.utils.flatten_fields_into_sentences(fields=fields,
+                    new_sentences: List[List] = helpers.utils.flatten_fields_into_sentences(fields=fields,
                                                                 sentence_format=self.model_settings["sentence_format"])
                     eval_sentences.extend(new_sentences)
                 except KeyError:
@@ -111,11 +111,12 @@ class Word2VecAnalyzer(Analyzer):
                 if logging.current_step == self.total_events or \
                         len(eval_sentences) >= settings.config.getint("machine_learning", "word2vec_batch_eval_size"):
                     logging.logger.info("evaluating batch of " + str(len(eval_sentences)) + " sentences")
-                    outliers = self.evaluate_batch_for_outliers(w2v_model=w2v_model, eval_sentences=eval_sentences,
-                                                                raw_docs=raw_docs)
+                    outliers: List[Outlier] = self.evaluate_batch_for_outliers(w2v_model=w2v_model,
+                                                                               eval_sentences=eval_sentences,
+                                                                               raw_docs=raw_docs)
 
                     if len(outliers) > 0:
-                        unique_summaries = len(set(o.outlier_dict["summary"] for o in outliers))
+                        unique_summaries: int = len(set(o.outlier_dict["summary"] for o in outliers))
                         logging.logger.info("total outliers in batch processed: " + str(len(outliers)) + " [" + \
                                             str(unique_summaries) + " unique summaries]")
 
@@ -130,7 +131,7 @@ class Word2VecAnalyzer(Analyzer):
 
         # all_words_probs: contains an array of arrays. the nested arrays contain the probabilities of a word on that
         # index to have a certain probability, in the context of another word
-        sentence_probs = w2v_model.evaluate_sentences(eval_sentences)
+        sentence_probs: List = w2v_model.evaluate_sentences(eval_sentences)
 
         for i, single_sentence_prob in enumerate(sentence_probs):
             # If the probability is nan, it means that the sentence could not be evaluated, and we can't reason about it
@@ -139,15 +140,17 @@ class Word2VecAnalyzer(Analyzer):
             if single_sentence_prob is np.nan:
                 continue
 
-            unique_probs = list(set(sentence_probs))
+            unique_probs: List = list(set(sentence_probs))
 
-            decision_frontier = helpers.utils.get_decision_frontier(self.model_settings["trigger_method"], unique_probs,
+            decision_frontier: Union[int, float, np.float64] = helpers.utils.get_decision_frontier(
+                                                                    self.model_settings["trigger_method"], unique_probs,
                                                                     self.model_settings["trigger_sensitivity"],
                                                                     self.model_settings["trigger_on"])
-            is_outlier = helpers.utils.is_outlier(single_sentence_prob, decision_frontier,
-                                                  self.model_settings["trigger_on"])
+            is_outlier: Union[int, float, np.float64, bool] = helpers.utils.is_outlier(single_sentence_prob,
+                                                                                      decision_frontier,
+                                                                                      self.model_settings["trigger_on"])
             if is_outlier:
-                fields = es.extract_fields_from_document(raw_docs[i],
+                fields: Dict = es.extract_fields_from_document(raw_docs[i],
                                                      extract_derived_fields=self.model_settings["use_derived_fields"])
                 outliers.append(self.process_outlier(fields, raw_docs[i], extra_outlier_information=dict()))
             else:
@@ -157,22 +160,23 @@ class Word2VecAnalyzer(Analyzer):
         return outliers
 
     def evaluate_test_sentences(self, w2v_model: word2vec.Word2Vec) -> None:
-        test_sentences = self.generate_test_sentences()
-        sentence_probs = w2v_model.evaluate_sentences(test_sentences)
+        test_sentences: List[List[str]] = self.generate_test_sentences()
+        sentence_probs: List = w2v_model.evaluate_sentences(test_sentences)
 
         for i, single_sentence_prob in enumerate(sentence_probs):
             if single_sentence_prob is np.nan:
                 logging.logger.info("could not calculate probability, skipping evaluation of " + str(test_sentences[i]))
                 continue
 
-            unique_probs = list(set(sentence_probs))
+            unique_probs: List = list(set(sentence_probs))
 
-            decision_frontier = helpers.utils.get_decision_frontier(self.model_settings["trigger_method"],
-                                                                    unique_probs,
+            decision_frontier: Union[int, float, np.float64] = helpers.utils.get_decision_frontier(
+                                                                    self.model_settings["trigger_method"], unique_probs,
                                                                     self.model_settings["trigger_sensitivity"],
                                                                     self.model_settings["trigger_on"])
-            is_outlier = helpers.utils.is_outlier(single_sentence_prob, decision_frontier,
-                                                  self.model_settings["trigger_on"])
+            is_outlier: Union[int, float, np.float64, bool] = helpers.utils.is_outlier(single_sentence_prob,
+                                                                                      decision_frontier,
+                                                                                      self.model_settings["trigger_on"])
             if is_outlier:
                 logging.logger.info("outlier: " + str(test_sentences[i]) + " - " + str(single_sentence_prob))
             else:
