@@ -17,7 +17,7 @@ class Outlier:
 
     # Each whitelist item can contain multiple values to match across fields, separated with ",". So we need to support this too.
     # Example: "dns_tunneling_fp = rule_updates.et.com, intel_server" -> should match both values across the entire event (rule_updates.et.com and intel_server);
-    def is_whitelisted(self, additional_dict_values_to_check: Optional[Dict]=None) -> bool
+    def is_whitelisted(self, additional_dict_values_to_check: Optional[Dict]=None) -> bool:
         # Check if value is whitelisted as literal
         for (_, each_whitelist_configuration_file_value) in settings.config.items("whitelist_literals"):
             whitelist_values_to_check = each_whitelist_configuration_file_value.split(",")
