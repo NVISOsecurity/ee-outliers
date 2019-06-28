@@ -61,6 +61,7 @@ class Analyzer(abc.ABC):
         except NoOptionError:
             model_settings["should_notify"] = False
 
+        self.es_index: str
         try:
             self.es_index = settings.config.get(self.config_section_name, "es_index")
         except NoOptionError:
@@ -70,16 +71,16 @@ class Analyzer(abc.ABC):
         model_settings["outlier_type"] = settings.config.get(self.config_section_name, "outlier_type")
         model_settings["outlier_summary"] = settings.config.get(self.config_section_name, "outlier_summary")
 
-        self.should_test_model = settings.config.getboolean("general", "run_models") and \
+        self.should_test_model: bool = settings.config.getboolean("general", "run_models") and \
                                  settings.config.getboolean(self.config_section_name, "run_model")
-        self.should_run_model = settings.config.getboolean("general", "test_models") and \
+        self.should_run_model: bool = settings.config.getboolean("general", "test_models") and \
                                 settings.config.getboolean(self.config_section_name, "test_model")
 
         return model_settings
 
     def print_analysis_summary(self) -> None:
         if len(self.outliers) > 0:
-            unique_summaries = len(set(o.outlier_dict["summary"] for o in self.outliers))
+            unique_summaries: int = len(set(o.outlier_dict["summary"] for o in self.outliers))
             logging.logger.info("total outliers processed for use case: " + str(len(self.outliers)) + \
                                 " [" + str(unique_summaries) + " unique summaries]")
         else:
@@ -89,7 +90,7 @@ class Analyzer(abc.ABC):
         extra_outlier_information["model_name"] = self.model_name
         extra_outlier_information["model_type"] = self.model_type
 
-        fields_and_extra_outlier_information = fields.copy()
+        fields_and_extra_outlier_information: Dict = fields.copy()
         fields_and_extra_outlier_information.update(extra_outlier_information)
 
         outlier_summary: str = helpers.utils.replace_placeholder_fields_with_values(
@@ -110,7 +111,7 @@ class Analyzer(abc.ABC):
         outlier_type = [item.strip() for item in outlier_type]
         outlier_reason = [item.strip() for item in outlier_reason]
 
-        outlier_assets = helpers.utils.extract_outlier_asset_information(fields, settings)
+        outlier_assets: List[str] = helpers.utils.extract_outlier_asset_information(fields, settings)
         outlier: Outlier = Outlier(outlier_type=outlier_type, outlier_reason=outlier_reason,
                                    outlier_summary=outlier_summary)
 

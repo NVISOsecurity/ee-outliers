@@ -208,7 +208,7 @@ if settings.args.run_mode == "interactive":
 
     logging.logger.info(settings.get_time_window_info())
 
-    housekeeping_job = HousekeepingJob()
+    housekeeping_job: HousekeepingJob = HousekeepingJob()
     housekeeping_job.start()
 
     try:
