@@ -24,7 +24,7 @@ class Word2VecAnalyzer(Analyzer):
 
         sentences = list()
 
-        self.total_events = es.count_documents(search_query=search_query)
+        self.total_events = es.count_documents(index=self.es_index, search_query=search_query)
         training_data_size_pct = settings.config.getint("machine_learning", "training_data_size_pct")
         training_data_size = self.total_events / 100 * training_data_size_pct
 
