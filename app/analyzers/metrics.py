@@ -8,8 +8,8 @@ from numpy import float64
 
 from typing import Dict, Any, Tuple, List, DefaultDict, cast, Optional, Union
 
-SUPPORTED_METRICS = ["length", "numerical_value", "entropy", "base64_encoded_length", "hex_encoded_length","url_length"]
-SUPPORTED_TRIGGERS = ["high", "low"]
+SUPPORTED_METRICS: List[str] = ["length", "numerical_value", "entropy", "base64_encoded_length", "hex_encoded_length","url_length"]
+SUPPORTED_TRIGGERS: List[str] = ["high", "low"]
 
 
 class MetricsAnalyzer(Analyzer):
@@ -28,13 +28,13 @@ class MetricsAnalyzer(Analyzer):
         for doc in es.scan(index=self.es_index, search_query=self.search_query):
             logging.tick()
 
-            fields = es.extract_fields_from_document(doc,
+            fields: Dict = es.extract_fields_from_document(doc,
                                                      extract_derived_fields=self.model_settings["use_derived_fields"])
 
             try:
                 target_value: Optional[str] = helpers.utils.flatten_sentence(
                             helpers.utils.get_dotkey_value(fields, self.model_settings["target"], case_sensitive=True))
-                aggregator_sentences = helpers.utils.flatten_fields_into_sentences(
+                aggregator_sentences: List[List] = helpers.utils.flatten_fields_into_sentences(
                                                     fields=fields, sentence_format=self.model_settings["aggregator"])
             except (KeyError, TypeError):
                 logging.logger.debug("skipping event which does not contain the target and aggregator fields we " + \
@@ -56,15 +56,17 @@ class MetricsAnalyzer(Analyzer):
                                                                          target_value, metric, observations, doc)
 
             # Evaluate batch of events against the model
-            last_batch = (logging.current_step == self.total_events)
+            last_batch: bool = (logging.current_step == self.total_events)
             if last_batch or total_metrics_added >= settings.config.getint("metrics", "metrics_batch_eval_size"):
                 logging.logger.info("evaluating batch of " + "{:,}".format(total_metrics_added) + \
                                     " metrics [" + "{:,}".format(logging.current_step) + " events processed]")
+                outliers: List
+                remaining_metrics: DefaultDict
                 outliers, remaining_metrics = self.evaluate_batch_for_outliers(
                                         metrics=eval_metrics, model_settings=self.model_settings, last_batch=last_batch)
 
                 if len(outliers) > 0:
-                    unique_summaries = len(set(o.outlier_dict["summary"] for o in outliers))
+                    unique_summaries: int = len(set(o.outlier_dict["summary"] for o in outliers))
                     logging.logger.info("total outliers in batch processed: " + str(len(outliers)) + " [" + \
                                         str(unique_summaries) + " unique summaries]")
                 else:
@@ -123,17 +125,19 @@ class MetricsAnalyzer(Analyzer):
 
             # Calculate all outliers in array
             for ii, metric_value in enumerate(metrics[aggregator_value]["metrics"]):
-                is_outlier = helpers.utils.is_outlier(metric_value, decision_frontier, model_settings["trigger_on"])
+                is_outlier: Union[int, float, np.float64, bool] = helpers.utils.is_outlier(metric_value,
+                                                                                           decision_frontier,
+                                                                                           model_settings["trigger_on"])
 
                 if is_outlier:
-                    confidence = np.abs(decision_frontier - metric_value)
+                    confidence: Union[int, float, float64] = np.abs(decision_frontier - metric_value)
 
                     # Extract fields from raw document
-                    fields = es.extract_fields_from_document(
+                    fields: Dict = es.extract_fields_from_document(
                                                 metrics[aggregator_value]["raw_docs"][ii],
                                                 extract_derived_fields=self.model_settings["use_derived_fields"])
 
-                    observations = metrics[aggregator_value]["observations"][ii]
+                    observations: Dict[str, Any] = metrics[aggregator_value]["observations"][ii]
                     observations["metric"] = metric_value
                     observations["decision_frontier"] = decision_frontier
                     observations["confidence"] = confidence
@@ -145,8 +149,8 @@ class MetricsAnalyzer(Analyzer):
 
     @staticmethod
     def add_metric_to_batch(eval_metrics_array: DefaultDict, aggregator_value: Optional[str],
-                            target_value: Optional[str], metrics_value: Union[None, float, int], observations: Dict,
-                            doc: Dict) -> DefaultDict:
+                            target_value: Optional[str], metrics_value: Union[None, float, int], 
+                            observations: Dict[str, Any], doc: Dict) -> DefaultDict:
         observations["target"] = target_value
         observations["aggregator"] = aggregator_value
 
@@ -163,6 +167,7 @@ class MetricsAnalyzer(Analyzer):
     def calculate_metric(metric: str, value: str) -> Tuple[Union[None, float, int], Dict]:
 
         observations: Dict[str, Any] = dict()
+        target_value_words: List[str]
 
         # ------------------------------------
         # METRIC: Calculate numerical value
@@ -193,7 +198,7 @@ class MetricsAnalyzer(Analyzer):
         # METRIC: Calculate total length of hexadecimal encoded substrings embedded in string
         # ------------------------------------------------------------------------------------
         elif metric == "hex_encoded_length":
-            hex_encoded_words = list()
+            hex_encoded_words: List[str] = list()
             # at least length 10 to have 5 encoded characters
             target_value_words = re.split("[^a-fA-F0-9+]", str(value))
 
@@ -203,7 +208,7 @@ class MetricsAnalyzer(Analyzer):
                     hex_encoded_words.append(word)
 
             if len(hex_encoded_words) > 0:
-                sorted_hex_encoded_words = sorted(hex_encoded_words, key=len)
+                sorted_hex_encoded_words: List[str] = sorted(hex_encoded_words, key=len)
                 observations["max_hex_encoded_length"] = len(sorted_hex_encoded_words[-1])
                 observations["max_hex_encoded_word"] = sorted_hex_encoded_words[-1]
 
@@ -217,19 +222,19 @@ class MetricsAnalyzer(Analyzer):
         # Example: base64_encoded_length("houston we have a cHJvYmxlbQ==") => base64_decoded_string: problem,
         # base64_encoded_length: 7
         elif metric == "base64_encoded_length":
-            base64_decoded_words: List[Any] = list()
+            base64_decoded_words: List[str] = list()
 
             # Split all non-Base64 characters, so we can try to convert them to Base64 decoded strings
             target_value_words = re.split("[^A-Za-z0-9+/=]", str(value))
 
             for word in target_value_words:
-                decoded_word = helpers.utils.is_base64_encoded(word)
+                decoded_word: Union[None, bool, str] = helpers.utils.is_base64_encoded(word)
                 # let's match at least 5 characters, meaning 10 base64 digits
                 if decoded_word and len(decoded_word) >= 5:  # type: ignore
-                    base64_decoded_words.append(decoded_word)
+                    base64_decoded_words.append(cast(str, decoded_word))
 
             if len(base64_decoded_words) > 0:
-                sorted_base64_decoded_words = sorted(base64_decoded_words, key=len)
+                sorted_base64_decoded_words: List[str] = sorted(base64_decoded_words, key=len)
                 observations["max_base64_decoded_length"] = len(sorted_base64_decoded_words[-1])
                 observations["max_base64_decoded_word"] = sorted_base64_decoded_words[-1]
 
@@ -243,8 +248,8 @@ class MetricsAnalyzer(Analyzer):
         # Example: url_length("why don't we go http://www.dance.com") => extracted_urls_length: 20,
         # extracted_urls: http://www.dance.com
         elif metric == "url_length":
-            extracted_urls_length = 0
-            extracted_urls = []
+            extracted_urls_length: int = 0
+            extracted_urls: List[str] = []
 
             # if the target value is a list of strings, convert it into a single list of strings
             #splits on whitespace by default, and on quotes, since we most likely will apply this to parameter arguments

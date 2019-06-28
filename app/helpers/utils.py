@@ -16,7 +16,7 @@ if TYPE_CHECKING:
 def flatten_dict(d: MutableMapping, parent_key: str='', sep: str='.') -> Dict:
     items: List = []
     for k, v in d.items():
-        new_key = parent_key + sep + k if parent_key else k
+        new_key: str = parent_key + sep + k if parent_key else k
         if isinstance(v, collections.MutableMapping):
             items.extend(flatten_dict(v, new_key, sep=sep).items())
         else:
@@ -41,15 +41,15 @@ def get_dotkey_value(dict_value: Dict, key_name: str, case_sensitive: bool=True)
     For example, key "OsqueryFilter.process_name" will also match a nested dictionary with keys "osqueryfilter" and
     "prOcEss_nAme".
     """
-    keys = key_name.split(".")
+    keys: List[str] = key_name.split(".")
 
     for k in keys:
         if not case_sensitive:
-            dict_keys = list(dict_value.keys())
-            lowercase_keys = list(map(str.lower, dict_keys))
-            lowercase_key_to_match = k.lower()
+            dict_keys: List = list(dict_value.keys())
+            lowercase_keys: List = list(map(str.lower, dict_keys))
+            lowercase_key_to_match: str = k.lower()
             if lowercase_key_to_match in lowercase_keys:
-                matched_index = lowercase_keys.index(lowercase_key_to_match)
+                matched_index: int = lowercase_keys.index(lowercase_key_to_match)
                 dict_value = dict_value[dict_keys[matched_index]]
             else:
                 raise KeyError
@@ -68,7 +68,7 @@ def shannon_entropy(data: Optional[str]) -> float:
         return 0
     entropy: float = 0
     for x in range(256):
-        p_x = float(data.count(chr(x))) / len(data)
+        p_x: float = float(data.count(chr(x))) / len(data)
         if p_x > 0:
             entropy += - p_x * math.log(p_x, 2)
     return entropy
@@ -84,10 +84,11 @@ def extract_outlier_asset_information(fields: Dict, settings: 'Settings') -> Lis
     for (asset_field_name, asset_field_type) in settings.config.items("assets"):
         if dict_contains_dotkey(fields, asset_field_name, case_sensitive=False):
 
-            asset_field_values_including_empty = flatten_fields_into_sentences(fields,
+            asset_field_values_including_empty: List[List] = flatten_fields_into_sentences(fields,
                                                                                sentence_format=[asset_field_name])
             # also remove all empty asset strings
-            asset_field_values = [sentence[0] for sentence in asset_field_values_including_empty if "" not in sentence]
+            asset_field_values: List = [sentence[0] for sentence in asset_field_values_including_empty \
+                                        if "" not in sentence]
 
 
             for asset_field_value in asset_field_values:  # make sure we don't process empty process information,
@@ -102,6 +103,7 @@ def extract_outlier_asset_information(fields: Dict, settings: 'Settings') -> Lis
 def flatten_sentence(sentence: Any=None) -> Optional[str]:
     if sentence is None:
         return None
+    field_value: str
 
     if type(sentence) is list:
         # Make sure the list does not contain nested lists, but only strings.
@@ -129,11 +131,11 @@ def flatten_fields_into_sentences(fields: Dict, sentence_format: List) -> List[L
     sentences: List[List] = [[]]
 
     for i, field_name in enumerate(sentence_format):
-        new_sentences = []
+        new_sentences: List[List] = []
         if type(get_dotkey_value(fields, field_name, case_sensitive=False)) is list:
             for field_value in get_dotkey_value(fields, field_name, case_sensitive=False):
                 for sentence in sentences:
-                    sentence_copy = sentence.copy()
+                    sentence_copy: List = sentence.copy()
                     sentence_copy.append(flatten_sentence(field_value))
                     new_sentences.append(sentence_copy)
         else:
@@ -157,6 +159,8 @@ def replace_placeholder_fields_with_values(placeholder: str, fields: Dict) -> st
 
     for field_name in field_name_list:
         if dict_contains_dotkey(fields, field_name, case_sensitive=False):
+            field_value: str
+
             if type(get_dotkey_value(fields, field_name, case_sensitive=False)) is list:
                 try:
                     field_value = ", ".join(get_dotkey_value(fields, field_name, case_sensitive=False))
@@ -174,7 +178,7 @@ def replace_placeholder_fields_with_values(placeholder: str, fields: Dict) -> st
 
 def is_base64_encoded(_str: str) -> Union[None, bool, str]:
     try:
-        decoded_bytes = base64.b64decode(_str)
+        decoded_bytes: bytes = base64.b64decode(_str)
         if base64.b64encode(decoded_bytes) == _str.encode("ascii"):
             return decoded_bytes.decode("ascii")
         return None # TODO maybe return False also ?
@@ -184,7 +188,7 @@ def is_base64_encoded(_str: str) -> Union[None, bool, str]:
 
 def is_hex_encoded(_str: str) -> Union[bool, str]:
     try:
-        decoded = int(_str, 16)
+        decoded: int = int(_str, 16)
         return str(decoded)
     except Exception:
         return False
@@ -199,20 +203,21 @@ def is_url(_str: str) -> Union[bool, validators.utils.ValidationFailure]:
 
 def get_decision_frontier(trigger_method: str, values_array: List, trigger_sensitivity: int,
                           trigger_on: Optional[str]=None) -> Union[int, float, np.float64]:
-
+    
+    decision_frontier: Union[int, float, np.float64]
     if trigger_method == "percentile":
         decision_frontier = get_percentile_decision_frontier(values_array, trigger_sensitivity)
 
     elif trigger_method == "pct_of_max_value":
-        max_value = max(values_array)
+        max_value: Union[int, float] = max(values_array)
         decision_frontier = np.float64(max_value * (trigger_sensitivity / 100))
 
     elif trigger_method == "pct_of_median_value":
-        median_value = median(values_array)
+        median_value: Union[int, float] = median(values_array)
         decision_frontier = np.float64(median_value * (trigger_sensitivity / 100))
 
     elif trigger_method == "pct_of_avg_value":
-        avg_value = mean(values_array)
+        avg_value: Union[int, float] = mean(values_array)
         decision_frontier = np.float64(avg_value * (trigger_sensitivity / 100))
 
     elif trigger_method == "mad" or trigger_method == "madpos":
@@ -245,14 +250,15 @@ def get_decision_frontier(trigger_method: str, values_array: List, trigger_sensi
 # Example: values array is [0 5 10 20 30 2 5 5]
 # trigger_sensitivity is 10 (meaning: 10th percentile)
 def get_percentile_decision_frontier(values_array: List, percentile: int) -> Union[int, float, np.float64]:
-    res = np.percentile(list(set(values_array)), percentile)
+    res: Union[int, float, np.float64] = np.percentile(list(set(values_array)), percentile)
     return res
 
 
 def get_stdev_decision_frontier(values_array: List, trigger_sensitivity: int,
                                 trigger_on: Optional[str]) -> Union[None, int, float, np.float64]:
-    stdev = np.std(values_array)
+    stdev: Union[int, float, np.float64] = np.std(values_array)
 
+    decision_frontier: Union[None, int, float, np.float64]
     if trigger_on == "high":
         decision_frontier = np.nanmean(values_array) + trigger_sensitivity * stdev
 
@@ -266,8 +272,10 @@ def get_stdev_decision_frontier(values_array: List, trigger_sensitivity: int,
 
 def get_mad_decision_frontier(values_array: List, trigger_sensitivity: int,
                               trigger_on: Optional[str]) -> Union[int, float, np.float64]:
-    mad = np.nanmedian(np.absolute(values_array - np.nanmedian(values_array, 0)), 0)  # median absolute deviation
+    # median absolute deviation
+    mad: Union[int, float, np.float64] = np.nanmedian(np.absolute(values_array - np.nanmedian(values_array, 0)), 0)
 
+    decision_frontier: Union[None, int, float, np.float64]
     if trigger_on == "high":
         decision_frontier = np.nanmedian(values_array) + trigger_sensitivity * mad
 

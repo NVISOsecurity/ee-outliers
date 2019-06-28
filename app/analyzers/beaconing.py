@@ -19,7 +19,7 @@ class BeaconingAnalyzer(Analyzer):
     def evaluate_model(self) -> None:
         self.extract_additional_model_settings()
 
-        search_query = es.filter_by_query_string(self.model_settings["es_query_filter"])
+        search_query: Dict[str, List] = es.filter_by_query_string(self.model_settings["es_query_filter"])
         self.total_events: int = es.count_documents(index=self.es_index, search_query=search_query)
 
         logging.print_analysis_intro(event_type="evaluating " + self.model_name, total_events=self.total_events)
@@ -29,17 +29,17 @@ class BeaconingAnalyzer(Analyzer):
         eval_terms_array: DefaultDict = defaultdict()
         total_terms_added: int = 0
 
-        outlier_batches_trend = 0
+        outlier_batches_trend: int = 0
         for doc in es.scan(index=self.es_index, search_query=search_query):
             logging.tick()
-            fields = es.extract_fields_from_document(doc,
+            fields: Dict = es.extract_fields_from_document(doc,
                                                      extract_derived_fields=self.model_settings["use_derived_fields"])
 
             will_process_doc: bool
             try:
-                target_sentences = helpers.utils.flatten_fields_into_sentences(fields=fields,
+                target_sentences: List[List] = helpers.utils.flatten_fields_into_sentences(fields=fields,
                                                                    sentence_format=self.model_settings["target"])
-                aggregator_sentences = helpers.utils.flatten_fields_into_sentences(fields=fields,
+                aggregator_sentences: List[List] = helpers.utils.flatten_fields_into_sentences(fields=fields,
                                                                    sentence_format=self.model_settings["aggregator"])
                 will_process_doc = True
             except (KeyError, TypeError):
@@ -61,13 +61,13 @@ class BeaconingAnalyzer(Analyzer):
                 total_terms_added += len(target_sentences)
 
             # Evaluate batch of events against the model
-            last_batch = (logging.current_step == self.total_events)
+            last_batch: bool = (logging.current_step == self.total_events)
             if last_batch or total_terms_added >= self.model_settings["batch_eval_size"]:
                 logging.logger.info("evaluating batch of " + "{:,}".format(total_terms_added) + " terms")
-                outliers = self.evaluate_batch_for_outliers(terms=eval_terms_array)
+                outliers: List[Outlier] = self.evaluate_batch_for_outliers(terms=eval_terms_array)
 
                 if len(outliers) > 0:
-                    unique_summaries = len(set(o.outlier_dict["summary"] for o in outliers))
+                    unique_summaries: int = len(set(o.outlier_dict["summary"] for o in outliers))
                     logging.logger.info("total outliers in batch processed: " + str(len(outliers)) + " [" +
                                         str(unique_summaries) + " unique summaries]")
                     outlier_batches_trend += 1
@@ -158,7 +158,7 @@ class BeaconingAnalyzer(Analyzer):
         fields: Dict = es.extract_fields_from_document(terms[aggregator_value]["raw_docs"][term_counter],
                                                  extract_derived_fields=self.model_settings["use_derived_fields"])
 
-        observations = terms[aggregator_value]["observations"][term_counter]
+        observations: Dict[str, Any] = terms[aggregator_value]["observations"][term_counter]
 
         observations["aggregator"] = aggregator_value
         observations["term"] = terms[aggregator_value]["targets"][term_counter]
