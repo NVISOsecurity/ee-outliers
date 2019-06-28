@@ -11,7 +11,7 @@ import helpers.utils
 
 from typing import Dict, DefaultDict, List, Any, Optional, Union
 
-DEFAULT_MIN_TARGET_BUCKETS = 10
+DEFAULT_MIN_TARGET_BUCKETS: int = 10
 
 
 class BeaconingAnalyzer(Analyzer):
@@ -27,7 +27,7 @@ class BeaconingAnalyzer(Analyzer):
                                                                 self.model_type + " model")
 
         eval_terms_array: DefaultDict = defaultdict()
-        total_terms_added = 0
+        total_terms_added: int = 0
 
         outlier_batches_trend = 0
         for doc in es.scan(index=self.es_index, search_query=search_query):
@@ -35,6 +35,7 @@ class BeaconingAnalyzer(Analyzer):
             fields = es.extract_fields_from_document(doc,
                                                      extract_derived_fields=self.model_settings["use_derived_fields"])
 
+            will_process_doc: bool
             try:
                 target_sentences = helpers.utils.flatten_fields_into_sentences(fields=fields,
                                                                    sentence_format=self.model_settings["target"])
@@ -122,8 +123,8 @@ class BeaconingAnalyzer(Analyzer):
         # we then flag an outlier if that "1" is an outlier in the array ["1 1 1 2 1"]
         for _, aggregator_value in enumerate(terms):
             # Count percentage of each target value occuring
-            counted_targets = Counter(terms[aggregator_value]["targets"])
-            counted_target_values = list(counted_targets.values())
+            counted_targets: Counter = Counter(terms[aggregator_value]["targets"])
+            counted_target_values: List = list(counted_targets.values())
 
             logging.logger.debug("terms count for aggregator value " + aggregator_value + " -> " +
                                  str(counted_targets))
@@ -139,6 +140,7 @@ class BeaconingAnalyzer(Analyzer):
             for term_counter, term_value in enumerate(terms[aggregator_value]["targets"]):
                 term_value_count: int = counted_targets[term_value]
 
+                is_outlier: bool
                 if stdev < self.model_settings["trigger_sensitivity"]:
                     is_outlier = True
                 else:
