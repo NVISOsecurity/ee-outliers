@@ -30,8 +30,6 @@ RUN sudo DEBIAN_FRONTEND=noninteractive apt-get -y install -f python3 python3-se
 USER root
 ADD ./requirements.txt /app/requirements.txt
 RUN sudo pip3 install -r /app/requirements.txt
-RUN sudo pip3 uninstall -y tensorflow
-RUN pip3 install tensorflow --no-cache-dir
 
 ADD ./defaults /defaults
 ADD ./app/ /app
