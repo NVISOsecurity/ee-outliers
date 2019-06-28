@@ -8,7 +8,8 @@ from numpy import float64
 
 from typing import Dict, Any, Tuple, List, DefaultDict, cast, Optional, Union
 
-SUPPORTED_METRICS: List[str] = ["length", "numerical_value", "entropy", "base64_encoded_length", "hex_encoded_length","url_length"]
+SUPPORTED_METRICS: List[str] = ["length", "numerical_value", "entropy", "base64_encoded_length", "hex_encoded_length",
+                                "url_length"]
 SUPPORTED_TRIGGERS: List[str] = ["high", "low"]
 
 
@@ -199,8 +200,7 @@ class MetricsAnalyzer(Analyzer):
         # ------------------------------------------------------------------------------------
         elif metric == "hex_encoded_length":
             hex_encoded_words: List[str] = list()
-            # at least length 10 to have 5 encoded characters
-            target_value_words = re.split("[^a-fA-F0-9+]", str(value))
+            target_value_words = re.split("[^a-fA-F0-9+]", str(value)) # at least length 10 to have 5 encoded characters
 
             for word in target_value_words:
                 # let's match at least 5 characters, meaning 10 hex digits

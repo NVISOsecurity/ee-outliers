@@ -262,9 +262,9 @@ class Word2Vec:
                                 all_probabilities = self.all_probabilities_cache[word]
                             else:
                                 all_probabilities = tf.nn.softmax(tf.nn.xw_plus_b(
-                                    tf.expand_dims(final_embeddings[words_to_indices[word]], 0),
-                                    tf.transpose(weights),
-                                    biases)).eval()
+                                                            tf.expand_dims(final_embeddings[words_to_indices[word]], 0),
+                                                            tf.transpose(weights),
+                                                            biases)).eval()
                                 self.all_probabilities_cache[word] = all_probabilities
                         else:
                             # For each word: Get the probabilities of all context words
