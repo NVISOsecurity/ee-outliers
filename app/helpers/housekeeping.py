@@ -12,11 +12,11 @@ class HousekeepingJob(threading.Thread):
 
         # The shutdown_flag is a threading.Event object that
         # indicates whether the thread should be terminated.
-        self.shutdown_flag = threading.Event()
+        self.shutdown_flag: threading.Event = threading.Event()
 
     def run(self) -> None:
         logging.logger.info('housekeeping thread #%s started' % self.ident)
-        housekeeping_interval_seconds = settings.config.getint("general", "housekeeping_interval_seconds")
+        housekeeping_interval_seconds: int = settings.config.getint("general", "housekeeping_interval_seconds")
 
         # Remove all existing whitelisted items if needed
         while not self.shutdown_flag.is_set():
@@ -26,7 +26,7 @@ class HousekeepingJob(threading.Thread):
 
                 try:
                     logging.logger.info("housekeeping - going to remove all whitelisted outliers")
-                    total_docs_whitelisted = es.remove_all_whitelisted_outliers()
+                    total_docs_whitelisted: int = es.remove_all_whitelisted_outliers()
 
                     if total_docs_whitelisted > 0:
                         logging.logger.info("housekeeping - total whitelisted documents cleared from outliers: " + \

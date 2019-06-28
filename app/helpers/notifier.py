@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 
 class Notifier:
 
-    settings = None
+    settings: 'Settings'
     smtp_server: str
     smtp_port: int
     smtp_user: str
@@ -49,12 +49,12 @@ class Notifier:
 
     def send_email(self, email_dict: Dict[str, str]) -> None:
         try:
-            msg = MIMEText(email_dict["body"])
+            msg: MIMEText = MIMEText(email_dict["body"])
             msg['Subject'] = email_dict["subject"]
             msg['From'] = self.smtp_user
             msg['To'] = self.notification_email
 
-            s = smtplib.SMTP_SSL(self.smtp_server, self.smtp_port)
+            s: smtplib.SMTP_SSL = smtplib.SMTP_SSL(self.smtp_server, self.smtp_port)
             s.login(self.smtp_user, self.smtp_pass)
             s.send_message(msg)
             s.quit()

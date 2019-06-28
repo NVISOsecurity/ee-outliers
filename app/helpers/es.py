@@ -10,13 +10,13 @@ from helpers.notifier import Notifier
 from collections import defaultdict
 from itertools import chain
 
-from typing import Dict, List, DefaultDict, AnyStr, Any, Optional, TYPE_CHECKING
+from typing import Dict, List, DefaultDict, AnyStr, Any, Optional, Union, TYPE_CHECKING
 if TYPE_CHECKING:
     from helpers.settings import Settings
     from helpers.logging import Logging
     from helpers.outlier import Outlier
 
-BULK_FLUSH_SIZE = 1000
+BULK_FLUSH_SIZE: int = 1000
 
 
 @singleton
@@ -32,8 +32,8 @@ class ES:
     bulk_actions: List[Dict[str, Any]] = []
 
     def __init__(self, settings: 'Settings', logging: 'Logging') -> None:
-        self.settings= settings
-        self.logging= logging
+        self.settings: 'Settings' = settings
+        self.logging: 'Logging' = logging
 
         if self.settings.config.getboolean("notifier", "email_notifier"):
             self.notifier = Notifier(settings, logging)
@@ -67,7 +67,7 @@ class ES:
 
     def count_documents(self, index: str, bool_clause: Optional[Dict[str, List]]=None,
                         query_fields: Optional[Dict]=None, search_query: Optional[Dict[str, List]]=None) -> int:
-        res = self.conn.search(index=index, body=build_search_query(bool_clause=bool_clause, 
+        res: Dict[str, Any] = self.conn.search(index=index, body=build_search_query(bool_clause=bool_clause, 
                                                        search_range=self.settings.search_range, 
                                                        query_fields=query_fields, search_query=search_query), 
                                size=self.settings.config.getint("general", "es_scan_size"), 
@@ -81,7 +81,7 @@ class ES:
         return bool_clause
 
     def filter_by_dsl_query(self, dsl_query_path: AnyStr) -> Dict[str, List]:
-        dsl_query = json.loads(dsl_query_path)
+        dsl_query: Union[Dict, List] = json.loads(dsl_query_path)
 
         bool_clause: Dict[str, List]
         if isinstance(dsl_query, list):
@@ -139,7 +139,7 @@ class ES:
         return total_docs_whitelisted
 
     def remove_all_outliers(self) -> None:
-        idx = self.settings.config.get("general", "es_index_pattern")
+        idx: str = self.settings.config.get("general", "es_index_pattern")
 
         must_clause: Dict[str, Any] = {"filter": [{"term": {"tags": "outlier"}}]}
         total_outliers: int = self.count_documents(index=idx, bool_clause=must_clause)
@@ -189,7 +189,7 @@ class ES:
 
     def save_outlier(self, doc: Dict[str, Any], outlier: 'Outlier') -> None:
         # add the derived fields as outlier observations
-        derived_fields = self.extract_derived_fields(doc["_source"])
+        derived_fields: Dict = self.extract_derived_fields(doc["_source"])
         for derived_field, derived_value in derived_fields.items():
             outlier.outlier_dict["derived_" + derived_field] = derived_value
 
@@ -216,7 +216,8 @@ class ES:
                     grok = Grok(grok_pattern)
                     self.grok_filters[grok_pattern] = grok
 
-                match_dict = grok.match(helpers.utils.get_dotkey_value(doc_fields, field_name, case_sensitive=False))
+                match_dict: Dict = grok.match(helpers.utils.get_dotkey_value(doc_fields, field_name, 
+                                                                             case_sensitive=False))
 
                 if match_dict:
                     for match_dict_k, match_dict_v in match_dict.items():
@@ -228,7 +229,7 @@ class ES:
         doc_fields: Dict = doc["_source"]
 
         if extract_derived_fields:
-            derived_fields = self.extract_derived_fields(doc_fields)
+            derived_fields: Dict = self.extract_derived_fields(doc_fields)
 
             for k, v in derived_fields.items():
                 doc_fields[k] = v
@@ -281,7 +282,7 @@ def remove_tag_from_document(doc: Dict[str, Any], tag: str) -> Dict[str, Any]:
     if "tags" not in doc["_source"]:
         pass
     else:
-        tags = doc["_source"]["tags"]
+        tags: List[str] = doc["_source"]["tags"]
         if tag in tags:
             tags.remove(tag)
             doc["_source"]["tags"] = tags

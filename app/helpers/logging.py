@@ -43,10 +43,10 @@ class Logging:
         self.logger.addHandler(ch)
 
     def init_ticker(self, total_steps: int, desc: str) -> None:
-        self.total_steps = total_steps
-        self.start_time = dt.datetime.today().timestamp()
-        self.desc = desc
-        self.current_step = 0
+        self.total_steps: int = total_steps
+        self.start_time: float = dt.datetime.today().timestamp()
+        self.desc: str = desc
+        self.current_step: int = 0
 
     def tick(self) -> None:
         should_log: bool = False
@@ -63,8 +63,8 @@ class Logging:
 
         if should_log:
             # avoid a division by zero
-            time_diff = max(float(1), float(dt.datetime.today().timestamp() - self.start_time))
-            ticks_per_second = "{:,}".format(round(float(self.current_step) / time_diff))
+            time_diff: float = max(float(1), float(dt.datetime.today().timestamp() - self.start_time))
+            ticks_per_second: str = "{:,}".format(round(float(self.current_step) / time_diff))
 
             self.logger.info(str(self.desc) + " [" + ticks_per_second + " eps. - " + '{:.2f}'
                              .format(round(float(self.current_step) / float(cast(int, self.total_steps)) * 100, 2)) +

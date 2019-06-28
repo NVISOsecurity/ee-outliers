@@ -8,7 +8,7 @@ from . import es
 from typing import Dict, List, Set
 
 
-parser = argparse.ArgumentParser()
+parser: argparse.ArgumentParser = argparse.ArgumentParser()
 
 subparsers = parser.add_subparsers(help="Run mode", dest="run_mode")
 interactive_parser = subparsers.add_parser('interactive')
@@ -42,12 +42,13 @@ class Settings:
         self.process_arguments()
 
     def process_arguments(self) -> None:
-        args = parser.parse_args()
+        args: argparse.Namespace = parser.parse_args()
         self.args = args
 
         self.process_configuration_files(args.config)
 
-        search_range = es.get_time_filter(days=self.config.getint("general", "history_window_days"),
+        search_range: Dict[str, Dict] = es.get_time_filter(
+                                          days=self.config.getint("general", "history_window_days"),
                                           hours=self.config.getint("general", "history_window_hours"),
                                           timestamp_field=self.config.get("general", "timestamp_field",
                                                                           fallback="timestamp"))
@@ -79,6 +80,8 @@ class Settings:
         self.config = config
 
     def get_time_window_info(self) -> str:
-        search_start_range_printable = dateutil.parser.parse(self.search_range_start).strftime('%Y-%m-%d %H:%M:%S')
-        search_end_range_printable = dateutil.parser.parse(self.search_range_end).strftime('%Y-%m-%d %H:%M:%S')
+        search_start_range_printable: str = dateutil.parser.parse(self.search_range_start)\
+                                                                .strftime('%Y-%m-%d %H:%M:%S')
+        search_end_range_printable: str = dateutil.parser.parse(self.search_range_end)\
+                                                                .strftime('%Y-%m-%d %H:%M:%S')
         return "processing events between " + search_start_range_printable + " and " + search_end_range_printable
