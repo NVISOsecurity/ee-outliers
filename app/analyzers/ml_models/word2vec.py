@@ -10,28 +10,30 @@ import time
 from tensorflow.contrib.tensorboard.plugins import projector
 from helpers.singletons import logging, settings
 
+from typing import List, Tuple, Dict, Any, Union
 
 class Word2Vec:
-    def __init__(self, name):
-        self.batch_size = 128
-        self.embedding_size = 300  # Dimension of the embedding vector
-        self.skip_window = 16  # How many context words to consider left and right of each target word
+    def __init__(self, name: str) -> None:
+        self.batch_size: int = 128
+        self.embedding_size: int = 300  # Dimension of the embedding vector
+        self.skip_window: int = 16  # How many context words to consider left and right of each target word
         self.num_sampled = self.batch_size / 2  # Number of negative examples to sample
         self.num_steps = settings.config.getint("machine_learning", "training_steps")
         self.save_every = self.num_steps / 100  # Save every N steps
-        self.vocabulary_size = None
+        self.vocabulary_size: int
 
         # Debug flag
         self.use_test_data = settings.config.getboolean("machine_learning", "word2vec_use_test_data")
 
         # Cached probabilities
         self.use_cache = settings.config.get("machine_learning", "word2vec_use_cache")
-        self.all_probabilities_cache = dict()
+        self.all_probabilities_cache: Dict = dict()
 
         # Set up logging directory
         self.name = name
         self.model_name = self.name + "_word2vec"
-        self.models_dir = os.path.join(settings.config.get("machine_learning", "models_directory"), self.model_name, '')  # important: need '' at end so it's treated as directory!
+        self.models_dir = os.path.join(settings.config.get("machine_learning", "models_directory"), self.model_name, '')
+        # important: need '' at end so it's treated as directory!
 
         now = datetime.datetime.now()
         self.log_dir = os.path.join(self.models_dir, now.strftime("%Y-%m-%d %H:%M"), 'log')
@@ -48,11 +50,11 @@ class Word2Vec:
         if not os.path.exists(self.models_dir + "/"):
             os.makedirs(self.models_dir + "/", exist_ok=True)
 
-    def train_model(self, sentences):
-        sentences, words_to_indices, indices_to_words, words = flatten_and_build_indices(sentences)
+    def train_model(self, init_sentences: List[Tuple]) -> None:
+        sentences, words_to_indices, indices_to_words, words = flatten_and_build_indices(init_sentences)
 
         # Global position within sentences array
-        sentence_index = 0
+        sentence_index: int = 0
         vocabulary_size = len(set(words))  # Number of unique words in our vocabulary
 
         logging.logger.debug("number of training sentences: " + str(len(sentences)))
@@ -72,14 +74,17 @@ class Word2Vec:
                 # Define embedding matrix variable
                 # Variables are the parameters of the model that are being optimized
                 with tf.name_scope('embeddings'):
-                    embeddings = tf.Variable(tf.random_uniform([vocabulary_size, self.embedding_size], -1.0, 1.0), name="embeddings")
+                    embeddings = tf.Variable(tf.random_uniform([vocabulary_size, self.embedding_size], -1.0, 1.0),
+                                             name="embeddings")
                     # Take an input vector of integer indices,
                     # and “look up” these indices in the supplied embeddings tensor.
                     embed = tf.nn.embedding_lookup(embeddings, train_inputs)
 
                 # Construct the variables for the NCE loss
                 with tf.name_scope('weights'):
-                    nce_weights = tf.Variable(tf.truncated_normal([vocabulary_size, self.embedding_size], stddev=1.0 / math.sqrt(self.embedding_size)), name="weights")
+                    nce_weights = tf.Variable(tf.truncated_normal([vocabulary_size, self.embedding_size],
+                                                                  stddev=1.0 / math.sqrt(self.embedding_size)),
+                                              name="weights")
                 with tf.name_scope('biases'):
                     nce_biases = tf.Variable(tf.zeros([vocabulary_size]), name="biases")
 
@@ -130,23 +135,26 @@ class Word2Vec:
             logging.logger.debug('Initialized all variables')
             logging.logger.debug(norm)
 
-            average_loss = 0
+            average_loss: float = 0
             average_historical_loss = list()
 
             step = 0
             while step < self.num_steps:
                 logging.tick()
 
-                batch_inputs, batch_labels, sentence_index = generate_batch(self.batch_size, self.skip_window, sentences, sentence_index)
+                batch_inputs, batch_labels, sentence_index = generate_batch(self.batch_size, self.skip_window,
+                                                                            sentences, sentence_index)
                 feed_dict = {train_inputs: batch_inputs, train_labels: batch_labels}
 
                 # Define metadata variable.
                 run_metadata = tf.RunMetadata()
 
-                # We perform one update step by evaluating the optimizer op (including it in the list of returned values for session.run())
+                # We perform one update step by evaluating the optimizer op (including it in the list of returned
+                # values for session.run())
                 # Also, evaluate the merged op to get all summaries from the returned "summary" variable.
                 # Feed metadata variable to session for visualizing the graph in TensorBoard.
-                _, summary, loss_val = session.run([optimizer, merged, loss], feed_dict=feed_dict, run_metadata=run_metadata)
+                _, summary, loss_val = session.run([optimizer, merged, loss], feed_dict=feed_dict,
+                                                   run_metadata=run_metadata)
                 average_loss += loss_val
 
                 # Add returned summaries to writer in each step.
@@ -195,28 +203,30 @@ class Word2Vec:
 
             writer.close()
 
-    def is_trained(self):
+    def is_trained(self) -> bool:
         try:
             with open(self.words_to_indices_filename, "r"):
                 return True
         except FileNotFoundError:
             return False
 
-    def evaluate_sentences(self, sentences):
+    def evaluate_sentences(self, sentences: List) -> Union[None, List[List[Union[int, float, np.float64]]]]:
         # Load mapping dicts saved while training the model
         try:
             with open(self.words_to_indices_filename, "r") as f:
                 words_to_indices = json.load(f)
         except FileNotFoundError:
-            logging.logger.warn(self.words_to_indices_filename + " not found, did you train the model before running it?")
-            return
+            logging.logger.warn(self.words_to_indices_filename + " not found, did you train the model before " + \
+                                                                 "running it?")
+            return None
 
         try:
             with open(self.indices_to_words_filename, "r") as f:
-                indices_to_words = json.load(f)
+                indices_to_words: Dict = json.load(f)
         except FileNotFoundError:
-            logging.logger.warn(self.indices_to_words_filename + " not found, did you train the model before running it?")
-            return
+            logging.logger.warn(self.indices_to_words_filename + " not found, did you train the model before " + \
+                                                                 "running it?")
+            return None
 
         graph = tf.Graph()
         with graph.as_default():
@@ -241,7 +251,7 @@ class Word2Vec:
             sentences_probs = list()
 
             for sentence in sentences:
-                tmp_probs = list()
+                tmp_probs: List[Union[int, float, np.float64]] = list()
                 for word in sentence:
                     if word not in words_to_indices.keys():
                         logging.logger.debug("word " + word + " not known, skipping.")
@@ -250,11 +260,17 @@ class Word2Vec:
                             if word in self.all_probabilities_cache.keys():
                                 all_probabilities = self.all_probabilities_cache[word]
                             else:
-                                all_probabilities = tf.nn.softmax(tf.nn.xw_plus_b(tf.expand_dims(final_embeddings[words_to_indices[word]], 0), tf.transpose(weights), biases)).eval()
+                                all_probabilities = tf.nn.softmax(tf.nn.xw_plus_b(
+                                    tf.expand_dims(final_embeddings[words_to_indices[word]], 0),
+                                    tf.transpose(weights),
+                                    biases)).eval()
                                 self.all_probabilities_cache[word] = all_probabilities
                         else:
                             # For each word: Get the probabilities of all context words
-                            all_probabilities = tf.nn.softmax(tf.nn.xw_plus_b(tf.expand_dims(final_embeddings[words_to_indices[word]], 0), tf.transpose(weights), biases)).eval()
+                            all_probabilities = tf.nn.softmax(tf.nn.xw_plus_b(
+                                tf.expand_dims(final_embeddings[words_to_indices[word]], 0),
+                                tf.transpose(weights),
+                                biases)).eval()
 
                         word_probs = all_probabilities[0]
 
@@ -266,7 +282,8 @@ class Word2Vec:
                                 tmp_probs.append(target_word_prob)
 
                                 if self.use_test_data:
-                                    logging.logger.info("probability of seeing " + word + " in context of " + target_word + " is " + str(target_word_prob))
+                                    logging.logger.info("probability of seeing " + word + " in context of " + \
+                                                        target_word + " is " + str(target_word_prob))
 
                 # In case we could not calculate any probability, due to all words being unknown, we return NaN
                 if len(tmp_probs) == 0:
@@ -284,7 +301,8 @@ class Word2Vec:
             return sentences_probs
 
 
-def print_most_matching_words(probs, target_word, indices_to_words, top_n):
+# TODO not use - dead code
+def print_most_matching_words(probs: Any, target_word: str, indices_to_words: Dict[str, str], top_n: int) -> None:
     top_n_indices = (np.argsort(probs)[-top_n:])
     top_n_indices = np.flip(top_n_indices, axis=0)
 
@@ -300,35 +318,35 @@ def print_most_matching_words(probs, target_word, indices_to_words, top_n):
 # Dictionary maps words to integers
 # Reversed_dictionary maps integers to words
 ###
-def build_mappings(words):
+def build_mappings(words: List) -> Tuple[Dict, Dict]:
     # Sort words by their count
     sort_by_count = []
     sort_by_count.extend(collections.Counter(words).most_common())
-    dictionary = dict()
+    dictionary: Dict = dict()
     for word, _ in sort_by_count:
         dictionary[word] = len(dictionary)
-    reversed_dictionary = dict(zip(dictionary.values(), dictionary.keys()))
+    reversed_dictionary: Dict = dict(zip(dictionary.values(), dictionary.keys()))
 
     return dictionary, reversed_dictionary
 
 
-def flatten_and_build_indices(sentences):
+def flatten_and_build_indices(sentences: List[Tuple]) -> Tuple[List[List], Dict, Dict, List]:
     # Flatten list
     words = [item for sublist in sentences for item in sublist]
     words_to_indices, indices_to_words = build_mappings(words)
 
     logging.logger.info("example sentences: " + str(sentences[:3]))
 
-    sentences = [[words_to_indices[word] for word in sent] for sent in sentences]
-    return sentences, words_to_indices, indices_to_words, words
+    new_sentences = [[words_to_indices[word] for word in sent] for sent in sentences]
+    return new_sentences, words_to_indices, indices_to_words, words
 
 
 # Get all skip gram pairs of a single sentence
-def get_sentence_skipgrams_build(sentence, skip_window):
+def get_sentence_skipgrams_build(sentence: List, skip_window: int) -> Tuple[List, List]:
     sentence_targets = []
     sentence_labels = []
     for i in range(len(sentence)):  # i = target word
-        context_indices = [j for j in range(max(0, (i - skip_window)), min(len(sentence), i + 1 + skip_window)) if j != i]
+        context_indices = [j for j in range(max(0, (i -skip_window)), min(len(sentence), i +1+ skip_window)) if j != i]
         for context_index in context_indices:
             sentence_targets.append(sentence[i])
             sentence_labels.append(sentence[context_index])
@@ -337,11 +355,12 @@ def get_sentence_skipgrams_build(sentence, skip_window):
 
 # The sentence_labels that this function returns are a list of lists
 #    each inner list contains all the context words of the target word at the corresponding location in the target list
-def get_sentence_skipgrams_restore(sentence, skip_window):
-    sentence_targets = []
-    sentence_labels = []
+#TODO dead code - never used
+def get_sentence_skipgrams_restore(sentence: List, skip_window: int) -> Tuple[List, List]:
+    sentence_targets: List = []
+    sentence_labels: List = []
     for i in range(len(sentence)):  # i = target word
-        context_indices = [j for j in range(max(0, (i - skip_window)), min(len(sentence), i + 1 + skip_window)) if j != i]
+        context_indices = [j for j in range(max(0, (i -skip_window)), min(len(sentence), i +1+ skip_window)) if j != i]
         sentence_targets.append(sentence[i])
         labels = []
         for context_index in context_indices:
@@ -350,11 +369,12 @@ def get_sentence_skipgrams_restore(sentence, skip_window):
     return sentence_targets, sentence_labels
 
 
-def generate_batch(batch_size, skip_window, sentences, sentence_index):
-    batch = []
+def generate_batch(batch_size: int, skip_window: int, sentences: List[List],
+                   sentence_index: int) -> Tuple[np.ndarray, np.ndarray, int]:
+    batch: List = []
     labels = []
     while len(batch) < batch_size:
-        cur_sentence = sentences[sentence_index]
+        cur_sentence: List = sentences[sentence_index]
         sentence_targets, sentence_labels = get_sentence_skipgrams_build(cur_sentence, skip_window)
         while len(batch) < batch_size and sentence_targets:
             batch.append(sentence_targets.pop(0))

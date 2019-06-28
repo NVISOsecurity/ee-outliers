@@ -8,3 +8,4 @@ venv
 scripts/output
 tmp/
 .coverage
+.mypy_cache/

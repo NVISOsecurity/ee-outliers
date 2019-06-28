@@ -1,3 +1,5 @@
+# type: ignore
+
 def singleton(cls):
     """ decorator for a class to make a singleton out of it """
     class_instance = {}

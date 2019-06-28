@@ -4,31 +4,34 @@ from helpers.singletons import settings, es, logging
 import helpers.utils
 from helpers.outlier import Outlier
 
+from typing import Dict, Any, List
+
 
 class Analyzer(abc.ABC):
 
-    def __init__(self, config_section_name):
+    def __init__(self, config_section_name: str) -> None:
         # the configuration file section for the use case, for example [simplequery_test_model]
-        self.config_section_name = config_section_name
+        self.config_section_name: str = config_section_name
 
         # split the configuration section into the model type ("simplequery") and the model nalem ("test_model")
-        self.model_type = self.config_section_name.split("_")[0]
-        self.model_name = "_".join((self.config_section_name.split("_")[1:]))
+        self.model_type: str = self.config_section_name.split("_")[0]
+        self.model_name: str = "_".join((self.config_section_name.split("_")[1:]))
 
         # extract all settings for this use case
-        self.model_settings = self._extract_model_settings()
+        self.model_settings: Dict[str, Any] = self._extract_model_settings()
 
+        self.search_query: Dict[str, List]
         if self.model_settings["es_query_filter"]:
             self.search_query = es.filter_by_query_string(self.model_settings["es_query_filter"])
 
         if self.model_settings["es_dsl_filter"]:
             self.search_query = es.filter_by_dsl_query(self.model_settings["es_dsl_filter"])
 
-        self.total_events = 0
-        self.outliers = list()
+        self.total_events: int = 0
+        self.outliers: List[Outlier] = list()
 
-    def _extract_model_settings(self):
-        model_settings = dict()
+    def _extract_model_settings(self) -> Dict[str, Any]:
+        model_settings: Dict[str, Any] = dict()
 
         try:
             model_settings["es_query_filter"] = settings.config.get(self.config_section_name, "es_query_filter")
@@ -41,17 +44,20 @@ class Analyzer(abc.ABC):
             model_settings["es_dsl_filter"] = None
 
         try:
-            model_settings["should_notify"] = settings.config.getboolean("notifier", "email_notifier") and settings.config.getboolean(self.config_section_name, "should_notify")
+            model_settings["should_notify"] = settings.config.getboolean("notifier", "email_notifier") and \
+                                              settings.config.getboolean(self.config_section_name, "should_notify")
         except NoOptionError:
             model_settings["should_notify"] = False
 
         try:
-            model_settings["use_derived_fields"] = settings.config.getboolean(self.config_section_name, "use_derived_fields")
+            model_settings["use_derived_fields"] = settings.config.getboolean(self.config_section_name,
+                                                                              "use_derived_fields")
         except NoOptionError:
             model_settings["use_derived_fields"] = False
 
         try:
-            model_settings["should_notify"] = settings.config.getboolean("notifier", "email_notifier") and settings.config.getboolean(self.config_section_name, "should_notify")
+            model_settings["should_notify"] = settings.config.getboolean("notifier", "email_notifier") and \
+                                              settings.config.getboolean(self.config_section_name, "should_notify")
         except NoOptionError:
             model_settings["should_notify"] = False
 
@@ -64,38 +70,49 @@ class Analyzer(abc.ABC):
         model_settings["outlier_type"] = settings.config.get(self.config_section_name, "outlier_type")
         model_settings["outlier_summary"] = settings.config.get(self.config_section_name, "outlier_summary")
 
-        self.should_test_model = settings.config.getboolean("general", "run_models") and settings.config.getboolean(self.config_section_name, "run_model")
-        self.should_run_model = settings.config.getboolean("general", "test_models") and settings.config.getboolean(self.config_section_name, "test_model")
+        self.should_test_model = settings.config.getboolean("general", "run_models") and \
+                                 settings.config.getboolean(self.config_section_name, "run_model")
+        self.should_run_model = settings.config.getboolean("general", "test_models") and \
+                                settings.config.getboolean(self.config_section_name, "test_model")
 
         return model_settings
 
-    def print_analysis_summary(self):
+    def print_analysis_summary(self) -> None:
         if len(self.outliers) > 0:
             unique_summaries = len(set(o.outlier_dict["summary"] for o in self.outliers))
-            logging.logger.info("total outliers processed for use case: " + str(len(self.outliers)) + " [" + str(unique_summaries) + " unique summaries]")
+            logging.logger.info("total outliers processed for use case: " + str(len(self.outliers)) + \
+                                " [" + str(unique_summaries) + " unique summaries]")
         else:
             logging.logger.info("no outliers detected for use case")
 
-    def process_outlier(self, fields, doc, extra_outlier_information=dict()):
+    def process_outlier(self, fields: Dict, doc: Dict[str, Any], extra_outlier_information: Dict=dict()) -> Outlier:
         extra_outlier_information["model_name"] = self.model_name
         extra_outlier_information["model_type"] = self.model_type
 
         fields_and_extra_outlier_information = fields.copy()
         fields_and_extra_outlier_information.update(extra_outlier_information)
 
-        outlier_summary = helpers.utils.replace_placeholder_fields_with_values(self.model_settings["outlier_summary"], fields_and_extra_outlier_information)
+        outlier_summary: str = helpers.utils.replace_placeholder_fields_with_values(
+                                                                    self.model_settings["outlier_summary"],
+                                                                    fields_and_extra_outlier_information)
 
         # for both outlier types and reasons, we also allow the case where multiples values are provided at once.
         # example: type = malware, IDS
-        outlier_type = helpers.utils.replace_placeholder_fields_with_values(self.model_settings["outlier_type"], fields_and_extra_outlier_information).split(",")
-        outlier_reason = helpers.utils.replace_placeholder_fields_with_values(self.model_settings["outlier_reason"], fields_and_extra_outlier_information).split(",")
+        outlier_type: List[str] = helpers.utils.replace_placeholder_fields_with_values(
+                                                                    self.model_settings["outlier_type"],
+                                                                    fields_and_extra_outlier_information).split(",")
+        outlier_reason: List[str] = helpers.utils.replace_placeholder_fields_with_values(
+                                                                    self.model_settings["outlier_reason"],
+                                                                    fields_and_extra_outlier_information).split(",")
 
-        # remove any leading or trailing whitespace from either. For example: "type = malware,  IDS" should just return ["malware","IDS"] instead of ["malware", "  IDS"]
+        # remove any leading or trailing whitespace from either. 
+        # For example: "type = malware,  IDS" should just return ["malware","IDS"] instead of ["malware", "  IDS"]
         outlier_type = [item.strip() for item in outlier_type]
         outlier_reason = [item.strip() for item in outlier_reason]
 
         outlier_assets = helpers.utils.extract_outlier_asset_information(fields, settings)
-        outlier = Outlier(outlier_type=outlier_type, outlier_reason=outlier_reason, outlier_summary=outlier_summary)
+        outlier: Outlier = Outlier(outlier_type=outlier_type, outlier_reason=outlier_reason,
+                                   outlier_summary=outlier_summary)
 
         if len(outlier_assets) > 0:
             outlier.outlier_dict["assets"] = outlier_assets
@@ -109,5 +126,5 @@ class Analyzer(abc.ABC):
         return outlier
 
     @abc.abstractmethod
-    def evaluate_model(self):
+    def evaluate_model(self) -> None:
         raise NotImplementedError()

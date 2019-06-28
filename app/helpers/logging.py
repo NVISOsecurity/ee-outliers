@@ -3,48 +3,53 @@ import urllib3
 import logging
 import datetime as dt
 
+from typing import Optional, cast
+
 from helpers.singleton import singleton
 
 
 @singleton
 class Logging:
-    logger = None
+    #start_time = None"""
+    logger: logging.Logger
 
-    current_step = None
-    start_time = None
-    total_steps = None
-    desc = None
-    verbosity = None
+    total_steps: Optional[int]
+    desc: Optional[str]
+    current_step: int
 
-    def __init__(self, logger_name):
+    verbosity: int = 0
+
+    def __init__(self, logger_name: str) -> None:
         # Disable HTTPS warnings
         urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
         logging.getLogger('urllib3').setLevel(logging.CRITICAL)
 
-        self.logger = logging.getLogger(logger_name)
+        self.logger: logging.Logger = logging.getLogger(logger_name)
 
-    def add_stdout_handler(self):
-        ch = logging.StreamHandler()
+    def add_stdout_handler(self) -> None:
+        ch: logging.StreamHandler = logging.StreamHandler()
         ch.setLevel(self.logger.level)
-        formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s', "%Y-%m-%d %H:%M:%S")
+        formatter: logging.Formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s',
+                                                         "%Y-%m-%d %H:%M:%S")
         ch.setFormatter(formatter)
         self.logger.addHandler(ch)
 
-    def add_file_handler(self, log_file):
-        ch = logging.FileHandler(log_file)
+    def add_file_handler(self, log_file: str) -> None:
+        ch: logging.FileHandler = logging.FileHandler(log_file)
         ch.setLevel(self.logger.level)
-        formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s', "%Y-%m-%d %H:%M:%S")
+        formatter: logging.Formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s',
+                                                         "%Y-%m-%d %H:%M:%S")
         ch.setFormatter(formatter)
         self.logger.addHandler(ch)
 
-    def init_ticker(self, total_steps=None, desc=None):
+    def init_ticker(self, total_steps: int, desc: str) -> None:
         self.total_steps = total_steps
         self.start_time = dt.datetime.today().timestamp()
         self.desc = desc
         self.current_step = 0
 
-    def tick(self):
-        should_log = False
+    def tick(self) -> None:
+        should_log: bool = False
         self.current_step += 1
 
         if self.verbosity >= 5:
@@ -57,16 +62,19 @@ class Logging:
                 should_log = True
 
         if should_log:
-            time_diff = max(float(1), float(dt.datetime.today().timestamp() - self.start_time))  # avoid a division by zero
+            # avoid a division by zero
+            time_diff = max(float(1), float(dt.datetime.today().timestamp() - self.start_time))
             ticks_per_second = "{:,}".format(round(float(self.current_step) / time_diff))
 
-            self.logger.info(self.desc + " [" + ticks_per_second + " eps. - " + '{:.2f}'.format(round(float(self.current_step) / float(self.total_steps) * 100, 2)) + "% done" + "]")
+            self.logger.info(str(self.desc) + " [" + ticks_per_second + " eps. - " + '{:.2f}'
+                             .format(round(float(self.current_step) / float(cast(int, self.total_steps)) * 100, 2)) +
+                             "% done" + "]")
 
-    def print_generic_intro(self, title):
+    def print_generic_intro(self, title: str) -> None:
         self.logger.info("")
         self.logger.info("===== " + title + " =====")
 
-    def print_analysis_intro(self, event_type, total_events):
+    def print_analysis_intro(self, event_type: str, total_events: int) -> None:
         self.logger.info("")
         self.logger.info("===== " + event_type + " outlier detection =====")
         self.logger.info("analyzing " + "{:,}".format(total_events) + " events")
