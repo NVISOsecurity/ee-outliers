@@ -6,7 +6,7 @@ from helpers.singletons import settings, es, logging
 from helpers.analyzer import Analyzer
 from helpers.outlier import Outlier
 
-from typing import List, Dict
+from typing import List, Dict, Tuple
 
 
 class Word2VecAnalyzer(Analyzer):
@@ -27,7 +27,7 @@ class Word2VecAnalyzer(Analyzer):
         w2v_model: word2vec.Word2Vec = word2vec.Word2Vec(name=self.model_name)
         search_query: Dict[str, List] = es.filter_by_query_string(self.model_settings["es_query_filter"])
 
-        sentences: List[tuple] = list()
+        sentences: List[Tuple] = list()
 
         self.total_events = es.count_documents(index=self.es_index, search_query=search_query)
         training_data_size_pct = settings.config.getint("machine_learning", "training_data_size_pct")
@@ -133,8 +133,9 @@ class Word2VecAnalyzer(Analyzer):
         sentence_probs = w2v_model.evaluate_sentences(eval_sentences)
 
         for i, single_sentence_prob in enumerate(sentence_probs):
-            # If the probability is nan, it means that the sentence could not be evaluated, and we can't reason about it.
-            # This happens for example whenever the sentence is made up entirely of words that aren't known to the trained model.
+            # If the probability is nan, it means that the sentence could not be evaluated, and we can't reason about it
+            # This happens for example whenever the sentence is made up entirely of words that aren't known to the
+            # trained model.
             if single_sentence_prob is np.nan:
                 continue
 

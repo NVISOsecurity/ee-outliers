@@ -15,8 +15,10 @@ class Outlier:
         # hard-wrap the length of a summary line to 150 characters to make it easier to visualize
         self.outlier_dict["summary"] = textwrap.fill(outlier_summary, width=150)
 
-    # Each whitelist item can contain multiple values to match across fields, separated with ",". So we need to support this too.
-    # Example: "dns_tunneling_fp = rule_updates.et.com, intel_server" -> should match both values across the entire event (rule_updates.et.com and intel_server);
+    # Each whitelist item can contain multiple values to match across fields, separated with ",". So we need to
+    # support this too.
+    # Example: "dns_tunneling_fp = rule_updates.et.com, intel_server" -> should match both values across the entire
+    # event (rule_updates.et.com and intel_server);
     def is_whitelisted(self, additional_dict_values_to_check: Optional[Dict]=None) -> bool:
         # Check if value is whitelisted as literal
         for (_, each_whitelist_configuration_file_value) in settings.config.items("whitelist_literals"):
@@ -26,7 +28,8 @@ class Outlier:
             total_whitelisted_fields_matched = 0
 
             for whitelist_val_to_check in whitelist_values_to_check:
-                if self.matches_specific_whitelist_item(whitelist_val_to_check, "literal", additional_dict_values_to_check):
+                if self.matches_specific_whitelist_item(whitelist_val_to_check, "literal",
+                                                        additional_dict_values_to_check):
                     total_whitelisted_fields_matched += 1
 
             if total_whitelisted_fields_to_match == total_whitelisted_fields_matched:
@@ -40,7 +43,8 @@ class Outlier:
             total_whitelisted_fields_matched = 0
 
             for whitelist_val_to_check in whitelist_values_to_check:
-                if self.matches_specific_whitelist_item(whitelist_val_to_check, "regexp", additional_dict_values_to_check):
+                if self.matches_specific_whitelist_item(whitelist_val_to_check, "regexp",
+                                                        additional_dict_values_to_check):
                     total_whitelisted_fields_matched += 1
 
             if total_whitelisted_fields_to_match == total_whitelisted_fields_matched:

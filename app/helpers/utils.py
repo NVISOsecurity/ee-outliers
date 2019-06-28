@@ -84,7 +84,8 @@ def extract_outlier_asset_information(fields: Dict, settings: 'Settings') -> Lis
     for (asset_field_name, asset_field_type) in settings.config.items("assets"):
         if dict_contains_dotkey(fields, asset_field_name, case_sensitive=False):
 
-            asset_field_values_including_empty = flatten_fields_into_sentences(fields, sentence_format=[asset_field_name])
+            asset_field_values_including_empty = flatten_fields_into_sentences(fields,
+                                                                               sentence_format=[asset_field_name])
             # also remove all empty asset strings
             asset_field_values = [sentence[0] for sentence in asset_field_values_including_empty if "" not in sentence]
 
@@ -103,7 +104,8 @@ def flatten_sentence(sentence: Any=None) -> Optional[str]:
         return None
 
     if type(sentence) is list:
-        # Make sure the list does not contain nested lists, but only strings. If it's a nested list, we give up and return None
+        # Make sure the list does not contain nested lists, but only strings.
+        # If it's a nested list, we give up and return None
         if any(isinstance(i, list) or isinstance(i, dict) for i in sentence):
             return None
         else:
@@ -188,7 +190,7 @@ def is_hex_encoded(_str: str) -> Union[bool, str]:
         return False
 
 
-def is_url(_str: str) -> bool:
+def is_url(_str: str) -> Union[bool, validators.utils.ValidationFailure]:
     try:
         return validators.url(_str)
     except Exception:
@@ -232,8 +234,9 @@ def get_decision_frontier(trigger_method: str, values_array: List, trigger_sensi
         raise ValueError("Unexpected trigger method " + trigger_method + ", could not calculate decision frontier")
 
     if decision_frontier < 0:
-        from helpers.singletons import logging  # TODO - Fix by making this a global import, which doesn't work for the moment
-        logging.logger.warning("negative decision frontier %.2f, this will not generate any outliers", decision_frontier)
+        # TODO - Fix by making this a global import, which doesn't work for the moment
+        from helpers.singletons import logging
+        logging.logger.warning("negative decision frontier %.2f, this will not generate any outliers",decision_frontier)
 
     return decision_frontier
 

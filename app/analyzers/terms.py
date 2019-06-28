@@ -40,7 +40,7 @@ class TermsAnalyzer(Analyzer):
         if brute_force:
             logging.logger.info("brute forcing field %s", str(target[0]))
 
-        eval_terms_array: defaultdict = defaultdict()
+        eval_terms_array: DefaultDict = defaultdict()
         total_terms_added: int = 0
 
         outlier_batches_trend = 0
@@ -69,7 +69,7 @@ class TermsAnalyzer(Analyzer):
                     flattened_target_sentence: Optional[str] = helpers.utils.flatten_sentence(target_sentence)
 
                     for aggregator_sentence in aggregator_sentences:
-                        flattened_aggregator_sentence: Optional[str] = helpers.utils.flatten_sentence(aggregator_sentence)
+                        flattened_aggregator_sentence: Optional[str]=helpers.utils.flatten_sentence(aggregator_sentence)
                         eval_terms_array = self.add_term_to_batch(eval_terms_array, flattened_aggregator_sentence,
                                                                   flattened_target_sentence, observations, doc)
 
@@ -108,7 +108,7 @@ class TermsAnalyzer(Analyzer):
         search_query: Dict[str, List] = es.filter_by_query_string(self.model_settings["es_query_filter"])
         batch_size: int = settings.config.getint("terms", "terms_batch_eval_size")
 
-        self.total_events: int = es.count_documents(index=self.es_index, search_query=search_query)
+        self.total_events = es.count_documents(index=self.es_index, search_query=search_query)
         logging.init_ticker(total_steps=min(self.total_events, batch_size), 
                             desc=self.model_name + " - extracting brute force fields")
 
@@ -165,8 +165,8 @@ class TermsAnalyzer(Analyzer):
             raise ValueError("Unexpected outlier trigger condition " + self.model_settings["trigger_on"])
 
     @staticmethod
-    def add_term_to_batch(eval_terms_array: defaultdict, aggregator_value: Optional[str], target_value: Optional[str],
-                          observations: Dict, doc: Dict) -> defaultdict:
+    def add_term_to_batch(eval_terms_array: DefaultDict, aggregator_value: Optional[str], target_value: Optional[str],
+                          observations: Dict, doc: Dict) -> DefaultDict:
         if aggregator_value not in eval_terms_array.keys():
             eval_terms_array[aggregator_value] = defaultdict(list)
 

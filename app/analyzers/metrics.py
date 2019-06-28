@@ -6,7 +6,7 @@ import helpers.utils
 from helpers.analyzer import Analyzer
 from numpy import float64
 
-from typing import Dict, Any, Tuple, List, cast, Optional, Union
+from typing import Dict, Any, Tuple, List, DefaultDict, cast, Optional, Union
 
 SUPPORTED_METRICS = ["length", "numerical_value", "entropy", "base64_encoded_length", "hex_encoded_length","url_length"]
 SUPPORTED_TRIGGERS = ["high", "low"]
@@ -17,11 +17,11 @@ class MetricsAnalyzer(Analyzer):
     def evaluate_model(self) -> None:
         self.extract_additional_model_settings()
 
-        eval_metrics: defaultdict = defaultdict()
-        total_metrics_added = 0
+        eval_metrics: DefaultDict = defaultdict()
+        total_metrics_added: int = 0
 
         self.total_events: int = es.count_documents(index=self.es_index, search_query=self.search_query)
-        logging.print_analysis_intro(event_type="evaluating " + self.config_section_name, total_events=self.total_events)
+        logging.print_analysis_intro(event_type="evaluating " + self.config_section_name,total_events=self.total_events)
 
         logging.init_ticker(total_steps=self.total_events, 
                             desc=self.model_name + " - evaluating " + self.model_type + " model")
@@ -93,11 +93,11 @@ class MetricsAnalyzer(Analyzer):
         if self.model_settings["trigger_on"] not in SUPPORTED_TRIGGERS:
             raise ValueError("Unexpected outlier trigger condition " + self.model_settings["trigger_on"])
 
-    def evaluate_batch_for_outliers(self, metrics: defaultdict, model_settings: Dict[str, Any],
-                                    last_batch: bool=False) -> Tuple[List, defaultdict]:
+    def evaluate_batch_for_outliers(self, metrics: DefaultDict, model_settings: Dict[str, Any],
+                                    last_batch: bool=False) -> Tuple[List, DefaultDict]:
         # Initialize
         outliers: List = list() # TODO Never change ?
-        remaining_metrics: defaultdict = metrics.copy()
+        remaining_metrics: DefaultDict = metrics.copy()
 
         for _, aggregator_value in enumerate(metrics):
 
@@ -144,9 +144,9 @@ class MetricsAnalyzer(Analyzer):
         return outliers, remaining_metrics
 
     @staticmethod
-    def add_metric_to_batch(eval_metrics_array: defaultdict, aggregator_value: Optional[str],
+    def add_metric_to_batch(eval_metrics_array: DefaultDict, aggregator_value: Optional[str],
                             target_value: Optional[str], metrics_value: Union[None, float, int], observations: Dict,
-                            doc: Dict) -> defaultdict:
+                            doc: Dict) -> DefaultDict:
         observations["target"] = target_value
         observations["aggregator"] = aggregator_value
 
@@ -170,7 +170,7 @@ class MetricsAnalyzer(Analyzer):
         # Example: numerical_value("2") => 2
         if metric == "numerical_value":
             try:
-                return float(value), dict() # type: ignore
+                return float(value), dict()
             except ValueError:
                 # number can not be casted to a Float, just continue
                 return None, dict()

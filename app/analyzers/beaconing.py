@@ -26,7 +26,7 @@ class BeaconingAnalyzer(Analyzer):
         logging.init_ticker(total_steps=self.total_events, desc=self.model_name + " - evaluating " +
                                                                 self.model_type + " model")
 
-        eval_terms_array: defaultdict = defaultdict()
+        eval_terms_array: DefaultDict = defaultdict()
         total_terms_added = 0
 
         outlier_batches_trend = 0
@@ -96,8 +96,8 @@ class BeaconingAnalyzer(Analyzer):
             self.model_settings["min_target_buckets"] = DEFAULT_MIN_TARGET_BUCKETS
 
     @staticmethod
-    def add_term_to_batch(eval_terms_array: defaultdict, aggregator_value: Optional[str], target_value: Optional[str],
-                          observations: Dict, doc: Dict) -> defaultdict:
+    def add_term_to_batch(eval_terms_array: DefaultDict, aggregator_value: Optional[str], target_value: Optional[str],
+                          observations: Dict, doc: Dict) -> DefaultDict:
         if aggregator_value not in eval_terms_array.keys():
             eval_terms_array[aggregator_value] = defaultdict(list)
 

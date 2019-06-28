@@ -5,7 +5,7 @@ import dateutil.parser
 from helpers.singleton import singleton
 from . import es
 
-from typing import Dict, List
+from typing import Dict, List, Set
 
 
 parser = argparse.ArgumentParser()
@@ -33,7 +33,7 @@ class Settings:
         self.config: configparser.ConfigParser
 
         self.loaded_config_paths: List[str]
-        self.failed_config_paths: set
+        self.failed_config_paths: Set[str]
 
         self.search_range_start: str
         self.search_range_end: str
