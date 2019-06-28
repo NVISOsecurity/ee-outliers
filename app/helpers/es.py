@@ -52,27 +52,27 @@ class ES:
 
         return self.conn
 
-    def scan(self, bool_clause: Dict[str, List]=None, sort_clause: Dict=None, query_fields: Dict=None,
+    def scan(self, index: str, bool_clause: Dict[str, List]=None, sort_clause: Dict=None, query_fields: Dict=None,
              search_query: Dict[str, List]=None) -> Dict:
-        preserve_order = True if sort_clause is not None else False
-        return eshelpers.scan(self.conn, request_timeout=self.settings.config.getint("general", "es_timeout"),
-                              index=self.settings.config.get("general", "es_index_pattern"),
-                              query=build_search_query(bool_clause=bool_clause, sort_clause=sort_clause,
-                                                       search_range=self.settings.search_range,
-                                                       query_fields=query_fields, search_query=search_query),
-                              size=self.settings.config.getint("general", "es_scan_size"),
-                              scroll=self.settings.config.get("general", "es_scroll_time"),
+        preserve_order: bool = True if sort_clause is not None else False
+        return eshelpers.scan(self.conn, request_timeout=self.settings.config.getint("general", "es_timeout"), 
+                              index=index, query=build_search_query(bool_clause=bool_clause, 
+                                                                    sort_clause=sort_clause, 
+                                                                    search_range=self.settings.search_range, 
+                                                                    query_fields=query_fields, 
+                                                                    search_query=search_query), 
+                              size=self.settings.config.getint("general", "es_scan_size"), 
+                              scroll=self.settings.config.get("general", "es_scroll_time"), 
                               preserve_order=preserve_order, raise_on_error=False)
 
-    def count_documents(self, bool_clause: Dict[str, List]=None, query_fields: Dict=None,
+    def count_documents(self, index: str, bool_clause: Dict[str, List]=None, query_fields: Dict=None,
                         search_query: Dict[str, List]=None) -> int:
-        res = self.conn.search(index=self.index,
-                               body=build_search_query(bool_clause=bool_clause,
-                                                       search_range=self.settings.search_range,
-                                                       query_fields=query_fields, search_query=search_query),
-                               size=self.settings.config.getint("general", "es_scan_size"),
+        res = self.conn.search(index=index, body=build_search_query(bool_clause=bool_clause, 
+                                                       search_range=self.settings.search_range, 
+                                                       query_fields=query_fields, search_query=search_query), 
+                               size=self.settings.config.getint("general", "es_scan_size"), 
                                scroll=self.settings.config.get("general", "es_scroll_time"))
-        return res["hits"]["total"]["value"]
+        return res["hits"]["total"]
 
     def filter_by_query_string(self, query_string: str=None) -> Dict[str, List]:
         bool_clause: Dict[str, List] = {"filter": [
@@ -103,11 +103,12 @@ class ES:
         outliers_filter_query: Dict[str, List] = {"filter": [{"term": {"tags": "outlier"}}]}
         total_docs_whitelisted: int = 0
 
-        total_nr_outliers: int = self.count_documents(bool_clause=outliers_filter_query)
-        self.logging.logger.info("going to analyze %s outliers and remove all whitelisted items", "{:,}"
+        idx: str = self.settings.config.get("general", "es_index_pattern")
+        total_nr_outliers: int = self.count_documents(index=idx, bool_clause=outliers_filter_query)
+        self.logging.logger.info("going to analyze %s outliers and remove all whitelisted items", "{:,}"\
                                  .format(total_nr_outliers))
 
-        for doc in self.scan(bool_clause=outliers_filter_query):
+        for doc in self.scan(index=idx, bool_clause=outliers_filter_query):
             total_outliers: int = int(doc["_source"]["outliers"]["total_outliers"])
             # Generate all outlier objects for this document
             total_whitelisted: int = 0
@@ -117,7 +118,8 @@ class ES:
                 outlier_reason: str = doc["_source"]["outliers"]["reason"][i]
                 outlier_summary: str = doc["_source"]["outliers"]["summary"][i]
 
-                outlier: Outlier = Outlier(type=outlier_type, reason=outlier_reason, summary=outlier_summary)
+                outlier: Outlier = Outlier(outlier_type=outlier_type, outlier_reason=outlier_reason, 
+                                           outlier_summary=outlier_summary)
                 if outlier.is_whitelisted(additional_dict_values_to_check=doc):
                     total_whitelisted += 1
 
@@ -140,7 +142,7 @@ class ES:
         idx = self.settings.config.get("general", "es_index_pattern")
 
         must_clause: Dict[str, Any] = {"filter": [{"term": {"tags": "outlier"}}]}
-        total_outliers: int = self.count_documents(bool_clause=must_clause)
+        total_outliers: int = self.count_documents(index=idx, bool_clause=must_clause)
 
         query: Dict[str, Dict] = build_search_query(bool_clause=must_clause, search_range=self.settings.search_range)
 

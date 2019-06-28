@@ -11,7 +11,7 @@ from datetime import datetime
 from croniter import croniter
 
 from helpers.singletons import settings, logging, es
-from helpers.utils import FileModificationWatcher
+from helpers.watchers import FileModificationWatcher
 from helpers.housekeeping import HousekeepingJob
 from helpers.analyzer import Analyzer
 
@@ -89,6 +89,7 @@ def perform_analysis() -> bool:
             if config_section_name.startswith("word2vec_"):
                 word2vec_analyzer: Word2VecAnalyzer = Word2VecAnalyzer(config_section_name=config_section_name)
                 analyzers.append(word2vec_analyzer)
+
         except Exception:
             logging.logger.error(traceback.format_exc())
 

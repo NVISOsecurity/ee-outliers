@@ -32,7 +32,7 @@ class TermsAnalyzer(Analyzer):
                                  brute_force=False)
 
     def evaluate_target(self, target: List[str], search_query: Dict[str, List], brute_force: bool=False) -> None:
-        self.total_events = es.count_documents(search_query=search_query)
+        self.total_events: int = es.count_documents(index=self.es_index, search_query=search_query)
 
         logging.print_analysis_intro(event_type="evaluating " + self.model_name, total_events=self.total_events)
         logging.init_ticker(total_steps=self.total_events, desc=self.model_name + " - evaluating terms model")
@@ -44,7 +44,7 @@ class TermsAnalyzer(Analyzer):
         total_terms_added: int = 0
 
         outlier_batches_trend = 0
-        for doc in es.scan(search_query=search_query):
+        for doc in es.scan(index=self.es_index, search_query=search_query):
             logging.tick()
             fields = es.extract_fields_from_document(doc,
                                                      extract_derived_fields=self.model_settings["use_derived_fields"])
@@ -108,13 +108,13 @@ class TermsAnalyzer(Analyzer):
         search_query: Dict[str, List] = es.filter_by_query_string(self.model_settings["es_query_filter"])
         batch_size: int = settings.config.getint("terms", "terms_batch_eval_size")
 
-        self.total_events: int = es.count_documents(search_query=search_query)
-        logging.init_ticker(total_steps=min(self.total_events, batch_size),
+        self.total_events: int = es.count_documents(index=self.es_index, search_query=search_query)
+        logging.init_ticker(total_steps=min(self.total_events, batch_size), 
                             desc=self.model_name + " - extracting brute force fields")
 
         field_names_to_brute_force: Set = set()
         num_docs_processed: int = 0
-        for doc in es.scan(search_query=search_query):
+        for doc in es.scan(index=self.es_index, search_query=search_query):
             logging.tick()
             fields: Dict = es.extract_fields_from_document(doc,
                                                      extract_derived_fields=self.model_settings["use_derived_fields"])

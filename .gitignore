@@ -1,6 +1,7 @@
 .idea
 virtualenv
 venv
+.vscode
 *.pyc
 *.log
 .DS_Store
