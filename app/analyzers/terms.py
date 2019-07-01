@@ -32,62 +32,63 @@ class TermsAnalyzer(Analyzer):
         if brute_force:
             logging.logger.info("brute forcing field %s", str(target[0]))
 
-        eval_terms_array = defaultdict()
-        total_terms_added = 0
+        if self.total_events > 0:
+            eval_terms_array = defaultdict()
+            total_terms_added = 0
 
-        outlier_batches_trend = 0
-        for doc in es.scan(index=self.es_index, search_query=search_query):
-            logging.tick()
-            fields = es.extract_fields_from_document(doc, extract_derived_fields=self.model_settings["use_derived_fields"])
+            outlier_batches_trend = 0
+            for doc in es.scan(index=self.es_index, search_query=search_query):
+                logging.tick()
+                fields = es.extract_fields_from_document(doc, extract_derived_fields=self.model_settings["use_derived_fields"])
 
-            try:
-                target_sentences = helpers.utils.flatten_fields_into_sentences(fields=fields, sentence_format=target)
-                aggregator_sentences = helpers.utils.flatten_fields_into_sentences(fields=fields, sentence_format=self.model_settings["aggregator"])
-                will_process_doc = True
-            except (KeyError, TypeError):
-                logging.logger.debug("Skipping event which does not contain the target and aggregator fields we are processing. - [" + self.model_name + "]")
-                will_process_doc = False
+                try:
+                    target_sentences = helpers.utils.flatten_fields_into_sentences(fields=fields, sentence_format=target)
+                    aggregator_sentences = helpers.utils.flatten_fields_into_sentences(fields=fields, sentence_format=self.model_settings["aggregator"])
+                    will_process_doc = True
+                except (KeyError, TypeError):
+                    logging.logger.debug("Skipping event which does not contain the target and aggregator fields we are processing. - [" + self.model_name + "]")
+                    will_process_doc = False
 
-            if will_process_doc:
-                observations = dict()
+                if will_process_doc:
+                    observations = dict()
 
-                if brute_force:
-                    observations["brute_forced_field"] = self.model_settings["brute_forced_field"]
+                    if brute_force:
+                        observations["brute_forced_field"] = self.model_settings["brute_forced_field"]
 
-                for target_sentence in target_sentences:
-                    flattened_target_sentence = helpers.utils.flatten_sentence(target_sentence)
+                    for target_sentence in target_sentences:
+                        flattened_target_sentence = helpers.utils.flatten_sentence(target_sentence)
 
-                    for aggregator_sentence in aggregator_sentences:
-                        flattened_aggregator_sentence = helpers.utils.flatten_sentence(aggregator_sentence)
-                        eval_terms_array = self.add_term_to_batch(eval_terms_array, flattened_aggregator_sentence, flattened_target_sentence, observations, doc)
+                        for aggregator_sentence in aggregator_sentences:
+                            flattened_aggregator_sentence = helpers.utils.flatten_sentence(aggregator_sentence)
+                            eval_terms_array = self.add_term_to_batch(eval_terms_array, flattened_aggregator_sentence, flattened_target_sentence, observations, doc)
 
-                total_terms_added += len(target_sentences)
+                    total_terms_added += len(target_sentences)
 
-            # Evaluate batch of events against the model
-            last_batch = (logging.current_step == self.total_events)
-            if last_batch or total_terms_added >= settings.config.getint("terms", "terms_batch_eval_size"):
-                logging.logger.info("evaluating batch of " + "{:,}".format(total_terms_added) + " terms")
-                outliers = self.evaluate_batch_for_outliers(terms=eval_terms_array)
+                # Evaluate batch of events against the model
+                last_batch = (logging.current_step == self.total_events)
+                if last_batch or total_terms_added >= settings.config.getint("terms", "terms_batch_eval_size"):
+                    logging.logger.info("evaluating batch of " + "{:,}".format(total_terms_added) + " terms")
+                    outliers = self.evaluate_batch_for_outliers(terms=eval_terms_array)
 
-                if len(outliers) > 0:
-                    unique_summaries = len(set(o.outlier_dict["summary"] for o in outliers))
-                    logging.logger.info("total outliers in batch processed: " + str(len(outliers)) + " [" + str(unique_summaries) + " unique summaries]")
-                    outlier_batches_trend += 1
-                else:
-                    logging.logger.info("no outliers detected in batch")
-                    outlier_batches_trend -= 1
+                    if len(outliers) > 0:
+                        unique_summaries = len(set(o.outlier_dict["summary"] for o in outliers))
+                        logging.logger.info("total outliers in batch processed: " + str(len(outliers)) + " [" + str(unique_summaries) + " unique summaries]")
+                        outlier_batches_trend += 1
+                    else:
+                        logging.logger.info("no outliers detected in batch")
+                        outlier_batches_trend -= 1
 
-                if outlier_batches_trend == -3 and brute_force:
-                    logging.logger.info("too many batches without outliers, we are not going to continue brute forcing")
-                    break
+                    if outlier_batches_trend == -3 and brute_force:
+                        logging.logger.info("too many batches without outliers, we are not going to continue brute forcing")
+                        break
 
-                if outlier_batches_trend == 3 and brute_force:
-                    logging.logger.info("too many batches with outliers, we are not going to continue brute forcing")
-                    break
+                    if outlier_batches_trend == 3 and brute_force:
+                        logging.logger.info("too many batches with outliers, we are not going to continue brute forcing")
+                        break
 
-                # Reset data structures for next batch
-                eval_terms_array = defaultdict()
-                total_terms_added = 0
+                    # Reset data structures for next batch
+                    eval_terms_array = defaultdict()
+                    total_terms_added = 0
 
         self.print_analysis_summary()
 
@@ -99,27 +100,28 @@ class TermsAnalyzer(Analyzer):
         logging.init_ticker(total_steps=min(self.total_events, batch_size), desc=self.model_name + " - extracting brute force fields")
 
         field_names_to_brute_force = set()
-        num_docs_processed = 0
-        for doc in es.scan(index=self.es_index, search_query=search_query):
-            logging.tick()
-            fields = es.extract_fields_from_document(doc, extract_derived_fields=self.model_settings["use_derived_fields"])
-            fields = helpers.utils.flatten_dict(fields)
+        if self.total_events > 0:
+            num_docs_processed = 0
+            for doc in es.scan(index=self.es_index, search_query=search_query):
+                logging.tick()
+                fields = es.extract_fields_from_document(doc, extract_derived_fields=self.model_settings["use_derived_fields"])
+                fields = helpers.utils.flatten_dict(fields)
 
-            for field_name in list(fields.keys()):  # create list instead of iterator so we can mutate the dictionary when iterating
-                # skip all fields that are related to outliers, we don't want to brute force them
-                if field_name.startswith('outliers.'):
-                    logging.logger.debug("not brute forcing outliers field " + str(field_name))
-                    continue
+                for field_name in list(fields.keys()):  # create list instead of iterator so we can mutate the dictionary when iterating
+                    # skip all fields that are related to outliers, we don't want to brute force them
+                    if field_name.startswith('outliers.'):
+                        logging.logger.debug("not brute forcing outliers field " + str(field_name))
+                        continue
 
-                # only brute force nested fields, so not the top level fields such as timestamp, deployment name, etc.
-                if "." in field_name:
-                    field_names_to_brute_force.add(field_name)
+                    # only brute force nested fields, so not the top level fields such as timestamp, deployment name, etc.
+                    if "." in field_name:
+                        field_names_to_brute_force.add(field_name)
 
-            # only process a single batch of events in order to decide which fields to brute force
-            if num_docs_processed == batch_size:
-                break
-            else:
-                num_docs_processed += 1
+                # only process a single batch of events in order to decide which fields to brute force
+                if num_docs_processed == batch_size:
+                    break
+                else:
+                    num_docs_processed += 1
 
         logging.logger.info("going to brute force " + str(len(field_names_to_brute_force)) + " fields")
         return field_names_to_brute_force
