@@ -10,7 +10,6 @@ from croniter import croniter
 
 from helpers.singletons import settings, logging, es
 from helpers.watchers import FileModificationWatcher
-from helpers.housekeeping import HousekeepingJob
 
 from analyzers.metrics import MetricsAnalyzer
 from analyzers.simplequery import SimplequeryAnalyzer
@@ -140,7 +139,7 @@ def remove_whitelisted_outliers():
 def loop_wait_new_schedule():
     next_run = None
     should_schedule_next_run = False
-    settings_changes: bool = False
+    settings_changes = False
 
     while (next_run is None or datetime.now() < next_run):
         if next_run is None:
@@ -193,7 +192,7 @@ if settings.args.run_mode == "daemon":
                 remove_whitelisted_outliers()
 
         else: # If not first run
-            settings_changes: bool = False
+            settings_changes = False
             if run_succeeded_without_errors: # If last run succeed, wait before new operation
                 settings_changes = loop_wait_new_schedule()
 
