@@ -3,6 +3,8 @@ import re
 import helpers.utils
 import textwrap
 
+from typing import Optional, Dict
+
 
 class Outlier:
     def __init__(self, outlier_type, outlier_reason, outlier_summary):
