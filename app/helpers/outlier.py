@@ -22,7 +22,8 @@ class Outlier:
             total_whitelisted_fields_matched = 0
 
             for whitelist_val_to_check in whitelist_values_to_check:
-                if self.matches_specific_whitelist_item(whitelist_val_to_check, "literal", additional_dict_values_to_check):
+                if self.matches_specific_whitelist_item_literally(whitelist_val_to_check,
+                                                                  additional_dict_values_to_check):
                     total_whitelisted_fields_matched += 1
 
             if total_whitelisted_fields_to_match == total_whitelisted_fields_matched:
@@ -36,7 +37,8 @@ class Outlier:
             total_whitelisted_fields_matched = 0
 
             for whitelist_val_to_check in whitelist_values_to_check:
-                if self.matches_specific_whitelist_item(whitelist_val_to_check, "regexp", additional_dict_values_to_check):
+                if self.matches_specific_whitelist_item_regexp(whitelist_val_to_check,
+                                                               additional_dict_values_to_check):
                     total_whitelisted_fields_matched += 1
 
             if total_whitelisted_fields_to_match == total_whitelisted_fields_matched:
@@ -45,41 +47,39 @@ class Outlier:
         # If we reach this point, then there is no whitelist match
         return False
 
-    def matches_specific_whitelist_item(self, whitelist_value, match_type, additional_dict_values_to_check=None):
-        if match_type == "literal":
-            if self.outlier_dict["summary"] == whitelist_value.strip():
-                return True
+    def matches_specific_whitelist_item_literally(self, whitelist_value: str,
+                                                  additional_dict_values_to_check: Optional[Dict]=None) -> bool:
+        if self.outlier_dict["summary"] == whitelist_value.strip():
+            return True
 
-            if additional_dict_values_to_check:
-                for dict_val in list(helpers.utils.nested_dict_values(additional_dict_values_to_check)):
-                    if isinstance(dict_val, list):
-                        for dict_val_item in dict_val:
-                            if str(dict_val_item).strip() == whitelist_value.strip():
-                                return True
-                    elif isinstance(dict_val, str):
-                        if dict_val.strip() == whitelist_value.strip():
+        if additional_dict_values_to_check:
+            for dict_val in list(helpers.utils.nested_dict_values(additional_dict_values_to_check)):
+                if isinstance(dict_val, list):
+                    for dict_val_item in dict_val:
+                        if str(dict_val_item).strip() == whitelist_value.strip():
                             return True
+                elif isinstance(dict_val, str):
+                    if dict_val.strip() == whitelist_value.strip():
+                        return True
+        return False
 
-        elif match_type == "regexp":
-            p = re.compile(whitelist_value.strip(), re.IGNORECASE)
+    def matches_specific_whitelist_item_regexp(self, whitelist_value: str,
+                                                  additional_dict_values_to_check: Optional[Dict]=None) -> bool:
+        p = re.compile(whitelist_value.strip(), re.IGNORECASE)
 
-            if p.match(str(self.outlier_dict["summary"])):
-                return True
+        if p.match(str(self.outlier_dict["summary"])):
+            return True
 
-            # If there is an additional dict to check, check all of its values against the whitelist
-            if additional_dict_values_to_check:
-                for dict_val in list(helpers.utils.nested_dict_values(additional_dict_values_to_check)):
-                    if isinstance(dict_val, list):
-                        for dict_val_item in dict_val:
-                            if p.match(str(dict_val_item).strip()):
-                                return True
-                    elif isinstance(dict_val, str):
-                        if p.match(str(dict_val.strip())):
+        # If there is an additional dict to check, check all of its values against the whitelist
+        if additional_dict_values_to_check:
+            for dict_val in list(helpers.utils.nested_dict_values(additional_dict_values_to_check)):
+                if isinstance(dict_val, list):
+                    for dict_val_item in dict_val:
+                        if p.match(str(dict_val_item).strip()):
                             return True
-        else:
-            raise ValueError("whitelist match type must be either literal or regexp")
-
-        # If nothing of this matches, the item does not match
+                elif isinstance(dict_val, str):
+                    if p.match(str(dict_val.strip())):
+                        return True
         return False
 
     def get_outlier_dict_of_arrays(self):
