@@ -50,12 +50,6 @@ class Settings:
         self.search_range_end = search_range["range"][str(self.config.get("general", "timestamp_field", fallback="timestamp"))]["lte"]
         self.search_range = search_range
 
-        # Daemon mode settings
-        if args.run_mode == "daemon":
-            pass
-        if args.run_mode == "interactive":
-            pass
-
     def reload_configuration_files(self):
         self.process_configuration_files(self.args.config)
 
