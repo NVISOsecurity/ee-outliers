@@ -112,6 +112,57 @@ def perform_analysis():
 
     return analyzed_models == len(analyzers_to_evaluate)
 
+def display_perform_analysis():
+    logging.print_generic_intro("starting outlier detection")
+    run_succeeded_without_errors = perform_analysis()
+    if not run_succeeded_without_errors:
+        logging.logger.warning("ran into errors while analyzing use cases - not going to wait for the cron " + \
+                               "schedule, we just start analyzing again")
+    else:
+        logging.logger.info("no errors encountered while analyzing use cases")
+    return run_succeeded_without_errors
+
+def remove_whitelisted_outliers():
+    if settings.config.getboolean("general", "es_wipe_all_whitelisted_outliers"):
+        try:
+            logging.logger.info("Try to remove all whitelisted outliers")
+            total_docs_whitelisted = es.remove_all_whitelisted_outliers()
+
+            if total_docs_whitelisted > 0:
+                logging.logger.info("Total whitelisted documents cleared from outliers: " + str(total_docs_whitelisted))
+            else:
+                logging.logger.info("Whitelist did not remove any outliers")
+
+        except Exception:
+            logging.logger.error("Something went removing whitelisted outliers")
+            logging.logger.error(traceback.format_exc())
+
+def loop_wait_new_schedule():
+    next_run = None
+    should_schedule_next_run = False
+    settings_changes: bool = False
+
+    while (next_run is None or datetime.now() < next_run):
+        if next_run is None:
+            should_schedule_next_run = True
+
+        # Check for configuration file changes and load them in case it's needed
+        if file_mod_watcher.files_changed():
+            logging.logger.info("configuration file changed, reloading")
+            settings.process_arguments()
+            should_schedule_next_run = True
+            settings_changes = True
+
+        if should_schedule_next_run:
+            next_run = croniter(settings.config.get("daemon", "schedule"), datetime.now()).get_next(datetime)
+            logging.logger.info("next run scheduled on {0:%Y-%m-%d %H:%M:%S}".format(next_run))
+            should_schedule_next_run = False
+
+        time.sleep(5)
+
+    return settings_changes
+
+
 
 # Run modes
 if settings.args.run_mode == "daemon":
@@ -126,63 +177,39 @@ if settings.args.run_mode == "daemon":
     # Initialize Elasticsearch connection
     es.init_connection()
 
-    # Start housekeeping activities
-    housekeeping_job = HousekeepingJob()
-    housekeeping_job.start()
-
-    num_runs = 0
     first_run = True
     run_succeeded_without_errors = None
 
     while True:
-        num_runs += 1
-        next_run = None
-        should_schedule_next_run = False
-
-        while (next_run is None or datetime.now() < next_run) and first_run is False and run_succeeded_without_errors is True:
-            if next_run is None:
-                should_schedule_next_run = True
-
-            # Check for configuration file changes and load them in case it's needed
-            if file_mod_watcher.files_changed():
-                logging.logger.info("configuration file changed, reloading")
-                settings.process_arguments()
-                should_schedule_next_run = True
-
-            if should_schedule_next_run:
-                next_run = croniter(settings.config.get("daemon", "schedule"), datetime.now()).get_next(datetime)
-                logging.logger.info("next run scheduled on {0:%Y-%m-%d %H:%M:%S}".format(next_run))
-                should_schedule_next_run = False
-
-            time.sleep(5)
-
         if first_run:
             first_run = False
-            logging.logger.info("first run, so we will start immediately - after this, we will respect the cron schedule defined in the configuration file")
+            logging.logger.info("first run, so we will start immediately - after this, we will respect the cron " + \
+                                "schedule defined in the configuration file")
 
-        settings.process_arguments()  # Refresh settings
+            if settings.config.getboolean("general", "es_wipe_all_existing_outliers"):
+                logging.logger.info("wiping all existing outliers on first run")
+                es.remove_all_outliers()
+            else:
+                remove_whitelisted_outliers()
 
-        if settings.config.getboolean("general", "es_wipe_all_existing_outliers") and num_runs == 1:
-            logging.logger.info("wiping all existing outliers on first run")
-            es.remove_all_outliers()
+        else: # If not first run
+            settings_changes: bool = False
+            if run_succeeded_without_errors: # If last run succeed, wait before new operation
+                settings_changes = loop_wait_new_schedule()
+
+            # Make sure we are connected to Elasticsearch before analyzing, in case something went wrong with the
+            # connection in between runs
+            es.init_connection()
+
+            if settings_changes:
+                # Remove whitelisted outliers
+                remove_whitelisted_outliers()
+
 
         logging.logger.info(settings.get_time_window_info())
 
-        # Make sure we are connected to Elasticsearch before analyzing, in case something went wrong with the connection in between runs
-        es.init_connection()
-
-        # Make sure housekeeping is still up and running
-        if not housekeeping_job.is_alive():
-            housekeeping_job = HousekeepingJob()
-            housekeeping_job.start()
-
         # Perform analysis
-        logging.print_generic_intro("starting outlier detection")
-        run_succeeded_without_errors = perform_analysis()
-        if not run_succeeded_without_errors:
-            logging.logger.warning("ran into errors while analyzing use cases - not going to wait for the cron schedule, we just start analyzing again")
-        else:
-            logging.logger.info("no errors encountered while analyzing use cases")
+        run_succeeded_without_errors = display_perform_analysis()
 
         logging.print_generic_intro("finished performing outlier detection")
 
@@ -190,23 +217,19 @@ if settings.args.run_mode == "daemon":
 if settings.args.run_mode == "interactive":
     es.init_connection()
 
+    # Do we remove all existing outliers
     if settings.config.getboolean("general", "es_wipe_all_existing_outliers"):
         es.remove_all_outliers()
+    else: # If not, remove whitelisted outliers
+        remove_whitelisted_outliers()
 
     logging.logger.info(settings.get_time_window_info())
-
-    housekeeping_job = HousekeepingJob()
-    housekeeping_job.start()
 
     try:
         perform_analysis()
     except KeyboardInterrupt:
-        logging.logger.info("keyboard interrupt received, stopping housekeeping thread")
+        logging.logger.info("keyboard interrupt received")
     except Exception:
         logging.logger.error(traceback.format_exc())
-    finally:
-        logging.logger.info("asking housekeeping jobs to shutdown after finishing")
-        housekeeping_job.shutdown_flag.set()
-        housekeeping_job.join()
 
     logging.logger.info("finished performing outlier detection")
