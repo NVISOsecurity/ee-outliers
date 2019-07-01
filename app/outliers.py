@@ -144,7 +144,7 @@ if settings.args.run_mode == "daemon":
                 should_schedule_next_run = True
 
             # Check for configuration file changes and load them in case it's needed
-            if file_mod_watcher.files_changed():
+            if len(file_mod_watcher.files_changed()) > 0:
                 logging.logger.info("configuration file changed, reloading")
                 settings.process_arguments()
                 should_schedule_next_run = True
