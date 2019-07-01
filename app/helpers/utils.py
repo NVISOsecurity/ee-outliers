@@ -9,6 +9,8 @@ import os
 import validators
 from collections import defaultdict
 
+from typing import DefaultDict, Dict, Optional
+
 
 def flatten_dict(d, parent_key='', sep='.'):
     items = []
