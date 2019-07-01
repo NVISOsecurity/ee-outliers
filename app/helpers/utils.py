@@ -5,8 +5,10 @@ import numpy as np
 import base64
 import re
 from statistics import mean, median
-import os
 import validators
+
+from helpers.utils_dictionnary import dict_contains_dotkey, get_dotkey_value
+from helpers.singletons import logging
 
 
 def flatten_dict(d, parent_key='', sep='.'):
@@ -18,41 +20,6 @@ def flatten_dict(d, parent_key='', sep='.'):
         else:
             items.append((new_key, v))
     return dict(items)
-
-
-def dict_contains_dotkey(dict_value, key_name, case_sensitive=True):
-    try:
-        get_dotkey_value(dict_value, key_name, case_sensitive)
-        return True
-    except KeyError:
-        return False
-
-
-def get_dotkey_value(dict_value, key_name, case_sensitive=True):
-    """
-    Get value by dot key in dictionary
-    By default, the dotkey is matched case sensitive; for example, key "OsqueryFilter.process_name" will only match if
-    the event contains a nested dictionary with keys "OsqueryFilter" and "process_name".
-    By changing the case_sensitive parameter to "False", all elements of the dot key will be matched case insensitive.
-    For example, key "OsqueryFilter.process_name" will also match a nested dictionary with keys "osqueryfilter" and "prOcEss_nAme".
-    """
-    keys = key_name.split(".")
-
-    for k in keys:
-        if not case_sensitive:
-            dict_keys = list(dict_value.keys())
-            lowercase_keys = list(map(str.lower, dict_keys))
-            lowercase_key_to_match = k.lower()
-            if lowercase_key_to_match in lowercase_keys:
-                matched_index = lowercase_keys.index(lowercase_key_to_match)
-                dict_value = dict_value[dict_keys[matched_index]]
-            else:
-                raise KeyError
-        else:
-            dict_value = dict_value[k]
-
-    return dict_value
-
 
 def match_ip_ranges(source_ip, ip_cidr):
     return False if len(netaddr.all_matching_cidrs(source_ip, ip_cidr)) <= 0 else True
@@ -224,7 +191,6 @@ def get_decision_frontier(trigger_method, values_array, trigger_sensitivity, tri
         raise ValueError("Unexpected trigger method " + trigger_method + ", could not calculate decision frontier")
 
     if decision_frontier < 0:
-        from helpers.singletons import logging  # TODO - Fix by making this a global import, which doesn't work for the moment
         logging.logger.warning("negative decision frontier %.2f, this will not generate any outliers", decision_frontier)
 
     return decision_frontier
