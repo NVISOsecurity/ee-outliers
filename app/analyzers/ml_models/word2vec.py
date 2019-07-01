@@ -284,16 +284,6 @@ class Word2Vec:
             return sentences_probs
 
 
-def print_most_matching_words(probs, target_word, indices_to_words, top_n):
-    top_n_indices = (np.argsort(probs)[-top_n:])
-    top_n_indices = np.flip(top_n_indices, axis=0)
-
-    logging.logger.info("-------------------------------")
-    logging.logger.info("Probability of observing " + target_word + " around other words:")
-    for i in top_n_indices:
-        logging.logger.info(indices_to_words[str(i)] + " - " + str(probs[i]))
-
-
 # Unique words must be mapped to integers and vice versa
 # Function requires a flat list as input
 ###
@@ -332,21 +322,6 @@ def get_sentence_skipgrams_build(sentence, skip_window):
         for context_index in context_indices:
             sentence_targets.append(sentence[i])
             sentence_labels.append(sentence[context_index])
-    return sentence_targets, sentence_labels
-
-
-# The sentence_labels that this function returns are a list of lists
-#    each inner list contains all the context words of the target word at the corresponding location in the target list
-def get_sentence_skipgrams_restore(sentence, skip_window):
-    sentence_targets = []
-    sentence_labels = []
-    for i in range(len(sentence)):  # i = target word
-        context_indices = [j for j in range(max(0, (i - skip_window)), min(len(sentence), i + 1 + skip_window)) if j != i]
-        sentence_targets.append(sentence[i])
-        labels = []
-        for context_index in context_indices:
-            labels.append(sentence[context_index])
-        sentence_labels.append(labels)
     return sentence_targets, sentence_labels
 
 
