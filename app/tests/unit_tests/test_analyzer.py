@@ -1,9 +1,11 @@
 import unittest
 
+from helpers.custom_es import custom_es
+from helpers.singletons import settings, logging
 
 class TestAnalyzer(unittest.TestCase):
     def setUp(self):
-        pass
+        self.es = custom_es(settings, logging)
 
     def test_each_batch_was_processed(self):
         pass
@@ -16,3 +18,9 @@ class TestAnalyzer(unittest.TestCase):
         # simple_quer_analyzer.es = mock_es_obect
         # total_events = self.es_count_documents_dummy(search_query=search_query)
         # for doc in self.es_scan(search_query=search_query):
+
+
+"""
+- process_outlier
+
+"""
