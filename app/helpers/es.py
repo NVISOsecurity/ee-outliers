@@ -5,7 +5,6 @@ import helpers.logging
 import json
 from pygrok import Grok
 
-from helpers.singleton import singleton
 from helpers.notifier import Notifier
 from collections import defaultdict
 from itertools import chain
