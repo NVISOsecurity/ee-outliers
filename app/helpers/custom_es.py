@@ -86,6 +86,9 @@ class custom_es(ES):
 
         self.list_data.append(data)
 
+    def add_doc(self, doc):
+        self.list_data.append(doc)
+
     def _add_key_data(self, doc, key, data):
         listKey = key.split(".")
 
