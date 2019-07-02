@@ -1,5 +1,4 @@
 from elasticsearch import helpers as eshelpers, Elasticsearch
-import datetime
 import helpers.utils
 import helpers.logging
 import json
@@ -282,19 +281,3 @@ def build_search_query(bool_clause=None, sort_clause=None, search_range=None, qu
         query["query"]["bool"]["filter"].append(search_query["filter"].copy())
 
     return query
-
-
-def get_time_filter(days=None, hours=None, timestamp_field="timestamp"):
-    time_start = (datetime.datetime.now() - datetime.timedelta(days=days, hours=hours)).isoformat()
-    time_stop = datetime.datetime.now().isoformat()
-
-    # Construct absolute time range filter, increases cacheability
-    time_filter = {
-        "range": {
-            str(timestamp_field): {
-                "gte": time_start,
-                "lte": time_stop
-            }
-        }
-    }
-    return time_filter

@@ -3,7 +3,7 @@ import argparse
 import dateutil.parser
 
 from helpers.singleton import singleton
-from . import es
+import datetime
 
 parser = argparse.ArgumentParser()
 
@@ -44,7 +44,10 @@ class Settings:
 
         self.process_configuration_files(args.config)
 
-        search_range = es.get_time_filter(days=self.config.getint("general", "history_window_days"), hours=self.config.getint("general", "history_window_hours"), timestamp_field=self.config.get("general", "timestamp_field", fallback="timestamp"))
+        search_range = get_time_filter(days=self.config.getint("general", "history_window_days"),
+                                       hours=self.config.getint("general", "history_window_hours"),
+                                       timestamp_field=self.config.get("general", "timestamp_field",
+                                                                       fallback="timestamp"))
 
         self.search_range_start = search_range["range"][str(self.config.get("general", "timestamp_field", fallback="timestamp"))]["gte"]
         self.search_range_end = search_range["range"][str(self.config.get("general", "timestamp_field", fallback="timestamp"))]["lte"]
@@ -73,3 +76,20 @@ class Settings:
         search_start_range_printable = dateutil.parser.parse(self.search_range_start).strftime('%Y-%m-%d %H:%M:%S')
         search_end_range_printable = dateutil.parser.parse(self.search_range_end).strftime('%Y-%m-%d %H:%M:%S')
         return "processing events between " + search_start_range_printable + " and " + search_end_range_printable
+
+
+
+def get_time_filter(days=None, hours=None, timestamp_field="timestamp"):
+    time_start = (datetime.datetime.now() - datetime.timedelta(days=days, hours=hours)).isoformat()
+    time_stop = datetime.datetime.now().isoformat()
+
+    # Construct absolute time range filter, increases cacheability
+    time_filter = {
+        "range": {
+            str(timestamp_field): {
+                "gte": time_start,
+                "lte": time_stop
+            }
+        }
+    }
+    return time_filter
