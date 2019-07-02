@@ -7,7 +7,7 @@ import helpers.es
 import helpers.logging
 from helpers.outlier import Outlier
 from helpers.singletons import settings
-
+from helpers.custom_es import custom_es
 
 doc_without_outlier_test_file = json.load(open("/app/tests/unit_tests/files/doc_without_outlier.json"))
 doc_with_outlier_test_file = json.load(open("/app/tests/unit_tests/files/doc_with_outlier.json"))
@@ -156,3 +156,8 @@ class TestOutlierOperations(unittest.TestCase):
 
         settings.process_configuration_files("/app/tests/unit_tests/files/whitelist_tests_05.conf")
         self.assertFalse(test_outlier.is_whitelisted(additional_dict_values_to_check=orig_doc))
+
+    def test_whitelist_config_change(self):
+        orig_doc = copy.deepcopy(doc_with_outlier_test_file)
+
+        custom_es.add_data()
