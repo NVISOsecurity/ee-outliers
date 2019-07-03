@@ -7,7 +7,7 @@ import helpers.es
 import helpers.logging
 from helpers.outlier import Outlier
 from helpers.singletons import settings, logging
-from tests.unit_tests.test_stub.test_stub_es import test_stub_es
+from tests.unit_tests.test_stub.test_stub_es import testStubEs
 
 doc_without_outlier_test_file = json.load(open("/app/tests/unit_tests/files/doc_without_outlier.json"))
 doc_with_outlier_test_file = json.load(open("/app/tests/unit_tests/files/doc_with_outlier.json"))
@@ -160,7 +160,7 @@ class TestOutlierOperations(unittest.TestCase):
     def test_whitelist_config_change_remove_multi_item_literal(self):
         doc_with_outlier = copy.deepcopy(doc_with_outlier_test_file)
         doc_without_outlier = copy.deepcopy(doc_without_outlier_test_file)
-        es = test_stub_es(settings, logging)
+        es = testStubEs(settings, logging)
         es.add_doc(doc_with_outlier)
         settings.process_configuration_files("/app/tests/unit_tests/files/whitelist_tests_01_with_general.conf")
         es.remove_all_whitelisted_outliers()
@@ -169,7 +169,7 @@ class TestOutlierOperations(unittest.TestCase):
 
     def test_whitelist_config_change_single_literal_not_to_match_in_doc_with_outlier(self):
         doc_with_outlier = copy.deepcopy(doc_with_outlier_test_file)
-        es = test_stub_es(settings, logging)
+        es = testStubEs(settings, logging)
         es.add_doc(doc_with_outlier)
         settings.process_configuration_files("/app/tests/unit_tests/files/whitelist_tests_03_with_general.conf")
         es.remove_all_whitelisted_outliers()

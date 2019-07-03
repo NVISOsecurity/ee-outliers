@@ -9,7 +9,7 @@ POSSIBLE_META_CMD_NAME = ["get_all_processes_with_listening_conns", "get_all_sch
 POSSIBLE_TAGS = [["unknown_hashes", "endpoint"], ["endpoint"], ["test", "unknown_hashes"]]
 
 
-class test_stub_es(ES):
+class testStubEs(ES):
 
     BULK_FLUSH_SIZE = 0
 
@@ -89,7 +89,7 @@ class test_stub_es(ES):
 
     def add_doc(self, doc):
         if doc['_id'] in self.list_data:
-            raise KeyError("Key " + str(doc['_id']) + " already exist in test_stub_es")
+            raise KeyError("Key " + str(doc['_id']) + " already exist in testStubEs")
         self.list_data[doc['_id']] = doc
 
     def _create_dict_based_on_key(self, doc, key, data):

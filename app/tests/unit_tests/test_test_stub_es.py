@@ -3,7 +3,7 @@ import unittest
 
 import copy
 
-from tests.unit_tests.test_stub.test_stub_es import test_stub_es
+from tests.unit_tests.test_stub.test_stub_es import testStubEs
 from helpers.singletons import settings, logging
 from helpers.outlier import Outlier
 
@@ -14,7 +14,7 @@ doc_with_outlier_with_derived_timestamp_test_file = json.load(
 
 class TestTestStubEs(unittest.TestCase):
     def setUp(self):
-        self.es = test_stub_es(settings, logging)
+        self.es = testStubEs(settings, logging)
 
     def _get_example_dictionary_key_value_and_expected(self):
         dictionary_value = {
