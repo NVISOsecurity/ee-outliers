@@ -11,6 +11,8 @@ POSSIBLE_TAGS = [["unknown_hashes", "endpoint"], ["endpoint"], ["test", "unknown
 
 class mokup_es(ES):
 
+    BULK_FLUSH_SIZE = 0
+
     def __init__(self, settings=None, logging=None):
         super().__init__(settings, logging)
         self.list_data = dict()
@@ -35,6 +37,22 @@ class mokup_es(ES):
         self.list_data = dict()
 
     def flush_bulk_actions(self, refresh=False):
+        if len(self.bulk_actions) == 0:
+            return
+
+        for bulk in self.bulk_actions:
+            if bulk['_op_type'] == 'update':
+                data = {
+                    "_source": bulk['doc'],
+                    "_id": bulk['_id']
+                }
+                if '_type' in bulk:
+                    data['_type'] = bulk['_type']
+                if '_index' in bulk:
+                    data['_index'] = bulk['_index']
+                self.list_data[bulk['_id']] = data
+            else:
+                raise KeyError('Unknown bulk action: "' + bulk['_op_type'] + '"')
         self.bulk_actions = []
 
     def generate_data(self, nbr_data=1, fixed_infos=dict()):

@@ -9,8 +9,6 @@ from helpers.notifier import Notifier
 from collections import defaultdict
 from itertools import chain
 
-BULK_FLUSH_SIZE = 1000
-
 
 class ES():
     index = None
@@ -22,6 +20,8 @@ class ES():
     notifier = None
 
     bulk_actions = []
+
+    BULK_FLUSH_SIZE = 1000
 
     def __init__(self, settings=None, logging=None):
         self.settings = settings
@@ -147,7 +147,7 @@ class ES():
 
     def add_bulk_action(self, action):
         self.bulk_actions.append(action)
-        if len(self.bulk_actions) > BULK_FLUSH_SIZE:
+        if len(self.bulk_actions) > self.BULK_FLUSH_SIZE:
             self.flush_bulk_actions()
 
     def flush_bulk_actions(self, refresh=False):

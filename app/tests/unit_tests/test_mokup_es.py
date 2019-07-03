@@ -1,7 +1,15 @@
+import json
 import unittest
+
+import copy
 
 from tests.unit_tests.mokup.mokup_es import mokup_es
 from helpers.singletons import settings, logging
+from helpers.outlier import Outlier
+
+doc_without_outlier_test_file = json.load(open("/app/tests/unit_tests/files/doc_without_outlier.json"))
+doc_with_outlier_with_derived_timestamp_test_file = json.load(
+                                    open("/app/tests/unit_tests/files/doc_with_outlier_with_derived_timestamp.json"))
 
 
 class TestMokupEs(unittest.TestCase):
@@ -89,3 +97,16 @@ class TestMokupEs(unittest.TestCase):
         self.es.add_doc(data)
         with self.assertRaises(KeyError):
             self.es.add_doc(data)
+
+    def test_flush_bulk_actions_using_one_save_outlier(self):
+        doc_with_outlier_with_derived_timestamp = copy.deepcopy(doc_with_outlier_with_derived_timestamp_test_file)
+        doc_with_outlier_with_derived_timestamp.pop('sort')  # field add by es
+        doc_with_outlier_with_derived_timestamp.pop('_score')  # field add by es
+        doc_without_outlier = copy.deepcopy(doc_without_outlier_test_file)
+        test_outlier = Outlier(outlier_type="dummy type", outlier_reason="dummy reason",
+                               outlier_summary="dummy summary")
+        test_outlier.outlier_dict["observation"] = "dummy observation"
+
+        self.es.save_outlier(doc_without_outlier, test_outlier)
+        result = [elem for elem in self.es.scan()][0]
+        self.assertEqual(result, doc_with_outlier_with_derived_timestamp)
