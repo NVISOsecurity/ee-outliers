@@ -6,8 +6,8 @@ import copy
 import helpers.es
 import helpers.logging
 from helpers.outlier import Outlier
-from helpers.singletons import settings
-from helpers.custom_es import custom_es
+from helpers.singletons import settings, logging
+from tests.unit_tests.mokup.mokup_es import mokup_es
 
 doc_without_outlier_test_file = json.load(open("/app/tests/unit_tests/files/doc_without_outlier.json"))
 doc_with_outlier_test_file = json.load(open("/app/tests/unit_tests/files/doc_with_outlier.json"))
@@ -157,7 +157,21 @@ class TestOutlierOperations(unittest.TestCase):
         settings.process_configuration_files("/app/tests/unit_tests/files/whitelist_tests_05.conf")
         self.assertFalse(test_outlier.is_whitelisted(additional_dict_values_to_check=orig_doc))
 
-    def test_whitelist_config_change(self):
-        orig_doc = copy.deepcopy(doc_with_outlier_test_file)
+    def test_whitelist_config_change_remove_multi_item_literal(self):
+        doc_with_outlier = copy.deepcopy(doc_with_outlier_test_file)
+        doc_without_outlier = copy.deepcopy(doc_without_outlier_test_file)
+        es = mokup_es(settings, logging)
+        es.add_doc(doc_with_outlier)
+        settings.process_configuration_files("/app/tests/unit_tests/files/whitelist_tests_01_with_general.conf")
+        es.remove_all_whitelisted_outliers()
+        result = [elem for elem in es.scan()][0]
+        self.assertEqual(result, doc_without_outlier)
 
-        custom_es.add_data()
+    def test_whitelist_config_change_single_literal_not_to_match_in_doc_with_outlier(self):
+        doc_with_outlier = copy.deepcopy(doc_with_outlier_test_file)
+        es = mokup_es(settings, logging)
+        es.add_doc(doc_with_outlier)
+        settings.process_configuration_files("/app/tests/unit_tests/files/whitelist_tests_03_with_general.conf")
+        es.remove_all_whitelisted_outliers()
+        result = [elem for elem in es.scan()][0]
+        self.assertEqual(result, doc_with_outlier)
