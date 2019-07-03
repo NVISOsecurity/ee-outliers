@@ -3,7 +3,7 @@ import unittest
 
 import copy
 
-from tests.unit_tests.mokup.mokup_es import mokup_es
+from tests.unit_tests.test_stub.test_stub_es import test_stub_es
 from helpers.singletons import settings, logging
 from helpers.outlier import Outlier
 
@@ -12,9 +12,9 @@ doc_with_outlier_with_derived_timestamp_test_file = json.load(
                                     open("/app/tests/unit_tests/files/doc_with_outlier_with_derived_timestamp.json"))
 
 
-class TestMokupEs(unittest.TestCase):
+class TestTestStubEs(unittest.TestCase):
     def setUp(self):
-        self.es = mokup_es(settings, logging)
+        self.es = test_stub_es(settings, logging)
 
     def _get_example_dictionary_key_value_and_expected(self):
         dictionary_value = {

@@ -1,11 +1,12 @@
 import unittest
 
-from tests.unit_tests.mokup.mokup_es import mokup_es
+from tests.unit_tests.test_stub.test_stub_es import test_stub_es
 from helpers.singletons import settings, logging
+
 
 class TestAnalyzer(unittest.TestCase):
     def setUp(self):
-        self.es = mokup_es(settings, logging)
+        self.es = test_stub_es(settings, logging)
 
     def test_each_batch_was_processed(self):
         pass
