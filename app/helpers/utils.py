@@ -5,7 +5,6 @@ import numpy as np
 import base64
 import re
 from statistics import mean, median
-import os
 import validators
 
 
