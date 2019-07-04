@@ -48,7 +48,12 @@ class ES:
 
     def count_documents(self, index, bool_clause=None, query_fields=None, search_query=None):
         res = self.conn.search(index=index, body=build_search_query(bool_clause=bool_clause, search_range=self.settings.search_range, query_fields=query_fields, search_query=search_query), size=self.settings.config.getint("general", "es_scan_size"), scroll=self.settings.config.get("general", "es_scroll_time"))
-        return res["hits"]["total"]
+        result = res["hits"]["total"]
+        # Result depend of the version of ElasticSearch (> 7, the result is a dictionary)
+        if isinstance(result, dict):
+            return result["value"]
+        else:
+            return result
 
     def _update_es(self, doc):
         self.conn.delete(index=doc["_index"], doc_type=doc["_type"], id=doc["_id"], refresh=True)
