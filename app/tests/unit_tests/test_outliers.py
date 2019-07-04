@@ -4,9 +4,8 @@ import unittest
 import copy
 
 import helpers.es
-import helpers.logging
 from helpers.outlier import Outlier
-from helpers.singletons import settings, logging, es
+from helpers.singletons import settings, es
 from tests.unit_tests.test_stub.test_stub_es import *
 
 doc_without_outlier_test_file = json.load(open("/app/tests/unit_tests/files/doc_without_outlier.json"))
