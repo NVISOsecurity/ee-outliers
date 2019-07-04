@@ -4,10 +4,9 @@ import unittest
 import copy
 
 import helpers.es
-import helpers.logging
 from helpers.outlier import Outlier
-from helpers.singletons import settings
-
+from helpers.singletons import settings, es
+from tests.unit_tests.test_stub.test_stub_es import *
 
 doc_without_outlier_test_file = json.load(open("/app/tests/unit_tests/files/doc_without_outlier.json"))
 doc_with_outlier_test_file = json.load(open("/app/tests/unit_tests/files/doc_with_outlier.json"))
@@ -18,12 +17,13 @@ doc_for_whitelist_testing_file = json.load(open("/app/tests/unit_tests/files/doc
 
 class TestOutlierOperations(unittest.TestCase):
     def setUp(self):
-        pass
+        apply_new_es()
 
     def tearDown(self):
         # restore the default configuration file so we don't influence other unit tests that use the settings singleton
         settings.process_configuration_files("/defaults/outliers.conf")
         settings.process_arguments()
+        restore_es()
 
     def test_add_outlier_to_doc(self):
         test_outlier = Outlier(outlier_type="dummy type", outlier_reason="dummy reason", outlier_summary="dummy summary")
@@ -98,28 +98,32 @@ class TestOutlierOperations(unittest.TestCase):
         whitelist_item = r"C:\Windows\system32\msfeedssync.exe sync"
         test_outlier = Outlier(outlier_type="dummy type", outlier_reason="dummy reason", outlier_summary="dummy summary")
 
-        result = test_outlier.matches_specific_whitelist_item(whitelist_item, "literal", additional_dict_values_to_check=doc_for_whitelist_testing_file)
+        result = test_outlier.matches_specific_whitelist_item_literally(whitelist_item,
+                                                        additional_dict_values_to_check=doc_for_whitelist_testing_file)
         self.assertTrue(result)
 
     def test_whitelist_literal_mismatch(self):
         whitelist_item = r"C:\Windows\system32\msfeedssync.exe syncWRONG"
         test_outlier = Outlier(outlier_type="dummy type", outlier_reason="dummy reason", outlier_summary="dummy summary")
 
-        result = test_outlier.matches_specific_whitelist_item(whitelist_item, "literal", additional_dict_values_to_check=doc_for_whitelist_testing_file)
+        result = test_outlier.matches_specific_whitelist_item_literally(whitelist_item,
+                                                        additional_dict_values_to_check=doc_for_whitelist_testing_file)
         self.assertFalse(result)
 
     def test_whitelist_regexp_match(self):
         whitelist_item = r"^.*.exe sync$"
         test_outlier = Outlier(outlier_type="dummy type", outlier_reason="dummy reason", outlier_summary="dummy summary")
 
-        result = test_outlier.matches_specific_whitelist_item(whitelist_item, "regexp", additional_dict_values_to_check=doc_for_whitelist_testing_file)
+        result = test_outlier.matches_specific_whitelist_item_regexp(whitelist_item,
+                                                         additional_dict_values_to_check=doc_for_whitelist_testing_file)
         self.assertTrue(result)
 
     def test_whitelist_regexp_mismatch(self):
         whitelist_item = r"^.*.exeZZZZZ sync$"
         test_outlier = Outlier(outlier_type="dummy type", outlier_reason="dummy reason", outlier_summary="dummy summary")
 
-        result = test_outlier.matches_specific_whitelist_item(whitelist_item, "regexp", additional_dict_values_to_check=doc_for_whitelist_testing_file)
+        result = test_outlier.matches_specific_whitelist_item_regexp(whitelist_item,
+                                                         additional_dict_values_to_check=doc_for_whitelist_testing_file)
         self.assertFalse(result)
 
     def test_whitelist_config_file_multi_item_match(self):
@@ -156,3 +160,20 @@ class TestOutlierOperations(unittest.TestCase):
 
         settings.process_configuration_files("/app/tests/unit_tests/files/whitelist_tests_05.conf")
         self.assertFalse(test_outlier.is_whitelisted(additional_dict_values_to_check=orig_doc))
+
+    def test_whitelist_config_change_remove_multi_item_literal(self):
+        doc_with_outlier = copy.deepcopy(doc_with_outlier_test_file)
+        doc_without_outlier = copy.deepcopy(doc_without_outlier_test_file)
+        add_doc(doc_with_outlier)
+        settings.process_configuration_files("/app/tests/unit_tests/files/whitelist_tests_01_with_general.conf")
+        es.remove_all_whitelisted_outliers()
+        result = [elem for elem in es.scan()][0]
+        self.assertEqual(result, doc_without_outlier)
+
+    def test_whitelist_config_change_single_literal_not_to_match_in_doc_with_outlier(self):
+        doc_with_outlier = copy.deepcopy(doc_with_outlier_test_file)
+        add_doc(doc_with_outlier)
+        settings.process_configuration_files("/app/tests/unit_tests/files/whitelist_tests_03_with_general.conf")
+        es.remove_all_whitelisted_outliers()
+        result = [elem for elem in es.scan()][0]
+        self.assertEqual(result, doc_with_outlier)
