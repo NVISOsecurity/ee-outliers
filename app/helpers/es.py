@@ -48,7 +48,12 @@ class ES:
 
     def count_documents(self, index, bool_clause=None, query_fields=None, search_query=None):
         res = self.conn.search(index=index, body=build_search_query(bool_clause=bool_clause, search_range=self.settings.search_range, query_fields=query_fields, search_query=search_query), size=self.settings.config.getint("general", "es_scan_size"), scroll=self.settings.config.get("general", "es_scroll_time"))
-        return res["hits"]["total"]
+        result = res["hits"]["total"]
+        # Result depend of the version of ElasticSearch (> 7, the result is a dictionary)
+        if isinstance(result, dict):
+            return result["value"]
+        else:
+            return result
 
     def _update_es(self, doc):
         self.conn.delete(index=doc["_index"], doc_type=doc["_type"], id=doc["_id"], refresh=True)
@@ -84,29 +89,30 @@ class ES:
         total_nr_outliers = self.count_documents(index=idx, bool_clause=outliers_filter_query)
         self.logging.logger.info("going to analyze %s outliers and remove all whitelisted items", "{:,}".format(total_nr_outliers))
 
-        for doc in self.scan(index=idx, bool_clause=outliers_filter_query):
-            total_outliers = int(doc["_source"]["outliers"]["total_outliers"])
-            # Generate all outlier objects for this document
-            total_whitelisted = 0
+        if total_nr_outliers > 0:
+            for doc in self.scan(index=idx, bool_clause=outliers_filter_query):
+                total_outliers = int(doc["_source"]["outliers"]["total_outliers"])
+                # Generate all outlier objects for this document
+                total_whitelisted = 0
 
-            for i in range(total_outliers):
-                outlier_type = doc["_source"]["outliers"]["type"][i]
-                outlier_reason = doc["_source"]["outliers"]["reason"][i]
-                outlier_summary = doc["_source"]["outliers"]["summary"][i]
+                for i in range(total_outliers):
+                    outlier_type = doc["_source"]["outliers"]["type"][i]
+                    outlier_reason = doc["_source"]["outliers"]["reason"][i]
+                    outlier_summary = doc["_source"]["outliers"]["summary"][i]
 
-                outlier = Outlier(outlier_type=outlier_type, outlier_reason=outlier_reason, outlier_summary=outlier_summary)
-                if outlier.is_whitelisted(additional_dict_values_to_check=doc):
-                    total_whitelisted += 1
+                    outlier = Outlier(outlier_type=outlier_type, outlier_reason=outlier_reason, outlier_summary=outlier_summary)
+                    if outlier.is_whitelisted(additional_dict_values_to_check=doc):
+                        total_whitelisted += 1
 
-            # if all outliers for this document are whitelisted, removed them all. If not, don't touch the document.
-            # this is a limitation in the way our outliers are stored: if not ALL of them are whitelisted, we can't remove just the whitelisted ones
-            # from the Elasticsearch event, as they are stored as array elements and potentially contain observations that should be removed, too.
-            # In this case, just don't touch the document.
-            if total_whitelisted == total_outliers:
-                total_docs_whitelisted += 1
-                doc = remove_outliers_from_document(doc)
+                # if all outliers for this document are whitelisted, removed them all. If not, don't touch the document.
+                # this is a limitation in the way our outliers are stored: if not ALL of them are whitelisted, we can't remove just the whitelisted ones
+                # from the Elasticsearch event, as they are stored as array elements and potentially contain observations that should be removed, too.
+                # In this case, just don't touch the document.
+                if total_whitelisted == total_outliers:
+                    total_docs_whitelisted += 1
+                    doc = remove_outliers_from_document(doc)
 
-                self._update_es(doc)
+                    self._update_es(doc)
 
         return total_docs_whitelisted
 
@@ -116,16 +122,16 @@ class ES:
         must_clause = {"filter": [{"term": {"tags": "outlier"}}]}
         total_outliers = self.count_documents(index=idx, bool_clause=must_clause)
 
-        query = build_search_query(bool_clause=must_clause, search_range=self.settings.search_range)
-
-        script = {
-            "source": "ctx._source.remove(\"outliers\"); ctx._source.tags.remove(ctx._source.tags.indexOf(\"outlier\"))",
-            "lang": "painless"
-        }
-
-        query["script"] = script
-
         if total_outliers > 0:
+            query = build_search_query(bool_clause=must_clause, search_range=self.settings.search_range)
+
+            script = {
+                "source": "ctx._source.remove(\"outliers\"); ctx._source.tags.remove(ctx._source.tags.indexOf(\"outlier\"))",
+                "lang": "painless"
+            }
+
+            query["script"] = script
+
             self.logging.logger.info("wiping %s existing outliers", "{:,}".format(total_outliers))
             self.conn.update_by_query(index=idx, body=query, refresh=True, wait_for_completion=True)
             self.logging.logger.info("wiped outlier information of " + "{:,}".format(total_outliers) + " documents")
