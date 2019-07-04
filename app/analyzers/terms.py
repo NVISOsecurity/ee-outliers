@@ -60,7 +60,8 @@ class TermsAnalyzer(Analyzer):
 
                         for aggregator_sentence in aggregator_sentences:
                             flattened_aggregator_sentence = helpers.utils.flatten_sentence(aggregator_sentence)
-                            eval_terms_array = self.add_term_to_batch(eval_terms_array, flattened_aggregator_sentence, flattened_target_sentence, observations, doc)
+                            eval_terms_array = self.add_term_to_batch(eval_terms_array, flattened_aggregator_sentence,
+                                                                 flattened_target_sentence, observations, doc)
 
                     total_terms_added += len(target_sentences)
 
@@ -146,16 +147,6 @@ class TermsAnalyzer(Analyzer):
         if self.model_settings["trigger_on"] not in {"high", "low"}:
             raise ValueError("Unexpected outlier trigger condition " + self.model_settings["trigger_on"])
 
-    @staticmethod
-    def add_term_to_batch(eval_terms_array, aggregator_value, target_value, observations, doc):
-        if aggregator_value not in eval_terms_array.keys():
-            eval_terms_array[aggregator_value] = defaultdict(list)
-
-        eval_terms_array[aggregator_value]["targets"].append(target_value)
-        eval_terms_array[aggregator_value]["observations"].append(observations)
-        eval_terms_array[aggregator_value]["raw_docs"].append(doc)
-
-        return eval_terms_array
 
     def evaluate_batch_for_outliers(self, terms=None):
         # Initialize
