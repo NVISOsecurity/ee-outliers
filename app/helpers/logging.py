@@ -51,11 +51,8 @@ class Logging:
         if self.verbosity >= 5:
             should_log = True
         else:
-            if (self.current_step % max(1, int(math.pow(10, (5 - self.verbosity))))) == 0:
-                should_log = True
-
-            if self.current_step == self.total_steps:
-                should_log = True
+            should_log = self.current_step % max(1, int(math.pow(10, (5 - self.verbosity)))) == 0 or \
+                            self.current_step == self.total_steps
 
         if should_log:
             time_diff = max(float(1), float(dt.datetime.today().timestamp() - self.start_time))  # avoid a division by zero
