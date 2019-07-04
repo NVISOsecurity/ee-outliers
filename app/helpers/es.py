@@ -118,16 +118,16 @@ class ES:
         must_clause = {"filter": [{"term": {"tags": "outlier"}}]}
         total_outliers = self.count_documents(index=idx, bool_clause=must_clause)
 
-        query = build_search_query(bool_clause=must_clause, search_range=self.settings.search_range)
-
-        script = {
-            "source": "ctx._source.remove(\"outliers\"); ctx._source.tags.remove(ctx._source.tags.indexOf(\"outlier\"))",
-            "lang": "painless"
-        }
-
-        query["script"] = script
-
         if total_outliers > 0:
+            query = build_search_query(bool_clause=must_clause, search_range=self.settings.search_range)
+
+            script = {
+                "source": "ctx._source.remove(\"outliers\"); ctx._source.tags.remove(ctx._source.tags.indexOf(\"outlier\"))",
+                "lang": "painless"
+            }
+
+            query["script"] = script
+
             self.logging.logger.info("wiping %s existing outliers", "{:,}".format(total_outliers))
             self.conn.update_by_query(index=idx, body=query, refresh=True, wait_for_completion=True)
             self.logging.logger.info("wiped outlier information of " + "{:,}".format(total_outliers) + " documents")
