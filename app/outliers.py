@@ -74,19 +74,19 @@ def perform_analysis() -> bool:
                 simplequery_analyzer: SimplequeryAnalyzer = SimplequeryAnalyzer(config_section_name=config_section_name)
                 analyzers.append(simplequery_analyzer)
 
-            if config_section_name.startswith("metrics_"):
+            elif config_section_name.startswith("metrics_"):
                 metrics_analyzer: MetricsAnalyzer = MetricsAnalyzer(config_section_name=config_section_name)
                 analyzers.append(metrics_analyzer)
 
-            if config_section_name.startswith("terms_"):
+            elif config_section_name.startswith("terms_"):
                 terms_analyzer: TermsAnalyzer = TermsAnalyzer(config_section_name=config_section_name)
                 analyzers.append(terms_analyzer)
 
-            if config_section_name.startswith("beaconing_"):
+            elif config_section_name.startswith("beaconing_"):
                 beaconing_analyzer: BeaconingAnalyzer = BeaconingAnalyzer(config_section_name=config_section_name)
                 analyzers.append(beaconing_analyzer)
 
-            if config_section_name.startswith("word2vec_"):
+            elif config_section_name.startswith("word2vec_"):
                 word2vec_analyzer: Word2VecAnalyzer = Word2VecAnalyzer(config_section_name=config_section_name)
                 analyzers.append(word2vec_analyzer)
 
@@ -95,7 +95,7 @@ def perform_analysis() -> bool:
 
     analyzers_to_evaluate: List[Analyzer] = list()
 
-    for idx, analyzer in enumerate(analyzers):
+    for analyzer in analyzers:
         if analyzer.should_run_model or analyzer.should_test_model:
             analyzers_to_evaluate.append(analyzer)
 
@@ -116,7 +116,7 @@ def perform_analysis() -> bool:
             es.flush_bulk_actions(refresh=True)
 
     if analyzed_models == 0:
-        logging.logger.warning("no use cases were analyzed. are you sure your configuration file contains use cases" + \
+        logging.logger.warning("no use cases were analyzed. are you sure your configuration file contains use cases" + 
                                ", which are enabled?")
 
     return analyzed_models == len(analyzers_to_evaluate)
@@ -166,16 +166,16 @@ if settings.args.run_mode == "daemon":
 
             time.sleep(5)
 
-        if first_run:
-            first_run = False
-            logging.logger.info("first run, so we will start immediately - after this, we will respect the cron " + \
-                                "schedule defined in the configuration file")
-
         settings.process_arguments()  # Refresh settings
 
-        if settings.config.getboolean("general", "es_wipe_all_existing_outliers") and num_runs == 1:
-            logging.logger.info("wiping all existing outliers on first run")
-            es.remove_all_outliers()
+        if first_run:
+            first_run = False
+            logging.logger.info("first run, so we will start immediately - after this, we will respect the cron " +
+                                "schedule defined in the configuration file")
+
+            if settings.config.getboolean("general", "es_wipe_all_existing_outliers"):
+                logging.logger.info("wiping all existing outliers on first run")
+                es.remove_all_outliers()
 
         logging.logger.info(settings.get_time_window_info())
 
@@ -192,7 +192,7 @@ if settings.args.run_mode == "daemon":
         logging.print_generic_intro("starting outlier detection")
         run_succeeded_without_errors = perform_analysis()
         if not run_succeeded_without_errors:
-            logging.logger.warning("ran into errors while analyzing use cases - not going to wait for the cron " + \
+            logging.logger.warning("ran into errors while analyzing use cases - not going to wait for the cron " +
                                    "schedule, we just start analyzing again")
         else:
             logging.logger.info("no errors encountered while analyzing use cases")
@@ -200,7 +200,7 @@ if settings.args.run_mode == "daemon":
         logging.print_generic_intro("finished performing outlier detection")
 
 
-if settings.args.run_mode == "interactive":
+elif settings.args.run_mode == "interactive":
     es.init_connection()
 
     if settings.config.getboolean("general", "es_wipe_all_existing_outliers"):

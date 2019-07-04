@@ -40,8 +40,8 @@ class ES:
 
     def init_connection(self) -> Elasticsearch:
         self.conn: Elasticsearch = Elasticsearch([self.settings.config.get("general", "es_url")], use_ssl=False,
-                                  timeout=self.settings.config.getint("general", "es_timeout"),
-                                  verify_certs=False, retry_on_timeout=True)
+                                                 timeout=self.settings.config.getint("general", "es_timeout"),
+                                                 verify_certs=False, retry_on_timeout=True)
 
         if self.conn.ping():
             self.logging.logger.info("connected to Elasticsearch on host %s" %
@@ -52,8 +52,8 @@ class ES:
 
         return self.conn
 
-    def scan(self, index: str, bool_clause: Optional[Dict[str, List]]=None, sort_clause: Optional[Dict]=None,
-             query_fields: Optional[Dict]=None, search_query: Optional[Dict[str, List]]=None) -> Dict:
+    def scan(self, index: str, bool_clause: Optional[Dict[str, List]] = None, sort_clause: Optional[Dict] = None,
+             query_fields: Optional[Dict] = None, search_query: Optional[Dict[str, List]] = None) -> Dict:
         preserve_order: bool = True if sort_clause is not None else False
         return eshelpers.scan(self.conn, request_timeout=self.settings.config.getint("general", "es_timeout"), 
                               index=index, query=build_search_query(bool_clause=bool_clause, 
@@ -65,16 +65,18 @@ class ES:
                               scroll=self.settings.config.get("general", "es_scroll_time"), 
                               preserve_order=preserve_order, raise_on_error=False)
 
-    def count_documents(self, index: str, bool_clause: Optional[Dict[str, List]]=None,
-                        query_fields: Optional[Dict]=None, search_query: Optional[Dict[str, List]]=None) -> int:
-        res: Dict[str, Any] = self.conn.search(index=index, body=build_search_query(bool_clause=bool_clause, 
-                                                       search_range=self.settings.search_range, 
-                                                       query_fields=query_fields, search_query=search_query), 
-                               size=self.settings.config.getint("general", "es_scan_size"), 
-                               scroll=self.settings.config.get("general", "es_scroll_time"))
+    def count_documents(self, index: str, bool_clause: Optional[Dict[str, List]] = None,
+                        query_fields: Optional[Dict] = None, search_query: Optional[Dict[str, List]] = None) -> int:
+        res: Dict[str, Any] = self.conn.search(index=index,
+                                               body=build_search_query(bool_clause=bool_clause,
+                                                                       search_range=self.settings.search_range,
+                                                                       query_fields=query_fields,
+                                                                       search_query=search_query),
+                                               size=self.settings.config.getint("general", "es_scan_size"),
+                                               scroll=self.settings.config.get("general", "es_scroll_time"))
         return res["hits"]["total"]
 
-    def filter_by_query_string(self, query_string: Optional[str]=None) -> Dict[str, List]:
+    def filter_by_query_string(self, query_string: Optional[str] = None) -> Dict[str, List]:
         bool_clause: Dict[str, List] = {"filter": [
             {"query_string": {"query": query_string}}
         ]}
@@ -144,24 +146,25 @@ class ES:
         must_clause: Dict[str, Any] = {"filter": [{"term": {"tags": "outlier"}}]}
         total_outliers: int = self.count_documents(index=idx, bool_clause=must_clause)
 
-        query: Dict[str, Dict] = build_search_query(bool_clause=must_clause, search_range=self.settings.search_range)
-
-        script: Dict[str, str] = {
-            "source": "ctx._source.remove(\"outliers\"); " + \
-                      "ctx._source.tags.remove(ctx._source.tags.indexOf(\"outlier\"))",
-            "lang": "painless"
-        }
-
-        query["script"] = script
-
         if total_outliers > 0:
+            query: Dict[str, Dict] = build_search_query(bool_clause=must_clause,
+                                                        search_range=self.settings.search_range)
+
+            script: Dict[str, str] = {
+                "source": "ctx._source.remove(\"outliers\"); " + \
+                          "ctx._source.tags.remove(ctx._source.tags.indexOf(\"outlier\"))",
+                "lang": "painless"
+            }
+
+            query["script"] = script
+
             self.logging.logger.info("wiping %s existing outliers", "{:,}".format(total_outliers))
             self.conn.update_by_query(index=idx, body=query, refresh=True, wait_for_completion=True)
             self.logging.logger.info("wiped outlier information of " + "{:,}".format(total_outliers) + " documents")
         else:
             self.logging.logger.info("no existing outliers were found, so nothing was wiped")
 
-    def process_outliers(self, doc: Dict[str, Any], outliers: List['Outlier'], should_notify: bool=False) -> None:
+    def process_outliers(self, doc: Dict[str, Any], outliers: List['Outlier'], should_notify: bool = False) -> None:
         for outlier in outliers:
             if outlier.is_whitelisted(additional_dict_values_to_check=doc):
                 if self.settings.config.getboolean("general", "print_outliers_to_console"):
@@ -181,7 +184,7 @@ class ES:
         if len(self.bulk_actions) > BULK_FLUSH_SIZE:
             self.flush_bulk_actions()
 
-    def flush_bulk_actions(self, refresh: bool=False) -> None:
+    def flush_bulk_actions(self, refresh: bool = False) -> None:
         if len(self.bulk_actions) == 0:
             return
         eshelpers.bulk(self.conn, self.bulk_actions, stats_only=True, refresh=refresh)
@@ -225,7 +228,7 @@ class ES:
 
         return derived_fields
 
-    def extract_fields_from_document(self, doc: Dict[str, Dict], extract_derived_fields: bool= False) -> Dict:
+    def extract_fields_from_document(self, doc: Dict[str, Dict], extract_derived_fields: bool = False) -> Dict:
         doc_fields: Dict = doc["_source"]
 
         if extract_derived_fields:
@@ -289,9 +292,9 @@ def remove_tag_from_document(doc: Dict[str, Any], tag: str) -> Dict[str, Any]:
     return doc
 
 
-def build_search_query(bool_clause: Optional[Dict[str, Any]]=None, sort_clause: Optional[Dict]=None,
-                       search_range: Optional[Dict[str, Dict]]=None, query_fields: Optional[Dict]=None,
-                       search_query: Optional[Dict[str, Any]]=None) -> Dict[str, Dict]:
+def build_search_query(bool_clause: Optional[Dict[str, Any]] = None, sort_clause: Optional[Dict] = None,
+                       search_range: Optional[Dict[str, Dict]] = None, query_fields: Optional[Dict] = None,
+                       search_query: Optional[Dict[str, Any]] = None) -> Dict[str, Dict]:
     query: Dict[str, Dict] = dict()
     query["query"] = dict()
     query["query"]["bool"] = dict()
@@ -321,7 +324,7 @@ def build_search_query(bool_clause: Optional[Dict[str, Any]]=None, sort_clause: 
     return query
 
 
-def get_time_filter(days: int, hours: int, timestamp_field: str="timestamp") -> Dict[str, Dict]:
+def get_time_filter(days: int, hours: int, timestamp_field: str = "timestamp") -> Dict[str, Dict]:
     time_start: str = (datetime.datetime.now() - datetime.timedelta(days=days, hours=hours)).isoformat()
     time_stop: str = datetime.datetime.now().isoformat()
 

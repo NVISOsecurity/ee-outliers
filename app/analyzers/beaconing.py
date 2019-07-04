@@ -23,8 +23,8 @@ class BeaconingAnalyzer(Analyzer):
         self.total_events: int = es.count_documents(index=self.es_index, search_query=search_query)
 
         logging.print_analysis_intro(event_type="evaluating " + self.model_name, total_events=self.total_events)
-        logging.init_ticker(total_steps=self.total_events, desc=self.model_name + " - evaluating " +
-                                                                self.model_type + " model")
+        logging.init_ticker(total_steps=self.total_events,
+                            desc=self.model_name + " - evaluating " + self.model_type + " model")
 
         eval_terms_array: DefaultDict = defaultdict()
         total_terms_added: int = 0
@@ -32,15 +32,15 @@ class BeaconingAnalyzer(Analyzer):
         outlier_batches_trend: int = 0
         for doc in es.scan(index=self.es_index, search_query=search_query):
             logging.tick()
-            fields: Dict = es.extract_fields_from_document(doc,
-                                                     extract_derived_fields=self.model_settings["use_derived_fields"])
+            fields: Dict = es.extract_fields_from_document(
+                                doc, extract_derived_fields=self.model_settings["use_derived_fields"])
 
             will_process_doc: bool
             try:
-                target_sentences: List[List] = helpers.utils.flatten_fields_into_sentences(fields=fields,
-                                                                   sentence_format=self.model_settings["target"])
-                aggregator_sentences: List[List] = helpers.utils.flatten_fields_into_sentences(fields=fields,
-                                                                   sentence_format=self.model_settings["aggregator"])
+                target_sentences: List[List] = helpers.utils.flatten_fields_into_sentences(
+                                                    fields=fields, sentence_format=self.model_settings["target"])
+                aggregator_sentences: List[List] = helpers.utils.flatten_fields_into_sentences(
+                                                    fields=fields, sentence_format=self.model_settings["aggregator"])
                 will_process_doc = True
             except (KeyError, TypeError):
                 logging.logger.debug("Skipping event which does not contain the target and aggregator fields we are " +\
@@ -130,8 +130,8 @@ class BeaconingAnalyzer(Analyzer):
                                  str(counted_targets))
 
             if len(counted_targets) < self.model_settings["min_target_buckets"]:
-                logging.logger.debug("less than " + str(self.model_settings["min_target_buckets"]) + " time buckets, "+\
-                                                             "skipping analysis")
+                logging.logger.debug("less than " + str(self.model_settings["min_target_buckets"]) + \
+                                     " time buckets, skipping analysis")
                 continue
 
             stdev: Union[int, float, np.float64] = np.std(counted_target_values)
@@ -140,15 +140,10 @@ class BeaconingAnalyzer(Analyzer):
             for term_counter, term_value in enumerate(terms[aggregator_value]["targets"]):
                 term_value_count: int = counted_targets[term_value]
 
-                is_outlier: bool
+                # if, is outlier
                 if stdev < self.model_settings["trigger_sensitivity"]:
-                    is_outlier = True
-                else:
-                    is_outlier = False
-
-                if is_outlier:
-                    outliers.append(self.prepare_and_process_outlier(stdev, term_value_count, terms,
-                                                                     aggregator_value, term_counter))
+                    outliers.append(self.prepare_and_process_outlier(stdev, term_value_count, terms, aggregator_value,
+                                                                     term_counter))
 
         return outliers
 
@@ -156,7 +151,7 @@ class BeaconingAnalyzer(Analyzer):
                                     terms: DefaultDict, aggregator_value: str, term_counter: int) -> Outlier:
         # Extract fields from raw document
         fields: Dict = es.extract_fields_from_document(terms[aggregator_value]["raw_docs"][term_counter],
-                                                 extract_derived_fields=self.model_settings["use_derived_fields"])
+                                                       extract_derived_fields=self.model_settings["use_derived_fields"])
 
         observations: Dict[str, Any] = terms[aggregator_value]["observations"][term_counter]
 
