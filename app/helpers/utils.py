@@ -225,6 +225,7 @@ def get_decision_frontier(trigger_method, values_array, trigger_sensitivity, tri
         raise ValueError("Unexpected trigger method " + trigger_method + ", could not calculate decision frontier")
 
     if decision_frontier < 0:
+        # Could not do "from helpers.singletons import logging" due to circle import
         helpers.singletons.logging.logger.warning("negative decision frontier %.2f, this will not generate any "
                                                   "outliers", decision_frontier)
 
