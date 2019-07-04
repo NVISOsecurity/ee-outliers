@@ -7,6 +7,8 @@ import re
 from statistics import mean, median
 import validators
 
+import helpers.singletons
+
 
 def flatten_dict(d, parent_key='', sep='.'):
     items = []
@@ -223,8 +225,9 @@ def get_decision_frontier(trigger_method, values_array, trigger_sensitivity, tri
         raise ValueError("Unexpected trigger method " + trigger_method + ", could not calculate decision frontier")
 
     if decision_frontier < 0:
-        from helpers.singletons import logging  # TODO - Fix by making this a global import, which doesn't work for the moment
-        logging.logger.warning("negative decision frontier %.2f, this will not generate any outliers", decision_frontier)
+        # Could not do "from helpers.singletons import logging" due to circle import
+        helpers.singletons.logging.logger.warning("negative decision frontier %.2f, this will not generate any "
+                                                  "outliers", decision_frontier)
 
     return decision_frontier
 

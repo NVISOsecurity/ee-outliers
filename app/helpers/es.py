@@ -10,8 +10,6 @@ from helpers.notifier import Notifier
 from collections import defaultdict
 from itertools import chain
 
-BULK_FLUSH_SIZE = 1000
-
 
 @singleton
 class ES:
@@ -24,6 +22,8 @@ class ES:
     notifier = None
 
     bulk_actions = []
+
+    BULK_FLUSH_SIZE = 1000
 
     def __init__(self, settings=None, logging=None):
         self.settings = settings
@@ -55,6 +55,10 @@ class ES:
         else:
             return result
 
+    def _update_es(self, doc):
+        self.conn.delete(index=doc["_index"], doc_type=doc["_type"], id=doc["_id"], refresh=True)
+        self.conn.create(index=doc["_index"], doc_type=doc["_type"], id=doc["_id"], body=doc["_source"], refresh=True)
+
     def filter_by_query_string(self, query_string=None):
         bool_clause = {"filter": [
             {"query_string": {"query": query_string}}
@@ -85,30 +89,30 @@ class ES:
         total_nr_outliers = self.count_documents(index=idx, bool_clause=outliers_filter_query)
         self.logging.logger.info("going to analyze %s outliers and remove all whitelisted items", "{:,}".format(total_nr_outliers))
 
-        for doc in self.scan(index=idx, bool_clause=outliers_filter_query):
-            total_outliers = int(doc["_source"]["outliers"]["total_outliers"])
-            # Generate all outlier objects for this document
-            total_whitelisted = 0
+        if total_nr_outliers > 0:
+            for doc in self.scan(index=idx, bool_clause=outliers_filter_query):
+                total_outliers = int(doc["_source"]["outliers"]["total_outliers"])
+                # Generate all outlier objects for this document
+                total_whitelisted = 0
 
-            for i in range(total_outliers):
-                outlier_type = doc["_source"]["outliers"]["type"][i]
-                outlier_reason = doc["_source"]["outliers"]["reason"][i]
-                outlier_summary = doc["_source"]["outliers"]["summary"][i]
+                for i in range(total_outliers):
+                    outlier_type = doc["_source"]["outliers"]["type"][i]
+                    outlier_reason = doc["_source"]["outliers"]["reason"][i]
+                    outlier_summary = doc["_source"]["outliers"]["summary"][i]
 
-                outlier = Outlier(outlier_type=outlier_type, outlier_reason=outlier_reason, outlier_summary=outlier_summary)
-                if outlier.is_whitelisted(additional_dict_values_to_check=doc):
-                    total_whitelisted += 1
+                    outlier = Outlier(outlier_type=outlier_type, outlier_reason=outlier_reason, outlier_summary=outlier_summary)
+                    if outlier.is_whitelisted(additional_dict_values_to_check=doc):
+                        total_whitelisted += 1
 
-            # if all outliers for this document are whitelisted, removed them all. If not, don't touch the document.
-            # this is a limitation in the way our outliers are stored: if not ALL of them are whitelisted, we can't remove just the whitelisted ones
-            # from the Elasticsearch event, as they are stored as array elements and potentially contain observations that should be removed, too.
-            # In this case, just don't touch the document.
-            if total_whitelisted == total_outliers:
-                total_docs_whitelisted += 1
-                doc = remove_outliers_from_document(doc)
+                # if all outliers for this document are whitelisted, removed them all. If not, don't touch the document.
+                # this is a limitation in the way our outliers are stored: if not ALL of them are whitelisted, we can't remove just the whitelisted ones
+                # from the Elasticsearch event, as they are stored as array elements and potentially contain observations that should be removed, too.
+                # In this case, just don't touch the document.
+                if total_whitelisted == total_outliers:
+                    total_docs_whitelisted += 1
+                    doc = remove_outliers_from_document(doc)
 
-                self.conn.delete(index=doc["_index"], doc_type=doc["_type"], id=doc["_id"], refresh=True)
-                self.conn.create(index=doc["_index"], doc_type=doc["_type"], id=doc["_id"], body=doc["_source"], refresh=True)
+                    self._update_es(doc)
 
         return total_docs_whitelisted
 
@@ -151,7 +155,7 @@ class ES:
 
     def add_bulk_action(self, action):
         self.bulk_actions.append(action)
-        if len(self.bulk_actions) > BULK_FLUSH_SIZE:
+        if len(self.bulk_actions) > self.BULK_FLUSH_SIZE:
             self.flush_bulk_actions()
 
     def flush_bulk_actions(self, refresh=False):
