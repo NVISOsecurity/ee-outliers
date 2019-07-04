@@ -12,7 +12,7 @@ from statistics import mean, median
 doc_with_outlier_test_file = json.load(open("/app/tests/unit_tests/files/doc_with_outlier.json"))
 doc_with_asset_edgecases = json.load(open("/app/tests/unit_tests/files/doc_with_asset_edgecases.json"))
 
-test_config_path ="/app/tests/unit_tests/files/test_config.conf"
+test_file_modification_path = "/app/tests/unit_tests/files/file_modification_test.conf"
 
 list_values_array = [
     [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
@@ -573,20 +573,20 @@ class TestUtils(unittest.TestCase):
 
     def test_file_modification_not_modified(self):
         file_mod_watcher = helpers.watchers.FileModificationWatcher()
-        file_mod_watcher.add_files([test_config_path])
+        file_mod_watcher.add_files([test_file_modification_path])
 
         self.assertFalse(file_mod_watcher.files_changed())
 
     def test_file_modification_modified(self):
         file_mod_watcher = helpers.watchers.FileModificationWatcher()
-        file_mod_watcher.add_files([test_config_path])
+        file_mod_watcher.add_files([test_file_modification_path])
 
-        with open(test_config_path, 'r') as test_file:
+        with open(test_file_modification_path, 'r') as test_file:
             filecontent = test_file.read()
 
         filecontent.replace('schedule=0 0 * * *', 'schedule=1 0 * * *')
 
-        with open(test_config_path, 'w') as test_file:
+        with open(test_file_modification_path, 'w') as test_file:
             test_file.write(filecontent)
 
         self.assertTrue(file_mod_watcher.files_changed())
