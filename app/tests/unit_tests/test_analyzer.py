@@ -1,12 +1,15 @@
 import unittest
 
-from tests.unit_tests.test_stub.test_stub_es import testStubEs
-from helpers.singletons import settings, logging
+from tests.unit_tests.test_stub.test_stub_es import *
+from helpers.singletons import es
 
 
 class TestAnalyzer(unittest.TestCase):
     def setUp(self):
-        self.es = testStubEs(settings, logging)
+        apply_new_es()
+
+    def tearDown(self):
+        restore_es()
 
     def test_each_batch_was_processed(self):
         pass
