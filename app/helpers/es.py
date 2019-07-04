@@ -10,8 +10,6 @@ from helpers.notifier import Notifier
 from collections import defaultdict
 from itertools import chain
 
-BULK_FLUSH_SIZE = 1000
-
 
 @singleton
 class ES:
@@ -24,6 +22,8 @@ class ES:
     notifier = None
 
     bulk_actions = []
+
+    BULK_FLUSH_SIZE = 1000
 
     def __init__(self, settings=None, logging=None):
         self.settings = settings
@@ -49,6 +49,10 @@ class ES:
     def count_documents(self, index, bool_clause=None, query_fields=None, search_query=None):
         res = self.conn.search(index=index, body=build_search_query(bool_clause=bool_clause, search_range=self.settings.search_range, query_fields=query_fields, search_query=search_query), size=self.settings.config.getint("general", "es_scan_size"), scroll=self.settings.config.get("general", "es_scroll_time"))
         return res["hits"]["total"]
+
+    def _update_es(self, doc):
+        self.conn.delete(index=doc["_index"], doc_type=doc["_type"], id=doc["_id"], refresh=True)
+        self.conn.create(index=doc["_index"], doc_type=doc["_type"], id=doc["_id"], body=doc["_source"], refresh=True)
 
     def filter_by_query_string(self, query_string=None):
         bool_clause = {"filter": [
@@ -103,8 +107,7 @@ class ES:
                     total_docs_whitelisted += 1
                     doc = remove_outliers_from_document(doc)
 
-                    self.conn.delete(index=doc["_index"], doc_type=doc["_type"], id=doc["_id"], refresh=True)
-                    self.conn.create(index=doc["_index"], doc_type=doc["_type"], id=doc["_id"], body=doc["_source"], refresh=True)
+                    self._update_es(doc)
 
         return total_docs_whitelisted
 
@@ -147,7 +150,7 @@ class ES:
 
     def add_bulk_action(self, action):
         self.bulk_actions.append(action)
-        if len(self.bulk_actions) > BULK_FLUSH_SIZE:
+        if len(self.bulk_actions) > self.BULK_FLUSH_SIZE:
             self.flush_bulk_actions()
 
     def flush_bulk_actions(self, refresh=False):

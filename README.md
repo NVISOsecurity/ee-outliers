@@ -74,11 +74,11 @@ docker run --network=sensor_network -v "$PWD/defaults:/mappedvolumes/config" -i 
 ### Running in daemon mode
 In this mode, ee-outliers will continuously run based on a cron schedule defined in the outliers configuration file.
 
-Example from the default configuration file which will run ee-outliers at 00:00 each night:
+Example from the default configuration file which will run ee-outliers at 00:10 each night (format: Minutes Hours DayNumber Month DayName):
 
 ```
 [daemon]
-schedule=0 0 * * *
+schedule=10 0 * * *
 ```
 
 Running ee-outliers in daemon mode:
