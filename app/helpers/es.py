@@ -10,8 +10,6 @@ from helpers.notifier import Notifier
 from collections import defaultdict
 from itertools import chain
 
-BULK_FLUSH_SIZE = 1000
-
 
 @singleton
 class ES:
@@ -24,6 +22,8 @@ class ES:
     notifier = None
 
     bulk_actions = []
+
+    BULK_FLUSH_SIZE = 1000
 
     def __init__(self, settings=None, logging=None):
         self.settings = settings
@@ -49,6 +49,10 @@ class ES:
     def count_documents(self, index, bool_clause=None, query_fields=None, search_query=None):
         res = self.conn.search(index=index, body=build_search_query(bool_clause=bool_clause, search_range=self.settings.search_range, query_fields=query_fields, search_query=search_query), size=self.settings.config.getint("general", "es_scan_size"), scroll=self.settings.config.get("general", "es_scroll_time"))
         return res["hits"]["total"]
+
+    def _update_es(self, doc):
+        self.conn.delete(index=doc["_index"], doc_type=doc["_type"], id=doc["_id"], refresh=True)
+        self.conn.create(index=doc["_index"], doc_type=doc["_type"], id=doc["_id"], body=doc["_source"], refresh=True)
 
     def filter_by_query_string(self, query_string=None):
         bool_clause = {"filter": [
@@ -102,8 +106,7 @@ class ES:
                 total_docs_whitelisted += 1
                 doc = remove_outliers_from_document(doc)
 
-                self.conn.delete(index=doc["_index"], doc_type=doc["_type"], id=doc["_id"], refresh=True)
-                self.conn.create(index=doc["_index"], doc_type=doc["_type"], id=doc["_id"], body=doc["_source"], refresh=True)
+                self._update_es(doc)
 
         return total_docs_whitelisted
 
@@ -113,16 +116,16 @@ class ES:
         must_clause = {"filter": [{"term": {"tags": "outlier"}}]}
         total_outliers = self.count_documents(index=idx, bool_clause=must_clause)
 
-        query = build_search_query(bool_clause=must_clause, search_range=self.settings.search_range)
-
-        script = {
-            "source": "ctx._source.remove(\"outliers\"); ctx._source.tags.remove(ctx._source.tags.indexOf(\"outlier\"))",
-            "lang": "painless"
-        }
-
-        query["script"] = script
-
         if total_outliers > 0:
+            query = build_search_query(bool_clause=must_clause, search_range=self.settings.search_range)
+
+            script = {
+                "source": "ctx._source.remove(\"outliers\"); ctx._source.tags.remove(ctx._source.tags.indexOf(\"outlier\"))",
+                "lang": "painless"
+            }
+
+            query["script"] = script
+
             self.logging.logger.info("wiping %s existing outliers", "{:,}".format(total_outliers))
             self.conn.update_by_query(index=idx, body=query, refresh=True, wait_for_completion=True)
             self.logging.logger.info("wiped outlier information of " + "{:,}".format(total_outliers) + " documents")
@@ -146,7 +149,7 @@ class ES:
 
     def add_bulk_action(self, action):
         self.bulk_actions.append(action)
-        if len(self.bulk_actions) > BULK_FLUSH_SIZE:
+        if len(self.bulk_actions) > self.BULK_FLUSH_SIZE:
             self.flush_bulk_actions()
 
     def flush_bulk_actions(self, refresh=False):
