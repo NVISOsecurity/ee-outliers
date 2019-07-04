@@ -43,7 +43,7 @@ class ES:
         return self.conn
 
     def scan(self, index, bool_clause=None, sort_clause=None, query_fields=None, search_query=None):
-        
+
         search_range = get_time_filter(days=HISTORY FROM ANALYSERS, hours=FROM ANALYSERS, timestamp_field=self.config.get("general", "timestamp_field", fallback="timestamp"))
 
         search_range_start = self.search_range["range"][str(self.config.get("general", "timestamp_field", fallback="timestamp"))]["gte"]
