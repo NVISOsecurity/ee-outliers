@@ -34,6 +34,16 @@ class Analyzer(abc.ABC):
         model_settings = dict()
 
         try:
+            model_settings["history_windows_days"] = settings.config.get(self.config_section_name, "history_windows_days")
+        except NoOptionError:
+            model_settings["history_windows_days"] = settings.config.getint("general", "history_window_days")
+
+        try:
+            model_settings["history_windows_hours"] = settings.config.get(self.config_section_name, "history_windows_hours")
+        except NoOptionError:
+            model_settings["history_windows_hours"] = settings.config.getint("general", "history_window_hours")
+
+        try:
             model_settings["es_query_filter"] = settings.config.get(self.config_section_name, "es_query_filter")
         except NoOptionError:
             model_settings["es_query_filter"] = None

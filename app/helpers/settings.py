@@ -32,9 +32,8 @@ class Settings:
         self.loaded_config_paths = None
         self.failed_config_paths = None
 
-        self.search_range_start = None
-        self.search_range_end = None
-        self.search_range = None
+        self.history_windows_days = None
+        self.history_windows_hours = None
 
         self.process_arguments()
 
@@ -44,17 +43,8 @@ class Settings:
 
         self.process_configuration_files(args.config)
 
-        search_range = es.get_time_filter(days=self.config.getint("general", "history_window_days"), hours=self.config.getint("general", "history_window_hours"), timestamp_field=self.config.get("general", "timestamp_field", fallback="timestamp"))
-
-        self.search_range_start = search_range["range"][str(self.config.get("general", "timestamp_field", fallback="timestamp"))]["gte"]
-        self.search_range_end = search_range["range"][str(self.config.get("general", "timestamp_field", fallback="timestamp"))]["lte"]
-        self.search_range = search_range
-
-        # Daemon mode settings
-        if args.run_mode == "daemon":
-            pass
-        if args.run_mode == "interactive":
-            pass
+        self.history_windows_days = self.config.getint("general", "history_window_days")
+        self.history_windows_hours = self.config.getint("general", "history_window_hours")
 
     def reload_configuration_files(self):
         self.process_configuration_files(self.args.config)
