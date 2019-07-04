@@ -7,8 +7,6 @@ import re
 from statistics import mean, median
 import validators
 
-from typing import Dict
-
 import helpers.singletons
 
 
@@ -23,7 +21,7 @@ def flatten_dict(d, parent_key='', sep='.'):
     return dict(items)
 
 
-def dict_contains_dotkey(dict_value: Dict, key_name, case_sensitive: bool=True) -> bool:
+def dict_contains_dotkey(dict_value, key_name, case_sensitive=True):
     try:
         get_dotkey_value(dict_value, key_name, case_sensitive)
         return True
@@ -31,14 +29,13 @@ def dict_contains_dotkey(dict_value: Dict, key_name, case_sensitive: bool=True) 
         return False
 
 
-def get_dotkey_value(dict_value: Dict, key_name, case_sensitive: bool=True) -> Dict:
+def get_dotkey_value(dict_value, key_name, case_sensitive=True):
     """
     Get value by dot key in dictionary
     By default, the dotkey is matched case sensitive; for example, key "OsqueryFilter.process_name" will only match if
     the event contains a nested dictionary with keys "OsqueryFilter" and "process_name".
     By changing the case_sensitive parameter to "False", all elements of the dot key will be matched case insensitive.
-    For example, key "OsqueryFilter.process_name" will also match a nested dictionary with keys "osqueryfilter" and
-    "prOcEss_nAme".
+    For example, key "OsqueryFilter.process_name" will also match a nested dictionary with keys "osqueryfilter" and "prOcEss_nAme".
     """
     keys = key_name.split(".")
 
