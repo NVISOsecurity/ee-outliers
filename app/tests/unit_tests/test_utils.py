@@ -4,7 +4,6 @@ from millify import millify
 import numpy as np
 import copy
 import json
-from collections import defaultdict
 
 doc_with_outlier_test_file = json.load(open("/app/tests/unit_tests/files/doc_with_outlier.json"))
 doc_with_asset_edgecases = json.load(open("/app/tests/unit_tests/files/doc_with_asset_edgecases.json"))
@@ -275,59 +274,3 @@ class TestUtils(unittest.TestCase):
         # case insensitive key matching - mismatch
         test_key = "_sOurCez"
         self.assertFalse(helpers.utils.dict_contains_dotkey(doc_with_asset_edgecases, test_key, case_sensitive=False))
-
-    def test_add_term_to_batch_empty(self):
-        eval_terms_array = defaultdict()
-        aggregator_value = "key"
-        target_value = "test"
-        observations = {}
-        doc = {}
-
-        expectedEvalTerms = defaultdict()
-        expectedEvalTerms[aggregator_value] = defaultdict(list)
-        expectedEvalTerms[aggregator_value]["targets"] = [target_value]
-        expectedEvalTerms[aggregator_value]["observations"] = [{}]
-        expectedEvalTerms[aggregator_value]["raw_docs"] = [{}]
-
-        self.assertEqual(helpers.utils.add_term_to_batch(eval_terms_array, aggregator_value, target_value,
-                                                         observations, doc), expectedEvalTerms)
-
-    def test_add_term_to_batch_no_modification(self):
-        eval_terms_array = defaultdict()
-        aggregator_value = "key"
-        target_value = "test"
-        observations = {}
-        doc = {}
-
-        result = defaultdict()
-        result[aggregator_value] = defaultdict(list)
-        result[aggregator_value]["targets"] = [target_value]
-        result[aggregator_value]["observations"] = [observations]
-        result[aggregator_value]["raw_docs"] = [doc]
-
-        self.assertEqual(helpers.utils.add_term_to_batch(eval_terms_array, aggregator_value, target_value,
-                                                         observations, doc), result)
-
-    def test_add_term_to_batch_case1(self):
-        eval_terms_array = defaultdict()
-        aggregator_value = "key"
-        target_value = "test"
-        observations = {'a': 1, 'test': 'ok'}
-        doc = {'source': 'this', 'target': 12}
-        eval_terms_array[aggregator_value] = defaultdict(list)
-        eval_terms_array["newKey"] = defaultdict(list)
-        eval_terms_array["newKey2"] = "empty"
-        eval_terms_array[aggregator_value]["targets"] = [target_value]
-        eval_terms_array[aggregator_value]["test"] = 12
-
-        expectedEvalTerms = defaultdict()
-        expectedEvalTerms[aggregator_value] = defaultdict(list)
-        expectedEvalTerms["newKey"] = defaultdict(list)
-        expectedEvalTerms["newKey2"] = "empty"
-        expectedEvalTerms[aggregator_value]["targets"] = [target_value, target_value]
-        expectedEvalTerms[aggregator_value]["observations"] = [observations]
-        expectedEvalTerms[aggregator_value]["raw_docs"] = [doc]
-        expectedEvalTerms[aggregator_value]["test"] = 12
-
-        self.assertEqual(helpers.utils.add_term_to_batch(eval_terms_array, aggregator_value, target_value,
-                                                         observations, doc), expectedEvalTerms)
