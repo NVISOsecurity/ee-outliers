@@ -113,12 +113,8 @@ class BeaconingAnalyzer(Analyzer):
             for term_counter, term_value in enumerate(terms[aggregator_value]["targets"]):
                 term_value_count = counted_targets[term_value]
 
+                # if, is outlier
                 if stdev < self.model_settings["trigger_sensitivity"]:
-                    is_outlier = True
-                else:
-                    is_outlier = False
-
-                if is_outlier:
                     outliers.append(self.prepare_and_process_outlier(stdev, term_value_count, terms, aggregator_value, term_counter))
 
         return outliers

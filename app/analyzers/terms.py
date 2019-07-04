@@ -78,11 +78,12 @@ class TermsAnalyzer(Analyzer):
                     logging.logger.info("no outliers detected in batch")
                     outlier_batches_trend -= 1
 
+
                 if outlier_batches_trend == -3 and brute_force:
                     logging.logger.info("too many batches without outliers, we are not going to continue brute forcing")
                     break
 
-                if outlier_batches_trend == 3 and brute_force:
+                elif outlier_batches_trend == 3 and brute_force:
                     logging.logger.info("too many batches with outliers, we are not going to continue brute forcing")
                     break
 
@@ -211,7 +212,7 @@ class TermsAnalyzer(Analyzer):
         # For each aggregator, we iterate over all terms within it:
         # term_value_count for a document with term "A" then becomes "1" in the example above.
         # we then flag an outlier if that "1" is an outlier in the array ["1 1 1 2 1"]
-        if self.model_settings["target_count_method"] == "within_aggregator":
+        elif self.model_settings["target_count_method"] == "within_aggregator":
             for i, aggregator_value in enumerate(terms):
                 # Count percentage of each target value occuring
                 counted_targets = Counter(terms[aggregator_value]["targets"])
