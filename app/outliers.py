@@ -69,19 +69,19 @@ def perform_analysis():
                 simplequery_analyzer = SimplequeryAnalyzer(config_section_name=config_section_name)
                 analyzers.append(simplequery_analyzer)
 
-            if config_section_name.startswith("metrics_"):
+            elif config_section_name.startswith("metrics_"):
                 metrics_analyzer = MetricsAnalyzer(config_section_name=config_section_name)
                 analyzers.append(metrics_analyzer)
 
-            if config_section_name.startswith("terms_"):
+            elif config_section_name.startswith("terms_"):
                 terms_analyzer = TermsAnalyzer(config_section_name=config_section_name)
                 analyzers.append(terms_analyzer)
 
-            if config_section_name.startswith("beaconing_"):
+            elif config_section_name.startswith("beaconing_"):
                 beaconing_analyzer = BeaconingAnalyzer(config_section_name=config_section_name)
                 analyzers.append(beaconing_analyzer)
 
-            if config_section_name.startswith("word2vec_"):
+            elif config_section_name.startswith("word2vec_"):
                 word2vec_analyzer = Word2VecAnalyzer(config_section_name=config_section_name)
                 analyzers.append(word2vec_analyzer)
 
@@ -90,7 +90,7 @@ def perform_analysis():
 
     analyzers_to_evaluate = list()
 
-    for idx, analyzer in enumerate(analyzers):
+    for analyzer in analyzers:
         if analyzer.should_run_model or analyzer.should_test_model:
             analyzers_to_evaluate.append(analyzer)
 
@@ -213,7 +213,7 @@ if settings.args.run_mode == "daemon":
         logging.print_generic_intro("finished performing outlier detection")
 
 
-if settings.args.run_mode == "interactive":
+elif settings.args.run_mode == "interactive":
     es.init_connection()
 
     # Do we remove all existing outliers
