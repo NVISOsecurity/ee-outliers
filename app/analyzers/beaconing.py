@@ -2,7 +2,7 @@ from configparser import NoOptionError
 
 import numpy as np
 
-from helpers.analyzer import Analyzer, add_term_to_batch
+from helpers.analyzer import Analyzer
 from helpers.singletons import settings, es, logging
 from collections import defaultdict
 from collections import Counter
@@ -46,7 +46,7 @@ class BeaconingAnalyzer(Analyzer):
 
                     for aggregator_sentence in aggregator_sentences:
                         flattened_aggregator_sentence = helpers.utils.flatten_sentence(aggregator_sentence)
-                        eval_terms_array = add_term_to_batch(eval_terms_array, flattened_aggregator_sentence,
+                        eval_terms_array = self.add_term_to_batch(eval_terms_array, flattened_aggregator_sentence,
                                                              flattened_target_sentence, observations, doc)
 
                 total_terms_added += len(target_sentences)

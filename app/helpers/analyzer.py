@@ -115,14 +115,14 @@ class Analyzer(abc.ABC):
     def evaluate_model(self):
         raise NotImplementedError()
 
+    @staticmethod
+    def add_term_to_batch(eval_terms_array: DefaultDict, aggregator_value: Optional[str], target_value: Optional[str],
+                          observations: Dict, doc: Dict) -> DefaultDict:
+        if aggregator_value not in eval_terms_array.keys():
+            eval_terms_array[aggregator_value] = defaultdict(list)
 
-def add_term_to_batch(eval_terms_array: DefaultDict, aggregator_value: Optional[str], target_value: Optional[str],
-                      observations: Dict, doc: Dict) -> DefaultDict:
-    if aggregator_value not in eval_terms_array.keys():
-        eval_terms_array[aggregator_value] = defaultdict(list)
+        eval_terms_array[aggregator_value]["targets"].append(target_value)
+        eval_terms_array[aggregator_value]["observations"].append(observations)
+        eval_terms_array[aggregator_value]["raw_docs"].append(doc)
 
-    eval_terms_array[aggregator_value]["targets"].append(target_value)
-    eval_terms_array[aggregator_value]["observations"].append(observations)
-    eval_terms_array[aggregator_value]["raw_docs"].append(doc)
-
-    return eval_terms_array
+        return eval_terms_array

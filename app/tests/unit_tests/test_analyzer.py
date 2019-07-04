@@ -1,6 +1,6 @@
 import unittest
 
-from helpers.analyzer import add_term_to_batch
+from helpers.analyzer import Analyzer
 from collections import defaultdict
 
 
@@ -34,8 +34,8 @@ class TestAnalyzer(unittest.TestCase):
         expected_eval_terms[aggregator_value]["observations"] = [{}]
         expected_eval_terms[aggregator_value]["raw_docs"] = [{}]
 
-        self.assertEqual(add_term_to_batch(eval_terms_array, aggregator_value, target_value, observations, doc),
-                         expected_eval_terms)
+        self.assertEqual(Analyzer.add_term_to_batch(eval_terms_array, aggregator_value, target_value, observations,
+                                                    doc), expected_eval_terms)
 
     def test_add_term_to_batch_no_modification(self):
         eval_terms_array = defaultdict()
@@ -50,8 +50,8 @@ class TestAnalyzer(unittest.TestCase):
         result[aggregator_value]["observations"] = [observations]
         result[aggregator_value]["raw_docs"] = [doc]
 
-        self.assertEqual(add_term_to_batch(eval_terms_array, aggregator_value, target_value, observations, doc),
-                         result)
+        self.assertEqual(Analyzer.add_term_to_batch(eval_terms_array, aggregator_value, target_value, observations,
+                                                    doc), result)
 
     def test_add_term_to_batch_case1(self):
         eval_terms_array = defaultdict()
@@ -74,5 +74,5 @@ class TestAnalyzer(unittest.TestCase):
         expected_eval_terms[aggregator_value]["raw_docs"] = [doc]
         expected_eval_terms[aggregator_value]["test"] = 12
 
-        self.assertEqual(add_term_to_batch(eval_terms_array, aggregator_value, target_value, observations, doc),
-                         expected_eval_terms)
+        self.assertEqual(Analyzer.add_term_to_batch(eval_terms_array, aggregator_value, target_value, observations,
+                                                    doc), expected_eval_terms)
