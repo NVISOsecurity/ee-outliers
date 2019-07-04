@@ -249,7 +249,7 @@ def get_stdev_decision_frontier(values_array, trigger_sensitivity, trigger_on):
     elif trigger_on == "low":
         decision_frontier = np.nanmean(values_array) - trigger_sensitivity * stdev
     else:
-        raise ValueError("Unexpected trigger condition " + trigger_on + ", could not calculate decision frontier")
+        raise ValueError("Unexpected trigger condition " + str(trigger_on) + ", could not calculate decision frontier")
 
     return decision_frontier
 
