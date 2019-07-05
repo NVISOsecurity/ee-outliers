@@ -63,11 +63,3 @@ class Logging:
     def print_generic_intro(self, title):
         self.logger.info("")
         self.logger.info("===== " + title + " =====")
-
-    def print_analysis_intro(self, event_type, total_events):
-        self.logger.info("")
-        self.logger.info("===== " + event_type + " outlier detection =====")
-        self.logger.info("analyzing " + "{:,}".format(total_events) + " events")
-
-        if total_events == 0:
-            self.logger.warning("no events to analyze!")

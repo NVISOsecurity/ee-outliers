@@ -166,8 +166,6 @@ if settings.args.run_mode == "daemon":
                 logging.logger.info("wiping all existing outliers on first run")
                 es.remove_all_outliers()
 
-        logging.logger.info(settings.get_time_window_info())
-
         # Make sure we are connected to Elasticsearch before analyzing, in case something went wrong with the connection in between runs
         es.init_connection()
 
@@ -192,8 +190,6 @@ elif settings.args.run_mode == "interactive":
 
     if settings.config.getboolean("general", "es_wipe_all_existing_outliers"):
         es.remove_all_outliers()
-
-    logging.logger.info(settings.get_time_window_info())
 
     housekeeping_job = HousekeepingJob()
     housekeeping_job.start()
