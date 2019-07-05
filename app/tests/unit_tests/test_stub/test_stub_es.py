@@ -25,13 +25,13 @@ def init_connection():
     return None
 
 
-def scan(index="", bool_clause=None, sort_clause=None, query_fields=None, search_query=None):
+def scan(index="", bool_clause=None, sort_clause=None, query_fields=None, search_query=None, model_settings=None):
     global list_data
     for element in list_data.values():
         yield element
 
 
-def count_documents(index="", bool_clause=None, query_fields=None, search_query=None):
+def count_documents(index="", bool_clause=None, query_fields=None, search_query=None, model_settings=None):
     global list_data
     return len(list_data)
 

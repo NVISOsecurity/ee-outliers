@@ -36,6 +36,11 @@ class Analyzer(abc.ABC):
         model_settings = dict()
 
         try:
+            model_settings["timestamp_field"] = settings.config.get(self.config_section_name, "timestamp_field")
+        except NoOptionError:
+            model_settings["timestamp_field"] = settings.config.get("general", "timestamp_field", fallback="timestamp")
+
+        try:
             model_settings["history_windows_days"] = settings.config.get(self.config_section_name, "history_windows_days")
         except NoOptionError:
             model_settings["history_windows_days"] = settings.config.getint("general", "history_window_days")

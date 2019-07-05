@@ -24,7 +24,7 @@ class TermsAnalyzer(Analyzer):
             self.evaluate_target(target=self.model_settings["target"], search_query=es.filter_by_query_string(self.model_settings["es_query_filter"]), brute_force=False)
 
     def evaluate_target(self, target, search_query, brute_force=False):
-        self.total_events = es.count_documents(index=self.es_index, search_query=search_query)
+        self.total_events = es.count_documents(index=self.es_index, search_query=search_query, model_settings=self.model_settings)
 
         self.print_analysis_intro(event_type="evaluating " + self.model_name, total_events=self.total_events)
         logging.init_ticker(total_steps=self.total_events, desc=self.model_name + " - evaluating terms model")
@@ -37,7 +37,7 @@ class TermsAnalyzer(Analyzer):
             total_terms_added = 0
 
             outlier_batches_trend = 0
-            for doc in es.scan(index=self.es_index, search_query=search_query):
+            for doc in es.scan(index=self.es_index, search_query=search_query, model_settings=self.model_settings):
                 logging.tick()
                 fields = es.extract_fields_from_document(doc, extract_derived_fields=self.model_settings["use_derived_fields"])
 
@@ -61,7 +61,7 @@ class TermsAnalyzer(Analyzer):
                         for aggregator_sentence in aggregator_sentences:
                             flattened_aggregator_sentence = helpers.utils.flatten_sentence(aggregator_sentence)
                             eval_terms_array = self.add_term_to_batch(eval_terms_array, flattened_aggregator_sentence,
-                                                                 flattened_target_sentence, observations, doc)
+                                                                      flattened_target_sentence, observations, doc)
 
                     total_terms_added += len(target_sentences)
 
@@ -97,13 +97,13 @@ class TermsAnalyzer(Analyzer):
         search_query = es.filter_by_query_string(self.model_settings["es_query_filter"])
         batch_size = settings.config.getint("terms", "terms_batch_eval_size")
 
-        self.total_events = es.count_documents(index=self.es_index, search_query=search_query)
+        self.total_events = es.count_documents(index=self.es_index, search_query=search_query, model_settings=self.model_settings)
         logging.init_ticker(total_steps=min(self.total_events, batch_size), desc=self.model_name + " - extracting brute force fields")
 
         field_names_to_brute_force = set()
         if self.total_events > 0:
             num_docs_processed = 0
-            for doc in es.scan(index=self.es_index, search_query=search_query):
+            for doc in es.scan(index=self.es_index, search_query=search_query, model_settings=self.model_settings):
                 logging.tick()
                 fields = es.extract_fields_from_document(doc, extract_derived_fields=self.model_settings["use_derived_fields"])
                 fields = helpers.utils.flatten_dict(fields)
@@ -146,7 +146,6 @@ class TermsAnalyzer(Analyzer):
 
         if self.model_settings["trigger_on"] not in {"high", "low"}:
             raise ValueError("Unexpected outlier trigger condition " + self.model_settings["trigger_on"])
-
 
     def evaluate_batch_for_outliers(self, terms=None):
         # Initialize
@@ -201,7 +200,7 @@ class TermsAnalyzer(Analyzer):
                         fields = es.extract_fields_from_document(raw_doc, extract_derived_fields=self.model_settings["use_derived_fields"])
                         outliers.append(self.process_outlier(fields, raw_doc, extra_outlier_information=calculated_observations))
                 else:
-                    for ii, term_value in enumerate(terms[aggregator_value]["targets"]):
+                    for _, term_value in enumerate(terms[aggregator_value]["targets"]):
                         non_outlier_values.add(term_value)
 
         # In case we want to count terms within an aggregator, it's a bit easier.

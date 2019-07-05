@@ -17,12 +17,12 @@ class MetricsAnalyzer(Analyzer):
         eval_metrics = defaultdict()
         total_metrics_added = 0
 
-        self.total_events = es.count_documents(index=self.es_index, search_query=self.search_query)
+        self.total_events = es.count_documents(index=self.es_index, search_query=self.search_query, model_settings=self.model_settings)
         self.print_analysis_intro(event_type="evaluating " + self.config_section_name, total_events=self.total_events)
 
         logging.init_ticker(total_steps=self.total_events, desc=self.model_name + " - evaluating " + self.model_type + " model")
         if self.total_events > 0:
-            for doc in es.scan(index=self.es_index, search_query=self.search_query):
+            for doc in es.scan(index=self.es_index, search_query=self.search_query, model_settings=self.model_settings):
                 logging.tick()
 
                 fields = es.extract_fields_from_document(doc, extract_derived_fields=self.model_settings["use_derived_fields"])
