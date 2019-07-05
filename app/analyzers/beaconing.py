@@ -19,7 +19,7 @@ class BeaconingAnalyzer(Analyzer):
         search_query = es.filter_by_query_string(self.model_settings["es_query_filter"])
         self.total_events = es.count_documents(index=self.es_index, search_query=search_query)
 
-        logging.print_analysis_intro(event_type="evaluating " + self.model_name, total_events=self.total_events)
+        self.print_analysis_intro(event_type="evaluating " + self.model_name, total_events=self.total_events)
         logging.init_ticker(total_steps=self.total_events, desc=self.model_name + " - evaluating " + self.model_type + " model")
 
         if self.total_events > 0:

@@ -26,7 +26,7 @@ class TermsAnalyzer(Analyzer):
     def evaluate_target(self, target, search_query, brute_force=False):
         self.total_events = es.count_documents(index=self.es_index, search_query=search_query)
 
-        logging.print_analysis_intro(event_type="evaluating " + self.model_name, total_events=self.total_events)
+        self.print_analysis_intro(event_type="evaluating " + self.model_name, total_events=self.total_events)
         logging.init_ticker(total_steps=self.total_events, desc=self.model_name + " - evaluating terms model")
 
         if brute_force:

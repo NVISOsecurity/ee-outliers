@@ -42,14 +42,7 @@ class ES:
 
         return self.conn
 
-    def scan(self, index, bool_clause=None, sort_clause=None, query_fields=None, search_query=None):
-
-        search_range = get_time_filter(days=HISTORY FROM ANALYSERS, hours=FROM ANALYSERS, timestamp_field=self.config.get("general", "timestamp_field", fallback="timestamp"))
-
-        search_range_start = self.search_range["range"][str(self.config.get("general", "timestamp_field", fallback="timestamp"))]["gte"]
-        search_range_end = self.search_range["range"][str(self.config.get("general", "timestamp_field", fallback="timestamp"))]["lte"]
-
-
+    def scan(self, index, bool_clause=None, sort_clause=None, query_fields=None, search_query=None, history_days=None, history_hours=None):
         preserve_order = True if sort_clause is not None else False
         return eshelpers.scan(self.conn, request_timeout=self.settings.config.getint("general", "es_timeout"), index=index, query=build_search_query(bool_clause=bool_clause, sort_clause=sort_clause, search_range=self.settings.search_range, query_fields=query_fields, search_query=search_query), size=self.settings.config.getint("general", "es_scan_size"), scroll=self.settings.config.get("general", "es_scroll_time"), preserve_order=preserve_order, raise_on_error=False)
 
@@ -218,6 +211,21 @@ class ES:
 
         return doc_fields
 
+    def get_time_filter(days=None, hours=None, timestamp_field="timestamp"):
+        time_start = (datetime.datetime.now() - datetime.timedelta(days=days, hours=hours)).isoformat()
+        time_stop = datetime.datetime.now().isoformat()
+
+        # Construct absolute time range filter, increases cacheability
+        time_filter = {
+            "range": {
+                str(timestamp_field): {
+                    "gte": time_start,
+                    "lte": time_stop
+                }
+            }
+        }
+        return time_filter
+
 
 def add_outlier_to_document(doc, outlier):
     doc = add_tag_to_document(doc, "outlier")
@@ -299,18 +307,3 @@ def build_search_query(bool_clause=None, sort_clause=None, search_range=None, qu
 
     return query
 
-
-def get_time_filter(days=None, hours=None, timestamp_field="timestamp"):
-    time_start = (datetime.datetime.now() - datetime.timedelta(days=days, hours=hours)).isoformat()
-    time_stop = datetime.datetime.now().isoformat()
-
-    # Construct absolute time range filter, increases cacheability
-    time_filter = {
-        "range": {
-            str(timestamp_field): {
-                "gte": time_start,
-                "lte": time_stop
-            }
-        }
-    }
-    return time_filter

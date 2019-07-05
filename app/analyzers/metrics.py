@@ -18,7 +18,7 @@ class MetricsAnalyzer(Analyzer):
         total_metrics_added = 0
 
         self.total_events = es.count_documents(index=self.es_index, search_query=self.search_query)
-        logging.print_analysis_intro(event_type="evaluating " + self.config_section_name, total_events=self.total_events)
+        self.print_analysis_intro(event_type="evaluating " + self.config_section_name, total_events=self.total_events)
 
         logging.init_ticker(total_steps=self.total_events, desc=self.model_name + " - evaluating " + self.model_type + " model")
         if self.total_events > 0:

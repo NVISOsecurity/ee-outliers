@@ -28,7 +28,7 @@ class Word2VecAnalyzer(Analyzer):
         training_data_size_pct = settings.config.getint("machine_learning", "training_data_size_pct")
         training_data_size = self.total_events / 100 * training_data_size_pct
 
-        logging.print_analysis_intro(event_type="training " + self.model_name, total_events=self.total_events)
+        self.print_analysis_intro(event_type="training " + self.model_name, total_events=self.total_events)
         total_training_events = int(min(training_data_size, self.total_events))
 
         logging.init_ticker(total_steps=total_training_events, desc=self.model_name + " - preparing word2vec training set")
@@ -75,7 +75,7 @@ class Word2VecAnalyzer(Analyzer):
                 return
 
             self.total_events = es.count_documents(index=self.es_index, search_query=search_query)
-            logging.print_analysis_intro(event_type="evaluating " + self.model_name, total_events=self.total_events)
+            self.print_analysis_intro(event_type="evaluating " + self.model_name, total_events=self.total_events)
 
             logging.init_ticker(total_steps=self.total_events, desc=self.model_name + " - evaluating word2vec model")
 

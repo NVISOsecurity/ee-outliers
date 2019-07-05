@@ -1,9 +1,7 @@
 import configparser
 import argparse
-import dateutil.parser
 
 from helpers.singleton import singleton
-from . import es
 
 parser = argparse.ArgumentParser()
 
@@ -32,9 +30,6 @@ class Settings:
         self.loaded_config_paths = None
         self.failed_config_paths = None
 
-        self.history_windows_days = None
-        self.history_windows_hours = None
-
         self.process_arguments()
 
     def process_arguments(self):
@@ -42,9 +37,6 @@ class Settings:
         self.args = args
 
         self.process_configuration_files(args.config)
-
-        self.history_windows_days = self.config.getint("general", "history_window_days")
-        self.history_windows_hours = self.config.getint("general", "history_window_hours")
 
     def reload_configuration_files(self):
         self.process_configuration_files(self.args.config)
@@ -58,8 +50,3 @@ class Settings:
         self.failed_config_paths = set(config_paths) - set(self.loaded_config_paths)
 
         self.config = config
-
-    def get_time_window_info(self):
-        search_start_range_printable = dateutil.parser.parse(self.search_range_start).strftime('%Y-%m-%d %H:%M:%S')
-        search_end_range_printable = dateutil.parser.parse(self.search_range_end).strftime('%Y-%m-%d %H:%M:%S')
-        return "processing events between " + search_start_range_printable + " and " + search_end_range_printable
