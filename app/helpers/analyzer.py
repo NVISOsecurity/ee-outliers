@@ -41,14 +41,14 @@ class Analyzer(abc.ABC):
             model_settings["timestamp_field"] = settings.config.get("general", "timestamp_field", fallback="timestamp")
 
         try:
-            model_settings["history_windows_days"] = settings.config.get(self.config_section_name, "history_windows_days")
+            model_settings["history_window_days"] = settings.config.get(self.config_section_name, "history_window_days")
         except NoOptionError:
-            model_settings["history_windows_days"] = settings.config.getint("general", "history_window_days")
+            model_settings["history_window_days"] = settings.config.getint("general", "history_window_days")
 
         try:
-            model_settings["history_windows_hours"] = settings.config.get(self.config_section_name, "history_windows_hours")
+            model_settings["history_window_hours"] = settings.config.get(self.config_section_name, "history_window_hours")
         except NoOptionError:
-            model_settings["history_windows_hours"] = settings.config.getint("general", "history_window_hours")
+            model_settings["history_window_hours"] = settings.config.getint("general", "history_window_hours")
 
         try:
             model_settings["es_query_filter"] = settings.config.get(self.config_section_name, "es_query_filter")
@@ -132,7 +132,7 @@ class Analyzer(abc.ABC):
         logging.logger.info("")
         logging.logger.info("===== " + event_type + " outlier detection =====")
         logging.logger.info("analyzing " + "{:,}".format(total_events) + " events")
-        logging.logger.info(self.get_time_window_info(history_days=self.model_settings["history_windows_days"], history_hours=self.model_settings["history_windows_days"]))
+        logging.logger.info(self.get_time_window_info(history_days=self.model_settings["history_window_days"], history_hours=self.model_settings["history_window_days"]))
 
         if total_events == 0:
             logging.logger.warning("no events to analyze!")

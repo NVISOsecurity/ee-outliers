@@ -46,23 +46,32 @@ class ES:
         preserve_order = True if sort_clause is not None else False
 
         if model_settings is None:
-            timestamp_field = self.settings.config.getint("general", "timestamp_field", fallback="timestamp")
+            timestamp_field = self.settings.config.get("general", "timestamp_field", fallback="timestamp")
+            history_window_days = self.settings.config.getint("general", "history_window_days")
+            history_window_hours = self.settings.config.getint("general", "history_window_hours")
         else:
             timestamp_field = model_settings["timestamp_field"]
+            history_window_days = model_settings["history_window_days"]
+            history_window_hours = model_settings["history_window_hours"]
 
-        search_range = self.get_time_filter(days=model_settings["history_days"], hours=model_settings["history_hours"], timestamp_field=timestamp_field)
+        search_range = self.get_time_filter(days=history_window_days, hours=history_window_hours, timestamp_field=timestamp_field)
         return eshelpers.scan(self.conn, request_timeout=self.settings.config.getint("general", "es_timeout"), index=index, query=build_search_query(bool_clause=bool_clause, sort_clause=sort_clause, search_range=search_range, query_fields=query_fields, search_query=search_query), size=self.settings.config.getint("general", "es_scan_size"), scroll=self.settings.config.get("general", "es_scroll_time"), preserve_order=preserve_order, raise_on_error=False)
 
     def count_documents(self, index, bool_clause=None, query_fields=None, search_query=None, model_settings=None):
         if model_settings is None:
-            timestamp_field = self.settings.config.getint("general", "timestamp_field", fallback="timestamp")
+            timestamp_field = self.settings.config.get("general", "timestamp_field", fallback="timestamp")
+            history_window_days = self.settings.config.getint("general", "history_window_days")
+            history_window_hours = self.settings.config.getint("general", "history_window_hours")
         else:
             timestamp_field = model_settings["timestamp_field"]
+            history_window_days = model_settings["history_window_days"]
+            history_window_hours = model_settings["history_window_hours"]
 
-        search_range = self.get_time_filter(days=model_settings["history_days"], hours=model_settings["history_hours"], timestamp_field=timestamp_field)
+        search_range = self.get_time_filter(days=history_window_days, hours=history_window_hours, timestamp_field=timestamp_field)
 
         res = self.conn.search(index=index, body=build_search_query(bool_clause=bool_clause, search_range=search_range, query_fields=query_fields, search_query=search_query), size=self.settings.config.getint("general", "es_scan_size"), scroll=self.settings.config.get("general", "es_scroll_time"))
         result = res["hits"]["total"]
+
         # Result depend of the version of ElasticSearch (> 7, the result is a dictionary)
         if isinstance(result, dict):
             return result["value"]
