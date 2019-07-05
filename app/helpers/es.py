@@ -148,7 +148,14 @@ class ES:
         total_outliers = self.count_documents(index=idx, bool_clause=must_clause)
 
         if total_outliers > 0:
-            query = build_search_query(bool_clause=must_clause, search_range=self.settings.search_range)
+
+            timestamp_field = self.settings.config.get("general", "timestamp_field", fallback="timestamp")
+            history_window_days = self.settings.config.getint("general", "history_window_days")
+            history_window_hours = self.settings.config.getint("general", "history_window_hours")
+
+            search_range = self.get_time_filter(days=history_window_days, hours=history_window_hours, timestamp_field=timestamp_field)
+
+            query = build_search_query(bool_clause=must_clause, search_range=search_range)
 
             script = {
                 "source": "ctx._source.remove(\"outliers\"); ctx._source.tags.remove(ctx._source.tags.indexOf(\"outlier\"))",
