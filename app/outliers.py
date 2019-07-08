@@ -165,9 +165,9 @@ if settings.args.run_mode == "daemon":
             if settings.config.getboolean("general", "es_wipe_all_existing_outliers"):
                 logging.logger.info("wiping all existing outliers on first run")
                 es.remove_all_outliers()
-
-        # Make sure we are connected to Elasticsearch before analyzing, in case something went wrong with the connection in between runs
-        es.init_connection()
+        else:
+            # Make sure we are still connected to Elasticsearch before analyzing, in case something went wrong with the connection in between runs
+            es.init_connection()
 
         # Make sure housekeeping is up and running
         if not housekeeping_job.is_alive():
