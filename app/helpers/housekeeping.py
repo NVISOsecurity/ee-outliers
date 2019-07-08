@@ -19,6 +19,9 @@ class HousekeepingJob(threading.Thread):
 
         # Remove all existing whitelisted items if needed
         while not self.shutdown_flag.is_set():
+            # Read in the setting again from settings, as it could have changed in the meantime
+            housekeeping_interval_seconds = settings.config.getint("general", "housekeeping_interval_seconds")
+
             if settings.config.getboolean("general", "es_wipe_all_whitelisted_outliers"):
                 settings.reload_configuration_files()  # reload configuration file, in case new whitelisted items were added by the analyst, they should be processed!
 
@@ -35,7 +38,7 @@ class HousekeepingJob(threading.Thread):
                     logging.logger.error("housekeeping - something went removing whitelisted outliers")
                     logging.logger.error(traceback.format_exc())
 
-            logging.logger.info("housekeeping - finished round of cleaning whitelisted items, going to sleep %i seconds", housekeeping_interval_seconds)
+                logging.logger.info("housekeeping - finished round of cleaning whitelisted items, going to sleep %i seconds", housekeeping_interval_seconds)
             self.shutdown_flag.wait(int(housekeeping_interval_seconds))
 
         logging.logger.info('housekeeping thread #%s stopped' % self.ident)
