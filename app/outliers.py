@@ -171,12 +171,13 @@ if settings.args.run_mode == "daemon":
 
         # Make sure housekeeping is up and running
         if not housekeeping_job.is_alive():
-            housekeeping_job = HousekeepingJob()
             housekeeping_job.start()
 
         # Perform analysis
         logging.print_generic_intro("starting outlier detection")
         run_succeeded_without_errors = perform_analysis()
+
+        # Check the result of the analysis
         if not run_succeeded_without_errors:
             logging.logger.warning("ran into errors while analyzing use cases - not going to wait for the cron schedule, we just start analyzing again")
         else:
