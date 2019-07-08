@@ -35,7 +35,7 @@ class HousekeepingJob(threading.Thread):
                     logging.logger.error("housekeeping - something went removing whitelisted outliers")
                     logging.logger.error(traceback.format_exc())
 
-            logging.logger.info("housekeeping - finished round of cleaning whitelisted items, going to sleep %i seconds", housekeeping_interval_seconds)
+                logging.logger.info("housekeeping - finished round of cleaning whitelisted items, going to sleep %i seconds", housekeeping_interval_seconds)
             self.shutdown_flag.wait(int(housekeeping_interval_seconds))
 
         logging.logger.info('housekeeping thread #%s stopped' % self.ident)
