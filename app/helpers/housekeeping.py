@@ -15,7 +15,6 @@ class HousekeepingJob(threading.Thread):
 
     def run(self):
         logging.logger.info('housekeeping thread #%s started' % self.ident)
-        housekeeping_interval_seconds = settings.config.getint("general", "housekeeping_interval_seconds")
 
         # Remove all existing whitelisted items if needed
         while not self.shutdown_flag.is_set():
