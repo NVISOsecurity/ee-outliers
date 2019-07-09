@@ -17,45 +17,46 @@ class MetricsAnalyzer(Analyzer):
         eval_metrics = defaultdict()
         total_metrics_added = 0
 
-        self.total_events = es.count_documents(index=self.es_index, search_query=self.search_query)
-        logging.print_analysis_intro(event_type="evaluating " + self.config_section_name, total_events=self.total_events)
+        self.total_events = es.count_documents(index=self.es_index, search_query=self.search_query, model_settings=self.model_settings)
+        self.print_analysis_intro(event_type="evaluating " + self.config_section_name, total_events=self.total_events)
 
         logging.init_ticker(total_steps=self.total_events, desc=self.model_name + " - evaluating " + self.model_type + " model")
-        for doc in es.scan(index=self.es_index, search_query=self.search_query):
-            logging.tick()
+        if self.total_events > 0:
+            for doc in es.scan(index=self.es_index, search_query=self.search_query, model_settings=self.model_settings):
+                logging.tick()
 
-            fields = es.extract_fields_from_document(doc, extract_derived_fields=self.model_settings["use_derived_fields"])
+                fields = es.extract_fields_from_document(doc, extract_derived_fields=self.model_settings["use_derived_fields"])
 
-            try:
-                target_value = helpers.utils.flatten_sentence(helpers.utils.get_dotkey_value(fields, self.model_settings["target"], case_sensitive=True))
-                aggregator_sentences = helpers.utils.flatten_fields_into_sentences(fields=fields, sentence_format=self.model_settings["aggregator"])
-            except (KeyError, TypeError):
-                logging.logger.debug("skipping event which does not contain the target and aggregator fields we are processing. - [" + self.model_name + "]")
-                continue
+                try:
+                    target_value = helpers.utils.flatten_sentence(helpers.utils.get_dotkey_value(fields, self.model_settings["target"], case_sensitive=True))
+                    aggregator_sentences = helpers.utils.flatten_fields_into_sentences(fields=fields, sentence_format=self.model_settings["aggregator"])
+                except (KeyError, TypeError):
+                    logging.logger.debug("skipping event which does not contain the target and aggregator fields we are processing. - [" + self.model_name + "]")
+                    continue
 
-            metric, observations = self.calculate_metric(self.model_settings["metric"], target_value)
+                metric, observations = self.calculate_metric(self.model_settings["metric"], target_value)
 
-            if metric is not None:  # explicitly check for none, since "0" can be OK as a metric!
-                total_metrics_added += 1
-                for aggregator_sentence in aggregator_sentences:
-                    flattened_aggregator_sentence = helpers.utils.flatten_sentence(aggregator_sentence)
-                    eval_metrics = self.add_metric_to_batch(eval_metrics, flattened_aggregator_sentence, target_value, metric, observations, doc)
+                if metric is not None:  # explicitly check for none, since "0" can be OK as a metric!
+                    total_metrics_added += 1
+                    for aggregator_sentence in aggregator_sentences:
+                        flattened_aggregator_sentence = helpers.utils.flatten_sentence(aggregator_sentence)
+                        eval_metrics = self.add_metric_to_batch(eval_metrics, flattened_aggregator_sentence, target_value, metric, observations, doc)
 
-            # Evaluate batch of events against the model
-            last_batch = (logging.current_step == self.total_events)
-            if last_batch or total_metrics_added >= settings.config.getint("metrics", "metrics_batch_eval_size"):
-                logging.logger.info("evaluating batch of " + "{:,}".format(total_metrics_added) + " metrics [" + "{:,}".format(logging.current_step) + " events processed]")
-                outliers, remaining_metrics = self.evaluate_batch_for_outliers(metrics=eval_metrics, model_settings=self.model_settings, last_batch=last_batch)
+                # Evaluate batch of events against the model
+                last_batch = (logging.current_step == self.total_events)
+                if last_batch or total_metrics_added >= settings.config.getint("metrics", "metrics_batch_eval_size"):
+                    logging.logger.info("evaluating batch of " + "{:,}".format(total_metrics_added) + " metrics [" + "{:,}".format(logging.current_step) + " events processed]")
+                    outliers, remaining_metrics = self.evaluate_batch_for_outliers(metrics=eval_metrics, model_settings=self.model_settings, last_batch=last_batch)
 
-                if len(outliers) > 0:
-                    unique_summaries = len(set(o.outlier_dict["summary"] for o in outliers))
-                    logging.logger.info("total outliers in batch processed: " + str(len(outliers)) + " [" + str(unique_summaries) + " unique summaries]")
-                else:
-                    logging.logger.info("no outliers detected in batch")
+                    if len(outliers) > 0:
+                        unique_summaries = len(set(o.outlier_dict["summary"] for o in outliers))
+                        logging.logger.info("total outliers in batch processed: " + str(len(outliers)) + " [" + str(unique_summaries) + " unique summaries]")
+                    else:
+                        logging.logger.info("no outliers detected in batch")
 
-                # Reset data structures for next batch
-                eval_metrics = remaining_metrics.copy()
-                total_metrics_added = 0
+                    # Reset data structures for next batch
+                    eval_metrics = remaining_metrics.copy()
+                    total_metrics_added = 0
 
         self.print_analysis_summary()
 

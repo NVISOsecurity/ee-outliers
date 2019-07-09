@@ -1,9 +1,7 @@
 import configparser
 import argparse
-import dateutil.parser
 
 from helpers.singleton import singleton
-from . import es
 
 parser = argparse.ArgumentParser()
 
@@ -32,10 +30,6 @@ class Settings:
         self.loaded_config_paths = None
         self.failed_config_paths = None
 
-        self.search_range_start = None
-        self.search_range_end = None
-        self.search_range = None
-
         self.process_arguments()
 
     def process_arguments(self):
@@ -43,18 +37,6 @@ class Settings:
         self.args = args
 
         self.process_configuration_files(args.config)
-
-        search_range = es.get_time_filter(days=self.config.getint("general", "history_window_days"), hours=self.config.getint("general", "history_window_hours"), timestamp_field=self.config.get("general", "timestamp_field", fallback="timestamp"))
-
-        self.search_range_start = search_range["range"][str(self.config.get("general", "timestamp_field", fallback="timestamp"))]["gte"]
-        self.search_range_end = search_range["range"][str(self.config.get("general", "timestamp_field", fallback="timestamp"))]["lte"]
-        self.search_range = search_range
-
-        # Daemon mode settings
-        if args.run_mode == "daemon":
-            pass
-        if args.run_mode == "interactive":
-            pass
 
     def reload_configuration_files(self):
         self.process_configuration_files(self.args.config)
@@ -68,8 +50,3 @@ class Settings:
         self.failed_config_paths = set(config_paths) - set(self.loaded_config_paths)
 
         self.config = config
-
-    def get_time_window_info(self):
-        search_start_range_printable = dateutil.parser.parse(self.search_range_start).strftime('%Y-%m-%d %H:%M:%S')
-        search_end_range_printable = dateutil.parser.parse(self.search_range_end).strftime('%Y-%m-%d %H:%M:%S')
-        return "processing events between " + search_start_range_printable + " and " + search_end_range_printable
