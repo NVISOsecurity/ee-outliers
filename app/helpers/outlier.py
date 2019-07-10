@@ -105,3 +105,6 @@ class Outlier:
             _str += (str(key) + "\t -> " + str(value) + "\n")
 
         return _str
+
+    def __eq__(self, other):
+        return isinstance(other, Outlier) and self.outlier_dict == other.outlier_dict
