@@ -2,15 +2,15 @@ import unittest
 
 from helpers.analyzer import Analyzer
 from collections import defaultdict
-from tests.unit_tests.test_stub.test_stub_es import *
+from tests.unit_tests.test_stubs.test_stub_es import TestStubEs
 
 
 class TestAnalyzer(unittest.TestCase):
     def setUp(self):
-        apply_new_es()
+        self.test_es = TestStubEs()
 
     def tearDown(self):
-        restore_es()
+        self.test_es.restore_es()
 
     def test_each_batch_was_processed(self):
         pass
