@@ -29,14 +29,16 @@ class TestOutlierOperations(unittest.TestCase):
         test_outlier = Outlier(outlier_type="dummy type", outlier_reason="dummy reason", outlier_summary="dummy summary")
         test_outlier.outlier_dict["observation"] = "dummy observation"
 
-        doc_with_outlier = helpers.es.add_outlier_to_document(doc_without_outlier_test_file, test_outlier)
+        doc = copy.deepcopy(doc_without_outlier_test_file)
+        doc_with_outlier = helpers.es.add_outlier_to_document(doc, test_outlier)
         self.assertDictEqual(doc_with_outlier_test_file, doc_with_outlier)
 
     def test_remove_outlier_from_doc(self):
         test_outlier = Outlier(outlier_type="dummy type", outlier_reason="dummy reason", outlier_summary="dummy summary")
         test_outlier.outlier_dict["observation"] = "dummy observation"
 
-        doc_with_outlier = helpers.es.add_outlier_to_document(doc_without_outlier_test_file, test_outlier)
+        doc = copy.deepcopy(doc_without_outlier_test_file)
+        doc_with_outlier = helpers.es.add_outlier_to_document(doc, test_outlier)
 
         doc_without_outlier = helpers.es.remove_outliers_from_document(doc_with_outlier)
         self.assertDictEqual(doc_without_outlier, doc_without_outlier_test_file)
