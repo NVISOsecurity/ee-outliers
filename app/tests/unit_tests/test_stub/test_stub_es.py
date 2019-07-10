@@ -110,19 +110,15 @@ def restore_es():
 # "Static" functions
 
 
-def generate_data( nbr_data=1, fixed_infos=dict()):
+def generate_data(nbr_data=1, fixed_infos=dict()):
     for _ in range(nbr_data):
         timestamp = get_random_timestamp()
         slave_name = random.choice(POSSIBLE_SLAVE_NAME)
         meta_cmd_name = random.choice(POSSIBLE_META_CMD_NAME)
         tags = random.choice(POSSIBLE_TAGS)
 
-        dictionary_data = {}
-        dictionary_data["@timestamp"] = timestamp
-        dictionary_data["timestamp"] = timestamp
-        dictionary_data["tags"] = tags
-        dictionary_data["slave_name"] = slave_name
-        dictionary_data["meta.command.name"] = meta_cmd_name
+        dictionary_data = {"@timestamp": timestamp, "timestamp": timestamp, "tags": tags, "slave_name": slave_name,
+                           "meta.command.name": meta_cmd_name}
         dictionary_data.update(fixed_infos)
         add_data(dictionary_data)
 
@@ -131,7 +127,7 @@ def add_data(dictionary_data):
     """
     Add "fake" data, that can be return by custom elastic search
 
-    :param dictionary_data dictionary with key and value (key with the format: key1.key2.key3)
+    :param dictionary_data: dictionary with key and value (key with the format: key1.key2.key3)
     """
     global id
 
@@ -156,7 +152,7 @@ def add_doc(doc):
 def _create_dict_based_on_key(doc, key, data):
     list_key = key.split(".")
 
-    if(len(list_key) == 1):
+    if len(list_key) == 1:
         if key in doc:
             if isinstance(doc[key], list):
                 doc[key].append(data)

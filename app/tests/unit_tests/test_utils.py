@@ -26,6 +26,7 @@ list_values_array = [
 ]
 list_sensitivity = [10, 5, 1, 2]
 
+
 class TestUtils(unittest.TestCase):
     def setUp(self):
         pass
@@ -176,7 +177,7 @@ class TestUtils(unittest.TestCase):
         self.assertEqual(res, "hello world!")
 
     def test_replace_placeholder_fields_with_values_case_insensitive_match(self):
-        res = helpers.utils.replace_placeholder_fields_with_values(placeholder="this one has {OnE} case insensitive " +\
+        res = helpers.utils.replace_placeholder_fields_with_values(placeholder="this one has {OnE} case insensitive " +
                                                                                "placeholders",
                                                                    fields=dict({"one": "hello", "two": "world"}))
         self.assertEqual(res, "this one has hello case insensitive placeholders")
@@ -253,7 +254,6 @@ class TestUtils(unittest.TestCase):
         str_url = "http://nviso.be:80"
         self.assertTrue(helpers.utils.is_url(str_url))
 
-
     def test_decision_frontier_not_exist(self):
         with self.assertRaises(ValueError):
             helpers.utils.get_decision_frontier("does_not_exist", [0, 1, 2], 2, "high")
@@ -265,80 +265,79 @@ class TestUtils(unittest.TestCase):
             set_values_array = list(set(values_array))
             for sensitivity in list_sensitivity:
 
-                expectedRes = np.percentile(set_values_array, sensitivity)
+                expected_res = np.percentile(set_values_array, sensitivity)
 
-                if(expectedRes < 0):
+                if expected_res < 0:
                     with self.assertLogs(logging.logger, level='WARNING') as cm:
                         res = helpers.utils.get_decision_frontier("percentile", values_array, sensitivity)
                 else:
                     res = helpers.utils.get_decision_frontier("percentile", values_array, sensitivity)
-                self.assertEqual(res, expectedRes)
-
+                self.assertEqual(res, expected_res)
 
     def test_decision_frontier_pct_of_max_value(self):
         for values_array in list_values_array:
             max_values_array = max(values_array)
             for sensitivity in list_sensitivity:
 
-                expectedRes = np.float64(max_values_array * (sensitivity / 100))
-                if (expectedRes < 0):
+                expected_res = np.float64(max_values_array * (sensitivity / 100))
+                if expected_res < 0:
                     with self.assertLogs(logging.logger, level='WARNING') as cm:
                         res = helpers.utils.get_decision_frontier("pct_of_max_value", values_array, sensitivity)
                 else:
                     res = helpers.utils.get_decision_frontier("pct_of_max_value", values_array, sensitivity)
-                self.assertEqual(res, expectedRes)
+                self.assertEqual(res, expected_res)
 
     def test_decision_frontier_pct_of_median_value(self):
         for values_array in list_values_array:
             median_values_array = median(values_array)
             for sensitivity in list_sensitivity:
 
-                expectedRes = np.float64(median_values_array * (sensitivity / 100))
-                if (expectedRes < 0):
+                expected_res = np.float64(median_values_array * (sensitivity / 100))
+                if expected_res < 0:
                     with self.assertLogs(logging.logger, level='WARNING') as cm:
                         res = helpers.utils.get_decision_frontier("pct_of_median_value", values_array, sensitivity)
                 else:
                     res = helpers.utils.get_decision_frontier("pct_of_median_value", values_array, sensitivity)
-                self.assertEqual(res, expectedRes)
+                self.assertEqual(res, expected_res)
 
     def test_decision_frontier_pct_of_avg_value(self):
         for values_array in list_values_array:
             mean_values_array = mean(values_array)
             for sensitivity in list_sensitivity:
 
-                expectedRes = np.float64(mean_values_array * (sensitivity / 100))
-                if (expectedRes < 0):
+                expected_res = np.float64(mean_values_array * (sensitivity / 100))
+                if expected_res < 0:
                     with self.assertLogs(logging.logger, level='WARNING') as cm:
                         res = helpers.utils.get_decision_frontier("pct_of_avg_value", values_array, sensitivity)
                 else:
                     res = helpers.utils.get_decision_frontier("pct_of_avg_value", values_array, sensitivity)
-                self.assertEqual(res, expectedRes)
+                self.assertEqual(res, expected_res)
 
     def test_decision_frontier_mad_low(self):
         for values_array in list_values_array:
             mad = np.nanmedian(np.absolute(values_array - np.nanmedian(values_array, 0)), 0)
             for sensitivity in list_sensitivity:
 
-                expectedRes = np.nanmedian(values_array) - sensitivity * mad
-                if (expectedRes < 0):
+                expected_res = np.nanmedian(values_array) - sensitivity * mad
+                if expected_res < 0:
                     with self.assertLogs(logging.logger, level='WARNING') as cm:
                         res = helpers.utils.get_decision_frontier("mad", values_array, sensitivity, "low")
                 else:
                     res = helpers.utils.get_decision_frontier("mad", values_array, sensitivity, "low")
-                self.assertEqual(res, expectedRes)
+                self.assertEqual(res, expected_res)
 
     def test_decision_frontier_mad_high(self):
         for values_array in list_values_array:
             mad = np.nanmedian(np.absolute(values_array - np.nanmedian(values_array, 0)), 0)
             for sensitivity in list_sensitivity:
 
-                expectedRes = np.nanmedian(values_array) + sensitivity * mad
-                if (expectedRes < 0):
+                expected_res = np.nanmedian(values_array) + sensitivity * mad
+                if expected_res < 0:
                     with self.assertLogs(logging.logger, level='WARNING') as cm:
                         res = helpers.utils.get_decision_frontier("mad", values_array, sensitivity, "high")
                 else:
                     res = helpers.utils.get_decision_frontier("mad", values_array, sensitivity, "high")
-                self.assertEqual(res, expectedRes)
+                self.assertEqual(res, expected_res)
 
     def test_decision_frontier_mad_zero(self):
         values_array = [1, 1]
@@ -352,7 +351,6 @@ class TestUtils(unittest.TestCase):
         expected_value = np.nanmean(values_array) - sensitivity * np.std(values_array)
         self.assertEqual(res, expected_value)
 
-
         res = helpers.utils.get_decision_frontier("mad", values_array, sensitivity, "high")
         # So use std:
         expected_value = np.nanmean(values_array) + sensitivity * np.std(values_array)
@@ -363,29 +361,29 @@ class TestUtils(unittest.TestCase):
             mad = np.nanmedian(np.absolute(values_array - np.nanmedian(values_array, 0)), 0)
             for sensitivity in list_sensitivity:
 
-                expectedResult = np.nanmedian(values_array) - sensitivity * mad
-                expectedRes = np.float64(max([expectedResult, 0]))
-                if (expectedRes < 0):
+                expected_result = np.nanmedian(values_array) - sensitivity * mad
+                expected_res = np.float64(max([expected_result, 0]))
+                if expected_res < 0:
                     with self.assertLogs(logging.logger, level='WARNING') as cm:
                         res = helpers.utils.get_decision_frontier("madpos", values_array, sensitivity, "low")
                 else:
                     res = helpers.utils.get_decision_frontier("madpos", values_array, sensitivity, "low")
-                self.assertEqual(res, expectedRes)
+                self.assertEqual(res, expected_res)
 
     def test_decision_frontier_madpos_high(self):
         for values_array in list_values_array:
             mad = np.nanmedian(np.absolute(values_array - np.nanmedian(values_array, 0)), 0)
             for sensitivity in list_sensitivity:
 
-                expectedResult = np.nanmedian(values_array) + sensitivity * mad
-                expectedRes = np.float64(max([expectedResult, 0]))
-                if (expectedRes < 0):
+                expected_result = np.nanmedian(values_array) + sensitivity * mad
+                expected_res = np.float64(max([expected_result, 0]))
+                if expected_res < 0:
                     with self.assertLogs(logging.logger, level='WARNING') as cm:
                         res = helpers.utils.get_decision_frontier("madpos", values_array, sensitivity, "high")
                 else:
                     res = helpers.utils.get_decision_frontier("madpos", values_array, sensitivity, "high")
 
-                self.assertEqual(res, expectedRes)
+                self.assertEqual(res, expected_res)
 
     def test_decision_frontier_madpos_zero(self):
         values_array = [1, 1]
@@ -400,13 +398,11 @@ class TestUtils(unittest.TestCase):
         expected_value = np.float64(max([expected_value, 0]))
         self.assertEqual(res, expected_value)
 
-
         res = helpers.utils.get_decision_frontier("madpos", values_array, sensitivity, "high")
         # So use std:
         expected_value = np.nanmean(values_array) + sensitivity * np.std(values_array)
         expected_value = np.float64(max([expected_value, 0]))
         self.assertEqual(res, expected_value)
-
 
     def test_decision_frontier_stdev_low(self):
         for values_array in list_values_array:
@@ -414,27 +410,27 @@ class TestUtils(unittest.TestCase):
             std_values_array = np.std(values_array)
             for sensitivity in list_sensitivity:
 
-                expectedRes = nanmean_values_array - sensitivity * std_values_array
-                if (expectedRes < 0):
+                expected_res = nanmean_values_array - sensitivity * std_values_array
+                if expected_res < 0:
                     with self.assertLogs(logging.logger, level='WARNING') as cm:
                         res = helpers.utils.get_decision_frontier("stdev", values_array, sensitivity, "low")
                 else:
                     res = helpers.utils.get_decision_frontier("stdev", values_array, sensitivity, "low")
 
-                self.assertEqual(res, expectedRes)
+                self.assertEqual(res, expected_res)
 
     def test_decision_frontier_stdev_high(self):
         for values_array in list_values_array:
             nanmean_values_array = np.nanmean(values_array)
             std_values_array = np.std(values_array)
             for sensitivity in list_sensitivity:
-                expectedRes = nanmean_values_array + sensitivity * std_values_array
-                if (expectedRes < 0):
+                expected_res = nanmean_values_array + sensitivity * std_values_array
+                if expected_res < 0:
                     with self.assertLogs(logging.logger, level='WARNING') as cm:
                         res = helpers.utils.get_decision_frontier("stdev", values_array, sensitivity, "high")
                 else:
                     res = helpers.utils.get_decision_frontier("stdev", values_array, sensitivity, "high")
-                self.assertEqual(res, expectedRes)
+                self.assertEqual(res, expected_res)
 
     def test_decision_frontier_stdev_not_valid(self):
         with self.assertRaises(ValueError):
@@ -447,7 +443,6 @@ class TestUtils(unittest.TestCase):
         for sensitivity in list_sensitivity:
             res = helpers.utils.get_decision_frontier("float", [], sensitivity)
             self.assertEqual(res, np.float64(sensitivity))
-
 
     def test_is_outlier_high_invalid(self):
         term_value_count = 0
@@ -592,30 +587,30 @@ class TestUtils(unittest.TestCase):
         self.assertTrue(file_mod_watcher.files_changed())
 
     def test_nested_dict_values_one_dict(self):
-        test_dict ={'a': 1, 'b': 2}
-        expectedList = [1, 2]
+        test_dict = {'a': 1, 'b': 2}
+        expected_list = [1, 2]
         for elem in helpers.utils.nested_dict_values(test_dict):
-            expectedList.remove(elem)
+            expected_list.remove(elem)
 
-        self.assertEqual(expectedList, [])
+        self.assertEqual(expected_list, [])
 
     def test_nested_dict_values_two_nested_dict(self):
-        test_dict ={'a': 1, 'b': {'c': [2, 'x'], 'd': '3'}}
-        expectedList = [1, [2, 'x'], '3']
+        test_dict = {'a': 1, 'b': {'c': [2, 'x'], 'd': '3'}}
+        expected_list = [1, [2, 'x'], '3']
         for elem in helpers.utils.nested_dict_values(test_dict):
-            expectedList.remove(elem)
+            expected_list.remove(elem)
 
-        self.assertEqual(expectedList, [])
+        self.assertEqual(expected_list, [])
 
     def test_nested_dict_values_three_nested_dict(self):
-        test_dict ={'a': 1, 'b': {'c': 2, 'd': '3'}, 'e': {'f': [4, 'x'], 'g': 5, 'h': {'i': 6, 'j': 7}}}
-        expectedList = [1, 2, '3', [4, 'x'], 5, 6, 7]
+        test_dict = {'a': 1, 'b': {'c': 2, 'd': '3'}, 'e': {'f': [4, 'x'], 'g': 5, 'h': {'i': 6, 'j': 7}}}
+        expected_list = [1, 2, '3', [4, 'x'], 5, 6, 7]
         for elem in helpers.utils.nested_dict_values(test_dict):
-            expectedList.remove(elem)
+            expected_list.remove(elem)
 
-        self.assertEqual(expectedList, [])
+        self.assertEqual(expected_list, [])
 
     def test_nested_dict_values_empty_dict(self):
-        test_dict ={}
+        test_dict = {}
         for elem in helpers.utils.nested_dict_values(test_dict):
             raise AssertionError("Detect nested value which does not exist")
