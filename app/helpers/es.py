@@ -42,13 +42,36 @@ class ES:
 
         return self.conn
 
-    def scan(self, index, bool_clause=None, sort_clause=None, query_fields=None, search_query=None):
+    def scan(self, index, bool_clause=None, sort_clause=None, query_fields=None, search_query=None, model_settings=None):
         preserve_order = True if sort_clause is not None else False
-        return eshelpers.scan(self.conn, request_timeout=self.settings.config.getint("general", "es_timeout"), index=index, query=build_search_query(bool_clause=bool_clause, sort_clause=sort_clause, search_range=self.settings.search_range, query_fields=query_fields, search_query=search_query), size=self.settings.config.getint("general", "es_scan_size"), scroll=self.settings.config.get("general", "es_scroll_time"), preserve_order=preserve_order, raise_on_error=False)
 
-    def count_documents(self, index, bool_clause=None, query_fields=None, search_query=None):
-        res = self.conn.search(index=index, body=build_search_query(bool_clause=bool_clause, search_range=self.settings.search_range, query_fields=query_fields, search_query=search_query), size=self.settings.config.getint("general", "es_scan_size"), scroll=self.settings.config.get("general", "es_scroll_time"))
+        if model_settings is None:
+            timestamp_field = self.settings.config.get("general", "timestamp_field", fallback="timestamp")
+            history_window_days = self.settings.config.getint("general", "history_window_days")
+            history_window_hours = self.settings.config.getint("general", "history_window_hours")
+        else:
+            timestamp_field = model_settings["timestamp_field"]
+            history_window_days = model_settings["history_window_days"]
+            history_window_hours = model_settings["history_window_hours"]
+
+        search_range = self.get_time_filter(days=history_window_days, hours=history_window_hours, timestamp_field=timestamp_field)
+        return eshelpers.scan(self.conn, request_timeout=self.settings.config.getint("general", "es_timeout"), index=index, query=build_search_query(bool_clause=bool_clause, sort_clause=sort_clause, search_range=search_range, query_fields=query_fields, search_query=search_query), size=self.settings.config.getint("general", "es_scan_size"), scroll=self.settings.config.get("general", "es_scroll_time"), preserve_order=preserve_order, raise_on_error=False)
+
+    def count_documents(self, index, bool_clause=None, query_fields=None, search_query=None, model_settings=None):
+        if model_settings is None:
+            timestamp_field = self.settings.config.get("general", "timestamp_field", fallback="timestamp")
+            history_window_days = self.settings.config.getint("general", "history_window_days")
+            history_window_hours = self.settings.config.getint("general", "history_window_hours")
+        else:
+            timestamp_field = model_settings["timestamp_field"]
+            history_window_days = model_settings["history_window_days"]
+            history_window_hours = model_settings["history_window_hours"]
+
+        search_range = self.get_time_filter(days=history_window_days, hours=history_window_hours, timestamp_field=timestamp_field)
+
+        res = self.conn.search(index=index, body=build_search_query(bool_clause=bool_clause, search_range=search_range, query_fields=query_fields, search_query=search_query), size=self.settings.config.getint("general", "es_scan_size"), scroll=self.settings.config.get("general", "es_scroll_time"))
         result = res["hits"]["total"]
+
         # Result depend of the version of ElasticSearch (> 7, the result is a dictionary)
         if isinstance(result, dict):
             return result["value"]
@@ -59,13 +82,15 @@ class ES:
         self.conn.delete(index=doc["_index"], doc_type=doc["_type"], id=doc["_id"], refresh=True)
         self.conn.create(index=doc["_index"], doc_type=doc["_type"], id=doc["_id"], body=doc["_source"], refresh=True)
 
-    def filter_by_query_string(self, query_string=None):
+    @staticmethod
+    def filter_by_query_string(query_string=None):
         bool_clause = {"filter": [
             {"query_string": {"query": query_string}}
         ]}
         return bool_clause
 
-    def filter_by_dsl_query(self, dsl_query=None):
+    @staticmethod
+    def filter_by_dsl_query(dsl_query=None):
         dsl_query = json.loads(dsl_query)
 
         if isinstance(dsl_query, list):
@@ -123,7 +148,14 @@ class ES:
         total_outliers = self.count_documents(index=idx, bool_clause=must_clause)
 
         if total_outliers > 0:
-            query = build_search_query(bool_clause=must_clause, search_range=self.settings.search_range)
+
+            timestamp_field = self.settings.config.get("general", "timestamp_field", fallback="timestamp")
+            history_window_days = self.settings.config.getint("general", "history_window_days")
+            history_window_hours = self.settings.config.getint("general", "history_window_hours")
+
+            search_range = self.get_time_filter(days=history_window_days, hours=history_window_hours, timestamp_field=timestamp_field)
+
+            query = build_search_query(bool_clause=must_clause, search_range=search_range)
 
             script = {
                 "source": "ctx._source.remove(\"outliers\"); ctx._source.tags.remove(ctx._source.tags.indexOf(\"outlier\"))",
@@ -211,6 +243,21 @@ class ES:
 
         return doc_fields
 
+    def get_time_filter(self, days=None, hours=None, timestamp_field="timestamp"):
+        time_start = (datetime.datetime.now() - datetime.timedelta(days=days, hours=hours)).isoformat()
+        time_stop = datetime.datetime.now().isoformat()
+
+        # Construct absolute time range filter, increases cacheability
+        time_filter = {
+            "range": {
+                str(timestamp_field): {
+                    "gte": time_start,
+                    "lte": time_stop
+                }
+            }
+        }
+        return time_filter
+
 
 def add_outlier_to_document(doc, outlier):
     doc = add_tag_to_document(doc, "outlier")
@@ -292,18 +339,3 @@ def build_search_query(bool_clause=None, sort_clause=None, search_range=None, qu
 
     return query
 
-
-def get_time_filter(days=None, hours=None, timestamp_field="timestamp"):
-    time_start = (datetime.datetime.now() - datetime.timedelta(days=days, hours=hours)).isoformat()
-    time_stop = datetime.datetime.now().isoformat()
-
-    # Construct absolute time range filter, increases cacheability
-    time_filter = {
-        "range": {
-            str(timestamp_field): {
-                "gte": time_start,
-                "lte": time_stop
-            }
-        }
-    }
-    return time_filter
