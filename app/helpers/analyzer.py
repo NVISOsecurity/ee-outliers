@@ -156,7 +156,7 @@ class Analyzer(abc.ABC):
             logging.logger.warning("no events to analyze!")
 
     @staticmethod
-    def get_time_window_info(history_days=None, history_hours=None):
+    def get_time_window_info(history_days: float = None, history_hours: float = None) -> str:
         search_range = es.get_time_filter(days=history_days, hours=history_hours, timestamp_field=settings.config.get("general", "timestamp_field", fallback="timestamp"))
 
         search_range_start = search_range["range"][str(settings.config.get("general", "timestamp_field", fallback="timestamp"))]["gte"]

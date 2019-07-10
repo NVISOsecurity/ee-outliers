@@ -57,14 +57,17 @@ class ES:
              model_settings: Optional[Dict] =None) -> Dict:
         preserve_order: bool = True if sort_clause is not None else False
 
+        timestamp_field: str
+        history_window_days: int
+        history_window_hours: int
         if model_settings is None:
-            timestamp_field: str = self.settings.config.get("general", "timestamp_field", fallback="timestamp")
-            history_window_days: int = self.settings.config.getint("general", "history_window_days")
-            history_window_hours: int = self.settings.config.getint("general", "history_window_hours")
+            timestamp_field = self.settings.config.get("general", "timestamp_field", fallback="timestamp")
+            history_window_days = self.settings.config.getint("general", "history_window_days")
+            history_window_hours = self.settings.config.getint("general", "history_window_hours")
         else:
-            timestamp_field: str = model_settings["timestamp_field"]
-            history_window_days: int = model_settings["history_window_days"]
-            history_window_hours: int = model_settings["history_window_hours"]
+            timestamp_field = model_settings["timestamp_field"]
+            history_window_days = model_settings["history_window_days"]
+            history_window_hours = model_settings["history_window_hours"]
 
         search_range: Dict[str, Dict] = self.get_time_filter(days=history_window_days, hours=history_window_hours,
                                                              timestamp_field=timestamp_field)
@@ -77,15 +80,20 @@ class ES:
                               scroll=self.settings.config.get("general", "es_scroll_time"),
                               preserve_order=preserve_order, raise_on_error=False)
 
-    def count_documents(self, index, bool_clause=None, query_fields=None, search_query=None, model_settings=None):
+    def count_documents(self, index: str, bool_clause: Optional[Dict[str, List]] = None,
+                        query_fields: Optional[Dict] = None, search_query: Optional[Dict[str, List]] = None,
+                        model_settings: Dict[str, Any] = None) -> int:
+        timestamp_field: str
+        history_window_days: int
+        history_window_hours: int
         if model_settings is None:
-            timestamp_field: str = self.settings.config.get("general", "timestamp_field", fallback="timestamp")
-            history_window_days: int = self.settings.config.getint("general", "history_window_days")
-            history_window_hours: int = self.settings.config.getint("general", "history_window_hours")
+            timestamp_field = self.settings.config.get("general", "timestamp_field", fallback="timestamp")
+            history_window_days = self.settings.config.getint("general", "history_window_days")
+            history_window_hours = self.settings.config.getint("general", "history_window_hours")
         else:
-            timestamp_field: str = model_settings["timestamp_field"]
-            history_window_days: int = model_settings["history_window_days"]
-            history_window_hours: int = model_settings["history_window_hours"]
+            timestamp_field = model_settings["timestamp_field"]
+            history_window_days = model_settings["history_window_days"]
+            history_window_hours = model_settings["history_window_hours"]
 
         search_range: Dict[str, Dict] = self.get_time_filter(days=history_window_days, hours=history_window_hours,
                                                              timestamp_field=timestamp_field)
@@ -104,7 +112,7 @@ class ES:
         else:
             return result
 
-    def _update_es(self, doc):
+    def _update_es(self, doc: Dict[str, Any])  -> None:
         self.conn.delete(index=doc["_index"], doc_type=doc["_type"], id=doc["_id"], refresh=True)
         self.conn.create(index=doc["_index"], doc_type=doc["_type"], id=doc["_id"], body=doc["_source"], refresh=True)
 
@@ -116,17 +124,17 @@ class ES:
         return bool_clause
 
     @staticmethod
-    def filter_by_dsl_query(dsl_query: AnyStr = None) -> Dict[str, List]:
-        dsl_query: Union[Dict, List] = json.loads(dsl_query)
+    def filter_by_dsl_query(dsl_query: Optional[str] = None) -> Dict[str, List]:
+        json_result: Union[Dict, List] = json.loads(dsl_query)
 
         bool_clause: Dict[str, List]
-        if isinstance(dsl_query, list):
+        if isinstance(json_result, list):
             bool_clause = {"filter": []}
-            for query in dsl_query:
+            for query in json_result:
                 bool_clause["filter"].append(query["query"])
         else:
             bool_clause = {"filter": [
-                dsl_query["query"]
+                json_result["query"]
             ]}
         return bool_clause
 
@@ -278,7 +286,7 @@ class ES:
 
         return doc_fields
 
-    def get_time_filter(self, days: int, hours: int, timestamp_field: str = "timestamp") -> Dict[str, Dict]:
+    def get_time_filter(self, days: float, hours: float, timestamp_field: str = "timestamp") -> Dict[str, Dict]:
         time_start: str = (datetime.datetime.now() - datetime.timedelta(days=days, hours=hours)).isoformat()
         time_stop: str = datetime.datetime.now().isoformat()
 
