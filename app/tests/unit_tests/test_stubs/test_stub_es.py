@@ -57,7 +57,8 @@ class TestStubEs():
     def init_connection(self):
         return None
 
-    def scan(self, index="", bool_clause=None, sort_clause=None, query_fields=None, search_query=None):
+    def scan(self, index="", bool_clause=None, sort_clause=None, query_fields=None, search_query=None,
+             model_settings=None):
         for element in self.list_data.values():
             yield element
 
