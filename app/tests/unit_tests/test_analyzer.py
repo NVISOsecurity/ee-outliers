@@ -7,6 +7,7 @@ from tests.unit_tests.test_stubs.test_stub_es import TestStubEs
 
 class TestAnalyzer(unittest.TestCase):
     def setUp(self):
+        # "es" use in Analyzer construction and in the method "process_outlier"
         self.test_es = TestStubEs()
 
     def tearDown(self):
