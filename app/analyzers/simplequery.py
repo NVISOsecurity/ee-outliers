@@ -40,16 +40,16 @@ class SimplequeryAnalyzer(Analyzer):
         else:
             query["filter"] = [exclude_hits_filter]
 
-        self.total_events: int = es.count_documents(index=self.es_index, search_query=query)
-        logging.print_analysis_intro(event_type="evaluating " + self.config_section_name, 
-                                     total_events=self.total_events)
+        self.total_events: int = es.count_documents(index=self.es_index, search_query=query,
+                                                    model_settings=self.model_settings)
+        self.print_analysis_intro(event_type="evaluating " + self.config_section_name, total_events=self.total_events)
 
-        logging.init_ticker(total_steps=self.total_events, 
-                            desc=self.model_name + " - evaluating " + self.model_type + " model")
-        for doc in es.scan(index=self.es_index, search_query=query):
-            logging.tick()
-            fields: Dict = es.extract_fields_from_document(doc,
-                                                     extract_derived_fields=self.model_settings["use_derived_fields"])
-            self.process_outlier(fields, doc)
+        logging.init_ticker(total_steps=self.total_events, desc=self.model_name + " - evaluating " + self.model_type + " model")
+        if self.total_events > 0:
+            for doc in es.scan(index=self.es_index, search_query=query, model_settings=self.model_settings):
+                logging.tick()
+                fields: Dict = es.extract_fields_from_document(
+                    doc, extract_derived_fields=self.model_settings["use_derived_fields"])
+                self.process_outlier(fields, doc)
 
         self.print_analysis_summary()

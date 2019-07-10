@@ -16,8 +16,6 @@ if TYPE_CHECKING:
     from helpers.logging import Logging
     from helpers.outlier import Outlier
 
-BULK_FLUSH_SIZE: int = 1000
-
 
 @singleton
 class ES:
@@ -31,7 +29,9 @@ class ES:
 
     bulk_actions: List[Dict[str, Any]] = []
 
-    def __init__(self, settings: 'Settings', logging: 'Logging') -> None:
+    BULK_FLUSH_SIZE = 1000
+
+    def __init__(self, settings: 'Settings' = None, logging: 'Logging' = None) -> None:
         self.settings: 'Settings' = settings
         self.logging: 'Logging' = logging
 
@@ -53,37 +53,71 @@ class ES:
         return self.conn
 
     def scan(self, index: str, bool_clause: Optional[Dict[str, List]] = None, sort_clause: Optional[Dict] = None,
-             query_fields: Optional[Dict] = None, search_query: Optional[Dict[str, List]] = None) -> Dict:
+             query_fields: Optional[Dict] = None, search_query: Optional[Dict[str, List]] = None,
+             model_settings: Optional[Dict] =None) -> Dict:
         preserve_order: bool = True if sort_clause is not None else False
-        return eshelpers.scan(self.conn, request_timeout=self.settings.config.getint("general", "es_timeout"), 
-                              index=index, query=build_search_query(bool_clause=bool_clause, 
-                                                                    sort_clause=sort_clause, 
-                                                                    search_range=self.settings.search_range, 
-                                                                    query_fields=query_fields, 
-                                                                    search_query=search_query), 
-                              size=self.settings.config.getint("general", "es_scan_size"), 
-                              scroll=self.settings.config.get("general", "es_scroll_time"), 
+
+        if model_settings is None:
+            timestamp_field: str = self.settings.config.get("general", "timestamp_field", fallback="timestamp")
+            history_window_days: int = self.settings.config.getint("general", "history_window_days")
+            history_window_hours: int = self.settings.config.getint("general", "history_window_hours")
+        else:
+            timestamp_field: str = model_settings["timestamp_field"]
+            history_window_days: int = model_settings["history_window_days"]
+            history_window_hours: int = model_settings["history_window_hours"]
+
+        search_range: Dict[str, Dict] = self.get_time_filter(days=history_window_days, hours=history_window_hours,
+                                                             timestamp_field=timestamp_field)
+        return eshelpers.scan(self.conn, request_timeout=self.settings.config.getint("general", "es_timeout"),
+                              index=index, query=build_search_query(bool_clause=bool_clause, sort_clause=sort_clause,
+                                                                    search_range=search_range,
+                                                                    query_fields=query_fields,
+                                                                    search_query=search_query),
+                              size=self.settings.config.getint("general", "es_scan_size"),
+                              scroll=self.settings.config.get("general", "es_scroll_time"),
                               preserve_order=preserve_order, raise_on_error=False)
 
-    def count_documents(self, index: str, bool_clause: Optional[Dict[str, List]] = None,
-                        query_fields: Optional[Dict] = None, search_query: Optional[Dict[str, List]] = None) -> int:
-        res: Dict[str, Any] = self.conn.search(index=index,
-                                               body=build_search_query(bool_clause=bool_clause,
-                                                                       search_range=self.settings.search_range,
-                                                                       query_fields=query_fields,
-                                                                       search_query=search_query),
+    def count_documents(self, index, bool_clause=None, query_fields=None, search_query=None, model_settings=None):
+        if model_settings is None:
+            timestamp_field: str = self.settings.config.get("general", "timestamp_field", fallback="timestamp")
+            history_window_days: int = self.settings.config.getint("general", "history_window_days")
+            history_window_hours: int = self.settings.config.getint("general", "history_window_hours")
+        else:
+            timestamp_field: str = model_settings["timestamp_field"]
+            history_window_days: int = model_settings["history_window_days"]
+            history_window_hours: int = model_settings["history_window_hours"]
+
+        search_range: Dict[str, Dict] = self.get_time_filter(days=history_window_days, hours=history_window_hours,
+                                                             timestamp_field=timestamp_field)
+
+        res: Dict[str, Any] = self.conn.search(index=index, body=build_search_query(bool_clause=bool_clause,
+                                                                                    search_range=search_range,
+                                                                                    query_fields=query_fields,
+                                                                                    search_query=search_query),
                                                size=self.settings.config.getint("general", "es_scan_size"),
                                                scroll=self.settings.config.get("general", "es_scroll_time"))
-        return res["hits"]["total"]
+        result: Union[Dict, int] = res["hits"]["total"]
 
-    def filter_by_query_string(self, query_string: Optional[str] = None) -> Dict[str, List]:
+        # Result depend of the version of ElasticSearch (> 7, the result is a dictionary)
+        if isinstance(result, dict):
+            return result["value"]
+        else:
+            return result
+
+    def _update_es(self, doc):
+        self.conn.delete(index=doc["_index"], doc_type=doc["_type"], id=doc["_id"], refresh=True)
+        self.conn.create(index=doc["_index"], doc_type=doc["_type"], id=doc["_id"], body=doc["_source"], refresh=True)
+
+    @staticmethod
+    def filter_by_query_string(query_string: Optional[str] = None) -> Dict[str, List]:
         bool_clause: Dict[str, List] = {"filter": [
             {"query_string": {"query": query_string}}
         ]}
         return bool_clause
 
-    def filter_by_dsl_query(self, dsl_query_path: AnyStr) -> Dict[str, List]:
-        dsl_query: Union[Dict, List] = json.loads(dsl_query_path)
+    @staticmethod
+    def filter_by_dsl_query(dsl_query: AnyStr = None) -> Dict[str, List]:
+        dsl_query: Union[Dict, List] = json.loads(dsl_query)
 
         bool_clause: Dict[str, List]
         if isinstance(dsl_query, list):
@@ -110,33 +144,31 @@ class ES:
         self.logging.logger.info("going to analyze %s outliers and remove all whitelisted items", "{:,}"\
                                  .format(total_nr_outliers))
 
-        for doc in self.scan(index=idx, bool_clause=outliers_filter_query):
-            total_outliers: int = int(doc["_source"]["outliers"]["total_outliers"])
-            # Generate all outlier objects for this document
-            total_whitelisted: int = 0
+        if total_nr_outliers > 0:
+            for doc in self.scan(index=idx, bool_clause=outliers_filter_query):
+                total_outliers: int = int(doc["_source"]["outliers"]["total_outliers"])
+                # Generate all outlier objects for this document
+                total_whitelisted = 0
 
-            for i in range(total_outliers):
-                outlier_type: str = doc["_source"]["outliers"]["type"][i]
-                outlier_reason: str = doc["_source"]["outliers"]["reason"][i]
-                outlier_summary: str = doc["_source"]["outliers"]["summary"][i]
+                for i in range(total_outliers):
+                    outlier_type: str = doc["_source"]["outliers"]["type"][i]
+                    outlier_reason: str = doc["_source"]["outliers"]["reason"][i]
+                    outlier_summary: str = doc["_source"]["outliers"]["summary"][i]
 
-                outlier: Outlier = Outlier(outlier_type=outlier_type, outlier_reason=outlier_reason, 
-                                           outlier_summary=outlier_summary)
-                if outlier.is_whitelisted(additional_dict_values_to_check=doc):
-                    total_whitelisted += 1
+                    outlier: Outlier = Outlier(outlier_type=outlier_type, outlier_reason=outlier_reason,
+                                               outlier_summary=outlier_summary)
+                    if outlier.is_whitelisted(additional_dict_values_to_check=doc):
+                        total_whitelisted += 1
 
-            # if all outliers for this document are whitelisted, removed them all. If not, don't touch the document.
-            # this is a limitation in the way our outliers are stored: if not ALL of them are whitelisted, we can't
-            # remove just the whitelisted ones from the Elasticsearch event, as they are stored as array elements and
-            # potentially contain observations that should be removed, too.
-            # In this case, just don't touch the document.
-            if total_whitelisted == total_outliers:
-                total_docs_whitelisted += 1
-                doc = remove_outliers_from_document(doc)
+                # if all outliers for this document are whitelisted, removed them all. If not, don't touch the document.
+                # this is a limitation in the way our outliers are stored: if not ALL of them are whitelisted, we can't remove just the whitelisted ones
+                # from the Elasticsearch event, as they are stored as array elements and potentially contain observations that should be removed, too.
+                # In this case, just don't touch the document.
+                if total_whitelisted == total_outliers:
+                    total_docs_whitelisted += 1
+                    doc = remove_outliers_from_document(doc)
 
-                self.conn.delete(index=doc["_index"], doc_type=doc["_type"], id=doc["_id"], refresh=True)
-                self.conn.create(index=doc["_index"], doc_type=doc["_type"], id=doc["_id"], body=doc["_source"],
-                                 refresh=True)
+                    self._update_es(doc)
 
         return total_docs_whitelisted
 
@@ -147,8 +179,15 @@ class ES:
         total_outliers: int = self.count_documents(index=idx, bool_clause=must_clause)
 
         if total_outliers > 0:
-            query: Dict[str, Dict] = build_search_query(bool_clause=must_clause,
-                                                        search_range=self.settings.search_range)
+
+            timestamp_field: str = self.settings.config.get("general", "timestamp_field", fallback="timestamp")
+            history_window_days: int = self.settings.config.getint("general", "history_window_days")
+            history_window_hours: int = self.settings.config.getint("general", "history_window_hours")
+
+            search_range: Dict[str, Dict] = self.get_time_filter(days=history_window_days, hours=history_window_hours,
+                                                                 timestamp_field=timestamp_field)
+
+            query: Dict[str, Dict] = build_search_query(bool_clause=must_clause, search_range=search_range)
 
             script: Dict[str, str] = {
                 "source": "ctx._source.remove(\"outliers\"); " + \
@@ -181,7 +220,7 @@ class ES:
 
     def add_bulk_action(self, action: Dict[str, Any]) -> None:
         self.bulk_actions.append(action)
-        if len(self.bulk_actions) > BULK_FLUSH_SIZE:
+        if len(self.bulk_actions) > self.BULK_FLUSH_SIZE:
             self.flush_bulk_actions()
 
     def flush_bulk_actions(self, refresh: bool = False) -> None:
@@ -238,6 +277,21 @@ class ES:
                 doc_fields[k] = v
 
         return doc_fields
+
+    def get_time_filter(self, days: int, hours: int, timestamp_field: str = "timestamp") -> Dict[str, Dict]:
+        time_start: str = (datetime.datetime.now() - datetime.timedelta(days=days, hours=hours)).isoformat()
+        time_stop: str = datetime.datetime.now().isoformat()
+
+        # Construct absolute time range filter, increases cacheability
+        time_filter: Dict[str, Dict] = {
+            "range": {
+                str(timestamp_field): {
+                    "gte": time_start,
+                    "lte": time_stop
+                }
+            }
+        }
+        return time_filter
 
 
 def add_outlier_to_document(doc: Dict[str, Any], outlier: 'Outlier') -> Dict[str, Any]:
@@ -322,19 +376,3 @@ def build_search_query(bool_clause: Optional[Dict[str, Any]] = None, sort_clause
         query["query"]["bool"]["filter"].append(search_query["filter"].copy())
 
     return query
-
-
-def get_time_filter(days: int, hours: int, timestamp_field: str = "timestamp") -> Dict[str, Dict]:
-    time_start: str = (datetime.datetime.now() - datetime.timedelta(days=days, hours=hours)).isoformat()
-    time_stop: str = datetime.datetime.now().isoformat()
-
-    # Construct absolute time range filter, increases cacheability
-    time_filter: Dict[str, Dict] = {
-        "range": {
-            str(timestamp_field): {
-                "gte": time_start,
-                "lte": time_stop
-            }
-        }
-    }
-    return time_filter

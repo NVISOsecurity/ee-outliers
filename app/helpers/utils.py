@@ -7,10 +7,14 @@ import re
 from statistics import mean, median
 import validators
 
+import helpers.singletons
+
+
 from typing import Dict, List, MutableMapping, Any, Optional, Union, Iterable, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from helpers.settings import Settings
+
 
 def flatten_dict(d: MutableMapping, parent_key: str='', sep: str='.') -> Dict:
     items: List = []
@@ -88,7 +92,6 @@ def extract_outlier_asset_information(fields: Dict, settings: 'Settings') -> Lis
             # also remove all empty asset strings
             asset_field_values: List = [sentence[0] for sentence in asset_field_values_including_empty \
                                         if "" not in sentence]
-
 
             for asset_field_value in asset_field_values:  # make sure we don't process empty process information,
                 # for example an empty user field
@@ -238,9 +241,9 @@ def get_decision_frontier(trigger_method: str, values_array: List, trigger_sensi
         raise ValueError("Unexpected trigger method " + trigger_method + ", could not calculate decision frontier")
 
     if decision_frontier < 0:
-        # TODO - Fix by making this a global import, which doesn't work for the moment
-        from helpers.singletons import logging
-        logging.logger.warning("negative decision frontier %.2f, this will not generate any outliers",decision_frontier)
+        # Could not do "from helpers.singletons import logging" due to circle import
+        helpers.singletons.logging.logger.warning("negative decision frontier %.2f, this will not generate any "
+                                                  "outliers", decision_frontier)
 
     return decision_frontier
 

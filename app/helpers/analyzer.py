@@ -1,5 +1,10 @@
 import abc
+from collections import defaultdict
 from configparser import NoOptionError
+from typing import DefaultDict, Optional, Dict
+
+import dateutil
+
 from helpers.singletons import settings, es, logging
 import helpers.utils
 from helpers.outlier import Outlier
@@ -32,6 +37,21 @@ class Analyzer(abc.ABC):
 
     def _extract_model_settings(self) -> Dict[str, Any]:
         model_settings: Dict[str, Any] = dict()
+
+        try:
+            model_settings["timestamp_field"] = settings.config.get(self.config_section_name, "timestamp_field")
+        except NoOptionError:
+            model_settings["timestamp_field"] = settings.config.get("general", "timestamp_field", fallback="timestamp")
+
+        try:
+            model_settings["history_window_days"] = settings.config.get(self.config_section_name, "history_window_days")
+        except NoOptionError:
+            model_settings["history_window_days"] = settings.config.getint("general", "history_window_days")
+
+        try:
+            model_settings["history_window_hours"] = settings.config.get(self.config_section_name, "history_window_hours")
+        except NoOptionError:
+            model_settings["history_window_hours"] = settings.config.getint("general", "history_window_hours")
 
         try:
             model_settings["es_query_filter"] = settings.config.get(self.config_section_name, "es_query_filter")
@@ -126,6 +146,38 @@ class Analyzer(abc.ABC):
 
         return outlier
 
+    def print_analysis_intro(self, event_type: str, total_events: int) -> None:
+        logging.logger.info("")
+        logging.logger.info("===== " + event_type + " outlier detection =====")
+        logging.logger.info("analyzing " + "{:,}".format(total_events) + " events")
+        logging.logger.info(self.get_time_window_info(history_days=self.model_settings["history_window_days"], history_hours=self.model_settings["history_window_days"]))
+
+        if total_events == 0:
+            logging.logger.warning("no events to analyze!")
+
+    @staticmethod
+    def get_time_window_info(history_days=None, history_hours=None):
+        search_range = es.get_time_filter(days=history_days, hours=history_hours, timestamp_field=settings.config.get("general", "timestamp_field", fallback="timestamp"))
+
+        search_range_start = search_range["range"][str(settings.config.get("general", "timestamp_field", fallback="timestamp"))]["gte"]
+        search_range_end = search_range["range"][str(settings.config.get("general", "timestamp_field", fallback="timestamp"))]["lte"]
+
+        search_start_range_printable = dateutil.parser.parse(search_range_start).strftime('%Y-%m-%d %H:%M:%S')
+        search_end_range_printable = dateutil.parser.parse(search_range_end).strftime('%Y-%m-%d %H:%M:%S')
+        return "processing events between " + search_start_range_printable + " and " + search_end_range_printable
+
     @abc.abstractmethod
     def evaluate_model(self) -> None:
         raise NotImplementedError()
+
+    @staticmethod
+    def add_term_to_batch(eval_terms_array: DefaultDict, aggregator_value: Optional[str], target_value: Optional[str],
+                          observations: Dict, doc: Dict) -> DefaultDict:
+        if aggregator_value not in eval_terms_array.keys():
+            eval_terms_array[aggregator_value] = defaultdict(list)
+
+        eval_terms_array[aggregator_value]["targets"].append(target_value)
+        eval_terms_array[aggregator_value]["observations"].append(observations)
+        eval_terms_array[aggregator_value]["raw_docs"].append(doc)
+
+        return eval_terms_array

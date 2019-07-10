@@ -135,9 +135,8 @@ if settings.args.run_mode == "daemon":
     # Initialize Elasticsearch connection
     es.init_connection()
 
-    # Start housekeeping activities
+    # Create housekeeping job, don't start it yet
     housekeeping_job: HousekeepingJob = HousekeepingJob()
-    housekeeping_job.start()
 
     num_runs: int = 0
     first_run: bool = True
@@ -154,7 +153,7 @@ if settings.args.run_mode == "daemon":
                 should_schedule_next_run = True
 
             # Check for configuration file changes and load them in case it's needed
-            if file_mod_watcher.files_changed():
+            if len(file_mod_watcher.files_changed()) > 0:
                 logging.logger.info("configuration file changed, reloading")
                 settings.process_arguments()
                 should_schedule_next_run = True
@@ -173,24 +172,23 @@ if settings.args.run_mode == "daemon":
             logging.logger.info("first run, so we will start immediately - after this, we will respect the cron " +
                                 "schedule defined in the configuration file")
 
+            # Wipe all existing outliers if needed
             if settings.config.getboolean("general", "es_wipe_all_existing_outliers"):
                 logging.logger.info("wiping all existing outliers on first run")
                 es.remove_all_outliers()
+        else:
+            # Make sure we are still connected to Elasticsearch before analyzing, in case something went wrong with the connection in between runs
+            es.init_connection()
 
-        logging.logger.info(settings.get_time_window_info())
-
-        # Make sure we are connected to Elasticsearch before analyzing, in case something went wrong with the
-        # connection in between runs
-        es.init_connection()
-
-        # Make sure housekeeping is still up and running
+        # Make sure housekeeping is up and running
         if not housekeeping_job.is_alive():
-            housekeeping_job = HousekeepingJob()
             housekeeping_job.start()
 
         # Perform analysis
         logging.print_generic_intro("starting outlier detection")
         run_succeeded_without_errors = perform_analysis()
+
+        # Check the result of the analysis
         if not run_succeeded_without_errors:
             logging.logger.warning("ran into errors while analyzing use cases - not going to wait for the cron " +
                                    "schedule, we just start analyzing again")
@@ -206,8 +204,7 @@ elif settings.args.run_mode == "interactive":
     if settings.config.getboolean("general", "es_wipe_all_existing_outliers"):
         es.remove_all_outliers()
 
-    logging.logger.info(settings.get_time_window_info())
-
+    # Make sure housekeeping is up and running
     housekeeping_job: HousekeepingJob = HousekeepingJob()
     housekeeping_job.start()
 

@@ -29,31 +29,30 @@ class Word2VecAnalyzer(Analyzer):
 
         sentences: List[Tuple] = list()
 
-        self.total_events = es.count_documents(index=self.es_index, search_query=search_query)
+        self.total_events = es.count_documents(index=self.es_index, search_query=search_query, model_settings=self.model_settings)
         training_data_size_pct: int = settings.config.getint("machine_learning", "training_data_size_pct")
         training_data_size: float = self.total_events / 100 * training_data_size_pct
 
-        logging.print_analysis_intro(event_type="training " + self.model_name, total_events=self.total_events)
+        self.print_analysis_intro(event_type="training " + self.model_name, total_events=self.total_events)
         total_training_events: int = int(min(training_data_size, self.total_events))
 
-        logging.init_ticker(total_steps=total_training_events, 
-                            desc=self.model_name + " - preparing word2vec training set")
-        for doc in es.scan(index=self.es_index, search_query=search_query):
-            if len(sentences) < total_training_events:
-                logging.tick()
-                fields: Dict = es.extract_fields_from_document(doc,
-                                                     extract_derived_fields=self.model_settings["use_derived_fields"])
-                if set(self.model_settings["sentence_format"]).issubset(fields.keys()):
-                    new_sentences: List[List] = helpers.utils.flatten_fields_into_sentences(fields=fields,
-                                                                sentence_format=self.model_settings["sentence_format"])
-                    for sentence in new_sentences:
-                        sentences.append(tuple(sentence))
+        logging.init_ticker(total_steps=total_training_events, desc=self.model_name + " - preparing word2vec training set")
+        if self.total_events > 0:
+            for doc in es.scan(index=self.es_index, search_query=search_query, model_settings=self.model_settings):
+                if len(sentences) < total_training_events:
+                    logging.tick()
+                    fields: Dict = es.extract_fields_from_document(doc, extract_derived_fields=self.model_settings["use_derived_fields"])
+                    if set(self.model_settings["sentence_format"]).issubset(fields.keys()):
+                        new_sentences: List[List] = helpers.utils.flatten_fields_into_sentences(
+                            fields=fields, sentence_format=self.model_settings["sentence_format"])
+                        for sentence in new_sentences:
+                            sentences.append(tuple(sentence))
 
-                    # Remove all duplicates from sentences for training - REMOVED FOR TESTING
-                    # sentences = list(sentences)
-            else:
-                # We have collected sufficient training data
-                break
+                        # Remove all duplicates from sentences for training - REMOVED FOR TESTING
+                        # sentences = list(sentences)
+                else:
+                    # We have collected sufficient training data
+                    break
 
         # Now, train the model
         if len(sentences) > 0:
@@ -82,47 +81,45 @@ class Word2VecAnalyzer(Analyzer):
                 self.evaluate_test_sentences(w2v_model=w2v_model)
                 return
 
-            self.total_events = es.count_documents(index=self.es_index, search_query=search_query)
-            logging.print_analysis_intro(event_type="evaluating " + self.model_name, total_events=self.total_events)
+            self.total_events = es.count_documents(index=self.es_index, search_query=search_query, model_settings=self.model_settings)
+            self.print_analysis_intro(event_type="evaluating " + self.model_name, total_events=self.total_events)
 
             logging.init_ticker(total_steps=self.total_events, desc=self.model_name + " - evaluating word2vec model")
 
-            raw_docs: List[Dict] = list()
-            eval_sentences: List = list()
+            if self.total_events > 0:
+                raw_docs: List[Dict] = list()
+                eval_sentences: List = list()
 
-            for doc in es.scan(index=self.es_index, search_query=search_query):
-                logging.tick()
-                fields: Dict = es.extract_fields_from_document(doc,
-                                                     extract_derived_fields=self.model_settings["use_derived_fields"])
+                for doc in es.scan(index=self.es_index, search_query=search_query, model_settings=self.model_settings):
+                    logging.tick()
+                    fields: Dict = es.extract_fields_from_document(
+                        doc, extract_derived_fields=self.model_settings["use_derived_fields"])
 
-                try:
-                    new_sentences: List[List] = helpers.utils.flatten_fields_into_sentences(fields=fields,
-                                                                sentence_format=self.model_settings["sentence_format"])
-                    eval_sentences.extend(new_sentences)
-                except KeyError:
-                    logging.logger.debug("skipping event which does not contain the target and aggregator fields we " +\
-                                         "are processing. - [" + self.model_name + "]")
-                    continue
+                    try:
+                        new_sentences: List[List] = helpers.utils.flatten_fields_into_sentences(
+                            fields=fields, sentence_format=self.model_settings["sentence_format"])
+                        eval_sentences.extend(new_sentences)
+                    except KeyError:
+                        logging.logger.debug("skipping event which does not contain the target and aggregator fields we are processing. - [" + self.model_name + "]")
+                        continue
 
-                for _ in new_sentences:
-                    raw_docs.append(doc)
+                    for _ in new_sentences:
+                        raw_docs.append(doc)
 
-                # Evaluate batch of events against the model
-                if logging.current_step == self.total_events or \
-                        len(eval_sentences) >= settings.config.getint("machine_learning", "word2vec_batch_eval_size"):
-                    logging.logger.info("evaluating batch of " + str(len(eval_sentences)) + " sentences")
-                    outliers: List[Outlier] = self.evaluate_batch_for_outliers(w2v_model=w2v_model,
-                                                                               eval_sentences=eval_sentences,
-                                                                               raw_docs=raw_docs)
+                    # Evaluate batch of events against the model
+                    if logging.current_step == self.total_events or len(eval_sentences) >= settings.config.getint("machine_learning", "word2vec_batch_eval_size"):
+                        logging.logger.info("evaluating batch of " + str(len(eval_sentences)) + " sentences")
+                        outliers: List[Outlier] = self.evaluate_batch_for_outliers(w2v_model=w2v_model,
+                                                                                   eval_sentences=eval_sentences,
+                                                                                   raw_docs=raw_docs)
 
-                    if len(outliers) > 0:
-                        unique_summaries: int = len(set(o.outlier_dict["summary"] for o in outliers))
-                        logging.logger.info("total outliers in batch processed: " + str(len(outliers)) + " [" + \
-                                            str(unique_summaries) + " unique summaries]")
+                        if len(outliers) > 0:
+                            unique_summaries: int = len(set(o.outlier_dict["summary"] for o in outliers))
+                            logging.logger.info("total outliers in batch processed: " + str(len(outliers)) + " [" + str(unique_summaries) + " unique summaries]")
 
-                    # Reset data structures for next batch
-                    raw_docs = list()
-                    eval_sentences = list()
+                        # Reset data structures for next batch
+                        raw_docs = list()
+                        eval_sentences = list()
 
     def evaluate_batch_for_outliers(self, w2v_model: word2vec.Word2Vec, eval_sentences: List,
                                     raw_docs: List[Dict]) -> List[Outlier]:
