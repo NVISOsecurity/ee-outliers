@@ -31,7 +31,7 @@ class ES:
 
     BULK_FLUSH_SIZE = 1000
 
-    def __init__(self, settings: 'Settings' = None, logging: 'Logging' = None) -> None:
+    def __init__(self, settings: 'Settings', logging: 'Logging') -> None:
         self.settings: 'Settings' = settings
         self.logging: 'Logging' = logging
 
