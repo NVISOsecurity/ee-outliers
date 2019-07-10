@@ -47,8 +47,6 @@ class TestAnalyzer(unittest.TestCase):
                                    outlier_summary='dummy summary')
         expected_outlier.outlier_dict['model_name'] = 'dummy_test'
         expected_outlier.outlier_dict['model_type'] = 'analyzer'
-        print(outlier)
-        print(expected_outlier)
         self.assertEqual(outlier, expected_outlier)
 
     def test_simple_process_outlier_save_es(self):
