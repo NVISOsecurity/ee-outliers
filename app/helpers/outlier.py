@@ -1,4 +1,5 @@
-from helpers.singletons import settings
+# from helpers.singletons import settings
+import helpers.singletons
 import re
 import helpers.utils
 import textwrap
@@ -17,7 +18,7 @@ class Outlier:
     # Example: "dns_tunneling_fp = rule_updates.et.com, intel_server" -> should match both values across the entire event (rule_updates.et.com and intel_server);
     def is_whitelisted(self, additional_dict_values_to_check=None):
         # Check if value is whitelisted as literal
-        for (_, each_whitelist_configuration_file_value) in settings.config.items("whitelist_literals"):
+        for (_, each_whitelist_configuration_file_value) in helpers.singletons.settings.config.items("whitelist_literals"):
             whitelist_values_to_check = each_whitelist_configuration_file_value.split(",")
 
             total_whitelisted_fields_to_match = len(whitelist_values_to_check)
@@ -32,7 +33,7 @@ class Outlier:
                 return True
 
         # Check if value is whitelisted as regexp
-        for (_, each_whitelist_configuration_file_value) in settings.config.items("whitelist_regexps"):
+        for (_, each_whitelist_configuration_file_value) in helpers.singletons.settings.config.items("whitelist_regexps"):
             whitelist_values_to_check = each_whitelist_configuration_file_value.split(",")
 
             total_whitelisted_fields_to_match = len(whitelist_values_to_check)
