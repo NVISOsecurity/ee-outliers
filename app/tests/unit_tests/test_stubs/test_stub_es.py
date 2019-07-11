@@ -16,19 +16,21 @@ class TestStubEs():
         # Init test stub es
         self.list_data = dict()
         self.id = 0
-        self.backup_es()
+        self.default_es_methods = self.get_default_es_methods()
         self.apply_new_es()
 
-    def backup_es(self):
+    def get_default_es_methods(self):
         # could not do deepcopy due to "TypeError: cannot serialize '_io.TextIOWrapper' object"
-        self.default_bulk_flush_size = es.BULK_FLUSH_SIZE
-        self.default_init = es.__init__
-        self.default_init_connection = es.init_connection
-        self.default_scan = es.scan
-        self.default_count_documents = es.count_documents
-        self.default_update_es = es._update_es
-        self.default_remove_all_outliers = es.remove_all_outliers
-        self.default_flush_bulk_actions = es.flush_bulk_actions
+        return {
+                "default_bulk_flush_size": es.BULK_FLUSH_SIZE,
+                "default_init": es.__init__,
+                "default_init_connection": es.init_connection,
+                "default_scan": es.scan,
+                "default_count_documents": es.count_documents,
+                "default_update_es": es._update_es,
+                "default_remove_all_outliers": es.remove_all_outliers,
+                "default_flush_bulk_actions": es.flush_bulk_actions
+            }
 
     def apply_new_es(self):
         es.BULK_FLUSH_SIZE = 0
@@ -41,14 +43,14 @@ class TestStubEs():
         es.flush_bulk_actions = self.flush_bulk_actions
 
     def restore_es(self):
-        es.BULK_FLUSH_SIZE = self.default_bulk_flush_size
-        es.__init__ = self.default_init
-        es.init_connection = self.default_init_connection
-        es.scan = self.default_scan
-        es.count_documents = self.default_count_documents
-        es._update_es = self.default_update_es
-        es.remove_all_outliers = self.default_remove_all_outliers
-        es.flush_bulk_actions = self.default_flush_bulk_actions
+        es.BULK_FLUSH_SIZE = self.default_es_methods["default_bulk_flush_size"]
+        es.__init__ = self.default_es_methods["default_init"]
+        es.init_connection = self.default_es_methods["default_init_connection"]
+        es.scan = self.default_es_methods["default_scan"]
+        es.count_documents = self.default_es_methods["default_count_documents"]
+        es._update_es = self.default_es_methods["default_update_es"]
+        es.remove_all_outliers = self.default_es_methods["default_remove_all_outliers"]
+        es.flush_bulk_actions = self.default_es_methods["default_flush_bulk_actions"]
         es.bulk_actions = list()
 
     def new_init(self, settings=None, logging=None):
