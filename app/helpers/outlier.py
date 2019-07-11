@@ -11,10 +11,13 @@ class Outlier:
         self.outlier_dict = dict()
         self.outlier_dict["type"] = outlier_type  # can be multiple types, for example: malware, powershell
         self.outlier_dict["reason"] = outlier_reason  # can be multiple reasons, for example: DNS tunneling, IDS alert
-        self.outlier_dict["summary"] = textwrap.fill(outlier_summary, width=150)  # hard-wrap the length of a summary line to 150 characters to make it easier to visualize
+        # hard-wrap the length of a summary line to 150 characters to make it easier to visualize
+        self.outlier_dict["summary"] = textwrap.fill(outlier_summary, width=150)
 
-    # Each whitelist item can contain multiple values to match across fields, separated with ",". So we need to support this too.
-    # Example: "dns_tunneling_fp = rule_updates.et.com, intel_server" -> should match both values across the entire event (rule_updates.et.com and intel_server);
+    # Each whitelist item can contain multiple values to match across fields, separated with ",". So we need to
+    # support this too.
+    # Example: "dns_tunneling_fp = rule_updates.et.com, intel_server" -> should match both values across the entire
+    # event (rule_updates.et.com and intel_server);
     def is_whitelisted(self, additional_dict_values_to_check=None):
         # Check if value is whitelisted as literal
         for (_, each_whitelist_configuration_file_value) in settings.config.items("whitelist_literals"):
@@ -50,7 +53,7 @@ class Outlier:
         return False
 
     def matches_specific_whitelist_item_literally(self, whitelist_value: str,
-                                                  additional_dict_values_to_check: Optional[Dict]=None) -> bool:
+                                                  additional_dict_values_to_check: Optional[Dict] = None) -> bool:
         if self.outlier_dict["summary"] == whitelist_value.strip():
             return True
 
@@ -66,7 +69,7 @@ class Outlier:
         return False
 
     def matches_specific_whitelist_item_regexp(self, whitelist_value: str,
-                                                  additional_dict_values_to_check: Optional[Dict]=None) -> bool:
+                                               additional_dict_values_to_check: Optional[Dict] = None) -> bool:
         p = re.compile(whitelist_value.strip(), re.IGNORECASE)
 
         if p.match(str(self.outlier_dict["summary"])):
@@ -105,3 +108,6 @@ class Outlier:
             _str += (str(key) + "\t -> " + str(value) + "\n")
 
         return _str
+
+    def __eq__(self, other):
+        return isinstance(other, Outlier) and self.outlier_dict == other.outlier_dict
