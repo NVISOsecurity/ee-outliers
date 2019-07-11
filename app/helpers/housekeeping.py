@@ -45,6 +45,7 @@ class HousekeepingJob(threading.Thread):
 
             if self.last_config_parameters != self._get_config_whitelist_parameters():
                 self.last_config_parameters = self._get_config_whitelist_parameters()
+                logging.logger.info("housekeeping - changes detected about the 'whitelist' in the configuration")
 
                 if settings.config.getboolean("general", "es_wipe_all_whitelisted_outliers"):
                     try:
