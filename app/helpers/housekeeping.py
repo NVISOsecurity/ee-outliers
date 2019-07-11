@@ -31,7 +31,7 @@ class HousekeepingJob(threading.Thread):
         if len(self.file_mod_watcher.files_changed()) > 0:
             # reload configuration file, in case new whitelisted items were added by the analyst, they
             # should be processed!
-            settings.reload_configuration_files()
+            settings.process_arguments()
 
             if settings.config.getboolean("general", "es_wipe_all_whitelisted_outliers"):
                 try:

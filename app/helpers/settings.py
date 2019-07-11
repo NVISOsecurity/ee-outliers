@@ -38,9 +38,6 @@ class Settings:
 
         self.process_configuration_files(args.config)
 
-    def reload_configuration_files(self):
-        self.process_configuration_files(self.args.config)
-
     def process_configuration_files(self, config_paths):
         # Read configuration files
         config = configparser.ConfigParser(interpolation=None)
