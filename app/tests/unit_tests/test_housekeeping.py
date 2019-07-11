@@ -2,12 +2,10 @@ import unittest
 
 import json
 import copy
-import time
 
 from helpers.singletons import settings
 from helpers.housekeeping import HousekeepingJob
 from tests.unit_tests.test_stubs.test_stub_es import TestStubEs
-import helpers.es
 
 test_file_no_whitelist_path_config = "/app/tests/unit_tests/files/housekeeping_no_whitelist.conf"
 test_file_whitelist_path_config = "/app/tests/unit_tests/files/whitelist_tests_01.conf"
@@ -31,8 +29,6 @@ class TestHousekeeping(unittest.TestCase):
         doc_with_outlier = copy.deepcopy(doc_with_outlier_test_file)
         self.test_es.add_doc(doc_with_outlier)
 
-        housekeeping.start()
-
         # Update configuration (read new config and append to default)
         with open(test_file_whitelist_path_config, 'r') as test_file:
             filecontent = test_file.read()
@@ -40,7 +36,7 @@ class TestHousekeeping(unittest.TestCase):
         with open(test_file_no_whitelist_path_config, 'a') as test_file:
             test_file.write(filecontent)
 
-        time.sleep(1)  # Wait that other thread finish his task
+        housekeeping.execute_housekeeping()
 
         # Fetch result
         result = [elem for elem in self.test_es.scan()][0]
@@ -50,7 +46,5 @@ class TestHousekeeping(unittest.TestCase):
 
         # Restore configuration
         settings.args.config = backup_args_config
-        housekeeping.shutdown_flag.set()
-        housekeeping.join()
 
         self.assertEqual(result, doc_without_outlier)
