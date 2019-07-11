@@ -35,7 +35,8 @@ def get_dotkey_value(dict_value, key_name, case_sensitive=True):
     By default, the dotkey is matched case sensitive; for example, key "OsqueryFilter.process_name" will only match if
     the event contains a nested dictionary with keys "OsqueryFilter" and "process_name".
     By changing the case_sensitive parameter to "False", all elements of the dot key will be matched case insensitive.
-    For example, key "OsqueryFilter.process_name" will also match a nested dictionary with keys "osqueryfilter" and "prOcEss_nAme".
+    For example, key "OsqueryFilter.process_name" will also match a nested dictionary with keys "osqueryfilter" and
+    "prOcEss_nAme".
     """
     keys = key_name.split(".")
 
@@ -80,10 +81,13 @@ def extract_outlier_asset_information(fields, settings):
     for (asset_field_name, asset_field_type) in settings.config.items("assets"):
         if dict_contains_dotkey(fields, asset_field_name, case_sensitive=False):
 
-            asset_field_values_including_empty = flatten_fields_into_sentences(fields, sentence_format=[asset_field_name])
-            asset_field_values = [sentence[0] for sentence in asset_field_values_including_empty if "" not in sentence]  # also remove all empty asset strings
+            asset_field_values_including_empty = flatten_fields_into_sentences(fields,
+                                                                               sentence_format=[asset_field_name])
+            # also remove all empty asset strings
+            asset_field_values = [sentence[0] for sentence in asset_field_values_including_empty if "" not in sentence]
 
-            for asset_field_value in asset_field_values:  # make sure we don't process empty process information, for example an empty user field
+            # make sure we don't process empty process information, for example an empty user field
+            for asset_field_value in asset_field_values:
                 outlier_assets.append(asset_field_type + ": " + asset_field_value)
 
     return outlier_assets
@@ -96,7 +100,8 @@ def flatten_sentence(sentence=None):
         return None
 
     if type(sentence) is list:
-        # Make sure the list does not contain nested lists, but only strings. If it's a nested list, we give up and return None
+        # Make sure the list does not contain nested lists, but only strings. If it's a nested list, we give up and
+        # return None
         if any(isinstance(i, list) or isinstance(i, dict) for i in sentence):
             return None
         else:
