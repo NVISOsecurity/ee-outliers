@@ -20,7 +20,7 @@ class TestHousekeeping(unittest.TestCase):
     def tearDown(self):
         self.test_es.restore_es()
 
-    def test_housekeeping_correctly_remove_whitelist(self):
+    def test_housekeeping_correctly_remove_whitelisted_outlier_when_file_modification(self):
         backup_args_config = settings.args.config[:]
         settings.args.config = [test_file_no_whitelist_path_config]
         housekeeping = HousekeepingJob()
