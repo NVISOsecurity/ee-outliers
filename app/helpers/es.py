@@ -7,6 +7,7 @@ from pygrok import Grok
 
 from helpers.singleton import singleton
 from helpers.notifier import Notifier
+from helpers.outlier import Outlier
 from collections import defaultdict
 from itertools import chain
 
@@ -125,9 +126,6 @@ class ES:
     # this is part of housekeeping, so we should not access non-threat-save objects, such as logging progress to
     # the console using ticks!
     def remove_all_whitelisted_outliers(self):
-        # import goes here to avoid issues with singletons & circular requirements ... //TODO: fix this
-        from helpers.outlier import Outlier
-
         outliers_filter_query = {"filter": [{"term": {"tags": "outlier"}}]}
         total_docs_whitelisted = 0
 
