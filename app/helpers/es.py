@@ -241,7 +241,6 @@ class ES:
 
     def extract_derived_fields(self, doc_fields):
         derived_fields = dict()
-
         for field_name, grok_pattern in self.settings.config.items("derivedfields"):
             if helpers.utils.dict_contains_dotkey(doc_fields, field_name, case_sensitive=False):
                 if grok_pattern in self.grok_filters.keys():
