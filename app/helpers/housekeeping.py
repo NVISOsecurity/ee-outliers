@@ -10,9 +10,8 @@ class HousekeepingJob(threading.Thread):
     def __init__(self):
         threading.Thread.__init__(self)
 
-        file_mod_watcher = FileModificationWatcher()
-        file_mod_watcher.add_files(settings.args.config)
-        self.file_mod_watcher = file_mod_watcher
+        self.file_mod_watcher = FileModificationWatcher()
+        self.file_mod_watcher.add_files(settings.args.config)
 
         # The shutdown_flag is a threading.Event object that
         # indicates whether the thread should be terminated.
