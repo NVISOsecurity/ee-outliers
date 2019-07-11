@@ -63,3 +63,6 @@ class Logging:
     def print_generic_intro(self, title):
         self.logger.info("")
         self.logger.info("===== " + title + " =====")
+
+    def format_number(self, number):
+        return '{0:,d}'.format(number).replace(',', ' ')

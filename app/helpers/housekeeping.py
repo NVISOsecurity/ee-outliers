@@ -29,7 +29,7 @@ class HousekeepingJob(threading.Thread):
                     total_docs_whitelisted = es.remove_all_whitelisted_outliers()
 
                     if total_docs_whitelisted > 0:
-                        logging.logger.info("housekeeping - total whitelisted documents cleared from outliers: " + str(total_docs_whitelisted))
+                        logging.logger.info("housekeeping - total whitelisted documents cleared from outliers: " + str(logging.format_number(total_docs_whitelisted)))
                     else:
                         logging.logger.info("housekeeping - whitelist did not remove any outliers")
 
