@@ -23,8 +23,7 @@ class TestAnalyzer(unittest.TestCase):
 
     def tearDown(self):
         # restore the default configuration file so we don't influence other unit tests that use the settings singleton
-        settings.process_configuration_files("/defaults/outliers.conf")
-        settings.process_arguments()
+        settings._restore_default_configuration_path()
         self.test_es.restore_es()
 
     def _preperate_data_terms(self):
@@ -37,7 +36,7 @@ class TestAnalyzer(unittest.TestCase):
         return eval_terms_array, aggregator_value, target_value, observations, doc
 
     def test_simple_process_outlier_return_good_outlier(self):
-        settings.process_configuration_files("/app/tests/unit_tests/files/analyzer_test_01.conf")
+        settings._change_configuration_path("/app/tests/unit_tests/files/analyzer_test_01.conf")
         analyzer = TestStubAnalyzer("analyzer_dummy_test")
 
         doc_without_outlier = copy.deepcopy(doc_without_outlier_test_file)
@@ -50,7 +49,7 @@ class TestAnalyzer(unittest.TestCase):
         self.assertEqual(outlier, expected_outlier)
 
     def test_simple_process_outlier_save_es(self):
-        settings.process_configuration_files("/app/tests/unit_tests/files/analyzer_test_01.conf")
+        settings._change_configuration_path("/app/tests/unit_tests/files/analyzer_test_01.conf")
         analyzer = TestStubAnalyzer("analyzer_dummy_test")
 
         doc_without_outlier = copy.deepcopy(doc_without_outlier_test_file)

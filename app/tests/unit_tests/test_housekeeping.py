@@ -19,10 +19,10 @@ class TestHousekeeping(unittest.TestCase):
 
     def tearDown(self):
         self.test_es.restore_es()
+        settings._restore_default_configuration_path()
 
     def test_housekeeping_correctly_remove_whitelist(self):
-        backup_args_config = settings.args.config[:]
-        settings.args.config = [test_file_no_whitelist_path_config]
+        settings._change_configuration_path(test_file_no_whitelist_path_config)
         housekeeping = HousekeepingJob()
 
         # Add document to "Database"
@@ -43,8 +43,5 @@ class TestHousekeeping(unittest.TestCase):
 
         # Compute expected result:
         doc_without_outlier = copy.deepcopy(doc_without_outlier_test_file)
-
-        # Restore configuration
-        settings.args.config = backup_args_config
 
         self.assertEqual(result, doc_without_outlier)
