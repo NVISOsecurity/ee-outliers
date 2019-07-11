@@ -46,7 +46,8 @@ class Analyzer(abc.ABC):
             model_settings["history_window_days"] = settings.config.getint("general", "history_window_days")
 
         try:
-            model_settings["history_window_hours"] = settings.config.get(self.config_section_name, "history_window_hours")
+            model_settings["history_window_hours"] = settings.config.get(self.config_section_name,
+                                                                         "history_window_hours")
         except NoOptionError:
             model_settings["history_window_hours"] = settings.config.getint("general", "history_window_hours")
 
@@ -61,17 +62,20 @@ class Analyzer(abc.ABC):
             model_settings["es_dsl_filter"] = None
 
         try:
-            model_settings["should_notify"] = settings.config.getboolean("notifier", "email_notifier") and settings.config.getboolean(self.config_section_name, "should_notify")
+            model_settings["should_notify"] = settings.config.getboolean("notifier", "email_notifier") and \
+                                              settings.config.getboolean(self.config_section_name, "should_notify")
         except NoOptionError:
             model_settings["should_notify"] = False
 
         try:
-            model_settings["use_derived_fields"] = settings.config.getboolean(self.config_section_name, "use_derived_fields")
+            model_settings["use_derived_fields"] = settings.config.getboolean(self.config_section_name,
+                                                                              "use_derived_fields")
         except NoOptionError:
             model_settings["use_derived_fields"] = False
 
         try:
-            model_settings["should_notify"] = settings.config.getboolean("notifier", "email_notifier") and settings.config.getboolean(self.config_section_name, "should_notify")
+            model_settings["should_notify"] = settings.config.getboolean("notifier", "email_notifier") and \
+                                              settings.config.getboolean(self.config_section_name, "should_notify")
         except NoOptionError:
             model_settings["should_notify"] = False
 
@@ -84,15 +88,18 @@ class Analyzer(abc.ABC):
         model_settings["outlier_type"] = settings.config.get(self.config_section_name, "outlier_type")
         model_settings["outlier_summary"] = settings.config.get(self.config_section_name, "outlier_summary")
 
-        self.should_run_model = settings.config.getboolean("general", "run_models") and settings.config.getboolean(self.config_section_name, "run_model")
-        self.should_test_model = settings.config.getboolean("general", "test_models") and settings.config.getboolean(self.config_section_name, "test_model")
+        self.should_run_model = settings.config.getboolean("general", "run_models") and settings.config.getboolean(
+            self.config_section_name, "run_model")
+        self.should_test_model = settings.config.getboolean("general", "test_models") and settings.config.getboolean(
+            self.config_section_name, "test_model")
 
         return model_settings
 
     def print_analysis_summary(self):
         if len(self.outliers) > 0:
             unique_summaries = len(set(o.outlier_dict["summary"] for o in self.outliers))
-            logging.logger.info("total outliers processed for use case: " + str(len(self.outliers)) + " [" + str(unique_summaries) + " unique summaries]")
+            logging.logger.info("total outliers processed for use case: " + str(len(self.outliers)) + " [" +
+                                str(unique_summaries) + " unique summaries]")
         else:
             logging.logger.info("no outliers detected for use case")
 
@@ -103,14 +110,18 @@ class Analyzer(abc.ABC):
         fields_and_extra_outlier_information = fields.copy()
         fields_and_extra_outlier_information.update(extra_outlier_information)
 
-        outlier_summary = helpers.utils.replace_placeholder_fields_with_values(self.model_settings["outlier_summary"], fields_and_extra_outlier_information)
+        outlier_summary = helpers.utils.replace_placeholder_fields_with_values(self.model_settings["outlier_summary"],
+                                                                               fields_and_extra_outlier_information)
 
         # for both outlier types and reasons, we also allow the case where multiples values are provided at once.
         # example: type = malware, IDS
-        outlier_type = helpers.utils.replace_placeholder_fields_with_values(self.model_settings["outlier_type"], fields_and_extra_outlier_information).split(",")
-        outlier_reason = helpers.utils.replace_placeholder_fields_with_values(self.model_settings["outlier_reason"], fields_and_extra_outlier_information).split(",")
+        outlier_type = helpers.utils.replace_placeholder_fields_with_values(
+                                self.model_settings["outlier_type"], fields_and_extra_outlier_information).split(",")
+        outlier_reason = helpers.utils.replace_placeholder_fields_with_values(
+                                self.model_settings["outlier_reason"], fields_and_extra_outlier_information).split(",")
 
-        # remove any leading or trailing whitespace from either. For example: "type = malware,  IDS" should just return ["malware","IDS"] instead of ["malware", "  IDS"]
+        # remove any leading or trailing whitespace from either. For example: "type = malware,  IDS" should just
+        # return ["malware","IDS"] instead of ["malware", "  IDS"]
         outlier_type = [item.strip() for item in outlier_type]
         outlier_reason = [item.strip() for item in outlier_reason]
 
@@ -132,17 +143,22 @@ class Analyzer(abc.ABC):
         logging.logger.info("")
         logging.logger.info("===== " + event_type + " outlier detection =====")
         logging.logger.info("analyzing " + "{:,}".format(total_events) + " events")
-        logging.logger.info(self.get_time_window_info(history_days=self.model_settings["history_window_days"], history_hours=self.model_settings["history_window_days"]))
+        logging.logger.info(self.get_time_window_info(history_days=self.model_settings["history_window_days"],
+                                                      history_hours=self.model_settings["history_window_days"]))
 
         if total_events == 0:
             logging.logger.warning("no events to analyze!")
 
     @staticmethod
     def get_time_window_info(history_days=None, history_hours=None):
-        search_range = es.get_time_filter(days=history_days, hours=history_hours, timestamp_field=settings.config.get("general", "timestamp_field", fallback="timestamp"))
+        search_range = es.get_time_filter(days=history_days, hours=history_hours,
+                                          timestamp_field=settings.config.get("general", "timestamp_field",
+                                                                              fallback="timestamp"))
 
-        search_range_start = search_range["range"][str(settings.config.get("general", "timestamp_field", fallback="timestamp"))]["gte"]
-        search_range_end = search_range["range"][str(settings.config.get("general", "timestamp_field", fallback="timestamp"))]["lte"]
+        search_range_start = search_range["range"][str(settings.config.get("general", "timestamp_field",
+                                                                           fallback="timestamp"))]["gte"]
+        search_range_end = search_range["range"][str(settings.config.get("general", "timestamp_field",
+                                                                         fallback="timestamp"))]["lte"]
 
         search_start_range_printable = dateutil.parser.parse(search_range_start).strftime('%Y-%m-%d %H:%M:%S')
         search_end_range_printable = dateutil.parser.parse(search_range_end).strftime('%Y-%m-%d %H:%M:%S')

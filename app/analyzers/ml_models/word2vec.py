@@ -31,7 +31,8 @@ class Word2Vec:
         # Set up logging directory
         self.name = name
         self.model_name = self.name + "_word2vec"
-        self.models_dir = os.path.join(settings.config.get("machine_learning", "models_directory"), self.model_name, '')  # important: need '' at end so it's treated as directory!
+        # important: need '' at end so it's treated as directory!
+        self.models_dir = os.path.join(settings.config.get("machine_learning", "models_directory"), self.model_name, '')
 
         now = datetime.datetime.now()
         self.log_dir = os.path.join(self.models_dir, now.strftime("%Y-%m-%d %H:%M"), 'log')
@@ -72,14 +73,17 @@ class Word2Vec:
                 # Define embedding matrix variable
                 # Variables are the parameters of the model that are being optimized
                 with tf.name_scope('embeddings'):
-                    embeddings = tf.Variable(tf.random_uniform([vocabulary_size, self.embedding_size], -1.0, 1.0), name="embeddings")
+                    embeddings = tf.Variable(tf.random_uniform([vocabulary_size, self.embedding_size], -1.0, 1.0),
+                                             name="embeddings")
                     # Take an input vector of integer indices,
                     # and “look up” these indices in the supplied embeddings tensor.
                     embed = tf.nn.embedding_lookup(embeddings, train_inputs)
 
                 # Construct the variables for the NCE loss
                 with tf.name_scope('weights'):
-                    nce_weights = tf.Variable(tf.truncated_normal([vocabulary_size, self.embedding_size], stddev=1.0 / math.sqrt(self.embedding_size)), name="weights")
+                    nce_weights = tf.Variable(tf.truncated_normal([vocabulary_size, self.embedding_size],
+                                                                  stddev=1.0 / math.sqrt(self.embedding_size)),
+                                              name="weights")
                 with tf.name_scope('biases'):
                     nce_biases = tf.Variable(tf.zeros([vocabulary_size]), name="biases")
 
@@ -137,16 +141,19 @@ class Word2Vec:
             while step < self.num_steps:
                 logging.tick()
 
-                batch_inputs, batch_labels, sentence_index = generate_batch(self.batch_size, self.skip_window, sentences, sentence_index)
+                batch_inputs, batch_labels, sentence_index = generate_batch(self.batch_size, self.skip_window,
+                                                                            sentences, sentence_index)
                 feed_dict = {train_inputs: batch_inputs, train_labels: batch_labels}
 
                 # Define metadata variable.
                 run_metadata = tf.RunMetadata()
 
-                # We perform one update step by evaluating the optimizer op (including it in the list of returned values for session.run())
+                # We perform one update step by evaluating the optimizer op (including it in the list of returned
+                # values for session.run())
                 # Also, evaluate the merged op to get all summaries from the returned "summary" variable.
                 # Feed metadata variable to session for visualizing the graph in TensorBoard.
-                _, summary, loss_val = session.run([optimizer, merged, loss], feed_dict=feed_dict, run_metadata=run_metadata)
+                _, summary, loss_val = session.run([optimizer, merged, loss], feed_dict=feed_dict,
+                                                   run_metadata=run_metadata)
                 average_loss += loss_val
 
                 # Add returned summaries to writer in each step.
@@ -208,14 +215,16 @@ class Word2Vec:
             with open(self.words_to_indices_filename, "r") as f:
                 words_to_indices = json.load(f)
         except FileNotFoundError:
-            logging.logger.warn(self.words_to_indices_filename + " not found, did you train the model before running it?")
+            logging.logger.warn(self.words_to_indices_filename + " not found, did you train the model before " +
+                                "running it?")
             return
 
         try:
             with open(self.indices_to_words_filename, "r") as f:
                 indices_to_words = json.load(f)
         except FileNotFoundError:
-            logging.logger.warn(self.indices_to_words_filename + " not found, did you train the model before running it?")
+            logging.logger.warn(self.indices_to_words_filename + " not found, did you train the model before " +
+                                "running it?")
             return
 
         graph = tf.Graph()
@@ -250,11 +259,13 @@ class Word2Vec:
                             if word in self.all_probabilities_cache.keys():
                                 all_probabilities = self.all_probabilities_cache[word]
                             else:
-                                all_probabilities = tf.nn.softmax(tf.nn.xw_plus_b(tf.expand_dims(final_embeddings[words_to_indices[word]], 0), tf.transpose(weights), biases)).eval()
+                                all_probabilities = tf.nn.softmax(tf.nn.xw_plus_b(tf.expand_dims(
+                                    final_embeddings[words_to_indices[word]], 0), tf.transpose(weights), biases)).eval()
                                 self.all_probabilities_cache[word] = all_probabilities
                         else:
                             # For each word: Get the probabilities of all context words
-                            all_probabilities = tf.nn.softmax(tf.nn.xw_plus_b(tf.expand_dims(final_embeddings[words_to_indices[word]], 0), tf.transpose(weights), biases)).eval()
+                            all_probabilities = tf.nn.softmax(tf.nn.xw_plus_b(tf.expand_dims(
+                                final_embeddings[words_to_indices[word]], 0), tf.transpose(weights), biases)).eval()
 
                         word_probs = all_probabilities[0]
 
@@ -266,7 +277,8 @@ class Word2Vec:
                                 tmp_probs.append(target_word_prob)
 
                                 if self.use_test_data:
-                                    logging.logger.info("probability of seeing " + word + " in context of " + target_word + " is " + str(target_word_prob))
+                                    logging.logger.info("probability of seeing " + word + " in context of " +
+                                                        target_word + " is " + str(target_word_prob))
 
                 # In case we could not calculate any probability, due to all words being unknown, we return NaN
                 if len(tmp_probs) == 0:
@@ -328,7 +340,8 @@ def get_sentence_skipgrams_build(sentence, skip_window):
     sentence_targets = []
     sentence_labels = []
     for i in range(len(sentence)):  # i = target word
-        context_indices = [j for j in range(max(0, (i - skip_window)), min(len(sentence), i + 1 + skip_window)) if j != i]
+        context_indices = [j for j in range(max(0, (i - skip_window)), min(len(sentence), i + 1 + skip_window))
+                           if j != i]
         for context_index in context_indices:
             sentence_targets.append(sentence[i])
             sentence_labels.append(sentence[context_index])
@@ -341,7 +354,8 @@ def get_sentence_skipgrams_restore(sentence, skip_window):
     sentence_targets = []
     sentence_labels = []
     for i in range(len(sentence)):  # i = target word
-        context_indices = [j for j in range(max(0, (i - skip_window)), min(len(sentence), i + 1 + skip_window)) if j != i]
+        context_indices = [j for j in range(max(0, (i - skip_window)), min(len(sentence), i + 1 + skip_window))
+                           if j != i]
         sentence_targets.append(sentence[i])
         labels = []
         for context_index in context_indices:
