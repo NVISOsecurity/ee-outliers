@@ -121,8 +121,13 @@ class Analyzer(abc.ABC):
             self.model_settings["outlier_type"], fields_and_extra_outlier_information).split(",")
         outlier_reason = helpers.utils.replace_placeholder_fields_with_values(
             self.model_settings["outlier_reason"], fields_and_extra_outlier_information).split(",")
-        outlier_assets = helpers.utils.extract_outlier_asset_information(fields, settings)
 
+        # remove any leading or trailing whitespace from either. For example: "type = malware,  IDS" should just
+        # return ["malware","IDS"] instead of ["malware", "  IDS"]
+        outlier_type = [item.strip() for item in outlier_type]
+        outlier_reason = [item.strip() for item in outlier_reason]
+
+        outlier_assets = helpers.utils.extract_outlier_asset_information(fields, settings)
         outlier = Outlier(outlier_type=outlier_type, outlier_reason=outlier_reason, outlier_summary=outlier_summary)
 
         if len(outlier_assets) > 0:
