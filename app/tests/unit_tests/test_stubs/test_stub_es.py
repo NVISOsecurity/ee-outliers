@@ -20,7 +20,7 @@ class TestStubEs:
         self.apply_new_es()
 
     @staticmethod
-    def _get_default_es_methods(self):
+    def _get_default_es_methods():
         # could not do deepcopy due to "TypeError: cannot serialize '_io.TextIOWrapper' object"
         return {
                 "default_bulk_flush_size": es.BULK_FLUSH_SIZE,
