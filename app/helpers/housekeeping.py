@@ -20,7 +20,7 @@ class HousekeepingJob(threading.Thread):
         self.shutdown_flag = threading.Event()
 
     @staticmethod
-    def _get_config_whitelist_parameters(self):
+    def _get_config_whitelist_parameters():
         return {
             'whitelist_literals': settings.config.items("whitelist_literals"),
             'whitelist_regexps': settings.config.items("whitelist_regexps"),
