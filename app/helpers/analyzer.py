@@ -146,11 +146,12 @@ class Analyzer(abc.ABC):
         if total_events == 0:
             logging.logger.warning("no events to analyze!")
 
-    def check_is_whitelist(self, document):
+    def check_is_whitelist(self, document, extract_field=True):
         document_to_check = copy.deepcopy(document)
-        es.extract_fields_from_document(document_to_check,
-                                        extract_derived_fields=self.model_settings["use_derived_fields"])
-        document_to_check["outlier_summary"] = textwrap.fill(model_settings["outlier_summary"], width=150)
+        if extract_field:
+            es.extract_fields_from_document(document_to_check,
+                                            extract_derived_fields=self.model_settings["use_derived_fields"])
+        document_to_check["outlier_summary"] = textwrap.fill(self.model_settings["outlier_summary"], width=150)
         return Outlier.is_whitelisted_doc(document_to_check)
 
     @staticmethod

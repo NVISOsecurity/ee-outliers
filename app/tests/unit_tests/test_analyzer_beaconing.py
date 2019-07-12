@@ -12,6 +12,10 @@ from analyzers.beaconing import BeaconingAnalyzer
 from helpers.outlier import Outlier
 
 doc_without_outlier_test_file = json.load(open("/app/tests/unit_tests/files/doc_without_outlier.json"))
+doc_beaconing_whitelist_01_test_file = json.load(open("/app/tests/unit_tests/files/doc_beaconing_whitelist_01.json"))
+doc_beaconing_whitelist_02_test_file = json.load(open("/app/tests/unit_tests/files/doc_beaconing_whitelist_02.json"))
+doc_beaconing_whitelist_03_test_file = json.load(open("/app/tests/unit_tests/files/doc_beaconing_whitelist_03.json"))
+doc_beaconing_whitelist_04_test_file = json.load(open("/app/tests/unit_tests/files/doc_beaconing_whitelist_04.json"))
 doc_with_beaconing_outlier_test_file = json.load(open("/app/tests/unit_tests/files/doc_with_beaconing_outlier.json"))
 doc_with_beaconing_outlier_without_score_sort_test_file = json.load(
     open("/app/tests/unit_tests/files/doc_with_beaconing_outlier_without_score_sort.json"))
@@ -172,3 +176,39 @@ class TestBeaconingAnalyzer(unittest.TestCase):
 
         result = [elem for elem in es.scan()][0]
         self.assertEqual(result, expected_doc)
+
+    def test_whitelist_batch_document_not_process_all(self):
+        settings.process_configuration_files("/app/tests/unit_tests/files/beaconing_test_with_whitelist.conf")
+        analyzer = BeaconingAnalyzer("beaconing_dummy_test")
+
+        # Whitelisted (ignored)
+        doc1_without_outlier = copy.deepcopy(doc_beaconing_whitelist_01_test_file)
+        self.test_es.add_doc(doc1_without_outlier)
+        # Not whitelisted (add)
+        doc2_without_outlier = copy.deepcopy(doc_beaconing_whitelist_02_test_file)
+        self.test_es.add_doc(doc2_without_outlier)
+        # Not whitelisted
+        doc3_without_outlier = copy.deepcopy(doc_beaconing_whitelist_03_test_file)
+        self.test_es.add_doc(doc3_without_outlier)
+
+        created_outliers = analyzer.evaluate_model()
+
+        self.assertEqual(len(created_outliers), 2)
+
+    def test_whitelist_batch_document_no_whitelist_document(self):
+        settings.process_configuration_files("/app/tests/unit_tests/files/beaconing_test_with_whitelist.conf")
+        analyzer = BeaconingAnalyzer("beaconing_dummy_test")
+
+        # Not whitelisted
+        doc2_without_outlier = copy.deepcopy(doc_beaconing_whitelist_02_test_file)
+        self.test_es.add_doc(doc2_without_outlier)
+        # Not whitelisted and add
+        doc3_without_outlier = copy.deepcopy(doc_beaconing_whitelist_03_test_file)
+        self.test_es.add_doc(doc3_without_outlier)
+        # Not whitelisted and add (also add because it is the last one)
+        doc4_without_outlier = copy.deepcopy(doc_beaconing_whitelist_04_test_file)
+        self.test_es.add_doc(doc4_without_outlier)
+
+        created_outliers = analyzer.evaluate_model()
+
+        self.assertEqual(len(created_outliers), 3)

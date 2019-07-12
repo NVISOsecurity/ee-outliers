@@ -16,6 +16,7 @@ class BeaconingAnalyzer(Analyzer):
     def evaluate_model(self):
         self.extract_additional_model_settings()
 
+        all_outliers = []
         search_query = es.filter_by_query_string(self.model_settings["es_query_filter"])
         self.total_events = es.count_documents(index=self.es_index, search_query=search_query,
                                                model_settings=self.model_settings)
@@ -45,7 +46,7 @@ class BeaconingAnalyzer(Analyzer):
                                          "are processing. - [" + self.model_name + "]")
                     will_process_doc = False
 
-                if will_process_doc:
+                if will_process_doc and not self.check_is_whitelist(doc, extract_field=False):
                     observations = dict()
 
                     for target_sentence in target_sentences:
@@ -56,8 +57,6 @@ class BeaconingAnalyzer(Analyzer):
                             eval_terms_array = self.add_term_to_batch(eval_terms_array, flattened_aggregator_sentence,
                                                                       flattened_target_sentence, observations, doc)
 
-                    if self.check_is_whitelist(eval_terms_array):
-                        continue
                     total_terms_added += len(target_sentences)
 
                 # Evaluate batch of events against the model
@@ -65,6 +64,7 @@ class BeaconingAnalyzer(Analyzer):
                 if last_batch or total_terms_added >= self.model_settings["batch_eval_size"]:
                     logging.logger.info("evaluating batch of " + "{:,}".format(total_terms_added) + " terms")
                     outliers = self.evaluate_batch_for_outliers(terms=eval_terms_array)
+                    all_outliers += outliers
 
                     if len(outliers) > 0:
                         unique_summaries = len(set(o.outlier_dict["summary"] for o in outliers))
@@ -80,6 +80,7 @@ class BeaconingAnalyzer(Analyzer):
                     total_terms_added = 0
 
         self.print_analysis_summary()
+        return all_outliers
 
     def extract_additional_model_settings(self):
         self.model_settings["target"] = settings.config.get(self.config_section_name, "target")\
