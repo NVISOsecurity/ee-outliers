@@ -2,6 +2,7 @@ import configparser
 import argparse
 
 from helpers.singleton import singleton
+import copy
 
 parser = argparse.ArgumentParser()
 
@@ -31,7 +32,7 @@ class Settings:
         self.failed_config_paths = None
 
         self.args = parser.parse_args()
-        self.backup_args_config = self.args.config[:]
+        self.default_args_config = copy.deepcopy(self.args.config)
         self.process_configuration_files()
 
     def process_configuration_files(self):
@@ -59,5 +60,5 @@ class Settings:
         """
         Only use by tests to restore the default configuration
         """
-        self.args.config = self.backup_args_config
+        self.args.config = self.default_args_config
         self.process_configuration_files()
