@@ -19,6 +19,7 @@ class HousekeepingJob(threading.Thread):
         # indicates whether the thread should be terminated.
         self.shutdown_flag = threading.Event()
 
+    @staticmethod
     def _get_config_whitelist_parameters(self):
         return {
             'whitelist_literals': settings.config.items("whitelist_literals"),
