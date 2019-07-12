@@ -148,6 +148,8 @@ class Analyzer(abc.ABC):
 
     def check_is_whitelist(self, document):
         document_to_check = copy.deepcopy(document)
+        es.extract_fields_from_document(document_to_check,
+                                        extract_derived_fields=self.model_settings["use_derived_fields"])
         document_to_check["outlier_summary"] = textwrap.fill(model_settings["outlier_summary"], width=150)
         return Outlier.is_whitelisted_doc(document_to_check)
 
