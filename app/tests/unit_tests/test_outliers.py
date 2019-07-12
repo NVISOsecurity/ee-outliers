@@ -2,6 +2,7 @@ import json
 import unittest
 
 import copy
+import re
 
 import helpers.es
 from helpers.outlier import Outlier
@@ -106,38 +107,26 @@ class TestOutlierOperations(unittest.TestCase):
 
     def test_whitelist_literal_match(self):
         whitelist_item = r"C:\Windows\system32\msfeedssync.exe sync"
-        test_outlier = Outlier(outlier_type="dummy type", outlier_reason="dummy reason",
-                               outlier_summary="dummy summary")
-
-        result = test_outlier.matches_specific_whitelist_item_literally(
-                                        whitelist_item, additional_dict_values_to_check=doc_for_whitelist_testing_file)
+        result = Outlier.dictionary_matches_specific_whitelist_item_literally(whitelist_item,
+                                                                              doc_for_whitelist_testing_file)
         self.assertTrue(result)
 
     def test_whitelist_literal_mismatch(self):
         whitelist_item = r"C:\Windows\system32\msfeedssync.exe syncWRONG"
-        test_outlier = Outlier(outlier_type="dummy type", outlier_reason="dummy reason",
-                               outlier_summary="dummy summary")
-
-        result = test_outlier.matches_specific_whitelist_item_literally(
-                                        whitelist_item, additional_dict_values_to_check=doc_for_whitelist_testing_file)
+        result = Outlier.dictionary_matches_specific_whitelist_item_literally(whitelist_item,
+                                                                              doc_for_whitelist_testing_file)
         self.assertFalse(result)
 
     def test_whitelist_regexp_match(self):
         whitelist_item = r"^.*.exe sync$"
-        test_outlier = Outlier(outlier_type="dummy type", outlier_reason="dummy reason",
-                               outlier_summary="dummy summary")
-
-        result = test_outlier.matches_specific_whitelist_item_regexp(
-                                        whitelist_item, additional_dict_values_to_check=doc_for_whitelist_testing_file)
+        p = re.compile(whitelist_item.strip(), re.IGNORECASE)
+        result = Outlier.dictionary_matches_specific_whitelist_item_regexp(p, doc_for_whitelist_testing_file)
         self.assertTrue(result)
 
     def test_whitelist_regexp_mismatch(self):
         whitelist_item = r"^.*.exeZZZZZ sync$"
-        test_outlier = Outlier(outlier_type="dummy type", outlier_reason="dummy reason",
-                               outlier_summary="dummy summary")
-
-        result = test_outlier.matches_specific_whitelist_item_regexp(
-                                        whitelist_item, additional_dict_values_to_check=doc_for_whitelist_testing_file)
+        p = re.compile(whitelist_item.strip(), re.IGNORECASE)
+        result = Outlier.dictionary_matches_specific_whitelist_item_regexp(p, doc_for_whitelist_testing_file)
         self.assertFalse(result)
 
     def test_whitelist_config_file_multi_item_match(self):

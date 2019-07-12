@@ -72,6 +72,8 @@ class TermsAnalyzer(Analyzer):
                             eval_terms_array = self.add_term_to_batch(eval_terms_array, flattened_aggregator_sentence,
                                                                       flattened_target_sentence, observations, doc)
 
+                    if self.check_is_whitelist(eval_terms_array):
+                        continue
                     total_terms_added += len(target_sentences)
 
                 # Evaluate batch of events against the model
