@@ -26,7 +26,8 @@ class TestAnalyzer(unittest.TestCase):
         settings._restore_default_configuration_path()
         self.test_es.restore_es()
 
-    def _preperate_data_terms(self):
+    @staticmethod
+    def _preperate_data_terms():
         eval_terms_array = defaultdict()
         # "random" value
         aggregator_value = "key"
