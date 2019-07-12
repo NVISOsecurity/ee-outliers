@@ -48,7 +48,21 @@ class TestBeaconingAnalyzer(unittest.TestCase):
         outlier.outlier_dict["term_count"] = term_count
         return outlier
 
-    def test_evaluate_batch_for_outliers_not_enough_target_buckets(self):
+    def test_evaluate_batch_for_outliers_not_enough_target_buckets_one_doc_max_two(self):
+        settings.process_configuration_files("/app/tests/unit_tests/files/beaconing_test_01.conf")
+        analyzer = BeaconingAnalyzer("beaconing_dummy_test")
+        analyzer.extract_additional_model_settings()
+
+        aggregator_value = LIST_AGGREGATOR_VALUE[0]
+        target_value = random.choice(LIST_TARGET_VALUE)
+        observations = {}
+        doc = copy.deepcopy(random.choice(LIST_DOC))
+        eval_terms_array = analyzer.add_term_to_batch(defaultdict(), aggregator_value, target_value, observations, doc)
+
+        result = analyzer.evaluate_batch_for_outliers(terms=eval_terms_array)
+        self.assertEqual(result, [])
+
+    def test_evaluate_batch_for_outliers_limit_target_buckets_two_doc_max_two(self):
         settings.process_configuration_files("/app/tests/unit_tests/files/beaconing_test_01.conf")
         analyzer = BeaconingAnalyzer("beaconing_dummy_test")
         analyzer.extract_additional_model_settings()
