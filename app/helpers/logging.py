@@ -45,7 +45,6 @@ class Logging:
         self.current_step = 0
 
     def tick(self):
-        should_log = False
         self.current_step += 1
 
         if self.verbosity >= 5:
