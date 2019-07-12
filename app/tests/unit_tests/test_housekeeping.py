@@ -29,11 +29,18 @@ class TestHousekeeping(unittest.TestCase):
         doc_with_outlier = copy.deepcopy(doc_with_outlier_test_file)
         self.test_es.add_doc(doc_with_outlier)
 
+        filecontent = ""
+        with open(test_file_no_whitelist_path_config, 'r') as test_file:
+            for line in test_file:
+                if "# WHITELIST" in line:
+                    break
+                filecontent += line
+
         # Update configuration (read new config and append to default)
         with open(test_file_whitelist_path_config, 'r') as test_file:
-            filecontent = test_file.read()
+            filecontent += test_file.read()
 
-        with open(test_file_no_whitelist_path_config, 'a') as test_file:
+        with open(test_file_no_whitelist_path_config, 'w') as test_file:
             test_file.write(filecontent)
 
         housekeeping.execute_housekeeping()
@@ -47,8 +54,7 @@ class TestHousekeeping(unittest.TestCase):
         self.assertEqual(result, doc_without_outlier)
 
     def test_housekeeping_not_execute_no_whitelist_parameter_change(self):
-        backup_args_config = settings.args.config[:]
-        settings.args.config = [test_file_no_whitelist_path_config]
+        settings._change_configuration_path(test_file_no_whitelist_path_config)
         housekeeping = HousekeepingJob()
 
         # Add document to "Database"
@@ -65,8 +71,5 @@ class TestHousekeeping(unittest.TestCase):
 
         # Fetch result
         result = [elem for elem in self.test_es.scan()][0]
-
-        # Restore configuration
-        settings.args.config = backup_args_config
 
         self.assertEqual(result, doc_with_outlier)

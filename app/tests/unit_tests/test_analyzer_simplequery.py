@@ -22,12 +22,11 @@ class TestSimplequeryAnalyzer(unittest.TestCase):
 
     def tearDown(self):
         # restore the default configuration file so we don't influence other unit tests that use the settings singleton
-        settings.process_configuration_files("/defaults/outliers.conf")
-        settings.process_arguments()
+        settings._restore_default_configuration_path()
         self.test_es.restore_es()
 
     def _get_simplequery_analyzer(self, config_file, config_section):
-        settings.process_configuration_files(config_file)
+        settings._change_configuration_path(config_file)
         return SimplequeryAnalyzer(config_section_name=config_section)
 
     def test_one_doc_outlier_correctly_add(self):

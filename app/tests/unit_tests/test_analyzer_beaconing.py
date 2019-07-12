@@ -32,8 +32,7 @@ class TestBeaconingAnalyzer(unittest.TestCase):
 
     def tearDown(self):
         # restore the default configuration file so we don't influence other unit tests that use the settings singleton
-        settings.process_configuration_files("/defaults/outliers.conf")
-        settings.process_arguments()
+        settings._restore_default_configuration_path()
         self.test_es.restore_es()
 
     def _create_outliers(self, outlier_type, outlier_reason, outlier_summary, model_type, model_name, term, aggregator,
@@ -49,7 +48,7 @@ class TestBeaconingAnalyzer(unittest.TestCase):
         return outlier
 
     def test_evaluate_batch_for_outliers_not_enough_target_buckets(self):
-        settings.process_configuration_files("/app/tests/unit_tests/files/beaconing_test_01.conf")
+        settings._change_configuration_path("/app/tests/unit_tests/files/beaconing_test_01.conf")
         analyzer = BeaconingAnalyzer("beaconing_dummy_test")
         analyzer.extract_additional_model_settings()
 
@@ -70,7 +69,7 @@ class TestBeaconingAnalyzer(unittest.TestCase):
         self.assertEqual(result, [])
 
     def test_evaluate_batch_for_outliers_detect_two_outliers(self):
-        settings.process_configuration_files("/app/tests/unit_tests/files/beaconing_test_01.conf")
+        settings._change_configuration_path("/app/tests/unit_tests/files/beaconing_test_01.conf")
         analyzer = BeaconingAnalyzer("beaconing_dummy_test")
         analyzer.extract_additional_model_settings()
 
@@ -117,7 +116,7 @@ class TestBeaconingAnalyzer(unittest.TestCase):
         self.assertEqual(result, expected_outliers)
 
     def test_prepare_and_process_outlier_one_outlier(self):
-        settings.process_configuration_files("/app/tests/unit_tests/files/beaconing_test_01.conf")
+        settings._change_configuration_path("/app/tests/unit_tests/files/beaconing_test_01.conf")
         analyzer = BeaconingAnalyzer("beaconing_dummy_test")
 
         # decision_frontier, term_value_count, terms, aggregator_value, term_counter):
@@ -138,7 +137,7 @@ class TestBeaconingAnalyzer(unittest.TestCase):
         self.assertEqual(outlier, expected_outlier)
 
     def test_prepare_and_process_outlier_check_es_have_request(self):  # TODO adapt name
-        settings.process_configuration_files("/app/tests/unit_tests/files/beaconing_test_01.conf")
+        settings._change_configuration_path("/app/tests/unit_tests/files/beaconing_test_01.conf")
         analyzer = BeaconingAnalyzer("beaconing_dummy_test")
 
         # decision_frontier, term_value_count, terms, aggregator_value, term_counter):
@@ -159,7 +158,7 @@ class TestBeaconingAnalyzer(unittest.TestCase):
         self.assertEqual(result, expected_doc)
 
     def test_evaluate_model_beaconing_simple_case(self):
-        settings.process_configuration_files("/app/tests/unit_tests/files/beaconing_test_01.conf")
+        settings._change_configuration_path("/app/tests/unit_tests/files/beaconing_test_01.conf")
         analyzer = BeaconingAnalyzer("beaconing_dummy_test")
 
         doc_without_outlier = copy.deepcopy(doc_without_outlier_test_file)
