@@ -3,9 +3,9 @@ import unittest
 import json
 import copy
 
-from helpers.singletons import settings
 from helpers.housekeeping import HousekeepingJob
 from tests.unit_tests.test_stubs.test_stub_es import TestStubEs
+from tests.unit_tests.utils.test_settings import TestSettings
 
 test_file_no_whitelist_path_config = "/app/tests/unit_tests/files/housekeeping_no_whitelist.conf"
 test_file_whitelist_path_config = "/app/tests/unit_tests/files/whitelist_tests_01.conf"
@@ -16,13 +16,14 @@ doc_with_outlier_test_file = json.load(open("/app/tests/unit_tests/files/doc_wit
 class TestHousekeeping(unittest.TestCase):
     def setUp(self):
         self.test_es = TestStubEs()
+        self.test_settings = TestSettings()
 
     def tearDown(self):
         self.test_es.restore_es()
-        settings._restore_default_configuration_path()
+        self.test_settings.restore_default_configuration_path()
 
     def test_housekeeping_correctly_remove_whitelisted_outlier_when_file_modification(self):
-        settings._change_configuration_path(test_file_no_whitelist_path_config)
+        self.test_settings.change_configuration_path(test_file_no_whitelist_path_config)
         housekeeping = HousekeepingJob()
 
         # Add document to "Database"
@@ -54,7 +55,7 @@ class TestHousekeeping(unittest.TestCase):
         self.assertEqual(result, doc_without_outlier)
 
     def test_housekeeping_not_execute_no_whitelist_parameter_change(self):
-        settings._change_configuration_path(test_file_no_whitelist_path_config)
+        self.test_settings.change_configuration_path(test_file_no_whitelist_path_config)
         housekeeping = HousekeepingJob()
 
         # Add document to "Database"
