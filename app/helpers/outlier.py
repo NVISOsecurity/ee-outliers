@@ -23,7 +23,6 @@ class Outlier:
     def is_whitelisted(self, additional_dict_values_to_check=None):
         additional_dict_values = copy.deepcopy(additional_dict_values_to_check)
         additional_dict_values["outlier_summary"] = self.outlier_dict["summary"]
-        print("is_whitelisted", additional_dict_values)
         return Outlier.is_whitelisted_doc(additional_dict_values)
 
     def get_outlier_dict_of_arrays(self):
