@@ -20,7 +20,7 @@ class TestTestStubEs(unittest.TestCase):
         self.test_es.restore_es()
 
     @staticmethod
-    def _get_example_dictionary_key_value_and_expected(self):
+    def _get_example_dictionary_key_value_and_expected():
         dictionary_value = {
             "key.test": 1,
             "key.key2.ok": "test",
@@ -43,7 +43,7 @@ class TestTestStubEs(unittest.TestCase):
         return dictionary_value, expected_result
 
     @staticmethod
-    def _get_example_doc(self):
+    def _get_example_doc():
         return {
             '_source': {
                 'key': {
