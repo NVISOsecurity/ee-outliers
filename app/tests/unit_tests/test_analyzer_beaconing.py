@@ -193,7 +193,7 @@ class TestBeaconingAnalyzer(unittest.TestCase):
 
         created_outliers = analyzer.evaluate_model()
 
-        self.assertEqual(len(created_outliers), 2)
+        self.assertEqual(len(analyzer.outliers), 2)
 
     def test_whitelist_batch_document_no_whitelist_document(self):
         settings.process_configuration_files("/app/tests/unit_tests/files/beaconing_test_with_whitelist.conf")
@@ -209,6 +209,6 @@ class TestBeaconingAnalyzer(unittest.TestCase):
         doc4_without_outlier = copy.deepcopy(doc_beaconing_whitelist_04_test_file)
         self.test_es.add_doc(doc4_without_outlier)
 
-        created_outliers = analyzer.evaluate_model()
+        analyzer.evaluate_model()
 
-        self.assertEqual(len(created_outliers), 3)
+        self.assertEqual(len(analyzer.outliers), 3)
