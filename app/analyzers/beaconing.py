@@ -28,7 +28,6 @@ class BeaconingAnalyzer(Analyzer):
             eval_terms_array = defaultdict()
             total_terms_added = 0
 
-            outlier_batches_trend = 0
             for doc in es.scan(index=self.es_index, search_query=search_query, model_settings=self.model_settings):
                 logging.tick()
                 fields = es.extract_fields_from_document(
@@ -68,10 +67,8 @@ class BeaconingAnalyzer(Analyzer):
                         unique_summaries = len(set(o.outlier_dict["summary"] for o in outliers))
                         logging.logger.info("total outliers in batch processed: " + str(len(outliers)) + " [" +
                                             str(unique_summaries) + " unique summaries]")
-                        outlier_batches_trend += 1
                     else:
                         logging.logger.info("no outliers detected in batch")
-                        outlier_batches_trend -= 1
 
                     # Reset data structures for next batch
                     eval_terms_array = defaultdict()

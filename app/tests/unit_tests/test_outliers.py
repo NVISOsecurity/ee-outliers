@@ -22,8 +22,7 @@ class TestOutlierOperations(unittest.TestCase):
 
     def tearDown(self):
         # restore the default configuration file so we don't influence other unit tests that use the settings singleton
-        settings.process_configuration_files("/defaults/outliers.conf")
-        settings.process_arguments()
+        settings._restore_default_configuration_path()
         self.test_es.restore_es()
 
     def test_add_outlier_to_doc(self):
@@ -134,7 +133,7 @@ class TestOutlierOperations(unittest.TestCase):
         test_outlier = Outlier(outlier_type="dummy type", outlier_reason="dummy reason",
                                outlier_summary="dummy summary")
 
-        settings.process_configuration_files("/app/tests/unit_tests/files/whitelist_tests_01.conf")
+        settings._change_configuration_path("/app/tests/unit_tests/files/whitelist_tests_01.conf")
         self.assertTrue(test_outlier.is_whitelisted(additional_dict_values_to_check=orig_doc))
 
     def test_single_literal_to_match_in_doc_with_outlier(self):
@@ -142,7 +141,7 @@ class TestOutlierOperations(unittest.TestCase):
         test_outlier = Outlier(outlier_type="dummy type", outlier_reason="dummy reason",
                                outlier_summary="dummy summary")
 
-        settings.process_configuration_files("/app/tests/unit_tests/files/whitelist_tests_02.conf")
+        settings._change_configuration_path("/app/tests/unit_tests/files/whitelist_tests_02.conf")
         self.assertTrue(test_outlier.is_whitelisted(additional_dict_values_to_check=orig_doc))
 
     def test_single_literal_not_to_match_in_doc_with_outlier(self):
@@ -150,7 +149,7 @@ class TestOutlierOperations(unittest.TestCase):
         test_outlier = Outlier(outlier_type="dummy type", outlier_reason="dummy reason",
                                outlier_summary="dummy summary")
 
-        settings.process_configuration_files("/app/tests/unit_tests/files/whitelist_tests_03.conf")
+        settings._change_configuration_path("/app/tests/unit_tests/files/whitelist_tests_03.conf")
         self.assertFalse(test_outlier.is_whitelisted(additional_dict_values_to_check=orig_doc))
 
     def test_whitelist_config_file_multi_item_match_with_three_fields_and_whitespace(self):
@@ -158,7 +157,7 @@ class TestOutlierOperations(unittest.TestCase):
         test_outlier = Outlier(outlier_type="dummy type", outlier_reason="dummy reason",
                                outlier_summary="dummy summary")
 
-        settings.process_configuration_files("/app/tests/unit_tests/files/whitelist_tests_04.conf")
+        settings._change_configuration_path("/app/tests/unit_tests/files/whitelist_tests_04.conf")
         self.assertTrue(test_outlier.is_whitelisted(additional_dict_values_to_check=orig_doc))
 
     def test_whitelist_config_file_multi_item_mismatch_with_three_fields_and_whitespace(self):
@@ -166,14 +165,14 @@ class TestOutlierOperations(unittest.TestCase):
         test_outlier = Outlier(outlier_type="dummy type", outlier_reason="dummy reason",
                                outlier_summary="dummy summary")
 
-        settings.process_configuration_files("/app/tests/unit_tests/files/whitelist_tests_05.conf")
+        settings._change_configuration_path("/app/tests/unit_tests/files/whitelist_tests_05.conf")
         self.assertFalse(test_outlier.is_whitelisted(additional_dict_values_to_check=orig_doc))
 
     def test_whitelist_config_change_remove_multi_item_literal(self):
         doc_with_outlier = copy.deepcopy(doc_with_outlier_test_file)
         doc_without_outlier = copy.deepcopy(doc_without_outlier_test_file)
         self.test_es.add_doc(doc_with_outlier)
-        settings.process_configuration_files("/app/tests/unit_tests/files/whitelist_tests_01_with_general.conf")
+        settings._change_configuration_path("/app/tests/unit_tests/files/whitelist_tests_01_with_general.conf")
         es.remove_all_whitelisted_outliers()
         result = [elem for elem in es.scan()][0]
         self.assertEqual(result, doc_without_outlier)
@@ -181,7 +180,7 @@ class TestOutlierOperations(unittest.TestCase):
     def test_whitelist_config_change_single_literal_not_to_match_in_doc_with_outlier(self):
         doc_with_outlier = copy.deepcopy(doc_with_outlier_test_file)
         self.test_es.add_doc(doc_with_outlier)
-        settings.process_configuration_files("/app/tests/unit_tests/files/whitelist_tests_03_with_general.conf")
+        settings._change_configuration_path("/app/tests/unit_tests/files/whitelist_tests_03_with_general.conf")
         es.remove_all_whitelisted_outliers()
         result = [elem for elem in es.scan()][0]
         self.assertEqual(result, doc_with_outlier)

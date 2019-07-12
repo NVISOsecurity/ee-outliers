@@ -268,7 +268,8 @@ class ES:
 
         return doc_fields
 
-    def get_time_filter(self, days=None, hours=None, timestamp_field="timestamp"):
+    @staticmethod
+    def get_time_filter(days=None, hours=None, timestamp_field="timestamp"):
         time_start = (datetime.datetime.now() - datetime.timedelta(days=days, hours=hours)).isoformat()
         time_stop = datetime.datetime.now().isoformat()
 

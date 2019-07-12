@@ -194,8 +194,6 @@ def is_url(_str):
 
 
 def get_decision_frontier(trigger_method, values_array, trigger_sensitivity, trigger_on=None):
-    decision_frontier = None
-
     if trigger_method == "percentile":
         decision_frontier = get_percentile_decision_frontier(values_array, trigger_sensitivity)
 

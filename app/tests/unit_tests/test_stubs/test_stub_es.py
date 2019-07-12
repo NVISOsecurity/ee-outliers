@@ -10,16 +10,17 @@ POSSIBLE_META_CMD_NAME = ["get_all_processes_with_listening_conns", "get_all_sch
 POSSIBLE_TAGS = [["unknown_hashes", "endpoint"], ["endpoint"], ["test", "unknown_hashes"]]
 
 
-class TestStubEs():
+class TestStubEs:
 
     def __init__(self):
         # Init test stub es
         self.list_data = dict()
         self.id = 0
-        self.default_es_methods = self.get_default_es_methods()
+        self.default_es_methods = self._get_default_es_methods()
         self.apply_new_es()
 
-    def get_default_es_methods(self):
+    @staticmethod
+    def _get_default_es_methods():
         # could not do deepcopy due to "TypeError: cannot serialize '_io.TextIOWrapper' object"
         return {
                 "default_bulk_flush_size": es.BULK_FLUSH_SIZE,
@@ -68,9 +69,9 @@ class TestStubEs():
         return len(self.list_data)
 
     def _update_es(self, doc):
-        id = doc['_id']
-        if id in self.list_data:
-            self.list_data[id] = doc
+        doc_id = doc['_id']
+        if doc_id in self.list_data:
+            self.list_data[doc_id] = doc
 
     def remove_all_outliers(self):
         self.list_data = dict()
@@ -101,12 +102,8 @@ class TestStubEs():
             meta_cmd_name = random.choice(POSSIBLE_META_CMD_NAME)
             tags = random.choice(POSSIBLE_TAGS)
 
-            dictionary_data = {}
-            dictionary_data["@timestamp"] = timestamp
-            dictionary_data["timestamp"] = timestamp
-            dictionary_data["tags"] = tags
-            dictionary_data["slave_name"] = slave_name
-            dictionary_data["meta.command.name"] = meta_cmd_name
+            dictionary_data = {"@timestamp": timestamp, "timestamp": timestamp, "tags": tags, "slave_name": slave_name,
+                               "meta.command.name": meta_cmd_name}
             dictionary_data.update(fixed_infos)
             self.add_data(dictionary_data)
 
@@ -114,7 +111,7 @@ class TestStubEs():
         """
         Add "fake" data, that can be return by custom elastic search
 
-        :param dictionary_data dictionary with key and value (key with the format: key1.key2.key3)
+        :param dictionary_data: dictionary with key and value (key with the format: key1.key2.key3)
         """
         source = {}
         for key, val in dictionary_data.items():
@@ -134,7 +131,7 @@ class TestStubEs():
     def _create_dict_based_on_key(self, doc, key, data):
         self.list_key = key.split(".")
 
-        if (len(self.list_key) == 1):
+        if len(self.list_key) == 1:
             if key in doc:
                 if isinstance(doc[key], list):
                     doc[key].append(data)
