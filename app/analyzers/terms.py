@@ -47,6 +47,9 @@ class TermsAnalyzer(Analyzer):
                 fields = es.extract_fields_from_document(
                                                 doc, extract_derived_fields=self.model_settings["use_derived_fields"])
 
+                if self.check_is_whitelist(fields, extract_field=False):
+                    continue
+
                 try:
                     target_sentences = helpers.utils.flatten_fields_into_sentences(fields=fields,
                                                                                    sentence_format=target)
@@ -72,8 +75,6 @@ class TermsAnalyzer(Analyzer):
                             eval_terms_array = self.add_term_to_batch(eval_terms_array, flattened_aggregator_sentence,
                                                                       flattened_target_sentence, observations, doc)
 
-                    if self.check_is_whitelist(eval_terms_array):
-                        continue
                     total_terms_added += len(target_sentences)
 
                 # Evaluate batch of events against the model

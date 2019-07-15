@@ -33,6 +33,9 @@ class BeaconingAnalyzer(Analyzer):
                 fields = es.extract_fields_from_document(
                                                 doc, extract_derived_fields=self.model_settings["use_derived_fields"])
 
+                if self.check_is_whitelist(fields, extract_field=False):
+                    continue
+
                 try:
                     target_sentences = helpers.utils.flatten_fields_into_sentences(
                                                 fields=fields, sentence_format=self.model_settings["target"])
@@ -44,7 +47,7 @@ class BeaconingAnalyzer(Analyzer):
                                          "are processing. - [" + self.model_name + "]")
                     will_process_doc = False
 
-                if will_process_doc and not self.check_is_whitelist(doc, extract_field=False):
+                if will_process_doc:
                     observations = dict()
 
                     for target_sentence in target_sentences:

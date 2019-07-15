@@ -1,4 +1,3 @@
-# from helpers.singletons import settings
 import helpers.singletons
 import re
 import helpers.utils
@@ -21,8 +20,11 @@ class Outlier:
     # Example: "dns_tunneling_fp = rule_updates.et.com, intel_server" -> should match both values across the entire
     # event (rule_updates.et.com and intel_server);
     def is_whitelisted(self, additional_dict_values_to_check=None):
-        additional_dict_values = copy.deepcopy(additional_dict_values_to_check)
-        additional_dict_values["outlier_summary"] = self.outlier_dict["summary"]
+        if additional_dict_values_to_check is not None:
+            additional_dict_values = copy.deepcopy(additional_dict_values_to_check)
+        else:
+            additional_dict_values = dict()
+        additional_dict_values["__outlier_dict"] = self.outlier_dict
         return Outlier.is_whitelisted_doc(additional_dict_values)
 
     def get_outlier_dict_of_arrays(self):
@@ -51,7 +53,7 @@ class Outlier:
         return isinstance(other, Outlier) and self.outlier_dict == other.outlier_dict
 
     @staticmethod
-    def is_whitelisted_doc(additional_dict_values_to_check=None):
+    def is_whitelisted_doc(dict_values_to_check=None):
         # Check if value is whitelisted as literal
         for (_, each_whitelist_configuration_file_value) in \
                 helpers.singletons.settings.config.items("whitelist_literals"):
@@ -62,7 +64,7 @@ class Outlier:
 
             for whitelist_val_to_check in whitelist_values_to_check:
                 if Outlier.dictionary_matches_specific_whitelist_item_literally(whitelist_val_to_check,
-                                                                                additional_dict_values_to_check):
+                                                                                dict_values_to_check):
                     total_whitelisted_fields_matched += 1
 
             if total_whitelisted_fields_to_match == total_whitelisted_fields_matched:
@@ -78,7 +80,7 @@ class Outlier:
 
             for whitelist_val_to_check in whitelist_values_to_check:
                 p = re.compile(whitelist_val_to_check.strip(), re.IGNORECASE)
-                if Outlier.dictionary_matches_specific_whitelist_item_regexp(p, additional_dict_values_to_check):
+                if Outlier.dictionary_matches_specific_whitelist_item_regexp(p, dict_values_to_check):
                     total_whitelisted_fields_matched += 1
 
             if total_whitelisted_fields_to_match == total_whitelisted_fields_matched:

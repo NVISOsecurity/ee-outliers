@@ -105,7 +105,7 @@ class Analyzer(abc.ABC):
         else:
             logging.logger.info("no outliers detected for use case")
 
-    def process_outlier(self, fields, doc, extra_outlier_information=dict()):
+    def _prepare_outlier_parameters(self, extra_outlier_information, fields):
         extra_outlier_information["model_name"] = self.model_name
         extra_outlier_information["model_type"] = self.model_type
 
@@ -128,6 +128,11 @@ class Analyzer(abc.ABC):
         outlier_reason = [item.strip() for item in outlier_reason]
 
         outlier_assets = helpers.utils.extract_outlier_asset_information(fields, settings)
+        return outlier_type, outlier_reason, outlier_summary, outlier_assets
+
+    def process_outlier(self, fields, doc, extra_outlier_information=dict()):
+        outlier_type, outlier_reason, outlier_summary, outlier_assets = \
+            self._prepare_outlier_parameters(extra_outlier_information, fields)
         outlier = Outlier(outlier_type=outlier_type, outlier_reason=outlier_reason, outlier_summary=outlier_summary)
 
         if len(outlier_assets) > 0:
@@ -154,9 +159,12 @@ class Analyzer(abc.ABC):
     def check_is_whitelist(self, document, extract_field=True):
         document_to_check = copy.deepcopy(document)
         if extract_field:
-            es.extract_fields_from_document(document_to_check,
-                                            extract_derived_fields=self.model_settings["use_derived_fields"])
-        document_to_check["outlier_summary"] = textwrap.fill(self.model_settings["outlier_summary"], width=150)
+            fields = es.extract_fields_from_document(document_to_check,
+                                                     extract_derived_fields=self.model_settings["use_derived_fields"])
+        else:
+            fields = document
+        outlier_param = self._prepare_outlier_parameters(dict(), fields)
+        document_to_check['__whitelist_extra'] = outlier_param
         return Outlier.is_whitelisted_doc(document_to_check)
 
     @staticmethod
