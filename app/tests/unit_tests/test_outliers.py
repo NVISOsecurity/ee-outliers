@@ -6,7 +6,6 @@ import re
 
 import helpers.es
 from helpers.outlier import Outlier
-from helpers.singletons import settings
 from helpers.singletons import es
 from tests.unit_tests.test_stubs.test_stub_es import TestStubEs
 from tests.unit_tests.utils.test_settings import TestSettings
