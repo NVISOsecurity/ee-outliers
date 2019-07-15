@@ -74,8 +74,8 @@ class TestAnalyzer(unittest.TestCase):
         expected_eval_terms = defaultdict()
         expected_eval_terms[aggregator_value] = defaultdict(list)
         expected_eval_terms[aggregator_value]["targets"] = [target_value]
-        expected_eval_terms[aggregator_value]["observations"] = [{}]
-        expected_eval_terms[aggregator_value]["raw_docs"] = [{}]
+        expected_eval_terms[aggregator_value]["observations"] = [observations]
+        expected_eval_terms[aggregator_value]["raw_docs"] = [doc]
 
         self.assertEqual(Analyzer.add_term_to_batch(eval_terms_array, aggregator_value, target_value, observations,
                                                     doc), expected_eval_terms)
