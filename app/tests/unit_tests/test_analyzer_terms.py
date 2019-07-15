@@ -4,7 +4,7 @@ import unittest
 import copy
 
 from tests.unit_tests.test_stubs.test_stub_es import TestStubEs
-from analyzers.metrics import MetricsAnalyzer
+from analyzers.terms import TermsAnalyzer
 from helpers.singletons import settings, logging, es
 from tests.unit_tests.utils.test_settings import TestSettings
 
@@ -16,7 +16,7 @@ doc_without_outliers_test_whitelist_03_test_file = json.load(
     open("/app/tests/unit_tests/files/doc_without_outliers_test_whitelist_03.json"))
 
 
-class TestMetricsAnalyzer(unittest.TestCase):
+class TestTermsAnalyzer(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         logging.verbosity = 0
@@ -31,8 +31,8 @@ class TestMetricsAnalyzer(unittest.TestCase):
         self.test_es.restore_es()
 
     def test_whitelist_batch_document_not_process_all(self):
-        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/metrics_test_with_whitelist.conf")
-        analyzer = MetricsAnalyzer("metrics_length_dummy_test")
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_with_whitelist.conf")
+        analyzer = TermsAnalyzer("terms_dummy_test")
 
         # Whitelisted (ignored)
         doc1_without_outlier = copy.deepcopy(doc_without_outliers_test_whitelist_01_test_file)
