@@ -1,9 +1,8 @@
 import configparser
 import argparse
-import dateutil.parser
 
 from helpers.singleton import singleton
-from . import es
+import copy
 
 parser = argparse.ArgumentParser()
 
@@ -32,34 +31,13 @@ class Settings:
         self.loaded_config_paths = None
         self.failed_config_paths = None
 
-        self.search_range_start = None
-        self.search_range_end = None
-        self.search_range = None
+        self.args = parser.parse_args()
+        self.default_args_config = copy.deepcopy(self.args.config)
+        self.process_configuration_files()
 
-        self.process_arguments()
+    def process_configuration_files(self):
+        config_paths = self.args.config
 
-    def process_arguments(self):
-        args = parser.parse_args()
-        self.args = args
-
-        self.process_configuration_files(args.config)
-
-        search_range = es.get_time_filter(days=self.config.getint("general", "history_window_days"), hours=self.config.getint("general", "history_window_hours"), timestamp_field=self.config.get("general", "timestamp_field", fallback="timestamp"))
-
-        self.search_range_start = search_range["range"][str(self.config.get("general", "timestamp_field", fallback="timestamp"))]["gte"]
-        self.search_range_end = search_range["range"][str(self.config.get("general", "timestamp_field", fallback="timestamp"))]["lte"]
-        self.search_range = search_range
-
-        # Daemon mode settings
-        if args.run_mode == "daemon":
-            pass
-        if args.run_mode == "interactive":
-            pass
-
-    def reload_configuration_files(self):
-        self.process_configuration_files(self.args.config)
-
-    def process_configuration_files(self, config_paths):
         # Read configuration files
         config = configparser.ConfigParser(interpolation=None)
         config.optionxform = str  # preserve case sensitivity in config keys, important for derived field names
@@ -69,7 +47,18 @@ class Settings:
 
         self.config = config
 
-    def get_time_window_info(self):
-        search_start_range_printable = dateutil.parser.parse(self.search_range_start).strftime('%Y-%m-%d %H:%M:%S')
-        search_end_range_printable = dateutil.parser.parse(self.search_range_end).strftime('%Y-%m-%d %H:%M:%S')
-        return "processing events between " + search_start_range_printable + " and " + search_end_range_printable
+    def _change_configuration_path(self, new_path):
+        """
+        Only use by tests
+
+        :param new_path: the new path of the configuration
+        """
+        self.args.config = [new_path]
+        self.process_configuration_files()
+
+    def _restore_default_configuration_path(self):
+        """
+        Only use by tests to restore the default configuration
+        """
+        self.args.config = self.default_args_config
+        self.process_configuration_files()
