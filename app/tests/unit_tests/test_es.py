@@ -1,6 +1,9 @@
 import unittest
 
+import copy
+
 import helpers.es
+
 
 class TestEs(unittest.TestCase):
     def setUp(self):
@@ -14,10 +17,11 @@ class TestEs(unittest.TestCase):
                 }
             }
         }
-        newElem = elem.copy()
-        newdoc = helpers.es.add_tag_to_document(elem, "new_tag")
-        newElem["_source"]["tags"] = ["new_tag"]
-        self.assertEqual(newdoc, newElem)
+        expected_result = copy.deepcopy(elem)
+        expected_result["_source"]["tags"] = ["new_tag"]
+
+        new_doc_result = helpers.es.add_tag_to_document(elem, "new_tag")
+        self.assertEqual(new_doc_result, expected_result)
 
     def test_add_tag_to_document_already_a_tag(self):
         elem = {
@@ -28,10 +32,8 @@ class TestEs(unittest.TestCase):
                     "tags": ["ok"]
                 }
             }
-        newElem = elem.copy()
-        newdoc = helpers.es.add_tag_to_document(elem, "new_tag")
-        newElem["_source"]["tags"].append("new_tag")
-        self.assertEqual(newdoc, newElem)
+        expected_result = copy.deepcopy(elem)
+        expected_result["_source"]["tags"].append("new_tag")
 
-    def test_add_outlier_to_document(self):
-        pass
+        new_doc_result = helpers.es.add_tag_to_document(elem, "new_tag")
+        self.assertEqual(new_doc_result, expected_result)
