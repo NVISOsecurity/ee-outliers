@@ -6,9 +6,7 @@ import helpers.es
 
 
 class TestEs(unittest.TestCase):
-    def setUp(self):
-        pass
-
+    
     def test_add_tag_to_document_no_tag(self):
         elem = {
             "_source": {
