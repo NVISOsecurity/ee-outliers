@@ -179,7 +179,7 @@ class TestBeaconingAnalyzer(unittest.TestCase):
         self.assertEqual(result, expected_doc)
 
     def test_whitelist_batch_document_not_process_all(self):
-        settings.process_configuration_files("/app/tests/unit_tests/files/beaconing_test_with_whitelist.conf")
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/beaconing_test_with_whitelist.conf")
         analyzer = BeaconingAnalyzer("beaconing_dummy_test")
 
         # Whitelisted (ignored)
@@ -197,7 +197,7 @@ class TestBeaconingAnalyzer(unittest.TestCase):
         self.assertEqual(len(analyzer.outliers), 2)
 
     def test_whitelist_batch_document_no_whitelist_document(self):
-        settings.process_configuration_files("/app/tests/unit_tests/files/beaconing_test_with_whitelist.conf")
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/beaconing_test_with_whitelist.conf")
         analyzer = BeaconingAnalyzer("beaconing_dummy_test")
 
         # Not whitelisted
