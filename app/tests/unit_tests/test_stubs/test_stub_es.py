@@ -128,6 +128,10 @@ class TestStubEs:
             raise KeyError("Key " + str(doc['_id']) + " already exist in testStubEs")
         self.list_data[doc['_id']] = doc
 
+    def add_multiple_docs(self, list_doc):
+        for doc in list_doc:
+            self.add_doc(doc)
+
     def _create_dict_based_on_key(self, doc, key, data):
         self.list_key = key.split(".")
 
