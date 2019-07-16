@@ -2,6 +2,7 @@ import json
 import unittest
 
 import copy
+import numpy as np
 
 from tests.unit_tests.test_stubs.test_stub_es import TestStubEs
 from analyzers.terms import TermsAnalyzer
@@ -49,6 +50,8 @@ class TestTermsAnalyzer(unittest.TestCase):
 
         self.assertEqual(len(analyzer.outliers), 2)
 
+    ########################
+    # Begin test for float #
     def test_generated_document_low_float_value_within(self):
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_01.conf")
         analyzer = TermsAnalyzer("terms_dummy_test_low_float_within")
@@ -104,3 +107,73 @@ class TestTermsAnalyzer(unittest.TestCase):
         for doc in es.scan():
             hostname = doc["_source"]["meta"]["hostname"]
             self.assertEqual("outliers" in doc["_source"], hostname_name_number[hostname] > 5)
+
+    #############################
+    # Begin test for percentile #
+    def test_generated_document_low_percentile_value_within(self):
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_01.conf")
+        analyzer = TermsAnalyzer("terms_dummy_test_low_percentile_within")
+
+        doc_generator = GenerateDummyDocuments()
+        min_val = 4
+        max_val = 6
+        deployment_name_number, all_doc = doc_generator.create_doc_target_variable_range(min_val, max_val)
+        frontiere = np.percentile([i for i in range(min_val, max_val + 1)], 25)
+        self.test_es.add_multiple_docs(all_doc)
+
+        analyzer.evaluate_model()
+
+        for doc in es.scan():
+            deployment_name = doc["_source"]["meta"]["deployment_name"]
+            self.assertEqual(deployment_name_number[deployment_name] < frontiere, "outliers" in doc["_source"])
+
+    def test_generated_document_high_percentile_value_within(self):
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_01.conf")
+        analyzer = TermsAnalyzer("terms_dummy_test_high_percentile_within")
+
+        doc_generator = GenerateDummyDocuments()
+        min_val = 4
+        max_val = 6
+        deployment_name_number, all_doc = doc_generator.create_doc_target_variable_range(min_val, max_val)
+        frontiere = np.percentile([i for i in range(min_val, max_val + 1)], 25)
+        self.test_es.add_multiple_docs(all_doc)
+
+        analyzer.evaluate_model()
+
+        for doc in es.scan():
+            deployment_name = doc["_source"]["meta"]["deployment_name"]
+            self.assertEqual(deployment_name_number[deployment_name] > frontiere, "outliers" in doc["_source"])
+
+    def test_generated_document_low_percentile_value_across(self):
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_01.conf")
+        analyzer = TermsAnalyzer("terms_dummy_test_low_percentile_across")
+
+        doc_generator = GenerateDummyDocuments()
+        min_val = 4
+        max_val = 6
+        hostname_name_number, all_doc = doc_generator.create_doc_uniq_target_variable(min_val, max_val)
+        frontiere = np.percentile([i for i in range(min_val, max_val + 1)], 25)
+        self.test_es.add_multiple_docs(all_doc)
+
+        analyzer.evaluate_model()
+
+        for doc in es.scan():
+            hostname = doc["_source"]["meta"]["hostname"]
+            self.assertEqual("outliers" in doc["_source"], hostname_name_number[hostname] < frontiere)
+
+    def test_generated_document_high_percentile_value_across(self):
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_01.conf")
+        analyzer = TermsAnalyzer("terms_dummy_test_high_percentile_across")
+
+        doc_generator = GenerateDummyDocuments()
+        min_val = 4
+        max_val = 6
+        hostname_name_number, all_doc = doc_generator.create_doc_uniq_target_variable(min_val, max_val)
+        frontiere = np.percentile([i for i in range(min_val, max_val + 1)], 25)
+        self.test_es.add_multiple_docs(all_doc)
+
+        analyzer.evaluate_model()
+
+        for doc in es.scan():
+            hostname = doc["_source"]["meta"]["hostname"]
+            self.assertEqual("outliers" in doc["_source"], hostname_name_number[hostname] > frontiere)
