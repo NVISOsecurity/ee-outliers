@@ -265,7 +265,6 @@ class TermsAnalyzer(Analyzer):
                 if is_outlier:
                     outliers.append(self._create_outlier(non_outlier_values, term_value_count, aggregator_value,
                                                          term_value, decision_frontier, terms, ii))
-
                 else:
                     non_outlier_values.add(term_value)
         return outliers
