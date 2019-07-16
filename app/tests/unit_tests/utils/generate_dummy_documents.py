@@ -9,7 +9,8 @@ all_possible_tags = ["endpoint", "tag"]
 all_possible_slave_name = ["eaglesnest.cloud", "eaglesnest.local"]
 all_possible_doc_source_type = ["eagleeye", "dummy"]
 all_possible_filename = ["osquery_get_all_scheduled_tasks.log", "osquery_get_all_scheduled_actions.log"]
-all_possible_deployment_name = ["NVISO Workstations", "NVISO Localhost"]
+all_possible_deployment_name = ["NVISO Workstations", "NVISO Localhost", "Localhost", "NVISO Test", "Testhost",
+                                "Google"]
 all_possible_toolname = ['osquery']
 all_possible_hostname = ['NVISO-WIN10-JVZ', 'NVISO-LINUX-JVZ', 'NVISO-WIN10-RDE', 'NVISO-WIN10-DRA']
 
@@ -30,7 +31,8 @@ class GenerateDummyDocuments:
         self.start_timestamp += datetime.timedelta(seconds=1)
         return self.start_timestamp
 
-    def _generate_document(self, create_outlier=False, nbr_tags=1, index=None, slave_name=None, hostname=None):
+    def _generate_document(self, create_outlier=False, nbr_tags=1, index=None, slave_name=None, hostname=None,
+                           deployment_name=None):
         doc_date_time = self._generate_date()
         str_date = doc_date_time.strftime("%Y.%m.%d")
 
@@ -42,12 +44,13 @@ class GenerateDummyDocuments:
             '_type': "doc",
             '_id': self.id,
             '_version': 2,
-            '_source': self._generate_source(doc_date_time, create_outlier, nbr_tags, slave_name, hostname)
+            '_source': self._generate_source(doc_date_time, create_outlier, nbr_tags, slave_name, hostname,
+                                             deployment_name)
         }
         self.id += 1
         return doc
 
-    def _generate_source(self, doc_date_time, create_outlier, nbr_tags, slave_name, hostname):
+    def _generate_source(self, doc_date_time, create_outlier, nbr_tags, slave_name, hostname, deployment_name):
         # Example: 2018-08-23T10:48:16.200315+00:00
         str_timestamp = self._date_time_to_timestamp(doc_date_time)
         filename = random.choice(all_possible_filename)
@@ -63,7 +66,7 @@ class GenerateDummyDocuments:
             'slave_name': slave_name,
             'type': random.choice(all_possible_doc_source_type),
             'filename': filename,
-            'meta': self._generate_meta(doc_date_time, filename, hostname)
+            'meta': self._generate_meta(doc_date_time, filename, hostname, deployment_name)
         }
         if create_outlier:
             source['outliers'] = dict()  # TODO
@@ -82,14 +85,17 @@ class GenerateDummyDocuments:
 
         return list_tags
 
-    def _generate_meta(self, doc_date_time, filename, hostname):
+    def _generate_meta(self, doc_date_time, filename, hostname, deployment_name):
         if hostname is None:
             hostname = random.choice(all_possible_hostname)
+
+        if deployment_name is None:
+            deployment_name = random.choice(all_possible_deployment_name),
 
         return {
             'timestamp': self._date_time_to_timestamp(doc_date_time),
             'command': self._generate_query_command(),
-            'deployment_name': random.choice(all_possible_deployment_name),
+            'deployment_name': deployment_name,
             'toolname': random.choice(all_possible_toolname),
             'filename': filename,
             'hostname': hostname,
@@ -170,3 +176,37 @@ class GenerateDummyDocuments:
             self.start_timestamp = self.start_timestamp.replace(minute=0, second=0)
 
         return all_doc
+
+    def create_doc_target_variable_range(self, min_nbr_doc, max_nbr_doc):
+        all_doc = []
+        deployment_name_number_doc = dict()
+        hostname = random.choice(all_possible_hostname)
+
+        index = 0
+        for nbr_doc in range(min_nbr_doc, max_nbr_doc+1):
+            deployment_name = all_possible_deployment_name[index]
+            deployment_name_number_doc[deployment_name] = nbr_doc
+            for _ in range(nbr_doc):
+                all_doc.append(self._generate_document(hostname=hostname, deployment_name=deployment_name))
+            index += 1
+
+        return deployment_name_number_doc, all_doc
+
+    def create_doc_uniq_target_variable(self, min_nbr_doc, max_nbr_doc):
+        all_doc = []
+        hostname_name_number_doc = dict()
+
+        index_hostname = 0
+        for nbr_uniq_deployment_name in range(min_nbr_doc, max_nbr_doc+1):
+            hostname = all_possible_hostname[index_hostname]
+            hostname_name_number_doc[hostname] = nbr_uniq_deployment_name
+
+            index_deployment = 0
+            for _ in range(nbr_uniq_deployment_name):
+                deployment_name = all_possible_deployment_name[index_deployment]
+                all_doc.append(self._generate_document(hostname=hostname, deployment_name=deployment_name))
+                index_deployment += 1
+
+            index_hostname += 1
+
+        return hostname_name_number_doc, all_doc

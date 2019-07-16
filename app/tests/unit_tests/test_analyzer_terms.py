@@ -7,6 +7,7 @@ from tests.unit_tests.test_stubs.test_stub_es import TestStubEs
 from analyzers.terms import TermsAnalyzer
 from helpers.singletons import settings, logging, es
 from tests.unit_tests.utils.test_settings import TestSettings
+from tests.unit_tests.utils.generate_dummy_documents import GenerateDummyDocuments
 
 doc_without_outliers_test_whitelist_01_test_file = json.load(
     open("/app/tests/unit_tests/files/doc_without_outliers_test_whitelist_01.json"))
@@ -47,3 +48,59 @@ class TestTermsAnalyzer(unittest.TestCase):
         analyzer.evaluate_model()
 
         self.assertEqual(len(analyzer.outliers), 2)
+
+    def test_generated_document_low_float_value_within(self):
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_01.conf")
+        analyzer = TermsAnalyzer("terms_dummy_test_low_float_within")
+
+        doc_generator = GenerateDummyDocuments()
+        deployment_name_number, all_doc = doc_generator.create_doc_target_variable_range(4, 6)
+        self.test_es.add_multiple_docs(all_doc)
+
+        analyzer.evaluate_model()
+
+        for doc in es.scan():
+            deployment_name = doc["_source"]["meta"]["deployment_name"]
+            self.assertEqual(deployment_name_number[deployment_name] < 5, "outliers" in doc["_source"])
+
+    def test_generated_document_high_float_value_within(self):
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_01.conf")
+        analyzer = TermsAnalyzer("terms_dummy_test_high_float_within")
+
+        doc_generator = GenerateDummyDocuments()
+        deployment_name_number, all_doc = doc_generator.create_doc_target_variable_range(4, 6)
+        self.test_es.add_multiple_docs(all_doc)
+
+        analyzer.evaluate_model()
+
+        for doc in es.scan():
+            deployment_name = doc["_source"]["meta"]["deployment_name"]
+            self.assertEqual(deployment_name_number[deployment_name] > 5, "outliers" in doc["_source"])
+
+    def test_generated_document_low_float_value_across(self):
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_01.conf")
+        analyzer = TermsAnalyzer("terms_dummy_test_low_float_across")
+
+        doc_generator = GenerateDummyDocuments()
+        hostname_name_number, all_doc = doc_generator.create_doc_uniq_target_variable(4, 6)
+        self.test_es.add_multiple_docs(all_doc)
+
+        analyzer.evaluate_model()
+
+        for doc in es.scan():
+            hostname = doc["_source"]["meta"]["hostname"]
+            self.assertEqual("outliers" in doc["_source"], hostname_name_number[hostname] < 5)
+
+    def test_generated_document_high_float_value_across(self):
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_01.conf")
+        analyzer = TermsAnalyzer("terms_dummy_test_high_float_across")
+
+        doc_generator = GenerateDummyDocuments()
+        hostname_name_number, all_doc = doc_generator.create_doc_uniq_target_variable(4, 6)
+        self.test_es.add_multiple_docs(all_doc)
+
+        analyzer.evaluate_model()
+
+        for doc in es.scan():
+            hostname = doc["_source"]["meta"]["hostname"]
+            self.assertEqual("outliers" in doc["_source"], hostname_name_number[hostname] > 5)
