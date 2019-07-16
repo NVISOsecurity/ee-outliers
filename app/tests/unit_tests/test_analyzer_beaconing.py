@@ -219,7 +219,7 @@ class TestBeaconingAnalyzer(unittest.TestCase):
 
         self.assertEqual(len(analyzer.outliers), 3)
 
-    def test_generated_document_std(self):  # TODO adapt name
+    def test_generated_document_respect_max_std(self):
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/beaconing_test_02.conf")
         analyzer = BeaconingAnalyzer("beaconing_dummy_test")
 
@@ -228,8 +228,8 @@ class TestBeaconingAnalyzer(unittest.TestCase):
         max_trigger_sensitivity = 1
         default_value = 5  # Per default, 5 documents create per hour
         max_difference = 3  # Maximum difference between the number of document (so between 2 and 8 (included))
-        all_doc = doc_generator.create_doc_time_variable_sensitivity(nbr_val, max_trigger_sensitivity, max_difference,
-                                                                     default_value)
+        all_doc = doc_generator.create_doc_time_variable_max_sensitivity(nbr_val, max_trigger_sensitivity,
+                                                                         max_difference, default_value)
         self.test_es.add_multiple_docs(all_doc)
 
         analyzer.evaluate_model()
@@ -239,3 +239,24 @@ class TestBeaconingAnalyzer(unittest.TestCase):
             if "outliers" in doc['_source']:
                 nbr_outliers += 1
         self.assertEqual(nbr_outliers, len(all_doc))
+
+    def test_generated_document_not_respect_max_std(self):
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/beaconing_test_02.conf")
+        analyzer = BeaconingAnalyzer("beaconing_dummy_test")
+
+        doc_generator = GenerateDummyDocuments()
+        nbr_val = 24  # Like 24 hours
+        min_trigger_sensitivity = 1
+        default_value = 5  # Per default, 5 documents create per hour
+        max_difference = 3  # Maximum difference between the number of document (so between 2 and 8 (included))
+        all_doc = doc_generator.create_doc_time_variable_min_sensitivity(nbr_val, min_trigger_sensitivity,
+                                                                         max_difference, default_value)
+        self.test_es.add_multiple_docs(all_doc)
+
+        analyzer.evaluate_model()
+
+        nbr_outliers = 0
+        for doc in es.scan():
+            if "outliers" in doc['_source']:
+                nbr_outliers += 1
+        self.assertEqual(nbr_outliers, 0)

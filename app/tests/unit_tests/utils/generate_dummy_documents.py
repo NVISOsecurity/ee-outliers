@@ -109,9 +109,12 @@ class GenerateDummyDocuments:
             all_doc.append(self._generate_document())
         return all_doc
 
-    def _compute_number_document_respect_std(self, std_max: float, number_element: int, min_value: int = 0,
-                                             max_value: int = 10) -> np.ndarray:
+    def _compute_number_document_respect_max_std(self, std_max: float, number_element: int, min_value: int = 0,
+                                                 max_value: int = 10) -> np.ndarray:
         """
+        Compute a list of integers (corresponding to a number of documents to be generated) having a std less
+        or equal to the defined parameter (std_max)
+
         :param std_max: maximum value accepted for std
         :param number_element: number of samples to generate:
         :param min_value: minimum document
@@ -127,10 +130,36 @@ class GenerateDummyDocuments:
                 list_nbr_documents[index] -= 1
         return list_nbr_documents
 
-    def create_doc_time_variable_sensitivity(self, nbr_val, max_trigger_sensitivity, max_difference, default_value):
-        nbr_doc_generated_per_hours = self._compute_number_document_respect_std(max_trigger_sensitivity, nbr_val,
-                                                                                default_value-max_difference,
-                                                                                default_value+max_difference)
+    def _compute_number_document_respect_min_std(self, std_min: float, number_element: int, min_value: int = 0,
+                                                 max_value: int = 10) -> np.ndarray:
+        list_nbr_documents = np.random.randint(min_value, max_value + 1, size=number_element)
+        index = np.argmax(list_nbr_documents)
+        while list_nbr_documents.std() < std_min:
+            if list_nbr_documents[index] < list_nbr_documents.mean():
+                list_nbr_documents[index] -= 1
+            else:
+                list_nbr_documents[index] += 1
+        return list_nbr_documents
+
+    def create_doc_time_variable_max_sensitivity(self, nbr_val, max_trigger_sensitivity, max_difference, default_value):
+        nbr_doc_generated_per_hours = self._compute_number_document_respect_max_std(max_trigger_sensitivity, nbr_val,
+                                                                                    default_value - max_difference,
+                                                                                    default_value + max_difference)
+        all_doc = []
+        hostname = random.choice(all_possible_hostname)
+
+        for nbr_doc in nbr_doc_generated_per_hours:
+            for _ in range(nbr_doc):
+                all_doc.append(self._generate_document(hostname=hostname))
+            self.start_timestamp += datetime.timedelta(hours=1)
+            self.start_timestamp = self.start_timestamp.replace(minute=0, second=0)
+
+        return all_doc
+
+    def create_doc_time_variable_min_sensitivity(self, nbr_val, min_trigger_sensitivity, max_difference, default_value):
+        nbr_doc_generated_per_hours = self._compute_number_document_respect_min_std(min_trigger_sensitivity, nbr_val,
+                                                                                    default_value - max_difference,
+                                                                                    default_value + max_difference)
         all_doc = []
         hostname = random.choice(all_possible_hostname)
 
