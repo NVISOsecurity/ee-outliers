@@ -32,7 +32,7 @@ class TestTermsAnalyzer(unittest.TestCase):
         self.test_settings.restore_default_configuration_path()
         self.test_es.restore_es()
 
-    def test_whitelist_batch_document_not_process_all(self):
+    def test_terms_whitelist_batch_document_not_process_all(self):
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_with_whitelist.conf")
         analyzer = TermsAnalyzer("terms_dummy_test")
 
@@ -52,7 +52,7 @@ class TestTermsAnalyzer(unittest.TestCase):
 
     #############################
     # Begin test for percentile #
-    def test_generated_document_low_percentile_value_within(self):
+    def test_terms_generated_document_low_percentile_value_within(self):
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_01.conf")
         analyzer = TermsAnalyzer("terms_dummy_test_low_percentile_within")
 
@@ -69,7 +69,7 @@ class TestTermsAnalyzer(unittest.TestCase):
             deployment_name = doc["_source"]["meta"]["deployment_name"]
             self.assertEqual(deployment_name_number[deployment_name] < frontiere, "outliers" in doc["_source"])
 
-    def test_generated_document_high_percentile_value_within(self):
+    def test_terms_generated_document_high_percentile_value_within(self):
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_01.conf")
         analyzer = TermsAnalyzer("terms_dummy_test_high_percentile_within")
 
@@ -86,7 +86,7 @@ class TestTermsAnalyzer(unittest.TestCase):
             deployment_name = doc["_source"]["meta"]["deployment_name"]
             self.assertEqual(deployment_name_number[deployment_name] > frontiere, "outliers" in doc["_source"])
 
-    def test_generated_document_low_percentile_value_across(self):
+    def test_terms_generated_document_low_percentile_value_across(self):
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_01.conf")
         analyzer = TermsAnalyzer("terms_dummy_test_low_percentile_across")
 
@@ -103,7 +103,7 @@ class TestTermsAnalyzer(unittest.TestCase):
             hostname = doc["_source"]["meta"]["hostname"]
             self.assertEqual(hostname_name_number[hostname] < frontiere, "outliers" in doc["_source"])
 
-    def test_generated_document_high_percentile_value_across(self):
+    def test_terms_generated_document_high_percentile_value_across(self):
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_01.conf")
         analyzer = TermsAnalyzer("terms_dummy_test_high_percentile_across")
 
@@ -122,7 +122,7 @@ class TestTermsAnalyzer(unittest.TestCase):
 
     #############################
     # Begin test for pct of max #
-    def test_generated_document_low_pct_of_max_value_within(self):
+    def test_terms_generated_document_low_pct_of_max_value_within(self):
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_01.conf")
         analyzer = TermsAnalyzer("terms_dummy_test_low_pct_of_max_value_within")
 
@@ -139,7 +139,7 @@ class TestTermsAnalyzer(unittest.TestCase):
             deployment_name = doc["_source"]["meta"]["deployment_name"]
             self.assertEqual(deployment_name_number[deployment_name] < frontiere, "outliers" in doc["_source"])
 
-    def test_generated_document_high_pct_of_max_value_within(self):
+    def test_terms_generated_document_high_pct_of_max_value_within(self):
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_01.conf")
         analyzer = TermsAnalyzer("terms_dummy_test_high_pct_of_max_value_within")
 
@@ -156,7 +156,7 @@ class TestTermsAnalyzer(unittest.TestCase):
             deployment_name = doc["_source"]["meta"]["deployment_name"]
             self.assertEqual(deployment_name_number[deployment_name] > frontiere, "outliers" in doc["_source"])
 
-    def test_generated_document_low_pct_of_max_value_across(self):
+    def test_terms_generated_document_low_pct_of_max_value_across(self):
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_01.conf")
         analyzer = TermsAnalyzer("terms_dummy_test_low_pct_of_max_value_across")
 
@@ -173,7 +173,7 @@ class TestTermsAnalyzer(unittest.TestCase):
             hostname = doc["_source"]["meta"]["hostname"]
             self.assertEqual(hostname_name_number[hostname] < frontiere, "outliers" in doc["_source"])
 
-    def test_generated_document_high_pct_of_max_value_across(self):
+    def test_terms_generated_document_high_pct_of_max_value_across(self):
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_01.conf")
         analyzer = TermsAnalyzer("terms_dummy_test_high_pct_of_max_value_across")
 
@@ -192,7 +192,7 @@ class TestTermsAnalyzer(unittest.TestCase):
 
     #############################
     # Begin test for pct of med #
-    def test_generated_document_low_pct_of_med_value_within(self):
+    def test_terms_generated_document_low_pct_of_med_value_within(self):
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_01.conf")
         analyzer = TermsAnalyzer("terms_dummy_test_low_pct_of_med_value_within")
 
@@ -209,7 +209,7 @@ class TestTermsAnalyzer(unittest.TestCase):
             deployment_name = doc["_source"]["meta"]["deployment_name"]
             self.assertEqual(deployment_name_number[deployment_name] < frontiere, "outliers" in doc["_source"])
 
-    def test_generated_document_high_pct_of_med_value_within(self):
+    def test_terms_generated_document_high_pct_of_med_value_within(self):
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_01.conf")
         analyzer = TermsAnalyzer("terms_dummy_test_high_pct_of_med_value_within")
 
@@ -226,7 +226,7 @@ class TestTermsAnalyzer(unittest.TestCase):
             deployment_name = doc["_source"]["meta"]["deployment_name"]
             self.assertEqual(deployment_name_number[deployment_name] > frontiere, "outliers" in doc["_source"])
 
-    def test_generated_document_low_pct_of_med_value_across(self):
+    def test_terms_generated_document_low_pct_of_med_value_across(self):
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_01.conf")
         analyzer = TermsAnalyzer("terms_dummy_test_low_pct_of_med_value_across")
 
@@ -243,7 +243,7 @@ class TestTermsAnalyzer(unittest.TestCase):
             hostname = doc["_source"]["meta"]["hostname"]
             self.assertEqual(hostname_name_number[hostname] < frontiere, "outliers" in doc["_source"])
 
-    def test_generated_document_high_pct_of_med_value_across(self):
+    def test_terms_generated_document_high_pct_of_med_value_across(self):
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_01.conf")
         analyzer = TermsAnalyzer("terms_dummy_test_high_pct_of_med_value_across")
 
@@ -262,7 +262,7 @@ class TestTermsAnalyzer(unittest.TestCase):
 
     #############################
     # Begin test for pct of avg #
-    def test_generated_document_low_pct_of_avg_value_within(self):
+    def test_terms_generated_document_low_pct_of_avg_value_within(self):
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_01.conf")
         analyzer = TermsAnalyzer("terms_dummy_test_low_pct_of_avg_value_within")
 
@@ -279,7 +279,7 @@ class TestTermsAnalyzer(unittest.TestCase):
             deployment_name = doc["_source"]["meta"]["deployment_name"]
             self.assertEqual(deployment_name_number[deployment_name] < frontiere, "outliers" in doc["_source"])
 
-    def test_generated_document_high_pct_of_avg_value_within(self):
+    def test_terms_generated_document_high_pct_of_avg_value_within(self):
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_01.conf")
         analyzer = TermsAnalyzer("terms_dummy_test_high_pct_of_avg_value_within")
 
@@ -296,7 +296,7 @@ class TestTermsAnalyzer(unittest.TestCase):
             deployment_name = doc["_source"]["meta"]["deployment_name"]
             self.assertEqual(deployment_name_number[deployment_name] > frontiere, "outliers" in doc["_source"])
 
-    def test_generated_document_low_pct_of_avg_value_across(self):
+    def test_terms_generated_document_low_pct_of_avg_value_across(self):
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_01.conf")
         analyzer = TermsAnalyzer("terms_dummy_test_low_pct_of_avg_value_across")
 
@@ -313,7 +313,7 @@ class TestTermsAnalyzer(unittest.TestCase):
             hostname = doc["_source"]["meta"]["hostname"]
             self.assertEqual(hostname_name_number[hostname] < frontiere, "outliers" in doc["_source"])
 
-    def test_generated_document_high_pct_of_avg_value_across(self):
+    def test_terms_generated_document_high_pct_of_avg_value_across(self):
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_01.conf")
         analyzer = TermsAnalyzer("terms_dummy_test_high_pct_of_avg_value_across")
 
@@ -332,7 +332,7 @@ class TestTermsAnalyzer(unittest.TestCase):
 
     ######################
     # Begin test for mad #
-    def test_generated_document_low_mad_value_within(self):
+    def test_terms_generated_document_low_mad_value_within(self):
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_01.conf")
         analyzer = TermsAnalyzer("terms_dummy_test_low_mad_value_within")
 
@@ -351,7 +351,7 @@ class TestTermsAnalyzer(unittest.TestCase):
             deployment_name = doc["_source"]["meta"]["deployment_name"]
             self.assertEqual(deployment_name_number[deployment_name] < frontiere, "outliers" in doc["_source"])
 
-    def test_generated_document_high_mad_value_within(self):
+    def test_terms_generated_document_high_mad_value_within(self):
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_01.conf")
         analyzer = TermsAnalyzer("terms_dummy_test_high_mad_value_within")
 
@@ -370,7 +370,7 @@ class TestTermsAnalyzer(unittest.TestCase):
             deployment_name = doc["_source"]["meta"]["deployment_name"]
             self.assertEqual(deployment_name_number[deployment_name] > frontiere, "outliers" in doc["_source"])
 
-    def test_generated_document_low_mad_value_across(self):
+    def test_terms_generated_document_low_mad_value_across(self):
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_01.conf")
         analyzer = TermsAnalyzer("terms_dummy_test_low_mad_value_across")
 
@@ -389,7 +389,7 @@ class TestTermsAnalyzer(unittest.TestCase):
             hostname = doc["_source"]["meta"]["hostname"]
             self.assertEqual(hostname_name_number[hostname] < frontiere, "outliers" in doc["_source"])
 
-    def test_generated_document_high_mad_value_across(self):
+    def test_terms_generated_document_high_mad_value_across(self):
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_01.conf")
         analyzer = TermsAnalyzer("terms_dummy_test_high_mad_value_across")
 
@@ -412,7 +412,7 @@ class TestTermsAnalyzer(unittest.TestCase):
 
     #########################
     # Begin test for madpos #
-    def test_generated_document_low_madpos_value_within(self):
+    def test_terms_generated_document_low_madpos_value_within(self):
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_01.conf")
         analyzer = TermsAnalyzer("terms_dummy_test_low_madpos_value_within")
 
@@ -429,7 +429,7 @@ class TestTermsAnalyzer(unittest.TestCase):
             deployment_name = doc["_source"]["meta"]["deployment_name"]
             self.assertEqual(deployment_name_number[deployment_name] < frontiere, "outliers" in doc["_source"])
 
-    def test_generated_document_low_madpos_value_across(self):
+    def test_terms_generated_document_low_madpos_value_across(self):
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_01.conf")
         analyzer = TermsAnalyzer("terms_dummy_test_low_madpos_value_across")
 
@@ -448,7 +448,7 @@ class TestTermsAnalyzer(unittest.TestCase):
 
     ########################
     # Begin test for stdev #
-    def test_generated_document_low_stdev_value_within(self):
+    def test_terms_generated_document_low_stdev_value_within(self):
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_01.conf")
         analyzer = TermsAnalyzer("terms_dummy_test_low_stdev_value_within")
 
@@ -470,7 +470,7 @@ class TestTermsAnalyzer(unittest.TestCase):
             deployment_name = doc["_source"]["meta"]["deployment_name"]
             self.assertEqual(deployment_name_number[deployment_name] < frontiere, "outliers" in doc["_source"])
 
-    def test_generated_document_high_stdev_value_within(self):
+    def test_terms_generated_document_high_stdev_value_within(self):
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_01.conf")
         analyzer = TermsAnalyzer("terms_dummy_test_high_stdev_value_within")
 
@@ -491,7 +491,7 @@ class TestTermsAnalyzer(unittest.TestCase):
             deployment_name = doc["_source"]["meta"]["deployment_name"]
             self.assertEqual(deployment_name_number[deployment_name] > frontiere, "outliers" in doc["_source"])
 
-    def test_generated_document_low_stdev_value_across(self):
+    def test_terms_generated_document_low_stdev_value_across(self):
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_01.conf")
         analyzer = TermsAnalyzer("terms_dummy_test_low_stdev_value_across")
 
@@ -512,7 +512,7 @@ class TestTermsAnalyzer(unittest.TestCase):
             hostname = doc["_source"]["meta"]["hostname"]
             self.assertEqual(hostname_name_number[hostname] < frontiere, "outliers" in doc["_source"])
 
-    def test_generated_document_high_stdev_value_across(self):
+    def test_terms_generated_document_high_stdev_value_across(self):
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_01.conf")
         analyzer = TermsAnalyzer("terms_dummy_test_high_stdev_value_across")
 
@@ -535,7 +535,7 @@ class TestTermsAnalyzer(unittest.TestCase):
 
     ########################
     # Begin test for float #
-    def test_generated_document_low_float_value_within(self):
+    def test_terms_generated_document_low_float_value_within(self):
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_01.conf")
         analyzer = TermsAnalyzer("terms_dummy_test_low_float_within")
 
@@ -552,7 +552,7 @@ class TestTermsAnalyzer(unittest.TestCase):
             deployment_name = doc["_source"]["meta"]["deployment_name"]
             self.assertEqual(deployment_name_number[deployment_name] < frontiere, "outliers" in doc["_source"])
 
-    def test_generated_document_high_float_value_within(self):
+    def test_terms_generated_document_high_float_value_within(self):
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_01.conf")
         analyzer = TermsAnalyzer("terms_dummy_test_high_float_within")
 
@@ -569,7 +569,7 @@ class TestTermsAnalyzer(unittest.TestCase):
             deployment_name = doc["_source"]["meta"]["deployment_name"]
             self.assertEqual(deployment_name_number[deployment_name] > frontiere, "outliers" in doc["_source"])
 
-    def test_generated_document_low_float_value_across(self):
+    def test_terms_generated_document_low_float_value_across(self):
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_01.conf")
         analyzer = TermsAnalyzer("terms_dummy_test_low_float_across")
 
@@ -586,7 +586,7 @@ class TestTermsAnalyzer(unittest.TestCase):
             hostname = doc["_source"]["meta"]["hostname"]
             self.assertEqual(hostname_name_number[hostname] < frontiere, "outliers" in doc["_source"])
 
-    def test_generated_document_high_float_value_across(self):
+    def test_terms_generated_document_high_float_value_across(self):
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_01.conf")
         analyzer = TermsAnalyzer("terms_dummy_test_high_float_across")
 
