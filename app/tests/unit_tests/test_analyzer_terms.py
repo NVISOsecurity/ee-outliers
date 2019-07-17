@@ -492,6 +492,7 @@ class TestTermsAnalyzer(unittest.TestCase):
             self.assertEqual(deployment_name_number[deployment_name] > frontiere, "outliers" in doc["_source"])
 
     def test_terms_generated_document_low_stdev_value_across(self):
+        # TODO possibility to have an error in this method (depending to the random)
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_01.conf")
         analyzer = TermsAnalyzer("terms_dummy_test_low_stdev_value_across")
 
