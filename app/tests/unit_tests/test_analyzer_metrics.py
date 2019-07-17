@@ -5,8 +5,9 @@ import copy
 
 from tests.unit_tests.test_stubs.test_stub_es import TestStubEs
 from analyzers.metrics import MetricsAnalyzer
-from helpers.singletons import settings, logging, es
+from helpers.singletons import logging, es
 from tests.unit_tests.utils.test_settings import TestSettings
+from tests.unit_tests.utils.generate_dummy_documents import GenerateDummyDocuments
 
 doc_without_outliers_test_whitelist_01_test_file = json.load(
     open("/app/tests/unit_tests/files/doc_without_outliers_test_whitelist_01.json"))
@@ -30,7 +31,7 @@ class TestMetricsAnalyzer(unittest.TestCase):
         self.test_settings.restore_default_configuration_path()
         self.test_es.restore_es()
 
-    def test_whitelist_batch_document_not_process_all(self):
+    def test_metrics_whitelist_batch_document_not_process_all(self):
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/metrics_test_with_whitelist.conf")
         analyzer = MetricsAnalyzer("metrics_length_dummy_test")
 
@@ -47,3 +48,33 @@ class TestMetricsAnalyzer(unittest.TestCase):
         analyzer.evaluate_model()
 
         self.assertEqual(len(analyzer.outliers), 2)
+
+    #####
+    # Begin test for
+    def test_metrics_generated_document_length_low_float_value(self):
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/metrics_test_01.conf")
+        analyzer = MetricsAnalyzer("metrics_dummy_test_length_low_float")
+
+        doc_generator = GenerateDummyDocuments()
+        all_doc = doc_generator.create_documents(10)
+        self.test_es.add_multiple_docs(all_doc)
+
+        analyzer.evaluate_model()
+
+        for doc in es.scan():
+            hostname = doc["_source"]["meta"]["hostname"]
+            self.assertEqual(len(hostname) < 14, "outliers" in doc["_source"])
+
+    def test_metrics_generated_document_length_high_float_value(self):
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/metrics_test_01.conf")
+        analyzer = MetricsAnalyzer("metrics_dummy_test_length_high_float")
+
+        doc_generator = GenerateDummyDocuments()
+        all_doc = doc_generator.create_documents(10)
+        self.test_es.add_multiple_docs(all_doc)
+
+        analyzer.evaluate_model()
+
+        for doc in es.scan():
+            hostname = doc["_source"]["meta"]["hostname"]
+            self.assertEqual(len(hostname) > 14, "outliers" in doc["_source"])
