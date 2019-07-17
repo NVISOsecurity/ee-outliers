@@ -119,10 +119,7 @@ class TestBeaconingAnalyzer(unittest.TestCase):
                                                  decision_frontier=0.5, term_count=1)
 
         # Add outlier to a list
-        expected_outliers = []
-        expected_outliers.append(test_outlier_linux)
-        expected_outliers.append(test_outlier_win)
-        expected_outliers.append(test_outlier_linux)
+        expected_outliers = [test_outlier_linux, test_outlier_win, test_outlier_linux]
 
         self.assertEqual(result, expected_outliers)
 
