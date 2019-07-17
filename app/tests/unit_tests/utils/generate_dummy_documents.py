@@ -13,7 +13,12 @@ all_possible_deployment_name = ["NVISO Workstations", "NVISO Localhost", "Localh
                                 "Google", "Dummy Environment", "Deployment system"]
 all_possible_toolname = ['osquery']
 all_possible_hostname = ['NVISO-WIN10-JVZ', 'NVISO-LINUX-JVZ', 'NVISO-WIN10-RDE', 'NVISO-WIN10-DRA', 'LOCAL-WIN-RDE',
-                         'TEST-LINUX-XYZ', 'TEST-WIN-XYZ']
+                         'TEST-LINUX-XYZ', 'TEST-WIN-XYZ', 'localhost', 'abcdefghijklmno', 'aaaaaaa']
+all_test_hex_values = ["not hex value", "12177014F73", "5468697320697320612074657374",
+                       "The same text 5468652073616d652074657874"]
+all_test_base64_values = ["QVlCQUJUVQ==", "VGhpcyBpcyBhIHRleHQ=", "not base"]
+all_test_url_values = ["http://google.be", "This is a test without URL", "Example: http://www.dance.com/",
+                       "http://nviso.be", "http://long-url-example-to-test.brussels"]
 
 
 class GenerateDummyDocuments:
@@ -67,7 +72,8 @@ class GenerateDummyDocuments:
             'slave_name': slave_name,
             'type': random.choice(all_possible_doc_source_type),
             'filename': filename,
-            'meta': self._generate_meta(doc_date_time, filename, hostname, deployment_name)
+            'meta': self._generate_meta(doc_date_time, filename, hostname, deployment_name),
+            'test': self._generate_test_data()
         }
         if create_outlier:
             source['outliers'] = dict()  # TODO
@@ -100,7 +106,8 @@ class GenerateDummyDocuments:
             'toolname': random.choice(all_possible_toolname),
             'filename': filename,
             'hostname': hostname,
-            'output_file_path': filename
+            'output_file_path': filename,
+            'user_id': random.randint(0, 5)
         }
 
     def _generate_query_command(self):
@@ -108,6 +115,13 @@ class GenerateDummyDocuments:
             'name': "get_all_scheduled_tasks",
             'query': "SELECT * FROM scheduled_tasks;",
             'mode': "base_scan"
+        }
+
+    def _generate_test_data(self):
+        return {
+            'hex_value': random.choice(all_test_hex_values),
+            'base64_value': random.choice(all_test_base64_values),
+            'url_value': random.choice(all_test_url_values)
         }
 
     def create_documents(self, nbr_document):
