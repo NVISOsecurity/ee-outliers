@@ -148,6 +148,26 @@ class TestMetricsAnalyzer(unittest.TestCase):
                 hex_val_length_per_deployment[deployment_name].append(value)
         return hex_val_length_per_deployment
 
+    def _compute_base64_length_per_deployment(self, all_doc):
+        base64_length_per_deployment = {}
+        base64_val_per_deployment = self._compute_list_target_per_deployment(all_doc, "test", "base64_value")
+        for deployment_name in base64_val_per_deployment:
+            base64_length_per_deployment[deployment_name] = []
+            for base64_value in base64_val_per_deployment[deployment_name]:
+                value = self._compute_max_base64_encoded_length(base64_value)
+                base64_length_per_deployment[deployment_name].append(value)
+        return base64_length_per_deployment
+
+    def _compute_url_length_per_deployment(self, all_doc):
+        url_length_per_deployment = {}
+        url_val_per_deployment = self._compute_list_target_per_deployment(all_doc, "test", "url_value")
+        for deployment_name in url_val_per_deployment:
+            url_length_per_deployment[deployment_name] = []
+            for url_value in url_val_per_deployment[deployment_name]:
+                value = self._compute_max_url_length(url_value)
+                url_length_per_deployment[deployment_name].append(value)
+        return url_length_per_deployment
+
     def _compute_frontiere_list_percentile(self, trigger_per_deployment, trigger_sensitivity):
         frontiere_list = {}
         for deployment_name in trigger_per_deployment:
@@ -159,6 +179,20 @@ class TestMetricsAnalyzer(unittest.TestCase):
         frontiere_list = {}
         for deployment_name in trigger_per_deployment:
             frontiere_list[deployment_name] = np.float64(max(trigger_per_deployment[deployment_name]) *
+                                                         (trigger_sensitivity / 100))
+        return frontiere_list
+
+    def _compute_frontiere_list_mean(self, trigger_per_deployment, trigger_sensitivity):
+        frontiere_list = {}
+        for deployment_name in trigger_per_deployment:
+            frontiere_list[deployment_name] = np.float64(mean(trigger_per_deployment[deployment_name]) *
+                                                         (trigger_sensitivity / 100))
+        return frontiere_list
+
+    def _compute_frontiere_list_median(self, trigger_per_deployment, trigger_sensitivity):
+        frontiere_list = {}
+        for deployment_name in trigger_per_deployment:
+            frontiere_list[deployment_name] = np.float64(median(trigger_per_deployment[deployment_name]) *
                                                          (trigger_sensitivity / 100))
         return frontiere_list
 
@@ -300,14 +334,7 @@ class TestMetricsAnalyzer(unittest.TestCase):
         analyzer.evaluate_model()
 
         # Compute expected result
-        base64_length_per_deployment = {}
-        base64_val_per_deployment = self._compute_list_target_per_deployment(all_doc, "test", "base64_value")
-        for deployment_name in base64_val_per_deployment:
-            base64_length_per_deployment[deployment_name] = []
-            for base64_value in base64_val_per_deployment[deployment_name]:
-                value = self._compute_max_base64_encoded_length(base64_value)
-                base64_length_per_deployment[deployment_name].append(value)
-
+        base64_length_per_deployment = self._compute_base64_length_per_deployment(all_doc)
         frontiere_list = self._compute_frontiere_list_percentile(base64_length_per_deployment, trigger_sensitivity)
 
         for doc in es.scan():
@@ -323,14 +350,7 @@ class TestMetricsAnalyzer(unittest.TestCase):
         analyzer.evaluate_model()
 
         # Compute expected result
-        base64_length_per_deployment = {}
-        base64_val_per_deployment = self._compute_list_target_per_deployment(all_doc, "test", "base64_value")
-        for deployment_name in base64_val_per_deployment:
-            base64_length_per_deployment[deployment_name] = []
-            for base64_value in base64_val_per_deployment[deployment_name]:
-                value = self._compute_max_base64_encoded_length(base64_value)
-                base64_length_per_deployment[deployment_name].append(value)
-
+        base64_length_per_deployment = self._compute_base64_length_per_deployment(all_doc)
         frontiere_list = self._compute_frontiere_list_percentile(base64_length_per_deployment, trigger_sensitivity)
 
         for doc in es.scan():
@@ -346,14 +366,7 @@ class TestMetricsAnalyzer(unittest.TestCase):
         analyzer.evaluate_model()
 
         # Compute expected result
-        url_length_per_deployment = {}
-        url_val_per_deployment = self._compute_list_target_per_deployment(all_doc, "test", "url_value")
-        for deployment_name in url_val_per_deployment:
-            url_length_per_deployment[deployment_name] = []
-            for url_value in url_val_per_deployment[deployment_name]:
-                value = self._compute_max_url_length(url_value)
-                url_length_per_deployment[deployment_name].append(value)
-
+        url_length_per_deployment = self._compute_url_length_per_deployment(all_doc)
         frontiere_list = self._compute_frontiere_list_percentile(url_length_per_deployment, trigger_sensitivity)
 
         for doc in es.scan():
@@ -369,14 +382,7 @@ class TestMetricsAnalyzer(unittest.TestCase):
         analyzer.evaluate_model()
 
         # Compute expected result
-        url_length_per_deployment = {}
-        url_val_per_deployment = self._compute_list_target_per_deployment(all_doc, "test", "url_value")
-        for deployment_name in url_val_per_deployment:
-            url_length_per_deployment[deployment_name] = []
-            for url_value in url_val_per_deployment[deployment_name]:
-                value = self._compute_max_url_length(url_value)
-                url_length_per_deployment[deployment_name].append(value)
-
+        url_length_per_deployment = self._compute_url_length_per_deployment(all_doc)
         frontiere_list = self._compute_frontiere_list_percentile(url_length_per_deployment, trigger_sensitivity)
 
         for doc in es.scan():
@@ -522,14 +528,7 @@ class TestMetricsAnalyzer(unittest.TestCase):
         analyzer.evaluate_model()
 
         # Compute expected result
-        base64_length_per_deployment = {}
-        base64_val_per_deployment = self._compute_list_target_per_deployment(all_doc, "test", "base64_value")
-        for deployment_name in base64_val_per_deployment:
-            base64_length_per_deployment[deployment_name] = []
-            for base64_value in base64_val_per_deployment[deployment_name]:
-                value = self._compute_max_base64_encoded_length(base64_value)
-                base64_length_per_deployment[deployment_name].append(value)
-
+        base64_length_per_deployment = self._compute_base64_length_per_deployment(all_doc)
         frontiere_list = self._compute_frontiere_list_max(base64_length_per_deployment, trigger_sensitivity)
 
         for doc in es.scan():
@@ -545,14 +544,7 @@ class TestMetricsAnalyzer(unittest.TestCase):
         analyzer.evaluate_model()
 
         # Compute expected result
-        base64_length_per_deployment = {}
-        base64_val_per_deployment = self._compute_list_target_per_deployment(all_doc, "test", "base64_value")
-        for deployment_name in base64_val_per_deployment:
-            base64_length_per_deployment[deployment_name] = []
-            for base64_value in base64_val_per_deployment[deployment_name]:
-                value = self._compute_max_base64_encoded_length(base64_value)
-                base64_length_per_deployment[deployment_name].append(value)
-
+        base64_length_per_deployment = self._compute_base64_length_per_deployment(all_doc)
         frontiere_list = self._compute_frontiere_list_max(base64_length_per_deployment, trigger_sensitivity)
 
         for doc in es.scan():
@@ -568,16 +560,8 @@ class TestMetricsAnalyzer(unittest.TestCase):
         analyzer.evaluate_model()
 
         # Compute expected result
-        url_length_per_deployment = {}
-        url_val_per_deployment = self._compute_list_target_per_deployment(all_doc, "test", "url_value")
-        for deployment_name in url_val_per_deployment:
-            url_length_per_deployment[deployment_name] = []
-            for url_value in url_val_per_deployment[deployment_name]:
-                value = self._compute_max_url_length(url_value)
-                url_length_per_deployment[deployment_name].append(value)
-
+        url_length_per_deployment = self._compute_url_length_per_deployment(all_doc)
         frontiere_list = self._compute_frontiere_list_max(url_length_per_deployment, trigger_sensitivity)
-
 
         for doc in es.scan():
             deployment_name = doc["_source"]["meta"]["deployment_name"]
@@ -592,14 +576,7 @@ class TestMetricsAnalyzer(unittest.TestCase):
         analyzer.evaluate_model()
 
         # Compute expected result
-        url_length_per_deployment = {}
-        url_val_per_deployment = self._compute_list_target_per_deployment(all_doc, "test", "url_value")
-        for deployment_name in url_val_per_deployment:
-            url_length_per_deployment[deployment_name] = []
-            for url_value in url_val_per_deployment[deployment_name]:
-                value = self._compute_max_url_length(url_value)
-                url_length_per_deployment[deployment_name].append(value)
-
+        url_length_per_deployment = self._compute_url_length_per_deployment(all_doc)
         frontiere_list = self._compute_frontiere_list_max(url_length_per_deployment, trigger_sensitivity)
 
         for doc in es.scan():
@@ -618,11 +595,7 @@ class TestMetricsAnalyzer(unittest.TestCase):
 
         # Compute expected result
         list_val_user_id_per_deployment = self._compute_list_val_user_id_per_deployment(all_doc)
-
-        frontiere_list = {}
-        for deployment_name in list_val_user_id_per_deployment:
-            frontiere_list[deployment_name] = np.float64(mean(list_val_user_id_per_deployment[deployment_name]) *
-                                                         (trigger_sensitivity / 100))
+        frontiere_list = self._compute_frontiere_list_mean(list_val_user_id_per_deployment, trigger_sensitivity)
 
         for doc in es.scan():
             deployment_name = doc["_source"]["meta"]["deployment_name"]
@@ -638,11 +611,7 @@ class TestMetricsAnalyzer(unittest.TestCase):
 
         # Compute expected result
         list_val_user_id_per_deployment = self._compute_list_val_user_id_per_deployment(all_doc)
-
-        frontiere_list = {}
-        for deployment_name in list_val_user_id_per_deployment:
-            frontiere_list[deployment_name] = np.float64(mean(list_val_user_id_per_deployment[deployment_name]) *
-                                                         (trigger_sensitivity / 100))
+        frontiere_list = self._compute_frontiere_list_mean(list_val_user_id_per_deployment, trigger_sensitivity)
 
         for doc in es.scan():
             deployment_name = doc["_source"]["meta"]["deployment_name"]
@@ -658,11 +627,7 @@ class TestMetricsAnalyzer(unittest.TestCase):
 
         # Compute expected result
         hostname_len_per_deployment = self._compute_hostname_len_per_deployment(all_doc)
-
-        frontiere_list = {}
-        for deployment_name in hostname_len_per_deployment:
-            frontiere_list[deployment_name] = np.float64(mean(hostname_len_per_deployment[deployment_name]) *
-                                                         (trigger_sensitivity / 100))
+        frontiere_list = self._compute_frontiere_list_mean(hostname_len_per_deployment, trigger_sensitivity)
 
         for doc in es.scan():
             deployment_name = doc["_source"]["meta"]["deployment_name"]
@@ -678,11 +643,7 @@ class TestMetricsAnalyzer(unittest.TestCase):
 
         # Compute expected result
         hostname_len_per_deployment = self._compute_hostname_len_per_deployment(all_doc)
-
-        frontiere_list = {}
-        for deployment_name in hostname_len_per_deployment:
-            frontiere_list[deployment_name] = np.float64(mean(hostname_len_per_deployment[deployment_name]) *
-                                                         (trigger_sensitivity / 100))
+        frontiere_list = self._compute_frontiere_list_mean(hostname_len_per_deployment, trigger_sensitivity)
 
         for doc in es.scan():
             deployment_name = doc["_source"]["meta"]["deployment_name"]
@@ -698,11 +659,7 @@ class TestMetricsAnalyzer(unittest.TestCase):
 
         # Compute expected result
         hostname_entropy_per_deployment = self._compute_hostname_entropy_per_deployment(all_doc)
-
-        frontiere_list = {}
-        for deployment_name in hostname_entropy_per_deployment:
-            frontiere_list[deployment_name] = np.float64(mean(hostname_entropy_per_deployment[deployment_name]) *
-                                                         (trigger_sensitivity / 100))
+        frontiere_list = self._compute_frontiere_list_mean(hostname_entropy_per_deployment, trigger_sensitivity)
 
         for doc in es.scan():
             deployment_name = doc["_source"]["meta"]["deployment_name"]
@@ -718,11 +675,7 @@ class TestMetricsAnalyzer(unittest.TestCase):
 
         # Compute expected result
         hostname_entropy_per_deployment = self._compute_hostname_entropy_per_deployment(all_doc)
-
-        frontiere_list = {}
-        for deployment_name in hostname_entropy_per_deployment:
-            frontiere_list[deployment_name] = np.float64(mean(hostname_entropy_per_deployment[deployment_name]) *
-                                                         (trigger_sensitivity / 100))
+        frontiere_list = self._compute_frontiere_list_mean(hostname_entropy_per_deployment, trigger_sensitivity)
 
         for doc in es.scan():
             deployment_name = doc["_source"]["meta"]["deployment_name"]
@@ -738,11 +691,7 @@ class TestMetricsAnalyzer(unittest.TestCase):
 
         # Compute expected result
         hex_val_length_per_deployment = self._compute_hex_val_length_per_deployment(all_doc)
-
-        frontiere_list = {}
-        for deployment_name in hex_val_length_per_deployment:
-            frontiere_list[deployment_name] = np.float64(mean(hex_val_length_per_deployment[deployment_name]) *
-                                                         (trigger_sensitivity / 100))
+        frontiere_list = self._compute_frontiere_list_mean(hex_val_length_per_deployment, trigger_sensitivity)
 
         for doc in es.scan():
             deployment_name = doc["_source"]["meta"]["deployment_name"]
@@ -758,11 +707,7 @@ class TestMetricsAnalyzer(unittest.TestCase):
 
         # Compute expected result
         hex_val_length_per_deployment = self._compute_hex_val_length_per_deployment(all_doc)
-
-        frontiere_list = {}
-        for deployment_name in hex_val_length_per_deployment:
-            frontiere_list[deployment_name] = np.float64(mean(hex_val_length_per_deployment[deployment_name]) *
-                                                         (trigger_sensitivity / 100))
+        frontiere_list = self._compute_frontiere_list_mean(hex_val_length_per_deployment, trigger_sensitivity)
 
         for doc in es.scan():
             deployment_name = doc["_source"]["meta"]["deployment_name"]
@@ -777,18 +722,8 @@ class TestMetricsAnalyzer(unittest.TestCase):
         analyzer.evaluate_model()
 
         # Compute expected result
-        base64_length_per_deployment = {}
-        base64_val_per_deployment = self._compute_list_target_per_deployment(all_doc, "test", "base64_value")
-        for deployment_name in base64_val_per_deployment:
-            base64_length_per_deployment[deployment_name] = []
-            for base64_value in base64_val_per_deployment[deployment_name]:
-                value = self._compute_max_base64_encoded_length(base64_value)
-                base64_length_per_deployment[deployment_name].append(value)
-
-        frontiere_list = {}
-        for deployment_name in base64_length_per_deployment:
-            frontiere_list[deployment_name] = np.float64(mean(base64_length_per_deployment[deployment_name]) *
-                                                         (trigger_sensitivity / 100))
+        base64_length_per_deployment = self._compute_base64_length_per_deployment(all_doc)
+        frontiere_list = self._compute_frontiere_list_mean(base64_length_per_deployment, trigger_sensitivity)
 
         for doc in es.scan():
             deployment_name = doc["_source"]["meta"]["deployment_name"]
@@ -803,18 +738,8 @@ class TestMetricsAnalyzer(unittest.TestCase):
         analyzer.evaluate_model()
 
         # Compute expected result
-        base64_length_per_deployment = {}
-        base64_val_per_deployment = self._compute_list_target_per_deployment(all_doc, "test", "base64_value")
-        for deployment_name in base64_val_per_deployment:
-            base64_length_per_deployment[deployment_name] = []
-            for base64_value in base64_val_per_deployment[deployment_name]:
-                value = self._compute_max_base64_encoded_length(base64_value)
-                base64_length_per_deployment[deployment_name].append(value)
-
-        frontiere_list = {}
-        for deployment_name in base64_length_per_deployment:
-            frontiere_list[deployment_name] = np.float64(mean(base64_length_per_deployment[deployment_name]) *
-                                                         (trigger_sensitivity / 100))
+        base64_length_per_deployment = self._compute_base64_length_per_deployment(all_doc)
+        frontiere_list = self._compute_frontiere_list_mean(base64_length_per_deployment, trigger_sensitivity)
 
         for doc in es.scan():
             deployment_name = doc["_source"]["meta"]["deployment_name"]
@@ -829,18 +754,8 @@ class TestMetricsAnalyzer(unittest.TestCase):
         analyzer.evaluate_model()
 
         # Compute expected result
-        url_length_per_deployment = {}
-        url_val_per_deployment = self._compute_list_target_per_deployment(all_doc, "test", "url_value")
-        for deployment_name in url_val_per_deployment:
-            url_length_per_deployment[deployment_name] = []
-            for url_value in url_val_per_deployment[deployment_name]:
-                value = self._compute_max_url_length(url_value)
-                url_length_per_deployment[deployment_name].append(value)
-
-        frontiere_list = {}
-        for deployment_name in url_length_per_deployment:
-            frontiere_list[deployment_name] = np.float64(mean(url_length_per_deployment[deployment_name]) *
-                                                         (trigger_sensitivity / 100))
+        url_length_per_deployment = self._compute_url_length_per_deployment(all_doc)
+        frontiere_list = self._compute_frontiere_list_mean(url_length_per_deployment, trigger_sensitivity)
 
         for doc in es.scan():
             deployment_name = doc["_source"]["meta"]["deployment_name"]
@@ -855,18 +770,8 @@ class TestMetricsAnalyzer(unittest.TestCase):
         analyzer.evaluate_model()
 
         # Compute expected result
-        url_length_per_deployment = {}
-        url_val_per_deployment = self._compute_list_target_per_deployment(all_doc, "test", "url_value")
-        for deployment_name in url_val_per_deployment:
-            url_length_per_deployment[deployment_name] = []
-            for url_value in url_val_per_deployment[deployment_name]:
-                value = self._compute_max_url_length(url_value)
-                url_length_per_deployment[deployment_name].append(value)
-
-        frontiere_list = {}
-        for deployment_name in url_length_per_deployment:
-            frontiere_list[deployment_name] = np.float64(mean(url_length_per_deployment[deployment_name]) *
-                                                         (trigger_sensitivity / 100))
+        url_length_per_deployment = self._compute_url_length_per_deployment(all_doc)
+        frontiere_list = self._compute_frontiere_list_mean(url_length_per_deployment, trigger_sensitivity)
 
         for doc in es.scan():
             deployment_name = doc["_source"]["meta"]["deployment_name"]
@@ -884,11 +789,7 @@ class TestMetricsAnalyzer(unittest.TestCase):
 
         # Compute expected result
         list_val_user_id_per_deployment = self._compute_list_val_user_id_per_deployment(all_doc)
-
-        frontiere_list = {}
-        for deployment_name in list_val_user_id_per_deployment:
-            frontiere_list[deployment_name] = np.float64(median(list_val_user_id_per_deployment[deployment_name]) *
-                                                         (trigger_sensitivity / 100))
+        frontiere_list = self._compute_frontiere_list_median(list_val_user_id_per_deployment, trigger_sensitivity)
 
         for doc in es.scan():
             deployment_name = doc["_source"]["meta"]["deployment_name"]
@@ -904,11 +805,7 @@ class TestMetricsAnalyzer(unittest.TestCase):
 
         # Compute expected result
         list_val_user_id_per_deployment = self._compute_list_val_user_id_per_deployment(all_doc)
-
-        frontiere_list = {}
-        for deployment_name in list_val_user_id_per_deployment:
-            frontiere_list[deployment_name] = np.float64(median(list_val_user_id_per_deployment[deployment_name]) *
-                                                         (trigger_sensitivity / 100))
+        frontiere_list = self._compute_frontiere_list_median(list_val_user_id_per_deployment, trigger_sensitivity)
 
         for doc in es.scan():
             deployment_name = doc["_source"]["meta"]["deployment_name"]
@@ -924,11 +821,7 @@ class TestMetricsAnalyzer(unittest.TestCase):
 
         # Compute expected result
         hostname_len_per_deployment = self._compute_hostname_len_per_deployment(all_doc)
-
-        frontiere_list = {}
-        for deployment_name in hostname_len_per_deployment:
-            frontiere_list[deployment_name] = np.float64(median(hostname_len_per_deployment[deployment_name]) *
-                                                         (trigger_sensitivity / 100))
+        frontiere_list = self._compute_frontiere_list_median(hostname_len_per_deployment, trigger_sensitivity)
 
         for doc in es.scan():
             deployment_name = doc["_source"]["meta"]["deployment_name"]
@@ -944,11 +837,7 @@ class TestMetricsAnalyzer(unittest.TestCase):
 
         # Compute expected result
         hostname_len_per_deployment = self._compute_hostname_len_per_deployment(all_doc)
-
-        frontiere_list = {}
-        for deployment_name in hostname_len_per_deployment:
-            frontiere_list[deployment_name] = np.float64(median(hostname_len_per_deployment[deployment_name]) *
-                                                         (trigger_sensitivity / 100))
+        frontiere_list = self._compute_frontiere_list_median(hostname_len_per_deployment, trigger_sensitivity)
 
         for doc in es.scan():
             deployment_name = doc["_source"]["meta"]["deployment_name"]
@@ -964,11 +853,7 @@ class TestMetricsAnalyzer(unittest.TestCase):
 
         # Compute expected result
         hostname_entropy_per_deployment = self._compute_hostname_entropy_per_deployment(all_doc)
-
-        frontiere_list = {}
-        for deployment_name in hostname_entropy_per_deployment:
-            frontiere_list[deployment_name] = np.float64(median(hostname_entropy_per_deployment[deployment_name]) *
-                                                         (trigger_sensitivity / 100))
+        frontiere_list = self._compute_frontiere_list_median(hostname_entropy_per_deployment, trigger_sensitivity)
 
         for doc in es.scan():
             deployment_name = doc["_source"]["meta"]["deployment_name"]
@@ -984,11 +869,7 @@ class TestMetricsAnalyzer(unittest.TestCase):
 
         # Compute expected result
         hostname_entropy_per_deployment = self._compute_hostname_entropy_per_deployment(all_doc)
-
-        frontiere_list = {}
-        for deployment_name in hostname_entropy_per_deployment:
-            frontiere_list[deployment_name] = np.float64(median(hostname_entropy_per_deployment[deployment_name]) *
-                                                         (trigger_sensitivity / 100))
+        frontiere_list = self._compute_frontiere_list_median(hostname_entropy_per_deployment, trigger_sensitivity)
 
         for doc in es.scan():
             deployment_name = doc["_source"]["meta"]["deployment_name"]
@@ -1004,11 +885,7 @@ class TestMetricsAnalyzer(unittest.TestCase):
 
         # Compute expected result
         hex_val_length_per_deployment = self._compute_hex_val_length_per_deployment(all_doc)
-
-        frontiere_list = {}
-        for deployment_name in hex_val_length_per_deployment:
-            frontiere_list[deployment_name] = np.float64(median(hex_val_length_per_deployment[deployment_name]) *
-                                                         (trigger_sensitivity / 100))
+        frontiere_list = self._compute_frontiere_list_median(hex_val_length_per_deployment, trigger_sensitivity)
 
         for doc in es.scan():
             deployment_name = doc["_source"]["meta"]["deployment_name"]
@@ -1024,11 +901,7 @@ class TestMetricsAnalyzer(unittest.TestCase):
 
         # Compute expected result
         hex_val_length_per_deployment = self._compute_hex_val_length_per_deployment(all_doc)
-
-        frontiere_list = {}
-        for deployment_name in hex_val_length_per_deployment:
-            frontiere_list[deployment_name] = np.float64(median(hex_val_length_per_deployment[deployment_name]) *
-                                                         (trigger_sensitivity / 100))
+        frontiere_list = self._compute_frontiere_list_median(hex_val_length_per_deployment, trigger_sensitivity)
 
         for doc in es.scan():
             deployment_name = doc["_source"]["meta"]["deployment_name"]
@@ -1043,18 +916,8 @@ class TestMetricsAnalyzer(unittest.TestCase):
         analyzer.evaluate_model()
 
         # Compute expected result
-        base64_length_per_deployment = {}
-        base64_val_per_deployment = self._compute_list_target_per_deployment(all_doc, "test", "base64_value")
-        for deployment_name in base64_val_per_deployment:
-            base64_length_per_deployment[deployment_name] = []
-            for base64_value in base64_val_per_deployment[deployment_name]:
-                value = self._compute_max_base64_encoded_length(base64_value)
-                base64_length_per_deployment[deployment_name].append(value)
-
-        frontiere_list = {}
-        for deployment_name in base64_length_per_deployment:
-            frontiere_list[deployment_name] = np.float64(median(base64_length_per_deployment[deployment_name]) *
-                                                         (trigger_sensitivity / 100))
+        base64_length_per_deployment = self._compute_base64_length_per_deployment(all_doc)
+        frontiere_list = self._compute_frontiere_list_median(base64_length_per_deployment, trigger_sensitivity)
 
         for doc in es.scan():
             deployment_name = doc["_source"]["meta"]["deployment_name"]
@@ -1069,18 +932,8 @@ class TestMetricsAnalyzer(unittest.TestCase):
         analyzer.evaluate_model()
 
         # Compute expected result
-        base64_length_per_deployment = {}
-        base64_val_per_deployment = self._compute_list_target_per_deployment(all_doc, "test", "base64_value")
-        for deployment_name in base64_val_per_deployment:
-            base64_length_per_deployment[deployment_name] = []
-            for base64_value in base64_val_per_deployment[deployment_name]:
-                value = self._compute_max_base64_encoded_length(base64_value)
-                base64_length_per_deployment[deployment_name].append(value)
-
-        frontiere_list = {}
-        for deployment_name in base64_length_per_deployment:
-            frontiere_list[deployment_name] = np.float64(median(base64_length_per_deployment[deployment_name]) *
-                                                         (trigger_sensitivity / 100))
+        base64_length_per_deployment = self._compute_base64_length_per_deployment(all_doc)
+        frontiere_list = self._compute_frontiere_list_median(base64_length_per_deployment, trigger_sensitivity)
 
         for doc in es.scan():
             deployment_name = doc["_source"]["meta"]["deployment_name"]
@@ -1095,18 +948,8 @@ class TestMetricsAnalyzer(unittest.TestCase):
         analyzer.evaluate_model()
 
         # Compute expected result
-        url_length_per_deployment = {}
-        url_val_per_deployment = self._compute_list_target_per_deployment(all_doc, "test", "url_value")
-        for deployment_name in url_val_per_deployment:
-            url_length_per_deployment[deployment_name] = []
-            for url_value in url_val_per_deployment[deployment_name]:
-                value = self._compute_max_url_length(url_value)
-                url_length_per_deployment[deployment_name].append(value)
-
-        frontiere_list = {}
-        for deployment_name in url_length_per_deployment:
-            frontiere_list[deployment_name] = np.float64(median(url_length_per_deployment[deployment_name]) *
-                                                         (trigger_sensitivity / 100))
+        url_length_per_deployment = self._compute_url_length_per_deployment(all_doc)
+        frontiere_list = self._compute_frontiere_list_median(url_length_per_deployment, trigger_sensitivity)
 
         for doc in es.scan():
             deployment_name = doc["_source"]["meta"]["deployment_name"]
@@ -1121,18 +964,8 @@ class TestMetricsAnalyzer(unittest.TestCase):
         analyzer.evaluate_model()
 
         # Compute expected result
-        url_length_per_deployment = {}
-        url_val_per_deployment = self._compute_list_target_per_deployment(all_doc, "test", "url_value")
-        for deployment_name in url_val_per_deployment:
-            url_length_per_deployment[deployment_name] = []
-            for url_value in url_val_per_deployment[deployment_name]:
-                value = self._compute_max_url_length(url_value)
-                url_length_per_deployment[deployment_name].append(value)
-
-        frontiere_list = {}
-        for deployment_name in url_length_per_deployment:
-            frontiere_list[deployment_name] = np.float64(median(url_length_per_deployment[deployment_name]) *
-                                                         (trigger_sensitivity / 100))
+        url_length_per_deployment = self._compute_url_length_per_deployment(all_doc)
+        frontiere_list = self._compute_frontiere_list_median(url_length_per_deployment, trigger_sensitivity)
 
         for doc in es.scan():
             deployment_name = doc["_source"]["meta"]["deployment_name"]
