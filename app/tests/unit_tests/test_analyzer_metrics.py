@@ -3,6 +3,8 @@ import unittest
 
 import copy
 import re
+import numpy as np
+from collections import defaultdict
 
 from tests.unit_tests.test_stubs.test_stub_es import TestStubEs
 from analyzers.metrics import MetricsAnalyzer
@@ -298,3 +300,189 @@ class TestMetricsAnalyzer(unittest.TestCase):
                 index_word += 1
 
             self.assertEqual(total_len > trigger_sensitivity, "outliers" in doc["_source"])
+
+    #############################
+    # Begin test for percentile #
+    def test_metrics_generated_document_numerical_value_low_percentile_value(self):
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/metrics_test_01.conf")
+        analyzer = MetricsAnalyzer("metrics_dummy_test_numerical_value_low_percentile")
+
+        doc_generator = GenerateDummyDocuments()
+        trigger_sensitivity = 25
+        all_doc = doc_generator.create_documents(20)
+        self.test_es.add_multiple_docs(all_doc)
+
+        analyzer.evaluate_model()
+
+        # Compute expected result
+        list_user_id_per_deployment = {}
+        for generate_doc in all_doc:
+            deployment_name = generate_doc["_source"]["meta"]["deployment_name"]
+            id_user = int(generate_doc["_source"]["meta"]["user_id"])
+            if deployment_name not in list_user_id_per_deployment:
+                list_user_id_per_deployment[deployment_name] = []
+            list_user_id_per_deployment[deployment_name].append(id_user)
+
+        frontiere_list = {}
+        for deployment_name in list_user_id_per_deployment:
+            frontiere_list[deployment_name] = np.percentile(list(set(list_user_id_per_deployment[deployment_name])),
+                                                            trigger_sensitivity)
+
+        for doc in es.scan():
+            deployment_name = doc["_source"]["meta"]["deployment_name"]
+            user_id = int(doc["_source"]["meta"]["user_id"])
+            self.assertEqual(user_id < frontiere_list[deployment_name], "outliers" in doc["_source"])
+
+    def test_metrics_generated_document_numerical_value_high_percentile_value(self):
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/metrics_test_01.conf")
+        analyzer = MetricsAnalyzer("metrics_dummy_test_numerical_value_high_percentile")
+
+        doc_generator = GenerateDummyDocuments()
+        trigger_sensitivity = 25
+        all_doc = doc_generator.create_documents(20)
+        self.test_es.add_multiple_docs(all_doc)
+
+        analyzer.evaluate_model()
+
+        # Compute expected result
+        list_user_id_per_deployment = {}
+        for generate_doc in all_doc:
+            deployment_name = generate_doc["_source"]["meta"]["deployment_name"]
+            id_user = int(generate_doc["_source"]["meta"]["user_id"])
+            if deployment_name not in list_user_id_per_deployment:
+                list_user_id_per_deployment[deployment_name] = []
+            list_user_id_per_deployment[deployment_name].append(id_user)
+
+        frontiere_list = {}
+        for deployment_name in list_user_id_per_deployment:
+            frontiere_list[deployment_name] = np.percentile(list(set(list_user_id_per_deployment[deployment_name])),
+                                                            trigger_sensitivity)
+
+        for doc in es.scan():
+            deployment_name = doc["_source"]["meta"]["deployment_name"]
+            user_id = int(doc["_source"]["meta"]["user_id"])
+            self.assertEqual(user_id > frontiere_list[deployment_name], "outliers" in doc["_source"])
+
+    def _compute_list_hostname_per_deployment(self, documents):
+        hostname_per_deployment = defaultdict(list)
+        for generate_doc in documents:
+            deployment_name = generate_doc["_source"]["meta"]["deployment_name"]
+            hostname = generate_doc["_source"]["meta"]["hostname"]
+            hostname_per_deployment[deployment_name].append(hostname)
+        return hostname_per_deployment
+
+    def test_metrics_generated_document_length_low_percentile_value(self):
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/metrics_test_01.conf")
+        analyzer = MetricsAnalyzer("metrics_dummy_test_length_low_percentile")
+
+        doc_generator = GenerateDummyDocuments()
+        trigger_sensitivity = 25
+        all_doc = doc_generator.create_documents(20)
+        self.test_es.add_multiple_docs(all_doc)
+
+        analyzer.evaluate_model()
+
+        # Compute expected result
+        hostname_len_per_deployment = {}
+        hostname_per_deployment = self._compute_list_hostname_per_deployment(all_doc)
+        for deployment_name in hostname_per_deployment:
+            hostname_len_per_deployment[deployment_name] = []
+            for hostname in hostname_per_deployment[deployment_name]:
+                hostname_len_per_deployment[deployment_name].append(len(hostname))
+
+        frontiere_list = {}
+        for deployment_name in hostname_len_per_deployment:
+            frontiere_list[deployment_name] = np.percentile(list(set(hostname_len_per_deployment[deployment_name])),
+                                                            trigger_sensitivity)
+
+        for doc in es.scan():
+            deployment_name = doc["_source"]["meta"]["deployment_name"]
+            hostname_len = len(doc["_source"]["meta"]["hostname"])
+            self.assertEqual(hostname_len < frontiere_list[deployment_name], "outliers" in doc["_source"])
+
+    def test_metrics_generated_document_length_high_percentile_value(self):
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/metrics_test_01.conf")
+        analyzer = MetricsAnalyzer("metrics_dummy_test_length_high_percentile")
+
+        doc_generator = GenerateDummyDocuments()
+        trigger_sensitivity = 25
+        all_doc = doc_generator.create_documents(20)
+        self.test_es.add_multiple_docs(all_doc)
+
+        analyzer.evaluate_model()
+
+        # Compute expected result
+        hostname_len_per_deployment = {}
+        hostname_per_deployment = self._compute_list_hostname_per_deployment(all_doc)
+        for deployment_name in hostname_per_deployment:
+            hostname_len_per_deployment[deployment_name] = []
+            for hostname in hostname_per_deployment[deployment_name]:
+                hostname_len_per_deployment[deployment_name].append(len(hostname))
+
+        frontiere_list = {}
+        for deployment_name in hostname_len_per_deployment:
+            frontiere_list[deployment_name] = np.percentile(list(set(hostname_len_per_deployment[deployment_name])),
+                                                            trigger_sensitivity)
+
+        for doc in es.scan():
+            deployment_name = doc["_source"]["meta"]["deployment_name"]
+            hostname_len = len(doc["_source"]["meta"]["hostname"])
+            self.assertEqual(hostname_len > frontiere_list[deployment_name], "outliers" in doc["_source"])
+
+    def test_metrics_generated_document_enropy_low_percentile_value(self):
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/metrics_test_01.conf")
+        analyzer = MetricsAnalyzer("metrics_dummy_test_entropy_low_percentile")
+
+        doc_generator = GenerateDummyDocuments()
+        trigger_sensitivity = 25
+        all_doc = doc_generator.create_documents(20)
+        self.test_es.add_multiple_docs(all_doc)
+
+        analyzer.evaluate_model()
+
+        # Compute expected result
+        hostname_entropy_per_deployment = {}
+        hostname_per_deployment = self._compute_list_hostname_per_deployment(all_doc)
+        for deployment_name in hostname_per_deployment:
+            hostname_entropy_per_deployment[deployment_name] = []
+            for hostname in hostname_per_deployment[deployment_name]:
+                hostname_entropy_per_deployment[deployment_name].append(helpers.utils.shannon_entropy(hostname))
+
+        frontiere_list = {}
+        for deployment_name in hostname_entropy_per_deployment:
+            frontiere_list[deployment_name] = np.percentile(list(set(hostname_entropy_per_deployment[deployment_name])),
+                                                            trigger_sensitivity)
+
+        for doc in es.scan():
+            deployment_name = doc["_source"]["meta"]["deployment_name"]
+            hostname_entropy = helpers.utils.shannon_entropy(doc["_source"]["meta"]["hostname"])
+            self.assertEqual(hostname_entropy < frontiere_list[deployment_name], "outliers" in doc["_source"])
+
+    def test_metrics_generated_document_enropy_high_percentile_value(self):
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/metrics_test_01.conf")
+        analyzer = MetricsAnalyzer("metrics_dummy_test_entropy_high_percentile")
+
+        doc_generator = GenerateDummyDocuments()
+        trigger_sensitivity = 25
+        all_doc = doc_generator.create_documents(20)
+        self.test_es.add_multiple_docs(all_doc)
+
+        analyzer.evaluate_model()
+
+        # Compute expected result
+        hostname_entropy_per_deployment = {}
+        hostname_per_deployment = self._compute_list_hostname_per_deployment(all_doc)
+        for deployment_name in hostname_per_deployment:
+            hostname_entropy_per_deployment[deployment_name] = []
+            for hostname in hostname_per_deployment[deployment_name]:
+                hostname_entropy_per_deployment[deployment_name].append(helpers.utils.shannon_entropy(hostname))
+
+        frontiere_list = {}
+        for deployment_name in hostname_entropy_per_deployment:
+            frontiere_list[deployment_name] = np.percentile(list(set(hostname_entropy_per_deployment[deployment_name])),
+                                                            trigger_sensitivity)
+
+        for doc in es.scan():
+            deployment_name = doc["_source"]["meta"]["deployment_name"]
+            hostname_enropy = helpers.utils.shannon_entropy(doc["_source"]["meta"]["hostname"])
+            self.assertEqual(hostname_enropy > frontiere_list[deployment_name], "outliers" in doc["_source"])
