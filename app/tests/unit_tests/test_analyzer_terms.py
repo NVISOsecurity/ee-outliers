@@ -50,64 +50,6 @@ class TestTermsAnalyzer(unittest.TestCase):
 
         self.assertEqual(len(analyzer.outliers), 2)
 
-    ########################
-    # Begin test for float #
-    def test_generated_document_low_float_value_within(self):
-        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_01.conf")
-        analyzer = TermsAnalyzer("terms_dummy_test_low_float_within")
-
-        doc_generator = GenerateDummyDocuments()
-        deployment_name_number, all_doc = doc_generator.create_doc_target_variable_range(4, 6)
-        self.test_es.add_multiple_docs(all_doc)
-
-        analyzer.evaluate_model()
-
-        for doc in es.scan():
-            deployment_name = doc["_source"]["meta"]["deployment_name"]
-            self.assertEqual(deployment_name_number[deployment_name] < 5, "outliers" in doc["_source"])
-
-    def test_generated_document_high_float_value_within(self):
-        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_01.conf")
-        analyzer = TermsAnalyzer("terms_dummy_test_high_float_within")
-
-        doc_generator = GenerateDummyDocuments()
-        deployment_name_number, all_doc = doc_generator.create_doc_target_variable_range(4, 6)
-        self.test_es.add_multiple_docs(all_doc)
-
-        analyzer.evaluate_model()
-
-        for doc in es.scan():
-            deployment_name = doc["_source"]["meta"]["deployment_name"]
-            self.assertEqual(deployment_name_number[deployment_name] > 5, "outliers" in doc["_source"])
-
-    def test_generated_document_low_float_value_across(self):
-        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_01.conf")
-        analyzer = TermsAnalyzer("terms_dummy_test_low_float_across")
-
-        doc_generator = GenerateDummyDocuments()
-        hostname_name_number, all_doc = doc_generator.create_doc_uniq_target_variable(4, 6)
-        self.test_es.add_multiple_docs(all_doc)
-
-        analyzer.evaluate_model()
-
-        for doc in es.scan():
-            hostname = doc["_source"]["meta"]["hostname"]
-            self.assertEqual(hostname_name_number[hostname] < 5, "outliers" in doc["_source"])
-
-    def test_generated_document_high_float_value_across(self):
-        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_01.conf")
-        analyzer = TermsAnalyzer("terms_dummy_test_high_float_across")
-
-        doc_generator = GenerateDummyDocuments()
-        hostname_name_number, all_doc = doc_generator.create_doc_uniq_target_variable(4, 6)
-        self.test_es.add_multiple_docs(all_doc)
-
-        analyzer.evaluate_model()
-
-        for doc in es.scan():
-            hostname = doc["_source"]["meta"]["hostname"]
-            self.assertEqual(hostname_name_number[hostname] > 5, "outliers" in doc["_source"])
-
     #############################
     # Begin test for percentile #
     def test_generated_document_low_percentile_value_within(self):
@@ -583,6 +525,76 @@ class TestTermsAnalyzer(unittest.TestCase):
             nbr_val, min_trigger_sensitivity, max_difference, default_value)
         values = [elem for elem in hostname_name_number.values() if elem != 0]
         frontiere = np.nanmean(values) + min_trigger_sensitivity * np.std(values)
+        self.test_es.add_multiple_docs(all_doc)
+
+        analyzer.evaluate_model()
+
+        for doc in es.scan():
+            hostname = doc["_source"]["meta"]["hostname"]
+            self.assertEqual(hostname_name_number[hostname] > frontiere, "outliers" in doc["_source"])
+
+    ########################
+    # Begin test for float #
+    def test_generated_document_low_float_value_within(self):
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_01.conf")
+        analyzer = TermsAnalyzer("terms_dummy_test_low_float_within")
+
+        doc_generator = GenerateDummyDocuments()
+        min_val = 4
+        max_val = 6
+        frontiere = 5
+        deployment_name_number, all_doc = doc_generator.create_doc_target_variable_range(min_val, max_val)
+        self.test_es.add_multiple_docs(all_doc)
+
+        analyzer.evaluate_model()
+
+        for doc in es.scan():
+            deployment_name = doc["_source"]["meta"]["deployment_name"]
+            self.assertEqual(deployment_name_number[deployment_name] < frontiere, "outliers" in doc["_source"])
+
+    def test_generated_document_high_float_value_within(self):
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_01.conf")
+        analyzer = TermsAnalyzer("terms_dummy_test_high_float_within")
+
+        doc_generator = GenerateDummyDocuments()
+        min_val = 4
+        max_val = 6
+        frontiere = 5
+        deployment_name_number, all_doc = doc_generator.create_doc_target_variable_range(min_val, max_val)
+        self.test_es.add_multiple_docs(all_doc)
+
+        analyzer.evaluate_model()
+
+        for doc in es.scan():
+            deployment_name = doc["_source"]["meta"]["deployment_name"]
+            self.assertEqual(deployment_name_number[deployment_name] > frontiere, "outliers" in doc["_source"])
+
+    def test_generated_document_low_float_value_across(self):
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_01.conf")
+        analyzer = TermsAnalyzer("terms_dummy_test_low_float_across")
+
+        doc_generator = GenerateDummyDocuments()
+        min_val = 4
+        max_val = 6
+        frontiere = 5
+        hostname_name_number, all_doc = doc_generator.create_doc_uniq_target_variable(min_val, max_val)
+        self.test_es.add_multiple_docs(all_doc)
+
+        analyzer.evaluate_model()
+
+        for doc in es.scan():
+            hostname = doc["_source"]["meta"]["hostname"]
+            self.assertEqual(hostname_name_number[hostname] < frontiere, "outliers" in doc["_source"])
+
+    def test_generated_document_high_float_value_across(self):
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_01.conf")
+        analyzer = TermsAnalyzer("terms_dummy_test_high_float_across")
+
+        doc_generator = GenerateDummyDocuments()
+        min_val = 4
+        max_val = 6
+        frontiere = 5
+        hostname_name_number, all_doc = doc_generator.create_doc_uniq_target_variable(min_val, max_val)
         self.test_es.add_multiple_docs(all_doc)
 
         analyzer.evaluate_model()
