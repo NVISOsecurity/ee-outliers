@@ -7,11 +7,20 @@ import random
 from collections import defaultdict
 
 from tests.unit_tests.test_stubs.test_stub_es import TestStubEs
+from tests.unit_tests.utils.test_settings import TestSettings
 from helpers.singletons import settings, es, logging
 from analyzers.beaconing import BeaconingAnalyzer
 from helpers.outlier import Outlier
 
 doc_without_outlier_test_file = json.load(open("/app/tests/unit_tests/files/doc_without_outlier.json"))
+doc_without_outliers_test_whitelist_01_test_file = json.load(
+    open("/app/tests/unit_tests/files/doc_without_outliers_test_whitelist_01.json"))
+doc_without_outliers_test_whitelist_02_test_file = json.load(
+    open("/app/tests/unit_tests/files/doc_without_outliers_test_whitelist_02.json"))
+doc_without_outliers_test_whitelist_03_test_file = json.load(
+    open("/app/tests/unit_tests/files/doc_without_outliers_test_whitelist_03.json"))
+doc_without_outliers_test_whitelist_04_test_file = json.load(
+    open("/app/tests/unit_tests/files/doc_without_outliers_test_whitelist_04.json"))
 doc_with_beaconing_outlier_test_file = json.load(open("/app/tests/unit_tests/files/doc_with_beaconing_outlier.json"))
 doc_with_beaconing_outlier_without_score_sort_test_file = json.load(
     open("/app/tests/unit_tests/files/doc_with_beaconing_outlier_without_score_sort.json"))
@@ -29,11 +38,11 @@ class TestBeaconingAnalyzer(unittest.TestCase):
 
     def setUp(self):
         self.test_es = TestStubEs()
+        self.test_settings = TestSettings()
 
     def tearDown(self):
         # restore the default configuration file so we don't influence other unit tests that use the settings singleton
-        settings.process_configuration_files("/defaults/outliers.conf")
-        settings.process_arguments()
+        self.test_settings.restore_default_configuration_path()
         self.test_es.restore_es()
 
     def _create_outliers(self, outlier_type, outlier_reason, outlier_summary, model_type, model_name, term, aggregator,
@@ -49,7 +58,7 @@ class TestBeaconingAnalyzer(unittest.TestCase):
         return outlier
 
     def test_evaluate_batch_for_outliers_not_enough_target_buckets(self):
-        settings.process_configuration_files("/app/tests/unit_tests/files/beaconing_test_01.conf")
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/beaconing_test_01.conf")
         analyzer = BeaconingAnalyzer("beaconing_dummy_test")
         analyzer.extract_additional_model_settings()
 
@@ -70,7 +79,7 @@ class TestBeaconingAnalyzer(unittest.TestCase):
         self.assertEqual(result, [])
 
     def test_evaluate_batch_for_outliers_detect_two_outliers(self):
-        settings.process_configuration_files("/app/tests/unit_tests/files/beaconing_test_01.conf")
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/beaconing_test_01.conf")
         analyzer = BeaconingAnalyzer("beaconing_dummy_test")
         analyzer.extract_additional_model_settings()
 
@@ -117,7 +126,7 @@ class TestBeaconingAnalyzer(unittest.TestCase):
         self.assertEqual(result, expected_outliers)
 
     def test_prepare_and_process_outlier_one_outlier(self):
-        settings.process_configuration_files("/app/tests/unit_tests/files/beaconing_test_01.conf")
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/beaconing_test_01.conf")
         analyzer = BeaconingAnalyzer("beaconing_dummy_test")
 
         # decision_frontier, term_value_count, terms, aggregator_value, term_counter):
@@ -138,7 +147,7 @@ class TestBeaconingAnalyzer(unittest.TestCase):
         self.assertEqual(outlier, expected_outlier)
 
     def test_prepare_and_process_outlier_check_es_have_request(self):  # TODO adapt name
-        settings.process_configuration_files("/app/tests/unit_tests/files/beaconing_test_01.conf")
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/beaconing_test_01.conf")
         analyzer = BeaconingAnalyzer("beaconing_dummy_test")
 
         # decision_frontier, term_value_count, terms, aggregator_value, term_counter):
@@ -159,7 +168,7 @@ class TestBeaconingAnalyzer(unittest.TestCase):
         self.assertEqual(result, expected_doc)
 
     def test_evaluate_model_beaconing_simple_case(self):
-        settings.process_configuration_files("/app/tests/unit_tests/files/beaconing_test_01.conf")
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/beaconing_test_01.conf")
         analyzer = BeaconingAnalyzer("beaconing_dummy_test")
 
         doc_without_outlier = copy.deepcopy(doc_without_outlier_test_file)
@@ -172,3 +181,39 @@ class TestBeaconingAnalyzer(unittest.TestCase):
 
         result = [elem for elem in es.scan()][0]
         self.assertEqual(result, expected_doc)
+
+    def test_whitelist_batch_document_not_process_all(self):
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/beaconing_test_with_whitelist.conf")
+        analyzer = BeaconingAnalyzer("beaconing_dummy_test")
+
+        # Whitelisted (ignored)
+        doc1_without_outlier = copy.deepcopy(doc_without_outliers_test_whitelist_01_test_file)
+        self.test_es.add_doc(doc1_without_outlier)
+        # Not whitelisted (add)
+        doc2_without_outlier = copy.deepcopy(doc_without_outliers_test_whitelist_02_test_file)
+        self.test_es.add_doc(doc2_without_outlier)
+        # Not whitelisted
+        doc3_without_outlier = copy.deepcopy(doc_without_outliers_test_whitelist_03_test_file)
+        self.test_es.add_doc(doc3_without_outlier)
+
+        analyzer.evaluate_model()
+
+        self.assertEqual(len(analyzer.outliers), 2)
+
+    def test_whitelist_batch_document_no_whitelist_document(self):
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/beaconing_test_with_whitelist.conf")
+        analyzer = BeaconingAnalyzer("beaconing_dummy_test")
+
+        # Not whitelisted
+        doc2_without_outlier = copy.deepcopy(doc_without_outliers_test_whitelist_02_test_file)
+        self.test_es.add_doc(doc2_without_outlier)
+        # Not whitelisted and add
+        doc3_without_outlier = copy.deepcopy(doc_without_outliers_test_whitelist_03_test_file)
+        self.test_es.add_doc(doc3_without_outlier)
+        # Not whitelisted and add (also add because it is the last one)
+        doc4_without_outlier = copy.deepcopy(doc_without_outliers_test_whitelist_04_test_file)
+        self.test_es.add_doc(doc4_without_outlier)
+
+        analyzer.evaluate_model()
+
+        self.assertEqual(len(analyzer.outliers), 3)

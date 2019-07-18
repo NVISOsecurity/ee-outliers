@@ -33,29 +33,31 @@ class BeaconingAnalyzer(Analyzer):
                 fields = es.extract_fields_from_document(
                                                 doc, extract_derived_fields=self.model_settings["use_derived_fields"])
 
-                try:
-                    target_sentences = helpers.utils.flatten_fields_into_sentences(
-                                                fields=fields, sentence_format=self.model_settings["target"])
-                    aggregator_sentences = helpers.utils.flatten_fields_into_sentences(
-                                                fields=fields, sentence_format=self.model_settings["aggregator"])
-                    will_process_doc = True
-                except (KeyError, TypeError):
-                    logging.logger.debug("Skipping event which does not contain the target and aggregator fields we " +
-                                         "are processing. - [" + self.model_name + "]")
-                    will_process_doc = False
+                if not self.check_is_whitelist(fields, extract_field=False):
+                    try:
+                        target_sentences = helpers.utils.flatten_fields_into_sentences(
+                                                    fields=fields, sentence_format=self.model_settings["target"])
+                        aggregator_sentences = helpers.utils.flatten_fields_into_sentences(
+                                                    fields=fields, sentence_format=self.model_settings["aggregator"])
+                        will_process_doc = True
+                    except (KeyError, TypeError):
+                        logging.logger.debug("Skipping event which does not contain the target and aggregator fields " +
+                                             "we are processing. - [" + self.model_name + "]")
+                        will_process_doc = False
 
-                if will_process_doc:
-                    observations = dict()
+                    if will_process_doc:
+                        observations = dict()
 
-                    for target_sentence in target_sentences:
-                        flattened_target_sentence = helpers.utils.flatten_sentence(target_sentence)
+                        for target_sentence in target_sentences:
+                            flattened_target_sentence = helpers.utils.flatten_sentence(target_sentence)
 
-                        for aggregator_sentence in aggregator_sentences:
-                            flattened_aggregator_sentence = helpers.utils.flatten_sentence(aggregator_sentence)
-                            eval_terms_array = self.add_term_to_batch(eval_terms_array, flattened_aggregator_sentence,
-                                                                      flattened_target_sentence, observations, doc)
+                            for aggregator_sentence in aggregator_sentences:
+                                flattened_aggregator_sentence = helpers.utils.flatten_sentence(aggregator_sentence)
+                                eval_terms_array = self.add_term_to_batch(eval_terms_array,
+                                                                          flattened_aggregator_sentence,
+                                                                          flattened_target_sentence, observations, doc)
 
-                    total_terms_added += len(target_sentences)
+                        total_terms_added += len(target_sentences)
 
                 # Evaluate batch of events against the model
                 last_batch = (logging.current_step == self.total_events)
@@ -81,7 +83,7 @@ class BeaconingAnalyzer(Analyzer):
             .replace(' ', '').split(",")  # remove unnecessary whitespace, split fields
         self.model_settings["aggregator"] = settings.config.get(self.config_section_name, "aggregator")\
             .replace(' ', '').split(",")  # remove unnecessary whitespace, split fields
-        self.model_settings["trigger_sensitivity"] = settings.config.getint(self.config_section_name,
+        self.model_settings["trigger_sensitivity"] = settings.config.getfloat(self.config_section_name,
                                                                             "trigger_sensitivity")
         self.model_settings["batch_eval_size"] = settings.config.getint("beaconing", "beaconing_batch_eval_size")
 
@@ -116,15 +118,15 @@ class BeaconingAnalyzer(Analyzer):
                                      " time buckets, skipping analysis")
                 continue
 
-            stdev = np.std(counted_target_values)
-            logging.logger.debug("standard deviation: " + str(stdev))
+            coeff_of_variation = np.std(counted_target_values) / np.mean(counted_target_values)
+            logging.logger.debug("coefficient of variation deviation: " + str(coeff_of_variation))
 
             for term_counter, term_value in enumerate(terms[aggregator_value]["targets"]):
                 term_value_count = counted_targets[term_value]
 
                 # if, is outlier
-                if stdev < self.model_settings["trigger_sensitivity"]:
-                    outliers.append(self.prepare_and_process_outlier(stdev, term_value_count, terms,
+                if coeff_of_variation < self.model_settings["trigger_sensitivity"]:
+                    outliers.append(self.prepare_and_process_outlier(coeff_of_variation, term_value_count, terms,
                                                                      aggregator_value, term_counter))
 
         return outliers
