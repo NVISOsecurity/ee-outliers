@@ -33,31 +33,30 @@ class BeaconingAnalyzer(Analyzer):
                 fields = es.extract_fields_from_document(
                                                 doc, extract_derived_fields=self.model_settings["use_derived_fields"])
 
-                if not self.check_is_whitelist(fields, extract_field=False):
-                    try:
-                        target_sentences = helpers.utils.flatten_fields_into_sentences(
-                                                    fields=fields, sentence_format=self.model_settings["target"])
-                        aggregator_sentences = helpers.utils.flatten_fields_into_sentences(
-                                                    fields=fields, sentence_format=self.model_settings["aggregator"])
-                        will_process_doc = True
-                    except (KeyError, TypeError):
-                        logging.logger.debug("Skipping event which does not contain the target and aggregator fields " +
-                                             "we are processing. - [" + self.model_name + "]")
-                        will_process_doc = False
+                try:
+                    target_sentences = helpers.utils.flatten_fields_into_sentences(
+                                                fields=fields, sentence_format=self.model_settings["target"])
+                    aggregator_sentences = helpers.utils.flatten_fields_into_sentences(
+                                                fields=fields, sentence_format=self.model_settings["aggregator"])
+                    will_process_doc = True
+                except (KeyError, TypeError):
+                    logging.logger.debug("Skipping event which does not contain the target and aggregator fields " +
+                                         "we are processing. - [" + self.model_name + "]")
+                    will_process_doc = False
 
-                    if will_process_doc:
-                        observations = dict()
+                if will_process_doc:
+                    observations = dict()
 
-                        for target_sentence in target_sentences:
-                            flattened_target_sentence = helpers.utils.flatten_sentence(target_sentence)
+                    for target_sentence in target_sentences:
+                        flattened_target_sentence = helpers.utils.flatten_sentence(target_sentence)
 
-                            for aggregator_sentence in aggregator_sentences:
-                                flattened_aggregator_sentence = helpers.utils.flatten_sentence(aggregator_sentence)
-                                eval_terms_array = self.add_term_to_batch(eval_terms_array,
-                                                                          flattened_aggregator_sentence,
-                                                                          flattened_target_sentence, observations, doc)
+                        for aggregator_sentence in aggregator_sentences:
+                            flattened_aggregator_sentence = helpers.utils.flatten_sentence(aggregator_sentence)
+                            eval_terms_array = self.add_term_to_batch(eval_terms_array,
+                                                                      flattened_aggregator_sentence,
+                                                                      flattened_target_sentence, observations, doc)
 
-                        total_terms_added += len(target_sentences)
+                    total_terms_added += len(target_sentences)
 
                 # Evaluate batch of events against the model
                 last_batch = (logging.current_step == self.total_events)
