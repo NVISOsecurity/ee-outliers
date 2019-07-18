@@ -142,7 +142,7 @@ class BeaconingAnalyzer(Analyzer):
         observations["term"] = terms[aggregator_value]["targets"][term_counter]
         observations["term_count"] = term_value_count
         observations["decision_frontier"] = decision_frontier
-        observations["confidence"] = np.abs(decision_frontier - term_value_count)
+        observations["confidence"] = np.abs(decision_frontier - self.model_settings["trigger_sensitivity"])
 
         return self.process_outlier(fields, terms[aggregator_value]["raw_docs"][term_counter],
                                     extra_outlier_information=observations)
