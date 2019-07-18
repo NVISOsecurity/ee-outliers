@@ -1,4 +1,4 @@
-FROM python:3.5
+FROM python:3.6
 ARG timezone=Europe/Brussels
 
 RUN apt-get update --fix-missing && \
