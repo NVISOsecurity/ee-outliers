@@ -13,7 +13,8 @@ all_possible_deployment_name = ["NVISO Workstations", "NVISO Localhost", "Localh
                                 "Google", "Dummy Environment", "Deployment system"]
 all_possible_toolname = ['osquery']
 all_possible_hostname = ['NVISO-WIN10-JVZ', 'NVISO-LINUX-JVZ', 'NVISO-WIN10-RDE', 'NVISO-WIN10-DRA', 'LOCAL-WIN-RDE',
-                         'TEST-LINUX-XYZ', 'TEST-WIN-XYZ', 'localhost', 'abcdefghijklmno', 'aaaaaaa']
+                         'TEST-LINUX-XYZ', 'TEST-WIN-XYZ', 'localhost', 'abcdefghijklmno', 'aaaaaaa', "here",
+                         "NVISO-VERY-LONG-HOSTNAME-TO-ENHANCE-TEST"]
 all_test_hex_values = ["not hex value", "12177014F73", "5468697320697320612074657374",
                        "The same text 5468652073616d652074657874"]
 all_test_base64_values = ["QVlCQUJUVQ==", "VGhpcyBpcyBhIHRleHQ=", "not base"]
@@ -37,8 +38,9 @@ class GenerateDummyDocuments:
         self.start_timestamp += datetime.timedelta(seconds=1)
         return self.start_timestamp
 
-    def _generate_document(self, create_outlier=False, nbr_tags=1, index=None, slave_name=None, hostname=None,
-                           deployment_name=None):
+    def generate_document(self, create_outlier=False, nbr_tags=1, index=None, slave_name=None, hostname=None,
+                          deployment_name=None, user_id=None, test_hex_value=None, test_base64_value=None,
+                          test_url_value=None):
         doc_date_time = self._generate_date()
         str_date = doc_date_time.strftime("%Y.%m.%d")
 
@@ -51,12 +53,14 @@ class GenerateDummyDocuments:
             '_id': self.id,
             '_version': 2,
             '_source': self._generate_source(doc_date_time, create_outlier, nbr_tags, slave_name, hostname,
-                                             deployment_name)
+                                             deployment_name, user_id, test_hex_value, test_base64_value,
+                                             test_url_value)
         }
         self.id += 1
         return doc
 
-    def _generate_source(self, doc_date_time, create_outlier, nbr_tags, slave_name, hostname, deployment_name):
+    def _generate_source(self, doc_date_time, create_outlier, nbr_tags, slave_name, hostname, deployment_name,
+                         user_id, test_hex_value, test_base64_value, test_url_value):
         # Example: 2018-08-23T10:48:16.200315+00:00
         str_timestamp = self._date_time_to_timestamp(doc_date_time)
         filename = random.choice(all_possible_filename)
@@ -72,8 +76,8 @@ class GenerateDummyDocuments:
             'slave_name': slave_name,
             'type': random.choice(all_possible_doc_source_type),
             'filename': filename,
-            'meta': self._generate_meta(doc_date_time, filename, hostname, deployment_name),
-            'test': self._generate_test_data()
+            'meta': self._generate_meta(doc_date_time, filename, hostname, deployment_name, user_id),
+            'test': self._generate_test_data(test_hex_value, test_base64_value, test_url_value)
         }
         if create_outlier:
             source['outliers'] = dict()  # TODO
@@ -92,12 +96,15 @@ class GenerateDummyDocuments:
 
         return list_tags
 
-    def _generate_meta(self, doc_date_time, filename, hostname, deployment_name):
+    def _generate_meta(self, doc_date_time, filename, hostname, deployment_name, user_id):
         if hostname is None:
             hostname = random.choice(all_possible_hostname)
 
         if deployment_name is None:
             deployment_name = random.choice(all_possible_deployment_name),
+
+        if user_id is None:
+            user_id = random.randint(0, 5)
 
         return {
             'timestamp': self._date_time_to_timestamp(doc_date_time),
@@ -107,7 +114,7 @@ class GenerateDummyDocuments:
             'filename': filename,
             'hostname': hostname,
             'output_file_path': filename,
-            'user_id': random.randint(0, 5)
+            'user_id': user_id
         }
 
     def _generate_query_command(self):
@@ -117,17 +124,26 @@ class GenerateDummyDocuments:
             'mode': "base_scan"
         }
 
-    def _generate_test_data(self):
+    def _generate_test_data(self, test_hex_value, test_base64_value, test_url_value):
+        if test_hex_value is None:
+            test_hex_value = random.choice(all_test_hex_values)
+
+        if test_base64_value is None:
+            test_base64_value = random.choice(all_test_base64_values)
+
+        if test_url_value is None:
+            test_url_value = random.choice(all_test_url_values)
+
         return {
-            'hex_value': random.choice(all_test_hex_values),
-            'base64_value': random.choice(all_test_base64_values),
-            'url_value': random.choice(all_test_url_values)
+            'hex_value': test_hex_value,
+            'base64_value': test_base64_value,
+            'url_value': test_url_value
         }
 
     def create_documents(self, nbr_document):
         all_doc = []
         for _ in range(nbr_document):
-            all_doc.append(self._generate_document())
+            all_doc.append(self.generate_document())
         return all_doc
 
     def _compute_number_document_respect_max_std(self, std_max: float, number_element: int, min_value: int = 0,
@@ -180,7 +196,7 @@ class GenerateDummyDocuments:
 
         for nbr_doc in nbr_doc_generated_per_hours:
             for _ in range(nbr_doc):
-                all_doc.append(self._generate_document(hostname=hostname))
+                all_doc.append(self.generate_document(hostname=hostname))
             self.start_timestamp += datetime.timedelta(hours=1)
             self.start_timestamp = self.start_timestamp.replace(minute=0, second=0)
 
@@ -210,7 +226,7 @@ class GenerateDummyDocuments:
             deployment_name = all_possible_deployment_name[index]
             deployment_name_number_doc[deployment_name] = nbr_doc
             for _ in range(nbr_doc):
-                all_doc.append(self._generate_document(hostname=hostname, deployment_name=deployment_name))
+                all_doc.append(self.generate_document(hostname=hostname, deployment_name=deployment_name))
             index += 1
 
         return deployment_name_number_doc, all_doc
@@ -243,7 +259,7 @@ class GenerateDummyDocuments:
             index_deployment = 0
             for _ in range(nbr_uniq_deployment_name):
                 deployment_name = all_possible_deployment_name[index_deployment]
-                all_doc.append(self._generate_document(hostname=hostname, deployment_name=deployment_name))
+                all_doc.append(self.generate_document(hostname=hostname, deployment_name=deployment_name))
                 index_deployment += 1
             index_hostname += 1
 
@@ -259,7 +275,7 @@ class GenerateDummyDocuments:
             deployment_name = all_possible_deployment_name[index]
             deployment_name_number_doc[deployment_name] = nbr_doc
             for _ in range(nbr_doc):
-                all_doc.append(self._generate_document(hostname=hostname, deployment_name=deployment_name))
+                all_doc.append(self.generate_document(hostname=hostname, deployment_name=deployment_name))
             index += 1
 
         return deployment_name_number_doc, all_doc
@@ -276,7 +292,7 @@ class GenerateDummyDocuments:
             index_deployment = 0
             for _ in range(nbr_uniq_deployment_name):
                 deployment_name = all_possible_deployment_name[index_deployment]
-                all_doc.append(self._generate_document(hostname=hostname, deployment_name=deployment_name))
+                all_doc.append(self.generate_document(hostname=hostname, deployment_name=deployment_name))
                 index_deployment += 1
 
             index_hostname += 1

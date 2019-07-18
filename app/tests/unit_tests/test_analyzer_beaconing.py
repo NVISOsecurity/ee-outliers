@@ -216,7 +216,7 @@ class TestBeaconingAnalyzer(unittest.TestCase):
 
         self.assertEqual(len(analyzer.outliers), 3)
 
-    def test_generated_document_respect_max_std(self):
+    def test_generated_document_respect_max_std(self):  # TODO could have some bug (must to be fix)
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/beaconing_test_02.conf")
         analyzer = BeaconingAnalyzer("beaconing_dummy_test")
 

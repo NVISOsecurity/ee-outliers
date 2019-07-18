@@ -505,6 +505,8 @@ class TestTermsAnalyzer(unittest.TestCase):
             nbr_val, min_trigger_sensitivity, max_difference, default_value)
         values = list(hostname_name_number.values())
         frontiere = np.nanmean(values) - min_trigger_sensitivity * np.std(values)
+        if frontiere < 0:
+            print("frontiere negative in test_terms_generated_document_low_stdev_value_across")
         self.test_es.add_multiple_docs(all_doc)
 
         analyzer.evaluate_model()
