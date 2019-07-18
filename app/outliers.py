@@ -3,8 +3,10 @@ import time
 import os
 import sys
 import unittest
-
 import traceback
+
+import elasticsearch.exceptions
+
 from datetime import datetime
 from croniter import croniter
 
@@ -106,6 +108,8 @@ def perform_analysis():
                                 str(len(analyzers_to_evaluate)) + " [" + '{:.2f}'
                                 .format(round(float(analyzed_models) / float(len(analyzers_to_evaluate)) * 100, 2)) +
                                 "% done" + "]")
+        except elasticsearch.exceptions.NotFoundError:
+            logging.logger.warning("Index %s does not exist, skipping use case ..." % analyzer.es_index)
         except Exception:
             logging.logger.error(traceback.format_exc())
         finally:
