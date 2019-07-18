@@ -90,15 +90,16 @@ class TermsAnalyzer(Analyzer):
                         logging.logger.info("no outliers detected in batch")
                         outlier_batches_trend -= 1
 
-                    if outlier_batches_trend == -3 and brute_force:
-                        logging.logger.info("too many batches without outliers, we are not going to continue " +
-                                            "brute forcing")
-                        break
+                    if brute_force:
+                        if outlier_batches_trend == -3:
+                            logging.logger.info("too many batches without outliers, we are not going to continue " +
+                                                "brute forcing")
+                            break
 
-                    if outlier_batches_trend == 3 and brute_force:
-                        logging.logger.info("too many batches with outliers, we are not going to continue brute " +
-                                            "forcing")
-                        break
+                        elif outlier_batches_trend == 3:
+                            logging.logger.info("too many batches with outliers, we are not going to continue brute " +
+                                                "forcing")
+                            break
 
                     # Reset data structures for next batch
                     eval_terms_array = defaultdict()
