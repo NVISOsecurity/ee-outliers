@@ -147,7 +147,7 @@ class Analyzer(abc.ABC):
 
     def print_analysis_intro(self, event_type, total_events):
         logging.logger.info("")
-        logging.logger.info("===== " + event_type + " outlier detection =====")
+        logging.logger.info("===== " + event_type + " [" + self.model_type + " model] ===")
         logging.logger.info("analyzing " + "{:,}".format(total_events) + " events")
         logging.logger.info(self.get_time_window_info(history_days=self.model_settings["history_window_days"],
                                                       history_hours=self.model_settings["history_window_days"]))
