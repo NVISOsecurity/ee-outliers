@@ -5,7 +5,7 @@ import copy
 
 from tests.unit_tests.test_stubs.test_stub_es import TestStubEs
 from analyzers.simplequery import SimplequeryAnalyzer
-from helpers.singletons import settings, logging, es
+from helpers.singletons import logging, es
 from tests.unit_tests.utils.test_settings import TestSettings
 
 doc_without_outlier_test_file = json.load(open("/app/tests/unit_tests/files/doc_without_outlier.json"))
