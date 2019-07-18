@@ -19,10 +19,10 @@ class TestHousekeeping(unittest.TestCase):
 
     def tearDown(self):
         self.test_es.restore_es()
+        settings._restore_default_configuration_path()
 
-    def test_housekeeping_correctly_remove_whitelist(self):
-        backup_args_config = settings.args.config[:]
-        settings.args.config = [test_file_no_whitelist_path_config]
+    def test_housekeeping_correctly_remove_whitelisted_outlier_when_file_modification(self):
+        settings._change_configuration_path(test_file_no_whitelist_path_config)
         housekeeping = HousekeepingJob()
 
         # Add document to "Database"
@@ -44,7 +44,29 @@ class TestHousekeeping(unittest.TestCase):
         # Compute expected result:
         doc_without_outlier = copy.deepcopy(doc_without_outlier_test_file)
 
+        self.assertEqual(result, doc_without_outlier)
+
+    def test_housekeeping_not_execute_no_whitelist_parameter_change(self):
+        backup_args_config = settings.args.config[:]
+        settings.args.config = [test_file_no_whitelist_path_config]
+        housekeeping = HousekeepingJob()
+
+        # Add document to "Database"
+        doc_with_outlier = copy.deepcopy(doc_with_outlier_test_file)
+        self.test_es.add_doc(doc_with_outlier)
+
+        # Update configuration (create new section and append to default)
+        filecontent = "[dummy_section]\nparam=1"
+
+        with open(test_file_no_whitelist_path_config, 'a') as test_file:
+            test_file.write(filecontent)
+
+        housekeeping.execute_housekeeping()
+
+        # Fetch result
+        result = [elem for elem in self.test_es.scan()][0]
+
         # Restore configuration
         settings.args.config = backup_args_config
 
-        self.assertEqual(result, doc_without_outlier)
+        self.assertEqual(result, doc_with_outlier)
