@@ -1,6 +1,7 @@
 import json
 import unittest
 
+import base64
 import copy
 import re
 import numpy as np
@@ -1276,6 +1277,242 @@ class TestMetricsAnalyzer(unittest.TestCase):
         # Compute expected result
         url_length_per_deployment = self._compute_url_length_per_deployment(all_doc)
         frontiere_list = self._compute_frontiere_list_mad_high(url_length_per_deployment, trigger_sensitivity)
+
+        for doc in es.scan():
+            deployment_name = doc["_source"]["meta"]["deployment_name"]
+            url_value_encoded = self._compute_max_url_length(doc["_source"]["test"]["url_value"])
+            self.assertEqual(url_value_encoded > frontiere_list[deployment_name], "outliers" in doc["_source"])
+
+    ########################
+    # Begin test for stdev #
+    def test_metrics_generated_document_numerical_value_low_stdev_value(self):
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/metrics_test_01.conf")
+        analyzer = MetricsAnalyzer("metrics_dummy_test_numerical_value_low_stdev")
+        all_doc = self._generate_random_documents()
+        trigger_sensitivity = 1
+
+        # Pre Compute expected result
+        list_val_user_id_per_deployment = self._compute_list_val_user_id_per_deployment(all_doc)
+        frontiere_list, new_document_that_must_be_generate = self._compute_frontiere_list_stdev(
+            list_val_user_id_per_deployment, trigger_sensitivity, "low")
+
+        # Force positive value
+        for deployment_name, list_user_id in new_document_that_must_be_generate.items():
+            for user_id in list_user_id:
+                extra_doc = self.doc_generator.generate_document(deployment_name=deployment_name, user_id=user_id)
+                self.test_es.add_doc(extra_doc)
+
+        analyzer.evaluate_model()
+
+        for doc in es.scan():
+            deployment_name = doc["_source"]["meta"]["deployment_name"]
+            user_id = int(doc["_source"]["meta"]["user_id"])
+            self.assertEqual(user_id < frontiere_list[deployment_name], "outliers" in doc["_source"])
+
+    def test_metrics_generated_document_numerical_value_high_stdev_value(self):
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/metrics_test_01.conf")
+        analyzer = MetricsAnalyzer("metrics_dummy_test_numerical_value_high_stdev")
+        all_doc = self._generate_random_documents()
+        trigger_sensitivity = 1
+        analyzer.evaluate_model()
+
+        # Compute expected result
+        list_val_user_id_per_deployment = self._compute_list_val_user_id_per_deployment(all_doc)
+        frontiere_list, new_document_that_must_be_generate = self._compute_frontiere_list_stdev(
+            list_val_user_id_per_deployment, trigger_sensitivity, "high")
+        self.assertEquals(len(new_document_that_must_be_generate), 0)
+
+        for doc in es.scan():
+            deployment_name = doc["_source"]["meta"]["deployment_name"]
+            user_id = int(doc["_source"]["meta"]["user_id"])
+            self.assertEqual(user_id > frontiere_list[deployment_name], "outliers" in doc["_source"])
+
+    def test_metrics_generated_document_length_low_stdev_value(self):
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/metrics_test_01.conf")
+        analyzer = MetricsAnalyzer("metrics_dummy_test_length_low_stdev")
+        all_doc = self._generate_random_documents()
+        trigger_sensitivity = 1
+        analyzer.evaluate_model()
+
+        # Compute expected result
+        hostname_len_per_deployment = self._compute_hostname_len_per_deployment(all_doc)
+        frontiere_list, new_document_that_must_be_generate = self._compute_frontiere_list_stdev(
+            hostname_len_per_deployment, trigger_sensitivity, "low")
+
+        for doc in es.scan():
+            deployment_name = doc["_source"]["meta"]["deployment_name"]
+            hostname_len = len(doc["_source"]["meta"]["hostname"])
+            self.assertEqual(hostname_len < frontiere_list[deployment_name], "outliers" in doc["_source"])
+
+    def test_metrics_generated_document_length_high_stdev_value(self):
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/metrics_test_01.conf")
+        analyzer = MetricsAnalyzer("metrics_dummy_test_length_high_stdev")
+        all_doc = self._generate_random_documents()
+        trigger_sensitivity = 1
+        analyzer.evaluate_model()
+
+        # Compute expected result
+        hostname_len_per_deployment = self._compute_hostname_len_per_deployment(all_doc)
+        frontiere_list, new_document_that_must_be_generate = self._compute_frontiere_list_stdev(
+            hostname_len_per_deployment, trigger_sensitivity, "high")
+        self.assertEqual(len(new_document_that_must_be_generate), 0)
+
+        for doc in es.scan():
+            deployment_name = doc["_source"]["meta"]["deployment_name"]
+            hostname_len = len(doc["_source"]["meta"]["hostname"])
+            self.assertEqual(hostname_len > frontiere_list[deployment_name], "outliers" in doc["_source"])
+
+    def test_metrics_generated_document_entropy_low_stdev_value(self):
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/metrics_test_01.conf")
+        analyzer = MetricsAnalyzer("metrics_dummy_test_entropy_low_stdev")
+        all_doc = self._generate_random_documents()
+        trigger_sensitivity = 1
+        analyzer.evaluate_model()
+
+        # Compute expected result
+        hostname_entropy_per_deployment = self._compute_hostname_entropy_per_deployment(all_doc)
+        frontiere_list, new_document_that_must_be_generate = self._compute_frontiere_list_stdev(
+            hostname_entropy_per_deployment, trigger_sensitivity, "low")
+
+        for doc in es.scan():
+            deployment_name = doc["_source"]["meta"]["deployment_name"]
+            hostname_entropy = helpers.utils.shannon_entropy(doc["_source"]["meta"]["hostname"])
+            self.assertEqual(hostname_entropy < frontiere_list[deployment_name], "outliers" in doc["_source"])
+
+    def test_metrics_generated_document_entropy_high_stdev_value(self):
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/metrics_test_01.conf")
+        analyzer = MetricsAnalyzer("metrics_dummy_test_entropy_high_stdev")
+        all_doc = self._generate_random_documents()
+        trigger_sensitivity = 1
+        analyzer.evaluate_model()
+
+        # Compute expected result
+        hostname_entropy_per_deployment = self._compute_hostname_entropy_per_deployment(all_doc)
+        frontiere_list, new_document_that_must_be_generate = self._compute_frontiere_list_stdev(
+            hostname_entropy_per_deployment, trigger_sensitivity, "high")
+        self.assertEqual(len(new_document_that_must_be_generate), 0)
+
+        for doc in es.scan():
+            deployment_name = doc["_source"]["meta"]["deployment_name"]
+            hostname_entropy = helpers.utils.shannon_entropy(doc["_source"]["meta"]["hostname"])
+            self.assertEqual(hostname_entropy > frontiere_list[deployment_name], "outliers" in doc["_source"])
+
+    def test_metrics_generated_document_hex_encoded_length_low_stdev_value(self):
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/metrics_test_01.conf")
+        analyzer = MetricsAnalyzer("metrics_dummy_test_hex_encoded_length_low_stdev")
+        all_doc = self._generate_random_documents()
+        trigger_sensitivity = 1
+
+        # Compute expected result
+        hex_val_length_per_deployment = self._compute_hex_val_length_per_deployment(all_doc)
+        frontiere_list, new_document_that_must_be_generate = self._compute_frontiere_list_stdev(
+            hex_val_length_per_deployment, trigger_sensitivity, "low")
+
+        # Force positive value
+        for deployment_name, list_hex_val_length in new_document_that_must_be_generate.items():
+            for hex_val_length in list_hex_val_length:
+                extra_doc = self.doc_generator.generate_document(deployment_name=deployment_name,
+                                                                 test_hex_value="0"*hex_val_length)
+                self.test_es.add_doc(extra_doc)
+
+        analyzer.evaluate_model()
+
+        for doc in es.scan():
+            deployment_name = doc["_source"]["meta"]["deployment_name"]
+            hex_value_encoded = self._compute_max_hex_encoded_length(doc["_source"]["test"]["hex_value"])
+            self.assertEqual(hex_value_encoded < frontiere_list[deployment_name], "outliers" in doc["_source"])
+
+    def test_metrics_generated_document_hex_encoded_length_high_stdev_value(self):
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/metrics_test_01.conf")
+        analyzer = MetricsAnalyzer("metrics_dummy_test_hex_encoded_length_high_stdev")
+        all_doc = self._generate_random_documents()
+        trigger_sensitivity = 1
+        analyzer.evaluate_model()
+
+        # Compute expected result
+        hex_val_length_per_deployment = self._compute_hex_val_length_per_deployment(all_doc)
+        frontiere_list, new_document_that_must_be_generate = self._compute_frontiere_list_stdev(
+            hex_val_length_per_deployment, trigger_sensitivity, "high")
+        self.assertEqual(len(new_document_that_must_be_generate), 0)
+
+        for doc in es.scan():
+            deployment_name = doc["_source"]["meta"]["deployment_name"]
+            hex_value_encoded = self._compute_max_hex_encoded_length(doc["_source"]["test"]["hex_value"])
+            self.assertEqual(hex_value_encoded > frontiere_list[deployment_name], "outliers" in doc["_source"])
+
+    def test_metrics_generated_document_base64_encoded_length_low_stdev_value(self):
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/metrics_test_01.conf")
+        analyzer = MetricsAnalyzer("metrics_dummy_test_base64_encoded_length_low_stdev")
+        all_doc = self._generate_random_documents()
+        trigger_sensitivity = 1
+
+        # Compute expected result
+        base64_length_per_deployment = self._compute_base64_length_per_deployment(all_doc)
+        frontiere_list, new_document_that_must_be_generate = self._compute_frontiere_list_stdev(
+            base64_length_per_deployment, trigger_sensitivity, "low")
+
+        # Force positive value
+        for deployment_name, list_base64_val_length in new_document_that_must_be_generate.items():
+            for base64_val_length in list_base64_val_length:
+                extra_doc = self.doc_generator.generate_document(deployment_name=deployment_name,
+                                                                 test_hex_value=base64.b64encode(
+                                                                     ("0" * base64_val_length).encode()))
+                self.test_es.add_doc(extra_doc)
+        analyzer.evaluate_model()
+
+        for doc in es.scan():
+            deployment_name = doc["_source"]["meta"]["deployment_name"]
+            base64_value_encoded = self._compute_max_base64_encoded_length(doc["_source"]["test"]["base64_value"])
+            self.assertEqual(base64_value_encoded < frontiere_list[deployment_name], "outliers" in doc["_source"])
+
+    def test_metrics_generated_document_base64_encoded_length_high_stdev_value(self):
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/metrics_test_01.conf")
+        analyzer = MetricsAnalyzer("metrics_dummy_test_base64_encoded_length_high_stdev")
+        all_doc = self._generate_random_documents()
+        trigger_sensitivity = 1
+        analyzer.evaluate_model()
+
+        # Compute expected result
+        base64_length_per_deployment = self._compute_base64_length_per_deployment(all_doc)
+        frontiere_list, new_document_that_must_be_generate = self._compute_frontiere_list_stdev(
+            base64_length_per_deployment, trigger_sensitivity, "high")
+        self.assertEqual(len(new_document_that_must_be_generate), 0)
+
+        for doc in es.scan():
+            deployment_name = doc["_source"]["meta"]["deployment_name"]
+            base64_value_encoded = self._compute_max_base64_encoded_length(doc["_source"]["test"]["base64_value"])
+            self.assertEqual(base64_value_encoded > frontiere_list[deployment_name], "outliers" in doc["_source"])
+
+    def test_metrics_generated_document_url_length_low_stdev_value(self):
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/metrics_test_01.conf")
+        analyzer = MetricsAnalyzer("metrics_dummy_test_url_length_low_stdev")
+        all_doc = self._generate_random_documents()
+
+        trigger_sensitivity = 1
+        analyzer.evaluate_model()
+
+        # Compute expected result
+        url_length_per_deployment = self._compute_url_length_per_deployment(all_doc)
+        frontiere_list, new_document_that_must_be_generate = self._compute_frontiere_list_stdev(
+            url_length_per_deployment, trigger_sensitivity, "low")
+
+        for doc in es.scan():
+            deployment_name = doc["_source"]["meta"]["deployment_name"]
+            url_value_encoded = self._compute_max_url_length(doc["_source"]["test"]["url_value"])
+            self.assertEqual(url_value_encoded < frontiere_list[deployment_name], "outliers" in doc["_source"])
+
+    def test_metrics_generated_document_url_length_high_stdev_value(self):
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/metrics_test_01.conf")
+        analyzer = MetricsAnalyzer("metrics_dummy_test_url_length_high_stdev")
+        all_doc = self._generate_random_documents()
+        trigger_sensitivity = 1
+        analyzer.evaluate_model()
+
+        # Compute expected result
+        url_length_per_deployment = self._compute_url_length_per_deployment(all_doc)
+        frontiere_list, new_document_that_must_be_generate = self._compute_frontiere_list_stdev(
+            url_length_per_deployment, trigger_sensitivity, "high")
+        self.assertEqual(len(new_document_that_must_be_generate), 0)
 
         for doc in es.scan():
             deployment_name = doc["_source"]["meta"]["deployment_name"]
