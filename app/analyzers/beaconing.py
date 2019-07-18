@@ -81,7 +81,7 @@ class BeaconingAnalyzer(Analyzer):
             .replace(' ', '').split(",")  # remove unnecessary whitespace, split fields
         self.model_settings["aggregator"] = settings.config.get(self.config_section_name, "aggregator")\
             .replace(' ', '').split(",")  # remove unnecessary whitespace, split fields
-        self.model_settings["trigger_sensitivity"] = settings.config.getint(self.config_section_name,
+        self.model_settings["trigger_sensitivity"] = settings.config.getfloat(self.config_section_name,
                                                                             "trigger_sensitivity")
         self.model_settings["batch_eval_size"] = settings.config.getint("beaconing", "beaconing_batch_eval_size")
 
