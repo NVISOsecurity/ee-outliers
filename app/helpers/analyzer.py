@@ -4,7 +4,6 @@ from configparser import NoOptionError
 from typing import DefaultDict, Optional, Dict
 
 import dateutil
-import textwrap
 import copy
 
 from helpers.singletons import settings, es, logging
