@@ -6,6 +6,7 @@ import copy
 from tests.unit_tests.test_stubs.test_stub_es import TestStubEs
 from analyzers.simplequery import SimplequeryAnalyzer
 from helpers.singletons import settings, logging, es
+from tests.unit_tests.utils.test_settings import TestSettings
 
 doc_without_outlier_test_file = json.load(open("/app/tests/unit_tests/files/doc_without_outlier.json"))
 doc_with_outlier_test_file = json.load(
@@ -19,15 +20,15 @@ class TestSimplequeryAnalyzer(unittest.TestCase):
 
     def setUp(self):
         self.test_es = TestStubEs()
+        self.test_settings = TestSettings()
 
     def tearDown(self):
         # restore the default configuration file so we don't influence other unit tests that use the settings singleton
-        settings.process_configuration_files("/defaults/outliers.conf")
-        settings.process_arguments()
+        self.test_settings.restore_default_configuration_path()
         self.test_es.restore_es()
 
     def _get_simplequery_analyzer(self, config_file, config_section):
-        settings.process_configuration_files(config_file)
+        self.test_settings.change_configuration_path(config_file)
         return SimplequeryAnalyzer(config_section_name=config_section)
 
     def test_one_doc_outlier_correctly_add(self):
