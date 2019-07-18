@@ -45,7 +45,6 @@ class Logging:
         self.current_step = 0
 
     def tick(self):
-        should_log = False
         self.current_step += 1
 
         if self.verbosity >= 5:
@@ -55,10 +54,13 @@ class Logging:
                             self.current_step == self.total_steps
 
         if should_log:
-            time_diff = max(float(1), float(dt.datetime.today().timestamp() - self.start_time))  # avoid a division by zero
+            # avoid a division by zero
+            time_diff = max(float(1), float(dt.datetime.today().timestamp() - self.start_time))
             ticks_per_second = "{:,}".format(round(float(self.current_step) / time_diff))
 
-            self.logger.info(self.desc + " [" + ticks_per_second + " eps. - " + '{:.2f}'.format(round(float(self.current_step) / float(self.total_steps) * 100, 2)) + "% done" + "]")
+            self.logger.info(self.desc + " [" + ticks_per_second + " eps. - " + '{:.2f}'
+                             .format(round(float(self.current_step) / float(self.total_steps) * 100, 2)) +
+                             "% done" + "]")
 
     def print_generic_intro(self, title):
         self.logger.info("")

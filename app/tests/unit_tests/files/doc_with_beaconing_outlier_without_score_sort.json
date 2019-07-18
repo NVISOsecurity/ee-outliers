@@ -1,7 +1,6 @@
 {
     "_id": "d8_9WWQBFCEzBdQxDtu-",
     "_index": "logstash-eagleeye-osqueryfilter-2018.07.02",
-    "_score": null,
     "_source": {
         "@timestamp": "2018-07-02T07:54:30.549Z",
         "@version": "1",
@@ -79,17 +78,28 @@
             "timestamp": "2018-07-02T07:54:30.549523+00:00",
             "toolname": "osquery"
         },
+        "outliers": {
+            "reason": ["dummy reason"],
+            "model_type": ["beaconing"], 
+            "term": ["WIN-EVB-draman"], 
+            "confidence": [0.5], 
+            "type": ["dummy type"],
+            "term_count": [1], 
+            "decision_frontier": [0.5], 
+            "aggregator": ["agg-WIN-EVB-draman"],
+            "model_name": ["dummy_test"], 
+            "total_outliers": 1,
+            "summary": ["dummy summary"]
+        },
         "slave_name": "ee-slave-lab",
         "smoky_filter_name": "OsqueryFilter",
         "tags": [
             "unknown_hashes",
-            "endpoint"
+            "endpoint",
+            "outlier"
         ],
         "timestamp": "2018-07-02T07:54:30.549523+00:00",
         "type": "eagleeye"
     },
-    "_type": "doc",
-    "sort": [
-        42153
-    ]
+    "_type": "doc"
 }

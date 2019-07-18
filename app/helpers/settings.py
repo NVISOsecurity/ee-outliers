@@ -2,6 +2,7 @@ import configparser
 import argparse
 
 from helpers.singleton import singleton
+import copy
 
 parser = argparse.ArgumentParser()
 
@@ -30,18 +31,13 @@ class Settings:
         self.loaded_config_paths = None
         self.failed_config_paths = None
 
-        self.process_arguments()
+        self.args = parser.parse_args()
+        self.default_args_config = copy.deepcopy(self.args.config)
+        self.process_configuration_files()
 
-    def process_arguments(self):
-        args = parser.parse_args()
-        self.args = args
+    def process_configuration_files(self):
+        config_paths = self.args.config
 
-        self.process_configuration_files(args.config)
-
-    def reload_configuration_files(self):
-        self.process_configuration_files(self.args.config)
-
-    def process_configuration_files(self, config_paths):
         # Read configuration files
         config = configparser.ConfigParser(interpolation=None)
         config.optionxform = str  # preserve case sensitivity in config keys, important for derived field names
@@ -50,3 +46,19 @@ class Settings:
         self.failed_config_paths = set(config_paths) - set(self.loaded_config_paths)
 
         self.config = config
+
+    def _change_configuration_path(self, new_path):
+        """
+        Only use by tests
+
+        :param new_path: the new path of the configuration
+        """
+        self.args.config = [new_path]
+        self.process_configuration_files()
+
+    def _restore_default_configuration_path(self):
+        """
+        Only use by tests to restore the default configuration
+        """
+        self.args.config = self.default_args_config
+        self.process_configuration_files()
