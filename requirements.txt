@@ -5,7 +5,7 @@ chardet==3.0.4
 configparser==3.5.0
 dateparser==0.6.0
 docopt==0.6.2
-elasticsearch==6.2.0
+elasticsearch==6.4.0
 idna==2.6
 iso8601==0.1.12
 keyring==10.1
@@ -36,7 +36,4 @@ py-spy==0.1.5
 flake8==3.7.5
 coverage==4.5.3
 vulture==1.0
-sentry-sdk==0.7.9
-
-
-
+sentry-sdk==0.10.2
