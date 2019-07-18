@@ -33,7 +33,7 @@ class BeaconingAnalyzer(Analyzer):
                 fields = es.extract_fields_from_document(
                                                 doc, extract_derived_fields=self.model_settings["use_derived_fields"])
 
-                if not self.check_is_whitelist(fields, extract_field=False):
+                if not self.is_document_whitelisted(fields, extract_field=False):
                     try:
                         target_sentences = helpers.utils.flatten_fields_into_sentences(
                                                     fields=fields, sentence_format=self.model_settings["target"])
