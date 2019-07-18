@@ -89,15 +89,16 @@ class TestBeaconingAnalyzer(unittest.TestCase):
         doc = copy.deepcopy(random.choice(LIST_DOC))
         eval_terms_array = analyzer.add_term_to_batch(defaultdict(), aggregator_value, target_value, observations, doc)
 
+        observations3 = {}
+        doc3 = copy.deepcopy(random.choice(LIST_DOC))
+        eval_terms_array = analyzer.add_term_to_batch(eval_terms_array, aggregator_value, target_value, observations3,
+                                                      doc3)
+
         target_value2 = LIST_TARGET_VALUE[1]
         observations2 = {}
         doc2 = random.choice(LIST_DOC)
         eval_terms_array = analyzer.add_term_to_batch(eval_terms_array, aggregator_value, target_value2, observations2,
                                                       doc2)
-        observations3 = {}
-        doc3 = copy.deepcopy(random.choice(LIST_DOC))
-        eval_terms_array = analyzer.add_term_to_batch(eval_terms_array, aggregator_value, target_value, observations3,
-                                                      doc3)
 
         aggregator_value2 = LIST_AGGREGATOR_VALUE[1]
         target_value3 = random.choice(LIST_TARGET_VALUE)
@@ -107,22 +108,22 @@ class TestBeaconingAnalyzer(unittest.TestCase):
                                                       doc4)
 
         result = analyzer.evaluate_batch_for_outliers(terms=eval_terms_array)
-
         # Create outlier
         test_outlier_linux = self._create_outliers(["dummy type"], ["dummy reason"], "dummy summary", "beaconing",
-                                                   "dummy_test", target_value, aggregator_value, confidence=1.5,
-                                                   decision_frontier=0.5, term_count=2)
+                                                   "dummy_test", target_value, aggregator_value,
+                                                   confidence=1.6666666666666667, decision_frontier=0.3333333333333333,
+                                                   term_count=2)
 
         test_outlier_win = self._create_outliers(["dummy type"], ["dummy reason"], "dummy summary", "beaconing",
-                                                 "dummy_test", target_value2, aggregator_value, confidence=0.5,
-                                                 decision_frontier=0.5, term_count=1)
+                                                 "dummy_test", target_value2, aggregator_value,
+                                                 confidence=0.6666666666666667, decision_frontier=0.3333333333333333,
+                                                 term_count=1)
 
         # Add outlier to a list
         expected_outliers = []
         expected_outliers.append(test_outlier_linux)
-        expected_outliers.append(test_outlier_win)
         expected_outliers.append(test_outlier_linux)
-
+        expected_outliers.append(test_outlier_win)
         self.assertEqual(result, expected_outliers)
 
     def test_prepare_and_process_outlier_one_outlier(self):
