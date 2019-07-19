@@ -120,11 +120,10 @@ class BeaconingAnalyzer(Analyzer):
             coeff_of_variation = np.std(counted_target_values) / np.mean(counted_target_values)
             logging.logger.debug("coefficient of variation deviation: " + str(coeff_of_variation))
 
-            for term_counter, term_value in enumerate(terms[aggregator_value]["targets"]):
-                term_value_count = counted_targets[term_value]
-
-                # if, is outlier
-                if coeff_of_variation < self.model_settings["trigger_sensitivity"]:
+            # if, is outlier
+            if coeff_of_variation < self.model_settings["trigger_sensitivity"]:
+                for term_counter, term_value in enumerate(terms[aggregator_value]["targets"]):
+                    term_value_count = counted_targets[term_value]
                     outliers.append(self.prepare_and_process_outlier(coeff_of_variation, term_value_count, terms,
                                                                      aggregator_value, term_counter))
 
