@@ -129,7 +129,7 @@ class Analyzer(abc.ABC):
         outlier_assets = helpers.utils.extract_outlier_asset_information(fields, settings)
         return outlier_type, outlier_reason, outlier_summary, outlier_assets
 
-    def process_outlier(self, fields, doc, extra_outlier_information=dict()):
+    def process_outlier(self, fields, doc, extra_outlier_information=dict(), es_process_outlier=True):
         outlier_type, outlier_reason, outlier_summary, outlier_assets = \
             self._prepare_outlier_parameters(extra_outlier_information, fields)
         outlier = Outlier(outlier_type=outlier_type, outlier_reason=outlier_reason, outlier_summary=outlier_summary)
@@ -141,7 +141,8 @@ class Analyzer(abc.ABC):
             outlier.outlier_dict[k] = v
 
         self.outliers.append(outlier)
-        es.process_outliers(doc=doc, outliers=[outlier], should_notify=self.model_settings["should_notify"])
+        if es_process_outlier:
+            es.process_outliers(doc=doc, outliers=[outlier], should_notify=self.model_settings["should_notify"])
 
         return outlier
 
@@ -195,4 +196,11 @@ class Analyzer(abc.ABC):
         eval_terms_array[aggregator_value]["observations"].append(observations)
         eval_terms_array[aggregator_value]["raw_docs"].append(doc)
 
+        return eval_terms_array
+
+    @staticmethod
+    def remove_term_to_batch(eval_terms_array, aggregator_value, term_counter):
+        eval_terms_array[aggregator_value]["targets"].pop(term_counter)
+        eval_terms_array[aggregator_value]["observations"].pop(term_counter)
+        eval_terms_array[aggregator_value]["raw_docs"].pop(term_counter)
         return eval_terms_array

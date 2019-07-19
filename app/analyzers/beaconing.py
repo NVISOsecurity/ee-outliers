@@ -62,7 +62,16 @@ class BeaconingAnalyzer(Analyzer):
                 last_batch = (logging.current_step == self.total_events)
                 if last_batch or total_terms_added >= self.model_settings["batch_eval_size"]:
                     logging.logger.info("evaluating batch of " + "{:,}".format(total_terms_added) + " terms")
-                    outliers = self.evaluate_batch_for_outliers(terms=eval_terms_array)
+
+                    outliers, documents_need_to_be_removed = self.evaluate_batch_for_outliers(terms=eval_terms_array,
+                                                                                              es_process_outlier=False)
+
+                    for aggregator_value, term_counter in documents_need_to_be_removed.items():
+                        self.remove_term_to_batch(eval_terms_array, aggregator_value, term_counter)
+
+                    self.evaluate_batch_for_outliers(terms=eval_terms_array, es_process_outlier=True)
+
+                    outliers, documents_need_to_be_removed = self.evaluate_batch_for_outliers(terms=eval_terms_array)
 
                     if len(outliers) > 0:
                         unique_summaries = len(set(o.outlier_dict["summary"] for o in outliers))
@@ -92,9 +101,10 @@ class BeaconingAnalyzer(Analyzer):
         except NoOptionError:
             self.model_settings["min_target_buckets"] = DEFAULT_MIN_TARGET_BUCKETS
 
-    def evaluate_batch_for_outliers(self, terms=None):
+    def evaluate_batch_for_outliers(self, terms=None, es_process_outlier=True):
         # Initialize
         outliers = list()
+        documents_need_to_be_removed = defaultdict(list)
 
         # In case we want to count terms within an aggregator, it's a bit easier.
         # For example:
@@ -125,12 +135,18 @@ class BeaconingAnalyzer(Analyzer):
 
                 # if, is outlier
                 if coeff_of_variation < self.model_settings["trigger_sensitivity"]:
-                    outliers.append(self.prepare_and_process_outlier(coeff_of_variation, term_value_count, terms,
-                                                                     aggregator_value, term_counter))
+                    outlier = self.prepare_and_process_outlier(coeff_of_variation, term_value_count, terms,
+                                                               aggregator_value, term_counter,
+                                                               es_process_outlier=es_process_outlier)
+                    if outlier.is_whitelisted():
+                        documents_need_to_be_removed[aggregator_value].append(term_counter)
+                    else:
+                        outliers.append(outlier)
 
-        return outliers
+        return outliers, documents_need_to_be_removed
 
-    def prepare_and_process_outlier(self, decision_frontier, term_value_count, terms, aggregator_value, term_counter):
+    def prepare_and_process_outlier(self, decision_frontier, term_value_count, terms, aggregator_value, term_counter,
+                                    es_process_outlier=True):
         # Extract fields from raw document
         fields = es.extract_fields_from_document(terms[aggregator_value]["raw_docs"][term_counter],
                                                  extract_derived_fields=self.model_settings["use_derived_fields"])
@@ -144,4 +160,4 @@ class BeaconingAnalyzer(Analyzer):
         observations["confidence"] = np.abs(decision_frontier - self.model_settings["trigger_sensitivity"])
 
         return self.process_outlier(fields, terms[aggregator_value]["raw_docs"][term_counter],
-                                    extra_outlier_information=observations)
+                                    extra_outlier_information=observations, es_process_outlier=es_process_outlier)

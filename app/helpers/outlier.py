@@ -14,18 +14,21 @@ class Outlier:
         self.outlier_dict["reason"] = outlier_reason  # can be multiple reasons, for example: DNS tunneling, IDS alert
         # hard-wrap the length of a summary line to 150 characters to make it easier to visualize
         self.outlier_dict["summary"] = textwrap.fill(outlier_summary, width=150)
+        self.is_whitelist = None
 
     # Each whitelist item can contain multiple values to match across fields, separated with ",". So we need to
     # support this too.
     # Example: "dns_tunneling_fp = rule_updates.et.com, intel_server" -> should match both values across the entire
     # event (rule_updates.et.com and intel_server);
     def is_whitelisted(self, additional_dict_values_to_check=None):
-        if additional_dict_values_to_check is not None:
-            additional_dict_values = copy.deepcopy(additional_dict_values_to_check)
-        else:
-            additional_dict_values = dict()
-        additional_dict_values["__outlier_dict"] = self.outlier_dict
-        return Outlier.is_whitelisted_doc(additional_dict_values)
+        if self.is_whitelist is None:
+            if additional_dict_values_to_check is not None:
+                additional_dict_values = copy.deepcopy(additional_dict_values_to_check)
+            else:
+                additional_dict_values = dict()
+            additional_dict_values["__outlier_dict"] = self.outlier_dict
+            self.is_whitelist = Outlier.is_whitelisted_doc(additional_dict_values)
+        return self.is_whitelist
 
     def get_outlier_dict_of_arrays(self):
         outlier_dict_of_arrays = dict()
