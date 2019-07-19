@@ -168,6 +168,9 @@ class ES:
                     doc = remove_outliers_from_document(doc)
                     self._update_es(doc)
 
+                # we don't use the ticker from the logger singleton, as this will be called from the housekeeping thread
+                # if we share a same ticker between multiple threads, strange results would start to appear in progress logging
+                # so, we duplicate part of the functionality from the logger singleton
                 if self.logging.verbosity >= 5:
                     should_log = True
                 else:
