@@ -192,7 +192,8 @@ if settings.args.run_mode == "daemon":
         # Check the result of the analysis
         if not run_succeeded_without_errors:
             logging.logger.warning("ran into errors while analyzing use cases - not going to wait for the cron " +
-                                   "schedule, we just start analyzing again")
+                                   "schedule, we just start analyzing again (after sleeping for a minute first")
+            time.sleep(60)
         else:
             logging.logger.info("no errors encountered while analyzing use cases")
 
