@@ -54,8 +54,8 @@ class TermsAnalyzer(Analyzer):
                                                 fields=fields, sentence_format=self.model_settings["aggregator"])
                     will_process_doc = True
                 except (KeyError, TypeError):
-                    logging.logger.debug("Skipping event which does not contain the target and aggregator fields we " +
-                                         "are processing. - [" + self.model_name + "]")
+                    logging.logger.debug("Skipping event which does not contain the target and aggregator " +
+                                         "fields we are processing. - [" + self.model_name + "]")
                     will_process_doc = False
 
                 if will_process_doc:
@@ -69,7 +69,8 @@ class TermsAnalyzer(Analyzer):
 
                         for aggregator_sentence in aggregator_sentences:
                             flattened_aggregator_sentence = helpers.utils.flatten_sentence(aggregator_sentence)
-                            eval_terms_array = self.add_term_to_batch(eval_terms_array, flattened_aggregator_sentence,
+                            eval_terms_array = self.add_term_to_batch(eval_terms_array,
+                                                                      flattened_aggregator_sentence,
                                                                       flattened_target_sentence, observations, doc)
 
                     total_terms_added += len(target_sentences)
@@ -89,15 +90,16 @@ class TermsAnalyzer(Analyzer):
                         logging.logger.info("no outliers detected in batch")
                         outlier_batches_trend -= 1
 
-                    if outlier_batches_trend == -3 and brute_force:
-                        logging.logger.info("too many batches without outliers, we are not going to continue " +
-                                            "brute forcing")
-                        break
+                    if brute_force:
+                        if outlier_batches_trend == -3:
+                            logging.logger.info("too many batches without outliers, we are not going to continue " +
+                                                "brute forcing")
+                            break
 
-                    if outlier_batches_trend == 3 and brute_force:
-                        logging.logger.info("too many batches with outliers, we are not going to continue brute " +
-                                            "forcing")
-                        break
+                        elif outlier_batches_trend == 3:
+                            logging.logger.info("too many batches with outliers, we are not going to continue brute " +
+                                                "forcing")
+                            break
 
                     # Reset data structures for next batch
                     eval_terms_array = defaultdict()

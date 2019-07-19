@@ -30,15 +30,14 @@ class MetricsAnalyzer(Analyzer):
 
                 fields = es.extract_fields_from_document(
                                             doc, extract_derived_fields=self.model_settings["use_derived_fields"])
-
                 try:
                     target_value = helpers.utils.flatten_sentence(helpers.utils.get_dotkey_value(
                                             fields, self.model_settings["target"], case_sensitive=True))
                     aggregator_sentences = helpers.utils.flatten_fields_into_sentences(
                                             fields=fields, sentence_format=self.model_settings["aggregator"])
                 except (KeyError, TypeError):
-                    logging.logger.debug("skipping event which does not contain the target and aggregator fields we " +
-                                         "are processing. - [" + self.model_name + "]")
+                    logging.logger.debug("skipping event which does not contain the target and aggregator " +
+                                         "fields we are processing. - [" + self.model_name + "]")
                     continue
 
                 metric, observations = self.calculate_metric(self.model_settings["metric"], target_value)

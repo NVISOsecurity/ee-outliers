@@ -1,4 +1,4 @@
-FROM debian:stable
+FROM python:3.6
 ARG timezone=Europe/Brussels
 
 RUN apt-get update --fix-missing && \
@@ -23,8 +23,6 @@ RUN echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
 
 RUN adduser docker sudo
 USER docker
-
-RUN sudo DEBIAN_FRONTEND=noninteractive apt-get -y install -f python3 python3-setuptools python3-pip
 
 # Install all Python requirements. Also see the remark above with all the RUN sudo pip commands.
 USER root
