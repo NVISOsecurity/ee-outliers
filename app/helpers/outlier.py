@@ -3,6 +3,7 @@ import re
 import helpers.utils
 import textwrap
 
+
 class Outlier:
     def __init__(self, outlier_type, outlier_reason, outlier_summary):
         self.outlier_dict = dict()
@@ -16,7 +17,9 @@ class Outlier:
     # Example: "dns_tunneling_fp = rule_updates.et.com, intel_server" -> should match both values across the entire
     # event (rule_updates.et.com and intel_server);
     def is_whitelisted(self, additional_dict_values_to_check=None):
-        return Outlier.is_whitelisted_doc({'': self.outlier_dict, '_': additional_dict_values_to_check})
+        # Create dictionary that contain all stuff
+        return Outlier.is_whitelisted_doc({'outlier_dict': self.outlier_dict,
+                                           'additional_dict_to_check': additional_dict_values_to_check})
 
     def get_outlier_dict_of_arrays(self):
         outlier_dict_of_arrays = dict()
