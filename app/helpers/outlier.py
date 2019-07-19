@@ -2,10 +2,6 @@ import helpers.singletons
 import re
 import helpers.utils
 import textwrap
-import copy
-
-from typing import Optional, Dict
-
 
 class Outlier:
     def __init__(self, outlier_type, outlier_reason, outlier_summary):

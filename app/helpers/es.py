@@ -3,7 +3,9 @@ import datetime
 import helpers.utils
 import helpers.logging
 import json
+import datetime as dt
 from pygrok import Grok
+import math
 
 from helpers.singleton import singleton
 from helpers.notifier import Notifier
@@ -127,7 +129,9 @@ class ES:
     # the console using ticks!
     def remove_all_whitelisted_outliers(self):
         outliers_filter_query = {"filter": [{"term": {"tags": "outlier"}}]}
-        total_docs_whitelisted = 0
+
+        total_outliers_whitelisted = 0
+        total_outliers_processed = 0
 
         idx = self.settings.config.get("general", "es_index_pattern")
         total_nr_outliers = self.count_documents(index=idx, bool_clause=outliers_filter_query)
@@ -135,12 +139,15 @@ class ES:
                                  .format(total_nr_outliers))
 
         if total_nr_outliers > 0:
+            start_time = dt.datetime.today().timestamp()
+
             for doc in self.scan(index=idx, bool_clause=outliers_filter_query):
-                total_outliers = int(doc["_source"]["outliers"]["total_outliers"])
-                # Generate all outlier objects for this document
+                total_outliers_processed = total_outliers_processed + 1
+                total_outliers_in_doc = int(doc["_source"]["outliers"]["total_outliers"])
+                # generate all outlier objects for this document
                 total_whitelisted = 0
 
-                for i in range(total_outliers):
+                for i in range(total_outliers_in_doc):
                     outlier_type = doc["_source"]["outliers"]["type"][i]
                     outlier_reason = doc["_source"]["outliers"]["reason"][i]
                     outlier_summary = doc["_source"]["outliers"]["summary"][i]
@@ -156,13 +163,27 @@ class ES:
                 # from the Elasticsearch event, as they are stored as array elements and potentially contain
                 # observations that should be removed, too.
                 # In this case, just don't touch the document.
-                if total_whitelisted == total_outliers:
-                    total_docs_whitelisted += 1
+                if total_whitelisted == total_outliers_in_doc:
+                    total_outliers_whitelisted += 1
                     doc = remove_outliers_from_document(doc)
-
                     self._update_es(doc)
 
-        return total_docs_whitelisted
+                if self.logging.verbosity >= 5:
+                    should_log = True
+                else:
+                    should_log = total_outliers_processed % max(1, int(math.pow(10, (5 - self.logging.verbosity)))) == 0 or \
+                                 total_outliers_processed == total_nr_outliers
+
+                if should_log:
+                    # avoid a division by zero
+                    time_diff = max(float(1), float(dt.datetime.today().timestamp() - start_time))
+                    ticks_per_second = "{:,}".format(round(float(total_outliers_processed) / time_diff))
+
+                    self.logging.logger.info("whitelisting historical outliers " + " [" + ticks_per_second + " eps. - " + '{:.2f}'
+                                     .format(round(float(total_outliers_processed) / float(total_nr_outliers) * 100, 2)) +
+                                     "% done" + " - " + str(total_outliers_whitelisted) + " outliers whitelisted]")
+
+        return total_outliers_whitelisted
 
     def remove_all_outliers(self):
         idx = self.settings.config.get("general", "es_index_pattern")
