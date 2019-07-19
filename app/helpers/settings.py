@@ -32,7 +32,7 @@ class Settings:
         self.failed_config_paths = None
 
         self.whitelist_literals_config = None
-        self.whitelist_regexp_config = None
+        self.whitelist_regexps_config = None
 
         self.args = parser.parse_args()
         self.process_configuration_files()
@@ -49,6 +49,6 @@ class Settings:
 
         self.config = config
 
-        self.whitelist_literals_config = helpers.singletons.settings.config.items("whitelist_literals")
-        self.whitelist_regexp_config = helpers.singletons.settings.config.items("regexp_literals")
+        self.whitelist_literals_config = self.config.items("whitelist_literals")
+        self.whitelist_regexps_config = self.config.items("whitelist_regexps")
 
