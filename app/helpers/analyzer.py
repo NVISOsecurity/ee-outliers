@@ -31,10 +31,14 @@ class Analyzer(abc.ABC):
             self.search_query = es.filter_by_dsl_query(self.model_settings["es_dsl_filter"])
 
         self.total_events = 0
+
         self.outliers = list()
 
     def _extract_model_settings(self):
         model_settings = dict()
+
+        # TODO - make this conditional on a model either wanting to do this, or not
+        model_settings["process_documents_chronologically"] = False
 
         try:
             model_settings["timestamp_field"] = settings.config.get(self.config_section_name, "timestamp_field")

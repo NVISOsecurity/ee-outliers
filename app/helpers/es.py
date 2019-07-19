@@ -51,7 +51,8 @@ class ES:
 
     def scan(self, index, bool_clause=None, sort_clause=None, query_fields=None, search_query=None,
              model_settings=None):
-        preserve_order = True if sort_clause is not None else False
+
+        preserve_order = False
 
         if model_settings is None:
             timestamp_field = self.settings.config.get("general", "timestamp_field", fallback="timestamp")
@@ -61,6 +62,10 @@ class ES:
             timestamp_field = model_settings["timestamp_field"]
             history_window_days = model_settings["history_window_days"]
             history_window_hours = model_settings["history_window_hours"]
+
+            if model_settings["process_documents_chronologically"]:
+                sort_clause = {"sort": [{model_settings["timestamp_field"] : "desc" }]}
+                preserve_order = True
 
         search_range = self.get_time_filter(days=history_window_days, hours=history_window_hours,
                                             timestamp_field=timestamp_field)
@@ -106,24 +111,25 @@ class ES:
 
     @staticmethod
     def filter_by_query_string(query_string=None):
-        bool_clause = {"filter": [
+        filter_clause = {"filter": [
             {"query_string": {"query": query_string}}
         ]}
-        return bool_clause
+
+        return filter_clause
 
     @staticmethod
     def filter_by_dsl_query(dsl_query=None):
         dsl_query = json.loads(dsl_query)
 
         if isinstance(dsl_query, list):
-            bool_clause = {"filter": []}
+            filter_clause = {"filter": []}
             for query in dsl_query:
-                bool_clause["filter"].append(query["query"])
+                filter_clause["filter"].append(query["query"])
         else:
-            bool_clause = {"filter": [
+            filter_clause = {"filter": [
                 dsl_query["query"]
             ]}
-        return bool_clause
+        return filter_clause
 
     # this is part of housekeeping, so we should not access non-threat-save objects, such as logging progress to
     # the console using ticks!

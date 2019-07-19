@@ -72,6 +72,8 @@ class MetricsAnalyzer(Analyzer):
         self.print_analysis_summary()
 
     def extract_additional_model_settings(self):
+        self.model_settings["process_documents_chronologically"] = True
+
         self.model_settings["target"] = settings.config.get(self.config_section_name, "target")
         self.model_settings["aggregator"] = settings.config.get(self.config_section_name, "aggregator")\
             .replace(' ', '').split(",")

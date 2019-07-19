@@ -24,7 +24,7 @@ class TermsAnalyzer(Analyzer):
                                      brute_force=True)
         else:
             self.evaluate_target(target=self.model_settings["target"],
-                                 search_query=es.filter_by_query_string(self.model_settings["es_query_filter"]),
+                                 search_query=self.search_query,
                                  brute_force=False)
 
     def evaluate_target(self, target, search_query, brute_force=False):
@@ -108,10 +108,9 @@ class TermsAnalyzer(Analyzer):
         self.print_analysis_summary()
 
     def calculate_target_fields_to_brute_force(self):
-        search_query = es.filter_by_query_string(self.model_settings["es_query_filter"])
         batch_size = settings.config.getint("terms", "terms_batch_eval_size")
 
-        self.total_events = es.count_documents(index=self.es_index, search_query=search_query,
+        self.total_events = es.count_documents(index=self.es_index, search_query=self.search_query,
                                                model_settings=self.model_settings)
         logging.init_ticker(total_steps=min(self.total_events, batch_size),
                             desc=self.model_name + " - extracting brute force fields")
@@ -119,7 +118,7 @@ class TermsAnalyzer(Analyzer):
         field_names_to_brute_force = set()
         if self.total_events > 0:
             num_docs_processed = 0
-            for doc in es.scan(index=self.es_index, search_query=search_query, model_settings=self.model_settings):
+            for doc in es.scan(index=self.es_index, search_query=self.search_query, model_settings=self.model_settings):
                 logging.tick()
                 fields = es.extract_fields_from_document(
                             doc, extract_derived_fields=self.model_settings["use_derived_fields"])
@@ -147,6 +146,8 @@ class TermsAnalyzer(Analyzer):
         return field_names_to_brute_force
 
     def extract_additional_model_settings(self):
+        self.model_settings["process_documents_chronologically"] = True
+
         self.model_settings["target"] = settings.config.get(self.config_section_name, "target")\
                                         .replace(' ', '').split(",")  # remove unnecessary whitespace, split fields
 
