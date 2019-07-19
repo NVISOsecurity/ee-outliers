@@ -40,8 +40,8 @@ class BeaconingAnalyzer(Analyzer):
                                                 fields=fields, sentence_format=self.model_settings["aggregator"])
                     will_process_doc = True
                 except (KeyError, TypeError):
-                    logging.logger.debug("Skipping event which does not contain the target and aggregator fields we " +
-                                         "are processing. - [" + self.model_name + "]")
+                    logging.logger.debug("Skipping event which does not contain the target and aggregator fields " +
+                                         "we are processing. - [" + self.model_name + "]")
                     will_process_doc = False
 
                 if will_process_doc:
@@ -52,7 +52,8 @@ class BeaconingAnalyzer(Analyzer):
 
                         for aggregator_sentence in aggregator_sentences:
                             flattened_aggregator_sentence = helpers.utils.flatten_sentence(aggregator_sentence)
-                            eval_terms_array = self.add_term_to_batch(eval_terms_array, flattened_aggregator_sentence,
+                            eval_terms_array = self.add_term_to_batch(eval_terms_array,
+                                                                      flattened_aggregator_sentence,
                                                                       flattened_target_sentence, observations, doc)
 
                     total_terms_added += len(target_sentences)
@@ -140,7 +141,7 @@ class BeaconingAnalyzer(Analyzer):
         observations["term"] = terms[aggregator_value]["targets"][term_counter]
         observations["term_count"] = term_value_count
         observations["decision_frontier"] = decision_frontier
-        observations["confidence"] = np.abs(decision_frontier - term_value_count)
+        observations["confidence"] = np.abs(decision_frontier - self.model_settings["trigger_sensitivity"])
 
         return self.process_outlier(fields, terms[aggregator_value]["raw_docs"][term_counter],
                                     extra_outlier_information=observations)
