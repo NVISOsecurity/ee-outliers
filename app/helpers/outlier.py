@@ -47,7 +47,7 @@ class Outlier:
     def is_whitelisted_doc(dict_values_to_check=None):
         # Check if value is whitelisted as literal
         for (_, each_whitelist_configuration_file_value) in \
-                helpers.singletons.settings.config.items("whitelist_literals"):
+                helpers.singletons.settings.whitelist_literals_config:
             whitelist_values_to_check = each_whitelist_configuration_file_value.split(",")
 
             total_whitelisted_fields_to_match = len(whitelist_values_to_check)
@@ -63,7 +63,7 @@ class Outlier:
 
         # Check if value is whitelisted as regexp
         for (_, each_whitelist_configuration_file_value) in \
-                helpers.singletons.settings.config.items("whitelist_regexps"):
+                helpers.singletons.settings.whitelist_regexp_config:
             whitelist_values_to_check = each_whitelist_configuration_file_value.split(",")
 
             total_whitelisted_fields_to_match = len(whitelist_values_to_check)
