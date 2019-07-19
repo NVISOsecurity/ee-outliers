@@ -66,12 +66,19 @@ class BeaconingAnalyzer(Analyzer):
                     outliers, documents_need_to_be_removed = self.evaluate_batch_for_outliers(terms=eval_terms_array,
                                                                                               es_process_outlier=False)
 
+                    print("outliers", len(outliers), outliers)
+                    print("documents_need_to_be_removed", documents_need_to_be_removed)
+
+                    new_eval_terms_array = {}
                     for aggregator_value, term_counter in documents_need_to_be_removed.items():
-                        self.remove_term_to_batch(eval_terms_array, aggregator_value, term_counter)
+                        new_eval_terms_array[aggregator_value] = eval_terms_array[aggregator_value]
+                        new_eval_terms_array = self.remove_term_to_batch(new_eval_terms_array, aggregator_value,
+                                                                         term_counter)
 
-                    self.evaluate_batch_for_outliers(terms=eval_terms_array, es_process_outlier=True)
-
-                    outliers, documents_need_to_be_removed = self.evaluate_batch_for_outliers(terms=eval_terms_array)
+                    print("new_eval_terms_array", new_eval_terms_array)
+                    outliers, documents_need_to_be_removed = self.evaluate_batch_for_outliers(
+                        terms=new_eval_terms_array, es_process_outlier=True)
+                    print("outliers 2", len(outliers), outliers)
 
                     if len(outliers) > 0:
                         unique_summaries = len(set(o.outlier_dict["summary"] for o in outliers))
@@ -139,9 +146,12 @@ class BeaconingAnalyzer(Analyzer):
                                                                aggregator_value, term_counter,
                                                                es_process_outlier=es_process_outlier)
                     if outlier.is_whitelisted():
+                        print("Outlier is whitelisted !")
                         documents_need_to_be_removed[aggregator_value].append(term_counter)
                     else:
+                        print("Outlier NOT whitelisted")
                         outliers.append(outlier)
+                    print(terms[aggregator_value]["raw_docs"][term_counter])
 
         return outliers, documents_need_to_be_removed
 
