@@ -46,12 +46,12 @@ class Analyzer(abc.ABC):
             model_settings["timestamp_field"] = settings.config.get("general", "timestamp_field", fallback="timestamp")
 
         try:
-            model_settings["history_window_days"] = settings.config.get(self.config_section_name, "history_window_days")
+            model_settings["history_window_days"] = settings.config.getint(self.config_section_name, "history_window_days")
         except NoOptionError:
             model_settings["history_window_days"] = settings.config.getint("general", "history_window_days")
 
         try:
-            model_settings["history_window_hours"] = settings.config.get(self.config_section_name,
+            model_settings["history_window_hours"] = settings.config.getint(self.config_section_name,
                                                                          "history_window_hours")
         except NoOptionError:
             model_settings["history_window_hours"] = settings.config.getint("general", "history_window_hours")

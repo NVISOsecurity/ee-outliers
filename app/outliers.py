@@ -90,8 +90,7 @@ def perform_analysis():
                 analyzers.append(word2vec_analyzer)
 
         except Exception:
-            logging.logger.error(traceback.format_exc())
-
+            logging.logger.error("error while parsing use case configuration", exc_info=True)
     analyzers_to_evaluate = list()
 
     for analyzer in analyzers:
@@ -109,9 +108,11 @@ def perform_analysis():
                                 .format(round(float(analyzed_models) / float(len(analyzers_to_evaluate)) * 100, 2)) +
                                 "% done" + "]")
         except elasticsearch.exceptions.NotFoundError:
+            analyzed_models = analyzed_models + 1
             logging.logger.warning("index %s does not exist, skipping use case" % analyzer.es_index)
         except Exception:
-            logging.logger.error(traceback.format_exc())
+            logging.logger.error("error while analyzing use case", exc_info=True)
+            time.sleep(10)
         finally:
             es.flush_bulk_actions(refresh=True)
 
@@ -192,7 +193,7 @@ if settings.args.run_mode == "daemon":
         # Check the result of the analysis
         if not run_succeeded_without_errors:
             logging.logger.warning("ran into errors while analyzing use cases - not going to wait for the cron " +
-                                   "schedule, we just start analyzing again (after sleeping for a minute first")
+                                   "schedule, we just start analyzing again after sleeping for a minute first")
             time.sleep(60)
         else:
             logging.logger.info("no errors encountered while analyzing use cases")
