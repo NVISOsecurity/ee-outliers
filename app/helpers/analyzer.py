@@ -37,7 +37,8 @@ class Analyzer(abc.ABC):
     def _extract_model_settings(self):
         model_settings = dict()
 
-        # TODO - make this conditional on a model either wanting to do this, or not
+        # by default, we don't process documents chronologically when analyzing the model, as it
+        # has a high impact on performance when scanning in Elasticsearch
         model_settings["process_documents_chronologically"] = False
 
         try:

@@ -1,4 +1,5 @@
 import random
+from configparser import NoOptionError
 
 from helpers.singletons import settings, es, logging
 from collections import defaultdict
@@ -146,7 +147,10 @@ class TermsAnalyzer(Analyzer):
         return field_names_to_brute_force
 
     def extract_additional_model_settings(self):
-        self.model_settings["process_documents_chronologically"] = True
+        try:
+            self.model_settings["process_documents_chronologically"] = settings.config.getboolean(self.config_section_name, "process_documents_chronologically")
+        except NoOptionError:
+            self.model_settings["process_documents_chronologically"] = True
 
         self.model_settings["target"] = settings.config.get(self.config_section_name, "target")\
                                         .replace(' ', '').split(",")  # remove unnecessary whitespace, split fields

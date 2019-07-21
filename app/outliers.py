@@ -112,7 +112,6 @@ def perform_analysis():
             logging.logger.warning("index %s does not exist, skipping use case" % analyzer.es_index)
         except Exception:
             logging.logger.error("error while analyzing use case", exc_info=True)
-            time.sleep(10)
         finally:
             es.flush_bulk_actions(refresh=True)
 
