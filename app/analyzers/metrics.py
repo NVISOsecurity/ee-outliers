@@ -75,7 +75,8 @@ class MetricsAnalyzer(Analyzer):
 
     def extract_additional_model_settings(self):
         try:
-            self.model_settings["process_documents_chronologically"] = settings.config.getboolean(self.config_section_name, "process_documents_chronologically")
+            self.model_settings["process_documents_chronologically"] = settings.config.getboolean(
+                self.config_section_name, "process_documents_chronologically")
         except NoOptionError:
             self.model_settings["process_documents_chronologically"] = True
 
