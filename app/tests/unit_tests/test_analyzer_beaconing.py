@@ -234,7 +234,7 @@ class TestBeaconingAnalyzer(unittest.TestCase):
 
         self.assertEqual(nbr_outlier, 2)
 
-    def _test_whitelist_batch_document_no_whitelist_document(self):  # TODO FIX with new whitelist system
+    def test_whitelist_batch_document_no_whitelist_document(self):
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/beaconing_test_with_whitelist.conf")
         analyzer = BeaconingAnalyzer("beaconing_dummy_test")
 

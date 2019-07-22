@@ -72,14 +72,14 @@ class BeaconingAnalyzer(Analyzer):
     def _run_evaluate_documents(self, eval_terms_array):
         all_outliers = dict()  # Avoid redundancy: create a dictionary where key equals ID
 
-        # Evaluate first the documents
+        # Evaluate a first documents to detect outliers
         outliers, documents_need_to_be_removed = self.evaluate_batch_for_outliers(terms=eval_terms_array,
                                                                                   es_process_outlier=False)
-        # Store all outlier results
+        # Store all outliers results
         for outlier in outliers:
             all_outliers[outlier.doc['_id']] = outlier
 
-        # Compute the eval terms that need to be compute again (due to whitelist removed)
+        # Remove whitelisted outlier and store eval_terms that need to be compute again
         new_eval_terms_array = {}
         for aggregator_value, list_term_counter in documents_need_to_be_removed.items():
             new_eval_terms_array[aggregator_value] = eval_terms_array[aggregator_value]
@@ -88,7 +88,7 @@ class BeaconingAnalyzer(Analyzer):
 
         outliers, documents_need_to_be_removed = self.evaluate_batch_for_outliers(terms=new_eval_terms_array,
                                                                                   es_process_outlier=False)
-        # Store all outlier results
+        # Store all outliers results
         for outlier in outliers:
             all_outliers[outlier.doc['_id']] = outlier
 
@@ -97,9 +97,9 @@ class BeaconingAnalyzer(Analyzer):
             self.outliers.append(outlier)
             es.process_outliers(doc=outlier.doc, outliers=[outlier], should_notify=self.model_settings["should_notify"])
 
-        if len(outliers) > 0:
-            unique_summaries = len(set(o.outlier_dict["summary"] for o in outliers))
-            logging.logger.info("total outliers in batch processed: " + str(len(outliers)) + " [" +
+        if len(all_outliers) > 0:
+            unique_summaries = len(set(o.outlier_dict["summary"] for o in all_outliers.values()))
+            logging.logger.info("total outliers in batch processed: " + str(len(all_outliers)) + " [" +
                                 str(unique_summaries) + " unique summaries]")
         else:
             logging.logger.info("no outliers detected in batch")
