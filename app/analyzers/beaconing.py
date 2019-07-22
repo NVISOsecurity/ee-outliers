@@ -62,30 +62,7 @@ class BeaconingAnalyzer(Analyzer):
                 last_batch = (logging.current_step == self.total_events)
                 if last_batch or total_terms_added >= self.model_settings["batch_eval_size"]:
                     logging.logger.info("evaluating batch of " + "{:,}".format(total_terms_added) + " terms")
-
-                    outliers, documents_need_to_be_removed = self.evaluate_batch_for_outliers(terms=eval_terms_array,
-                                                                                              es_process_outlier=False)
-
-                    print("outliers", len(outliers), outliers)
-                    print("documents_need_to_be_removed", documents_need_to_be_removed)
-
-                    new_eval_terms_array = {}
-                    for aggregator_value, term_counter in documents_need_to_be_removed.items():
-                        new_eval_terms_array[aggregator_value] = eval_terms_array[aggregator_value]
-                        new_eval_terms_array = self.remove_term_to_batch(new_eval_terms_array, aggregator_value,
-                                                                         term_counter)
-
-                    print("new_eval_terms_array", new_eval_terms_array)
-                    outliers, documents_need_to_be_removed = self.evaluate_batch_for_outliers(
-                        terms=new_eval_terms_array, es_process_outlier=True)
-                    print("outliers 2", len(outliers), outliers)
-
-                    if len(outliers) > 0:
-                        unique_summaries = len(set(o.outlier_dict["summary"] for o in outliers))
-                        logging.logger.info("total outliers in batch processed: " + str(len(outliers)) + " [" +
-                                            str(unique_summaries) + " unique summaries]")
-                    else:
-                        logging.logger.info("no outliers detected in batch")
+                    self._run_evaluate_documents(eval_terms_array)
 
                     # Reset data structures for next batch
                     eval_terms_array = defaultdict()
@@ -93,13 +70,39 @@ class BeaconingAnalyzer(Analyzer):
 
         self.print_analysis_summary()
 
+    def _run_evaluate_documents(self, eval_terms_array):
+        # Evaluate first the documents
+        outliers, documents_need_to_be_removed = self.evaluate_batch_for_outliers(terms=eval_terms_array,
+                                                                                  es_process_outlier=False)
+
+        print("outliers", len(outliers), outliers)
+        print("documents_need_to_be_removed", documents_need_to_be_removed)
+
+        new_eval_terms_array = {}
+        for aggregator_value, term_counter in documents_need_to_be_removed.items():
+            new_eval_terms_array[aggregator_value] = eval_terms_array[aggregator_value]
+            new_eval_terms_array = self.remove_term_to_batch(new_eval_terms_array, aggregator_value,
+                                                             term_counter)
+
+        print("new_eval_terms_array", new_eval_terms_array)
+        outliers, documents_need_to_be_removed = self.evaluate_batch_for_outliers(
+            terms=new_eval_terms_array, es_process_outlier=True)
+        print("outliers 2", len(outliers), outliers)
+
+        if len(outliers) > 0:
+            unique_summaries = len(set(o.outlier_dict["summary"] for o in outliers))
+            logging.logger.info("total outliers in batch processed: " + str(len(outliers)) + " [" +
+                                str(unique_summaries) + " unique summaries]")
+        else:
+            logging.logger.info("no outliers detected in batch")
+
     def extract_additional_model_settings(self):
         self.model_settings["target"] = settings.config.get(self.config_section_name, "target")\
             .replace(' ', '').split(",")  # remove unnecessary whitespace, split fields
         self.model_settings["aggregator"] = settings.config.get(self.config_section_name, "aggregator")\
             .replace(' ', '').split(",")  # remove unnecessary whitespace, split fields
         self.model_settings["trigger_sensitivity"] = settings.config.getfloat(self.config_section_name,
-                                                                            "trigger_sensitivity")
+                                                                              "trigger_sensitivity")
         self.model_settings["batch_eval_size"] = settings.config.getint("beaconing", "beaconing_batch_eval_size")
 
         try:
@@ -146,10 +149,10 @@ class BeaconingAnalyzer(Analyzer):
                                                                aggregator_value, term_counter,
                                                                es_process_outlier=es_process_outlier)
                     if outlier.is_whitelisted():
-                        print("Outlier is whitelisted !")
+                        print("Outlier is whitelisted !", outlier)
                         documents_need_to_be_removed[aggregator_value].append(term_counter)
                     else:
-                        print("Outlier NOT whitelisted")
+                        print("Outlier NOT whitelisted", outlier)
                         outliers.append(outlier)
                     print(terms[aggregator_value]["raw_docs"][term_counter])
 

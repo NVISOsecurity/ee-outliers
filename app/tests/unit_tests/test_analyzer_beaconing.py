@@ -188,7 +188,7 @@ class TestBeaconingAnalyzer(unittest.TestCase):
         self.assertEqual(result, expected_doc)
 
     def test_whitelist_batch_document_not_process_all(self):  # TODO FIX with new whitelist system
-        print("test_whitelist_batch_document_not_process_all")
+        print("================== test_whitelist_batch_document_not_process_all ==================")
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/beaconing_test_with_whitelist.conf")
         analyzer = BeaconingAnalyzer("beaconing_dummy_test")
 
@@ -204,7 +204,7 @@ class TestBeaconingAnalyzer(unittest.TestCase):
 
         analyzer.evaluate_model()
 
-        print("END test_whitelist_batch_document_not_process_all")
+        print("================== END test_whitelist_batch_document_not_process_all ==================")
         self.assertEqual(len(analyzer.outliers), 2)
 
     def _test_whitelist_batch_document_no_whitelist_document(self):  # TODO FIX with new whitelist system
@@ -225,24 +225,24 @@ class TestBeaconingAnalyzer(unittest.TestCase):
 
         self.assertEqual(len(analyzer.outliers), 3)
 
-    def test_generated_document_respect_min_std(self):  # TODO could have some bug (must to be fix)
-        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/beaconing_test_02.conf")
-        analyzer = BeaconingAnalyzer("beaconing_dummy_test")
-
-        doc_generator = GenerateDummyDocuments()
-        nbr_val = 24  # Like 24 hours
-        max_trigger_sensitivity = 1
-        default_value = 5  # Per default, 5 documents create per hour
-        max_difference = 3  # Maximum difference between the number of document (so between 2 and 8 (included))
-        all_doc = doc_generator.create_doc_time_variable_min_sensitivity(nbr_val, max_trigger_sensitivity,
-                                                                         max_difference, default_value)
-        for doc in all_doc:
-            self.test_es.add_doc(doc)
-
-        analyzer.evaluate_model()
-
-        nbr_outliers = 0
-        for doc in es.scan():
-            if "outliers" in doc['_source']:
-                nbr_outliers += 1
-        self.assertEqual(nbr_outliers, len(all_doc))
+    # def test_generated_document_respect_min_std(self):  # TODO could have some bug (must to be fix)
+    #     self.test_settings.change_configuration_path("/app/tests/unit_tests/files/beaconing_test_02.conf")
+    #     analyzer = BeaconingAnalyzer("beaconing_dummy_test")
+    #
+    #     doc_generator = GenerateDummyDocuments()
+    #     nbr_val = 24  # Like 24 hours
+    #     max_trigger_sensitivity = 1
+    #     default_value = 5  # Per default, 5 documents create per hour
+    #     max_difference = 3  # Maximum difference between the number of document (so between 2 and 8 (included))
+    #     all_doc = doc_generator.create_doc_time_variable_min_sensitivity(nbr_val, max_trigger_sensitivity,
+    #                                                                      max_difference, default_value)
+    #     for doc in all_doc:
+    #         self.test_es.add_doc(doc)
+    #
+    #     analyzer.evaluate_model()
+    #
+    #     nbr_outliers = 0
+    #     for doc in es.scan():
+    #         if "outliers" in doc['_source']:
+    #             nbr_outliers += 1
+    #     self.assertEqual(nbr_outliers, len(all_doc))
