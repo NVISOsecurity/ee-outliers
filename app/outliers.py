@@ -132,23 +132,26 @@ def print_analysis_summary(analyzed_models):
     logging.logger.info("============================")
 
     completed_models = [analyzer for analyzer in analyzed_models if analyzer.completed_analysis]
+    completed_models_with_events = [analyzer for analyzer in analyzed_models if (analyzer.completed_analysis and analyzer.total_events > 0)]
+
     no_index_models = [analyzer for analyzer in analyzed_models if analyzer.index_not_found_analysis]
     errored_models = [analyzer for analyzer in analyzed_models if analyzer.unknown_error_analysis]
 
     total_models_processed = len(completed_models) + len(no_index_models) + len(errored_models)
     logging.logger.info("total use cases processed: %i", total_models_processed)
+    logging.logger.info("")
     logging.logger.info("succesfully analzyed use cases: %i", len(completed_models))
+    logging.logger.info("succesfully analzyed use cases without events: %i", len(completed_models) - len(completed_models_with_events))
+    logging.logger.info("succesfully analzyed use cases with events: %i", len(completed_models_with_events))
+    logging.logger.info("")
     logging.logger.info("use cases skipped because of missing index: %i", len(no_index_models))
     logging.logger.info("use cases that caused an error: %i", len(errored_models))
 
     analysis_times = list()
-    models_finished = False
-    for _analyzer in completed_models:
-        if _analyzer.completed_analysis:
-            models_finished = True
+    for _analyzer in completed_models_with_events:
             analysis_times.append(_analyzer.get_analysis_time())
 
-    if models_finished:
+    if len(completed_models):
         logging.logger.info("")
         logging.logger.info("total analysis time: " + helpers.utils.strfdelta(tdelta=int(np.sum(analysis_times)), inputtype="seconds", fmt='{D}d {H}h {M}m {S}s'))
         logging.logger.info("average analysis time: " + helpers.utils.strfdelta(tdelta=int(np.average(analysis_times)), inputtype="seconds", fmt='{D}d {H}h {M}m {S}s'))
