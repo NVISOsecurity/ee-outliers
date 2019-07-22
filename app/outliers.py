@@ -265,9 +265,9 @@ def print_analysis_summary(analyzed_models):
     total_models_processed = len(completed_models) + len(no_index_models) + len(errored_models)
     logging.logger.info("total use cases processed: %i", total_models_processed)
     logging.logger.info("")
-    logging.logger.info("succesfully analzyed use cases: %i", len(completed_models))
-    logging.logger.info("succesfully analzyed use cases without events: %i", len(completed_models) - len(completed_models_with_events))
-    logging.logger.info("succesfully analzyed use cases with events: %i", len(completed_models_with_events))
+    logging.logger.info("succesfully analyzed use cases: %i", len(completed_models))
+    logging.logger.info("succesfully analyzed use cases without events: %i", len(completed_models) - len(completed_models_with_events))
+    logging.logger.info("succesfully analyzed use cases with events: %i", len(completed_models_with_events))
     logging.logger.info("")
     logging.logger.info("use cases skipped because of missing index: %i", len(no_index_models))
     logging.logger.info("use cases that caused an error: %i", len(errored_models))
@@ -286,7 +286,7 @@ def print_analysis_summary(analyzed_models):
         completed_models_with_events_taking_most_time = completed_models_with_events[:10]
 
         for model in completed_models_with_events_taking_most_time:
-            logging.logger.info("\t+ " + model.config_section_name + " - " + "{:,}".format(model.total_events) + " events - " + model.analysis_time(output_format="str"))
+            logging.logger.info("\t+ " + model.config_section_name + " - " + "{:,}".format(model.total_events) + " events - " + helpers.utils.seconds_to_pretty_str(model.analysis_time))
 
     if not analyzed_models:
         logging.logger.warning("no use cases were analyzed. are you sure your configuration file contains use " +
