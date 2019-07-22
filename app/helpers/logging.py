@@ -50,7 +50,7 @@ class Logging:
         if self.verbosity >= 5:
             should_log = True
         else:
-            should_log = self.current_step % max(1, int(math.pow(10, (5 - self.verbosity)))) == 0 or \
+            should_log = self.current_step % max(1, int(math.pow(10, (7 - self.verbosity)))) == 0 or \
                             self.current_step == self.total_steps
 
         if should_log:
