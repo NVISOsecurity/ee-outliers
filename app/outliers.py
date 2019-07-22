@@ -276,7 +276,7 @@ def print_analysis_summary(analyzed_models):
     completed_models_with_events.sort(key=lambda _: _.analysis_time_seconds, reverse=True)
 
     if completed_models_with_events:
-        logging.logger.info("total analysis time: " + helpers.utils.seconds_to_pretty_str(seconds=round(np.sum(analysis_times))))
+        logging.logger.info("total analysis time: " + helpers.utils.seconds_to_pretty_str(seconds=round(float(np.sum(analysis_times)))))
         logging.logger.info("average analysis time: " + helpers.utils.seconds_to_pretty_str(seconds=round(np.average(analysis_times))))
 
         # print most time consuming use cases
