@@ -3,7 +3,9 @@ import datetime
 import helpers.utils
 import helpers.logging
 import json
+import datetime as dt
 from pygrok import Grok
+import math
 
 from helpers.singleton import singleton
 from helpers.notifier import Notifier
@@ -49,7 +51,8 @@ class ES:
 
     def scan(self, index, bool_clause=None, sort_clause=None, query_fields=None, search_query=None,
              model_settings=None):
-        preserve_order = True if sort_clause is not None else False
+
+        preserve_order = False
 
         if model_settings is None:
             timestamp_field = self.settings.config.get("general", "timestamp_field", fallback="timestamp")
@@ -59,6 +62,10 @@ class ES:
             timestamp_field = model_settings["timestamp_field"]
             history_window_days = model_settings["history_window_days"]
             history_window_hours = model_settings["history_window_hours"]
+
+            if model_settings["process_documents_chronologically"]:
+                sort_clause = {"sort": [{model_settings["timestamp_field"] : "desc" }]}
+                preserve_order = True
 
         search_range = self.get_time_filter(days=history_window_days, hours=history_window_hours,
                                             timestamp_field=timestamp_field)
@@ -104,30 +111,33 @@ class ES:
 
     @staticmethod
     def filter_by_query_string(query_string=None):
-        bool_clause = {"filter": [
+        filter_clause = {"filter": [
             {"query_string": {"query": query_string}}
         ]}
-        return bool_clause
+
+        return filter_clause
 
     @staticmethod
     def filter_by_dsl_query(dsl_query=None):
         dsl_query = json.loads(dsl_query)
 
         if isinstance(dsl_query, list):
-            bool_clause = {"filter": []}
+            filter_clause = {"filter": []}
             for query in dsl_query:
-                bool_clause["filter"].append(query["query"])
+                filter_clause["filter"].append(query["query"])
         else:
-            bool_clause = {"filter": [
+            filter_clause = {"filter": [
                 dsl_query["query"]
             ]}
-        return bool_clause
+        return filter_clause
 
     # this is part of housekeeping, so we should not access non-threat-save objects, such as logging progress to
     # the console using ticks!
     def remove_all_whitelisted_outliers(self):
         outliers_filter_query = {"filter": [{"term": {"tags": "outlier"}}]}
-        total_docs_whitelisted = 0
+
+        total_outliers_whitelisted = 0
+        total_outliers_processed = 0
 
         idx = self.settings.config.get("general", "es_index_pattern")
         total_nr_outliers = self.count_documents(index=idx, bool_clause=outliers_filter_query)
@@ -135,12 +145,15 @@ class ES:
                                  .format(total_nr_outliers))
 
         if total_nr_outliers > 0:
+            start_time = dt.datetime.today().timestamp()
+
             for doc in self.scan(index=idx, bool_clause=outliers_filter_query):
-                total_outliers = int(doc["_source"]["outliers"]["total_outliers"])
-                # Generate all outlier objects for this document
+                total_outliers_processed = total_outliers_processed + 1
+                total_outliers_in_doc = int(doc["_source"]["outliers"]["total_outliers"])
+                # generate all outlier objects for this document
                 total_whitelisted = 0
 
-                for i in range(total_outliers):
+                for i in range(total_outliers_in_doc):
                     outlier_type = doc["_source"]["outliers"]["type"][i]
                     outlier_reason = doc["_source"]["outliers"]["reason"][i]
                     outlier_summary = doc["_source"]["outliers"]["summary"][i]
@@ -156,13 +169,30 @@ class ES:
                 # from the Elasticsearch event, as they are stored as array elements and potentially contain
                 # observations that should be removed, too.
                 # In this case, just don't touch the document.
-                if total_whitelisted == total_outliers:
-                    total_docs_whitelisted += 1
+                if total_whitelisted == total_outliers_in_doc:
+                    total_outliers_whitelisted += 1
                     doc = remove_outliers_from_document(doc)
-
                     self._update_es(doc)
 
-        return total_docs_whitelisted
+                # we don't use the ticker from the logger singleton, as this will be called from the housekeeping thread
+                # if we share a same ticker between multiple threads, strange results would start to appear in progress logging
+                # so, we duplicate part of the functionality from the logger singleton
+                if self.logging.verbosity >= 5:
+                    should_log = True
+                else:
+                    should_log = total_outliers_processed % max(1, int(math.pow(10, (5 - self.logging.verbosity)))) == 0 or \
+                                 total_outliers_processed == total_nr_outliers
+
+                if should_log:
+                    # avoid a division by zero
+                    time_diff = max(float(1), float(dt.datetime.today().timestamp() - start_time))
+                    ticks_per_second = "{:,}".format(round(float(total_outliers_processed) / time_diff))
+
+                    self.logging.logger.info("whitelisting historical outliers " + " [" + ticks_per_second + " eps. - " + '{:.2f}'
+                                     .format(round(float(total_outliers_processed) / float(total_nr_outliers) * 100, 2)) +
+                                     "% done" + " - " + str(total_outliers_whitelisted) + " outliers whitelisted]")
+
+        return total_outliers_whitelisted
 
     def remove_all_outliers(self):
         idx = self.settings.config.get("general", "es_index_pattern")

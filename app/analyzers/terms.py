@@ -1,4 +1,5 @@
 import random
+from configparser import NoOptionError
 
 from helpers.singletons import settings, es, logging
 from collections import defaultdict
@@ -24,7 +25,7 @@ class TermsAnalyzer(Analyzer):
                                      brute_force=True)
         else:
             self.evaluate_target(target=self.model_settings["target"],
-                                 search_query=es.filter_by_query_string(self.model_settings["es_query_filter"]),
+                                 search_query=self.search_query,
                                  brute_force=False)
 
     def evaluate_target(self, target, search_query, brute_force=False):
@@ -47,34 +48,33 @@ class TermsAnalyzer(Analyzer):
                 fields = es.extract_fields_from_document(
                                                 doc, extract_derived_fields=self.model_settings["use_derived_fields"])
 
-                if not self.is_document_whitelisted(fields, extract_field=False):
-                    try:
-                        target_sentences = helpers.utils.flatten_fields_into_sentences(fields=fields,
-                                                                                       sentence_format=target)
-                        aggregator_sentences = helpers.utils.flatten_fields_into_sentences(
-                                                    fields=fields, sentence_format=self.model_settings["aggregator"])
-                        will_process_doc = True
-                    except (KeyError, TypeError):
-                        logging.logger.debug("Skipping event which does not contain the target and aggregator " +
-                                             "fields we are processing. - [" + self.model_name + "]")
-                        will_process_doc = False
+                try:
+                    target_sentences = helpers.utils.flatten_fields_into_sentences(fields=fields,
+                                                                                   sentence_format=target)
+                    aggregator_sentences = helpers.utils.flatten_fields_into_sentences(
+                                                fields=fields, sentence_format=self.model_settings["aggregator"])
+                    will_process_doc = True
+                except (KeyError, TypeError):
+                    logging.logger.debug("Skipping event which does not contain the target and aggregator " +
+                                         "fields we are processing. - [" + self.model_name + "]")
+                    will_process_doc = False
 
-                    if will_process_doc:
-                        observations = dict()
+                if will_process_doc:
+                    observations = dict()
 
-                        if brute_force:
-                            observations["brute_forced_field"] = self.model_settings["brute_forced_field"]
+                    if brute_force:
+                        observations["brute_forced_field"] = self.model_settings["brute_forced_field"]
 
-                        for target_sentence in target_sentences:
-                            flattened_target_sentence = helpers.utils.flatten_sentence(target_sentence)
+                    for target_sentence in target_sentences:
+                        flattened_target_sentence = helpers.utils.flatten_sentence(target_sentence)
 
-                            for aggregator_sentence in aggregator_sentences:
-                                flattened_aggregator_sentence = helpers.utils.flatten_sentence(aggregator_sentence)
-                                eval_terms_array = self.add_term_to_batch(eval_terms_array,
-                                                                          flattened_aggregator_sentence,
-                                                                          flattened_target_sentence, observations, doc)
+                        for aggregator_sentence in aggregator_sentences:
+                            flattened_aggregator_sentence = helpers.utils.flatten_sentence(aggregator_sentence)
+                            eval_terms_array = self.add_term_to_batch(eval_terms_array,
+                                                                      flattened_aggregator_sentence,
+                                                                      flattened_target_sentence, observations, doc)
 
-                        total_terms_added += len(target_sentences)
+                    total_terms_added += len(target_sentences)
 
                 # Evaluate batch of events against the model
                 last_batch = (logging.current_step == self.total_events)
@@ -109,10 +109,9 @@ class TermsAnalyzer(Analyzer):
         self.print_analysis_summary()
 
     def calculate_target_fields_to_brute_force(self):
-        search_query = es.filter_by_query_string(self.model_settings["es_query_filter"])
         batch_size = settings.config.getint("terms", "terms_batch_eval_size")
 
-        self.total_events = es.count_documents(index=self.es_index, search_query=search_query,
+        self.total_events = es.count_documents(index=self.es_index, search_query=self.search_query,
                                                model_settings=self.model_settings)
         logging.init_ticker(total_steps=min(self.total_events, batch_size),
                             desc=self.model_name + " - extracting brute force fields")
@@ -120,7 +119,7 @@ class TermsAnalyzer(Analyzer):
         field_names_to_brute_force = set()
         if self.total_events > 0:
             num_docs_processed = 0
-            for doc in es.scan(index=self.es_index, search_query=search_query, model_settings=self.model_settings):
+            for doc in es.scan(index=self.es_index, search_query=self.search_query, model_settings=self.model_settings):
                 logging.tick()
                 fields = es.extract_fields_from_document(
                             doc, extract_derived_fields=self.model_settings["use_derived_fields"])
@@ -148,6 +147,11 @@ class TermsAnalyzer(Analyzer):
         return field_names_to_brute_force
 
     def extract_additional_model_settings(self):
+        try:
+            self.model_settings["process_documents_chronologically"] = settings.config.getboolean(self.config_section_name, "process_documents_chronologically")
+        except NoOptionError:
+            self.model_settings["process_documents_chronologically"] = True
+
         self.model_settings["target"] = settings.config.get(self.config_section_name, "target")\
                                         .replace(' ', '').split(",")  # remove unnecessary whitespace, split fields
 

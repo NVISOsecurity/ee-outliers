@@ -16,8 +16,7 @@ class BeaconingAnalyzer(Analyzer):
     def evaluate_model(self):
         self.extract_additional_model_settings()
 
-        search_query = es.filter_by_query_string(self.model_settings["es_query_filter"])
-        self.total_events = es.count_documents(index=self.es_index, search_query=search_query,
+        self.total_events = es.count_documents(index=self.es_index, search_query=self.search_query,
                                                model_settings=self.model_settings)
 
         self.print_analysis_intro(event_type="evaluating " + self.model_name, total_events=self.total_events)
@@ -28,36 +27,35 @@ class BeaconingAnalyzer(Analyzer):
             eval_terms_array = defaultdict()
             total_terms_added = 0
 
-            for doc in es.scan(index=self.es_index, search_query=search_query, model_settings=self.model_settings):
+            for doc in es.scan(index=self.es_index, search_query=self.search_query, model_settings=self.model_settings):
                 logging.tick()
                 fields = es.extract_fields_from_document(
                                                 doc, extract_derived_fields=self.model_settings["use_derived_fields"])
 
-                if not self.is_document_whitelisted(fields, extract_field=False):
-                    try:
-                        target_sentences = helpers.utils.flatten_fields_into_sentences(
-                                                    fields=fields, sentence_format=self.model_settings["target"])
-                        aggregator_sentences = helpers.utils.flatten_fields_into_sentences(
-                                                    fields=fields, sentence_format=self.model_settings["aggregator"])
-                        will_process_doc = True
-                    except (KeyError, TypeError):
-                        logging.logger.debug("Skipping event which does not contain the target and aggregator fields " +
-                                             "we are processing. - [" + self.model_name + "]")
-                        will_process_doc = False
+                try:
+                    target_sentences = helpers.utils.flatten_fields_into_sentences(
+                                                fields=fields, sentence_format=self.model_settings["target"])
+                    aggregator_sentences = helpers.utils.flatten_fields_into_sentences(
+                                                fields=fields, sentence_format=self.model_settings["aggregator"])
+                    will_process_doc = True
+                except (KeyError, TypeError):
+                    logging.logger.debug("Skipping event which does not contain the target and aggregator fields " +
+                                         "we are processing. - [" + self.model_name + "]")
+                    will_process_doc = False
 
-                    if will_process_doc:
-                        observations = dict()
+                if will_process_doc:
+                    observations = dict()
 
-                        for target_sentence in target_sentences:
-                            flattened_target_sentence = helpers.utils.flatten_sentence(target_sentence)
+                    for target_sentence in target_sentences:
+                        flattened_target_sentence = helpers.utils.flatten_sentence(target_sentence)
 
-                            for aggregator_sentence in aggregator_sentences:
-                                flattened_aggregator_sentence = helpers.utils.flatten_sentence(aggregator_sentence)
-                                eval_terms_array = self.add_term_to_batch(eval_terms_array,
-                                                                          flattened_aggregator_sentence,
-                                                                          flattened_target_sentence, observations, doc)
+                        for aggregator_sentence in aggregator_sentences:
+                            flattened_aggregator_sentence = helpers.utils.flatten_sentence(aggregator_sentence)
+                            eval_terms_array = self.add_term_to_batch(eval_terms_array,
+                                                                      flattened_aggregator_sentence,
+                                                                      flattened_target_sentence, observations, doc)
 
-                        total_terms_added += len(target_sentences)
+                    total_terms_added += len(target_sentences)
 
                 # Evaluate batch of events against the model
                 last_batch = (logging.current_step == self.total_events)
@@ -79,6 +77,11 @@ class BeaconingAnalyzer(Analyzer):
         self.print_analysis_summary()
 
     def extract_additional_model_settings(self):
+        try:
+            self.model_settings["process_documents_chronologically"] = settings.config.getboolean(self.config_section_name, "process_documents_chronologically")
+        except NoOptionError:
+            self.model_settings["process_documents_chronologically"] = True
+
         self.model_settings["target"] = settings.config.get(self.config_section_name, "target")\
             .replace(' ', '').split(",")  # remove unnecessary whitespace, split fields
         self.model_settings["aggregator"] = settings.config.get(self.config_section_name, "aggregator")\
@@ -121,11 +124,10 @@ class BeaconingAnalyzer(Analyzer):
             coeff_of_variation = np.std(counted_target_values) / np.mean(counted_target_values)
             logging.logger.debug("coefficient of variation deviation: " + str(coeff_of_variation))
 
-            for term_counter, term_value in enumerate(terms[aggregator_value]["targets"]):
-                term_value_count = counted_targets[term_value]
-
-                # if, is outlier
-                if coeff_of_variation < self.model_settings["trigger_sensitivity"]:
+            # if, is outlier
+            if coeff_of_variation < self.model_settings["trigger_sensitivity"]:
+                for term_counter, term_value in enumerate(terms[aggregator_value]["targets"]):
+                    term_value_count = counted_targets[term_value]
                     outliers.append(self.prepare_and_process_outlier(coeff_of_variation, term_value_count, terms,
                                                                      aggregator_value, term_counter))
 
