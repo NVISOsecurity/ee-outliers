@@ -31,10 +31,22 @@ class Analyzer(abc.ABC):
             self.search_query = es.filter_by_dsl_query(self.model_settings["es_dsl_filter"])
 
         self.total_events = 0
+
+        self.analysis_start_time = None
+        self.analysis_end_time = None
+
+        self.completed_analysis = False
+        self.index_not_found_analysis = False
+        self.unknown_error_analysis = False
+
         self.outliers = list()
 
     def _extract_model_settings(self):
         model_settings = dict()
+
+        # by default, we don't process documents chronologically when analyzing the model, as it
+        # has a high impact on performance when scanning in Elasticsearch
+        model_settings["process_documents_chronologically"] = False
 
         try:
             model_settings["timestamp_field"] = settings.config.get(self.config_section_name, "timestamp_field")
@@ -42,13 +54,13 @@ class Analyzer(abc.ABC):
             model_settings["timestamp_field"] = settings.config.get("general", "timestamp_field", fallback="timestamp")
 
         try:
-            model_settings["history_window_days"] = settings.config.get(self.config_section_name, "history_window_days")
+            model_settings["history_window_days"] = settings.config.getint(self.config_section_name, "history_window_days")
         except NoOptionError:
             model_settings["history_window_days"] = settings.config.getint("general", "history_window_days")
 
         try:
-            model_settings["history_window_hours"] = settings.config.get(self.config_section_name,
-                                                                         "history_window_hours")
+            model_settings["history_window_hours"] = settings.config.getint(self.config_section_name,
+                                                                            "history_window_hours")
         except NoOptionError:
             model_settings["history_window_hours"] = settings.config.getint("general", "history_window_hours")
 
@@ -165,6 +177,12 @@ class Analyzer(abc.ABC):
         outlier_param = self._prepare_outlier_parameters(dict(), fields)
         document_to_check['__whitelist_extra'] = outlier_param
         return Outlier.is_whitelisted_doc(document_to_check)
+
+    def get_analysis_time(self):
+        if self.completed_analysis:
+            return float(self.analysis_end_time - self.analysis_start_time)
+        else:
+            return None
 
     @staticmethod
     def get_time_window_info(history_days=None, history_hours=None):
