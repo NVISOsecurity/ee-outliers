@@ -50,7 +50,8 @@ class Outlier:
         for dict_val in helpers.utils.nested_dict_values(dict_to_check):
             if isinstance(dict_val, list):
                 for dict_val_item in dict_val:
-                    dict_values_to_check.add(str(dict_val_item))  # force to be a string in case the nested element is a dictionary
+                    # force to be a string in case the nested element is a dictionary
+                    dict_values_to_check.add(str(dict_val_item))
             else:
                 dict_values_to_check.add(dict_val)
 
