@@ -46,8 +46,9 @@ class TestBeaconingAnalyzer(unittest.TestCase):
         self.test_es.restore_es()
 
     def _create_outliers(self, outlier_type, outlier_reason, outlier_summary, model_type, model_name, term, aggregator,
-                         confidence, decision_frontier, term_count):
-        outlier = Outlier(outlier_type=outlier_type, outlier_reason=outlier_reason, outlier_summary=outlier_summary)
+                         confidence, decision_frontier, term_count, doc):
+        outlier = Outlier(outlier_type=outlier_type, outlier_reason=outlier_reason, outlier_summary=outlier_summary,
+                          doc=doc)
         outlier.outlier_dict["model_type"] = model_type
         outlier.outlier_dict["model_name"] = model_name
         outlier.outlier_dict["term"] = term
@@ -109,20 +110,25 @@ class TestBeaconingAnalyzer(unittest.TestCase):
 
         result = analyzer.evaluate_batch_for_outliers(terms=eval_terms_array)
         # Create outlier
-        test_outlier_linux = self._create_outliers(["dummy type"], ["dummy reason"], "dummy summary", "beaconing",
-                                                   "dummy_test", target_value, aggregator_value,
-                                                   confidence=0.6666666666666667, decision_frontier=0.3333333333333333,
-                                                   term_count=2)
+        test_outlier_linux_1 = self._create_outliers(["dummy type"], ["dummy reason"], "dummy summary", "beaconing",
+                                                     "dummy_test", target_value, aggregator_value,
+                                                     confidence=0.6666666666666667, decision_frontier=0.3333333333333333,
+                                                     term_count=2, doc=doc)
+        test_outlier_linux_2 = self._create_outliers(["dummy type"], ["dummy reason"], "dummy summary", "beaconing",
+                                                     "dummy_test", target_value, aggregator_value,
+                                                     confidence=0.6666666666666667,
+                                                     decision_frontier=0.3333333333333333,
+                                                     term_count=2, doc=doc3)
 
         test_outlier_win = self._create_outliers(["dummy type"], ["dummy reason"], "dummy summary", "beaconing",
                                                  "dummy_test", target_value2, aggregator_value,
                                                  confidence=0.6666666666666667, decision_frontier=0.3333333333333333,
-                                                 term_count=1)
+                                                 term_count=1, doc=doc2)
 
         # Add outlier to a list
         expected_outliers = []
-        expected_outliers.append(test_outlier_linux)
-        expected_outliers.append(test_outlier_linux)
+        expected_outliers.append(test_outlier_linux_1)
+        expected_outliers.append(test_outlier_linux_2)
         expected_outliers.append(test_outlier_win)
         self.assertEqual(result, expected_outliers)
 
@@ -145,7 +151,7 @@ class TestBeaconingAnalyzer(unittest.TestCase):
 
         expected_outlier = self._create_outliers(["dummy type"], ["dummy reason"], "dummy summary", "beaconing",
                                                  "dummy_test", target_value, aggregator_value, confidence=0.0,
-                                                 decision_frontier=1, term_count=2)
+                                                 decision_frontier=1, term_count=2, doc=doc)
         self.assertEqual(outlier, expected_outlier)
 
     def test_prepare_and_process_outlier_check_es_have_request(self):  # TODO adapt name
