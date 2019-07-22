@@ -16,6 +16,14 @@ doc_with_two_outliers_test_file = json.load(open("/app/tests/unit_tests/files/do
 doc_with_three_outliers_test_file = json.load(open("/app/tests/unit_tests/files/doc_with_three_outliers.json"))
 doc_for_whitelist_testing_file = json.load(open("/app/tests/unit_tests/files/doc_for_whitelist_testing.json"))
 
+nested_doc_for_whitelist_test = {'169.254.184.188', 'fe80::491a:881a:b1bf:b539', 2, 1, '1535026336',
+                                 '1535017696_osquery_get_all_scheduled_tasks.log',
+                                 'User_Feed_Synchronization-{9CD0CFAD-350E-46BA-8338-932284EF7332}', None,
+                                 'OsqueryFilter', 'get_all_scheduled_tasks', 'NVISO Workstations',
+                                 'osquery_get_all_scheduled_tasks.log', "['user:jvanderzweep', 'host:NVISO-WIN10-JVZ']",
+                                 ' C:\\Windows\\system32\\msfeedssync.exe sync',
+                                 '\\User_Feed_Synchronization-{9CD0CFAD-350E-46BA-8338-932284EF7332}'}
+
 
 class TestOutlierOperations(unittest.TestCase):
     def setUp(self):
@@ -109,25 +117,25 @@ class TestOutlierOperations(unittest.TestCase):
     def test_whitelist_literal_match(self):
         whitelist_item = r"C:\Windows\system32\msfeedssync.exe sync"
         result = Outlier.dictionary_matches_specific_whitelist_item_literally(whitelist_item,
-                                                                              doc_for_whitelist_testing_file)
+                                                                              nested_doc_for_whitelist_test)
         self.assertTrue(result)
 
     def test_whitelist_literal_mismatch(self):
         whitelist_item = r"C:\Windows\system32\msfeedssync.exe syncWRONG"
         result = Outlier.dictionary_matches_specific_whitelist_item_literally(whitelist_item,
-                                                                              doc_for_whitelist_testing_file)
+                                                                              nested_doc_for_whitelist_test)
         self.assertFalse(result)
 
     def test_whitelist_regexp_match(self):
         whitelist_item = r"^.*.exe sync$"
         p = re.compile(whitelist_item.strip(), re.IGNORECASE)
-        result = Outlier.dictionary_matches_specific_whitelist_item_regexp(p, doc_for_whitelist_testing_file)
+        result = Outlier.dictionary_matches_specific_whitelist_item_regexp(p, nested_doc_for_whitelist_test)
         self.assertTrue(result)
 
     def test_whitelist_regexp_mismatch(self):
         whitelist_item = r"^.*.exeZZZZZ sync$"
         p = re.compile(whitelist_item.strip(), re.IGNORECASE)
-        result = Outlier.dictionary_matches_specific_whitelist_item_regexp(p, doc_for_whitelist_testing_file)
+        result = Outlier.dictionary_matches_specific_whitelist_item_regexp(p, nested_doc_for_whitelist_test)
         self.assertFalse(result)
 
     def test_whitelist_config_file_multi_item_match(self):
