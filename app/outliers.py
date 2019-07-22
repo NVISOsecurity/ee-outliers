@@ -5,13 +5,13 @@ import sys
 import unittest
 import traceback
 import numpy as np
-import helpers.utils
 
 import elasticsearch.exceptions
 
 from datetime import datetime
 from croniter import croniter
 
+import helpers.utils
 from helpers.singletons import settings, logging, es
 from helpers.watchers import FileModificationWatcher
 from helpers.housekeeping import HousekeepingJob
@@ -277,8 +277,8 @@ def print_analysis_summary(analyzed_models):
 
     if completed_models_with_events:
         logging.logger.info("")
-        logging.logger.info("total analysis time: " + helpers.utils.strfdelta(tdelta=int(np.sum(analysis_times)), inputtype="seconds", fmt='{D}d {H}h {M}m {S}s'))
-        logging.logger.info("average analysis time: " + helpers.utils.strfdelta(tdelta=int(np.average(analysis_times)), inputtype="seconds", fmt='{D}d {H}h {M}m {S}s'))
+        logging.logger.info("total analysis time: " + helpers.utils.seconds_to_pretty_str(seconds=int(np.sum(analysis_times))))
+        logging.logger.info("average analysis time: " + helpers.utils.seconds_to_pretty_str(seconds=int(np.average(analysis_times))))
 
         # print most time consuming use cases
         logging.logger.info("")
@@ -286,8 +286,7 @@ def print_analysis_summary(analyzed_models):
         completed_models_with_events_taking_most_time = completed_models_with_events[:10]
 
         for model in completed_models_with_events_taking_most_time:
-            analysis_time = helpers.utils.strfdelta(tdelta=int(model.analysis_time), inputtype="seconds", fmt='{D}d {H}h {M}m {S}s')
-            logging.logger.info("\t+ " + model.config_section_name + " - " + "{:,}".format(model.total_events) + " events - " + analysis_time)
+            logging.logger.info("\t+ " + model.config_section_name + " - " + "{:,}".format(model.total_events) + " events - " + model.analysis_time(output_format="str"))
 
     if not analyzed_models:
         logging.logger.warning("no use cases were analyzed. are you sure your configuration file contains use " +
