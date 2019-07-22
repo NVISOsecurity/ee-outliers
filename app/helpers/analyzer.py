@@ -43,7 +43,7 @@ class Analyzer(abc.ABC):
         self.outliers = list()
 
     @property
-    def analysis_time(self):
+    def analysis_time_seconds(self):
         if self.completed_analysis:
             return float(self.analysis_end_time - self.analysis_start_time)
         else:

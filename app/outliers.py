@@ -272,13 +272,12 @@ def print_analysis_summary(analyzed_models):
     logging.logger.info("use cases skipped because of missing index: %i", len(no_index_models))
     logging.logger.info("use cases that caused an error: %i", len(errored_models))
 
-    analysis_times = [_.analysis_time for _ in completed_models_with_events]
-    completed_models_with_events.sort(key=lambda _: _.analysis_time, reverse=True)
+    analysis_times = [_.analysis_time_seconds for _ in completed_models_with_events]
+    completed_models_with_events.sort(key=lambda _: _.analysis_time_seconds, reverse=True)
 
     if completed_models_with_events:
-        logging.logger.info("")
-        logging.logger.info("total analysis time: " + helpers.utils.seconds_to_pretty_str(seconds=int(np.sum(analysis_times))))
-        logging.logger.info("average analysis time: " + helpers.utils.seconds_to_pretty_str(seconds=int(np.average(analysis_times))))
+        logging.logger.info("total analysis time: " + helpers.utils.seconds_to_pretty_str(seconds=round(np.sum(analysis_times))))
+        logging.logger.info("average analysis time: " + helpers.utils.seconds_to_pretty_str(seconds=round(np.average(analysis_times))))
 
         # print most time consuming use cases
         logging.logger.info("")
@@ -286,7 +285,7 @@ def print_analysis_summary(analyzed_models):
         completed_models_with_events_taking_most_time = completed_models_with_events[:10]
 
         for model in completed_models_with_events_taking_most_time:
-            logging.logger.info("\t+ " + model.config_section_name + " - " + "{:,}".format(model.total_events) + " events - " + helpers.utils.seconds_to_pretty_str(model.analysis_time))
+            logging.logger.info("\t+ " + model.config_section_name + " - " + "{:,}".format(model.total_events) + " events - " + helpers.utils.seconds_to_pretty_str(round(model.analysis_time_seconds)))
 
     if not analyzed_models:
         logging.logger.warning("no use cases were analyzed. are you sure your configuration file contains use " +
