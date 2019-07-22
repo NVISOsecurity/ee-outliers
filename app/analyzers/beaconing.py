@@ -70,23 +70,32 @@ class BeaconingAnalyzer(Analyzer):
         self.print_analysis_summary()
 
     def _run_evaluate_documents(self, eval_terms_array):
+        all_outliers = dict()  # Avoid redundancy: create a dictionary where key equals ID
+
         # Evaluate first the documents
         outliers, documents_need_to_be_removed = self.evaluate_batch_for_outliers(terms=eval_terms_array,
                                                                                   es_process_outlier=False)
+        # Store all outlier results
+        for outlier in outliers:
+            all_outliers[outlier.doc['_id']] = outlier
 
-        print("outliers", len(outliers), outliers)
-        print("documents_need_to_be_removed", documents_need_to_be_removed)
-
+        # Compute the eval terms that need to be compute again (due to whitelist removed)
         new_eval_terms_array = {}
-        for aggregator_value, term_counter in documents_need_to_be_removed.items():
+        for aggregator_value, list_term_counter in documents_need_to_be_removed.items():
             new_eval_terms_array[aggregator_value] = eval_terms_array[aggregator_value]
-            new_eval_terms_array = self.remove_term_to_batch(new_eval_terms_array, aggregator_value,
-                                                             term_counter)
+            for term_counter in list_term_counter:
+                new_eval_terms_array = self.remove_term_to_batch(new_eval_terms_array, aggregator_value, term_counter)
 
-        print("new_eval_terms_array", new_eval_terms_array)
-        outliers, documents_need_to_be_removed = self.evaluate_batch_for_outliers(
-            terms=new_eval_terms_array, es_process_outlier=True)
-        print("outliers 2", len(outliers), outliers)
+        outliers, documents_need_to_be_removed = self.evaluate_batch_for_outliers(terms=new_eval_terms_array,
+                                                                                  es_process_outlier=False)
+        # Store all outlier results
+        for outlier in outliers:
+            all_outliers[outlier.doc['_id']] = outlier
+
+        # For each result, save it in batch and in ES
+        for outlier in all_outliers.values():
+            self.outliers.append(outlier)
+            es.process_outliers(doc=outlier.doc, outliers=[outlier], should_notify=self.model_settings["should_notify"])
 
         if len(outliers) > 0:
             unique_summaries = len(set(o.outlier_dict["summary"] for o in outliers))
@@ -97,7 +106,8 @@ class BeaconingAnalyzer(Analyzer):
 
     def extract_additional_model_settings(self):
         try:
-            self.model_settings["process_documents_chronologically"] = settings.config.getboolean(self.config_section_name, "process_documents_chronologically")
+            self.model_settings["process_documents_chronologically"] = settings.config.getboolean(
+                self.config_section_name, "process_documents_chronologically")
         except NoOptionError:
             self.model_settings["process_documents_chronologically"] = True
 
@@ -153,12 +163,9 @@ class BeaconingAnalyzer(Analyzer):
                                                                aggregator_value, term_counter,
                                                                es_process_outlier=es_process_outlier)
                     if outlier.is_whitelisted():
-                        print("Outlier is whitelisted !", outlier)
                         documents_need_to_be_removed[aggregator_value].append(term_counter)
                     else:
-                        print("Outlier NOT whitelisted", outlier)
                         outliers.append(outlier)
-                    print(terms[aggregator_value]["raw_docs"][term_counter])
 
         return outliers, documents_need_to_be_removed
 

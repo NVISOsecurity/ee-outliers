@@ -193,8 +193,7 @@ class TestBeaconingAnalyzer(unittest.TestCase):
         result = [elem for elem in es.scan()][0]
         self.assertEqual(result, expected_doc)
 
-    def test_whitelist_batch_document_not_process_all(self):  # TODO FIX with new whitelist system
-        print("================== test_whitelist_batch_document_not_process_all ==================")
+    def test_whitelist_batch_document_not_process_all(self):
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/beaconing_test_with_whitelist.conf")
         analyzer = BeaconingAnalyzer("beaconing_dummy_test")
 
@@ -210,8 +209,30 @@ class TestBeaconingAnalyzer(unittest.TestCase):
 
         analyzer.evaluate_model()
 
-        print("================== END test_whitelist_batch_document_not_process_all ==================")
         self.assertEqual(len(analyzer.outliers), 2)
+
+    def test_whitelist_batch_document_not_process_all_in_es(self):
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/beaconing_test_with_whitelist.conf")
+        analyzer = BeaconingAnalyzer("beaconing_dummy_test")
+
+        # Whitelisted (ignored)
+        doc1_without_outlier = copy.deepcopy(doc_without_outliers_test_whitelist_01_test_file)
+        self.test_es.add_doc(doc1_without_outlier)
+        # Not whitelisted (add)
+        doc2_without_outlier = copy.deepcopy(doc_without_outliers_test_whitelist_02_test_file)
+        self.test_es.add_doc(doc2_without_outlier)
+        # Not whitelisted
+        doc3_without_outlier = copy.deepcopy(doc_without_outliers_test_whitelist_03_test_file)
+        self.test_es.add_doc(doc3_without_outlier)
+
+        analyzer.evaluate_model()
+
+        nbr_outlier = 0
+        for res in es.scan():
+            if "outliers" in res['_source']:
+                nbr_outlier += 1
+
+        self.assertEqual(nbr_outlier, 2)
 
     def _test_whitelist_batch_document_no_whitelist_document(self):  # TODO FIX with new whitelist system
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/beaconing_test_with_whitelist.conf")
