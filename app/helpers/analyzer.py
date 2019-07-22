@@ -41,6 +41,13 @@ class Analyzer(abc.ABC):
 
         self.outliers = list()
 
+    @property
+    def analysis_time(self):
+        if self.completed_analysis:
+            return float(self.analysis_end_time - self.analysis_start_time)
+        else:
+            return None
+
     def _extract_model_settings(self):
         model_settings = dict()
 
@@ -177,12 +184,6 @@ class Analyzer(abc.ABC):
         outlier_param = self._prepare_outlier_parameters(dict(), fields)
         document_to_check['__whitelist_extra'] = outlier_param
         return Outlier.is_whitelisted_doc(document_to_check)
-
-    def get_analysis_time(self):
-        if self.completed_analysis:
-            return float(self.analysis_end_time - self.analysis_start_time)
-        else:
-            return None
 
     @staticmethod
     def get_time_window_info(history_days=None, history_hours=None):

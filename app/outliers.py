@@ -10,7 +10,6 @@ import helpers.utils
 import elasticsearch.exceptions
 
 from datetime import datetime
-from datetime import timedelta
 from croniter import croniter
 
 from helpers.singletons import settings, logging, es
@@ -157,7 +156,7 @@ def run_daemon_mode():
         errored_models = [analyzer for analyzer in analyzed_models if analyzer.unknown_error_analysis]
 
         # Check the result of the analysis
-        if len(errored_models) > 0:
+        if errored_models:
             run_succeeded_without_errors = False
             logging.logger.warning("ran into errors while analyzing use cases - not going to wait for the cron " +
                                    "schedule, we just start analyzing again after sleeping for a minute first")
@@ -218,7 +217,6 @@ def perform_analysis():
             elif config_section_name.startswith("word2vec_"):
                 word2vec_analyzer = Word2VecAnalyzer(config_section_name=config_section_name)
                 analyzers.append(word2vec_analyzer)
-
         except Exception:
             logging.logger.error("error while parsing use case configuration", exc_info=True)
     analyzers_to_evaluate = list()
@@ -274,14 +272,22 @@ def print_analysis_summary(analyzed_models):
     logging.logger.info("use cases skipped because of missing index: %i", len(no_index_models))
     logging.logger.info("use cases that caused an error: %i", len(errored_models))
 
-    analysis_times = list()
-    for _analyzer in completed_models_with_events:
-        analysis_times.append(_analyzer.get_analysis_time())
+    analysis_times = [_.analysis_time for _ in completed_models_with_events]
+    completed_models_with_events.sort(key=lambda _: _.analysis_time, reverse=True)
 
-    if completed_models:
+    if completed_models_with_events:
         logging.logger.info("")
         logging.logger.info("total analysis time: " + helpers.utils.strfdelta(tdelta=int(np.sum(analysis_times)), inputtype="seconds", fmt='{D}d {H}h {M}m {S}s'))
         logging.logger.info("average analysis time: " + helpers.utils.strfdelta(tdelta=int(np.average(analysis_times)), inputtype="seconds", fmt='{D}d {H}h {M}m {S}s'))
+
+        # print most time consuming use cases
+        logging.logger.info("")
+        logging.logger.info("most time consuming use cases (top 10):")
+        completed_models_with_events_taking_most_time = completed_models_with_events[:10]
+
+        for model in completed_models_with_events_taking_most_time:
+            analysis_time = helpers.utils.strfdelta(tdelta=int(model.analysis_time), inputtype="seconds", fmt='{D}d {H}h {M}m {S}s')
+            logging.logger.info("\t+ " + model.config_section_name + " - " + "{:,}".format(model.total_events) + " events - " + analysis_time)
 
     if not analyzed_models:
         logging.logger.warning("no use cases were analyzed. are you sure your configuration file contains use " +
