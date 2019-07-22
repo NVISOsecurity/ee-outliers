@@ -17,7 +17,7 @@ class Logging:
     verbosity = None
 
     def __init__(self, logger_name):
-        # Disable HTTPS warnings
+        # disable HTTPS warnings
         urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
         logging.getLogger('urllib3').setLevel(logging.CRITICAL)
 

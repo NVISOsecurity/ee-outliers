@@ -22,11 +22,10 @@ class Word2VecAnalyzer(Analyzer):
 
     def train_model(self):
         w2v_model = word2vec.Word2Vec(name=self.model_name)
-        search_query = es.filter_by_query_string(self.model_settings["es_query_filter"])
 
         sentences = list()
 
-        self.total_events = es.count_documents(index=self.es_index, search_query=search_query,
+        self.total_events = es.count_documents(index=self.es_index, search_query=self.search_query,
                                                model_settings=self.model_settings)
         training_data_size_pct = settings.config.getint("machine_learning", "training_data_size_pct")
         training_data_size = self.total_events / 100 * training_data_size_pct
@@ -37,7 +36,7 @@ class Word2VecAnalyzer(Analyzer):
         logging.init_ticker(total_steps=total_training_events,
                             desc=self.model_name + " - preparing word2vec training set")
         if self.total_events > 0:
-            for doc in es.scan(index=self.es_index, search_query=search_query, model_settings=self.model_settings):
+            for doc in es.scan(index=self.es_index, search_query=self.search_query, model_settings=self.model_settings):
                 if len(sentences) < total_training_events:
                     logging.tick()
                     fields = es.extract_fields_from_document(
@@ -70,7 +69,7 @@ class Word2VecAnalyzer(Analyzer):
             return
 
         w2v_model = word2vec.Word2Vec(name=self.model_name)
-        search_query = es.filter_by_query_string(self.model_settings["es_query_filter"])
+        search_query = self.search_query
 
         if not w2v_model.is_trained():
             logging.logger.warning("model was not trained! Skipping analysis.")
