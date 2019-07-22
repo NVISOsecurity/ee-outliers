@@ -3,6 +3,7 @@ import re
 import helpers.utils
 import textwrap
 
+
 class Outlier:
     def __init__(self, outlier_type, outlier_reason, outlier_summary, doc):
         self.outlier_dict = dict()
@@ -19,7 +20,9 @@ class Outlier:
     # event (rule_updates.et.com and intel_server);
     def is_whitelisted(self):
         if self.cache_is_whitelist is None:
-            self.cache_is_whitelist = Outlier.is_whitelisted_doc({'': self.outlier_dict, '_': self.doc})
+            # Create dictionary that contain all stuff
+            self.cache_is_whitelist = Outlier.is_whitelisted_doc({'outlier_dict': self.outlier_dict,
+                                                                  'additional_dict_to_check': self.doc})
         return self.cache_is_whitelist
 
     def get_outlier_dict_of_arrays(self):
