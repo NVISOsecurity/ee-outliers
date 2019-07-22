@@ -180,7 +180,7 @@ class ES:
                 if self.logging.verbosity >= 5:
                     should_log = True
                 else:
-                    should_log = total_outliers_processed % max(1, int(math.pow(10, (6 - self.logging.verbosity)))) == 0 or \
+                    should_log = total_outliers_processed % max(1, int(math.pow(10, (5 - self.logging.verbosity)))) == 0 or \
                                  total_outliers_processed == total_nr_outliers
 
                 if should_log:
