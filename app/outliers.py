@@ -4,10 +4,13 @@ import os
 import sys
 import unittest
 import traceback
+import numpy as np
+import helpers.utils
 
 import elasticsearch.exceptions
 
 from datetime import datetime
+from datetime import timedelta
 from croniter import croniter
 
 from helpers.singletons import settings, logging, es
@@ -90,8 +93,7 @@ def perform_analysis():
                 analyzers.append(word2vec_analyzer)
 
         except Exception:
-            logging.logger.error(traceback.format_exc())
-
+            logging.logger.error("error while parsing use case configuration", exc_info=True)
     analyzers_to_evaluate = list()
 
     for analyzer in analyzers:
@@ -99,27 +101,63 @@ def perform_analysis():
             analyzers_to_evaluate.append(analyzer)
 
     random.shuffle(analyzers_to_evaluate)
-    analyzed_models = 0
-    for analyzer in analyzers_to_evaluate:
+
+    for index, analyzer in enumerate(analyzers_to_evaluate):
         try:
+            analyzer.analysis_start_time = datetime.today().timestamp()
             analyzer.evaluate_model()
-            analyzed_models = analyzed_models + 1
-            logging.logger.info("finished processing use case - " + str(analyzed_models) + "/" +
+            analyzer.analysis_end_time = datetime.today().timestamp()
+            analyzer.completed_analysis = True
+
+            logging.logger.info("finished processing use case - " + str(index + 1) + "/" +
                                 str(len(analyzers_to_evaluate)) + " [" + '{:.2f}'
-                                .format(round(float(analyzed_models) / float(len(analyzers_to_evaluate)) * 100, 2)) +
+                                .format(round((index + 1) / float(len(analyzers_to_evaluate)) * 100, 2)) +
                                 "% done" + "]")
         except elasticsearch.exceptions.NotFoundError:
+            analyzer.index_not_found_analysis = True
             logging.logger.warning("index %s does not exist, skipping use case" % analyzer.es_index)
         except Exception:
-            logging.logger.error(traceback.format_exc())
+            analyzer.unknown_error_analysis = True
+            logging.logger.error("error while analyzing use case", exc_info=True)
         finally:
             es.flush_bulk_actions(refresh=True)
 
-    if analyzed_models == 0:
+    return analyzers_to_evaluate
+
+
+def print_analysis_summary(analyzed_models):
+    logging.logger.info("")
+    logging.logger.info("============================")
+    logging.logger.info("===== analysis summary =====")
+    logging.logger.info("============================")
+
+    completed_models = [analyzer for analyzer in analyzed_models if analyzer.completed_analysis]
+    no_index_models = [analyzer for analyzer in analyzed_models if analyzer.index_not_found_analysis]
+    errored_models = [analyzer for analyzer in analyzed_models if analyzer.unknown_error_analysis]
+
+    total_models_processed = len(completed_models) + len(no_index_models) + len(errored_models)
+    logging.logger.info("total use cases processed: %i", total_models_processed)
+    logging.logger.info("succesfully analzyed use cases: %i", len(completed_models))
+    logging.logger.info("use cases skipped because of missing index: %i", len(no_index_models))
+    logging.logger.info("use cases that caused an error: %i", len(errored_models))
+
+    analysis_times = list()
+    models_finished = False
+    for _analyzer in completed_models:
+        if _analyzer.completed_analysis:
+            models_finished = True
+            analysis_times.append(_analyzer.get_analysis_time())
+
+    if models_finished:
+        logging.logger.info("")
+        logging.logger.info("total analysis time: " + helpers.utils.strfdelta(tdelta=int(np.sum(analysis_times)), inputtype="seconds", fmt='{D}d {H}h {M}m {S}s'))
+        logging.logger.info("average analysis time: " + helpers.utils.strfdelta(tdelta=int(np.average(analysis_times)), inputtype="seconds", fmt='{D}d {H}h {M}m {S}s'))
+
+    if len(analyzed_models) == 0:
         logging.logger.warning("no use cases were analyzed. are you sure your configuration file contains use " +
                                "cases, which are enabled?")
 
-    return analyzed_models == len(analyzers_to_evaluate)
+    logging.logger.info("============================")
 
 
 # Run modes
@@ -187,14 +225,19 @@ if settings.args.run_mode == "daemon":
 
         # Perform analysis
         logging.print_generic_intro("starting outlier detection")
-        run_succeeded_without_errors = perform_analysis()
+        analyzed_models = perform_analysis()
+        print_analysis_summary(analyzed_models)
+
+        errored_models = [analyzer for analyzer in analyzed_models if analyzer.unknown_error_analysis]
 
         # Check the result of the analysis
-        if not run_succeeded_without_errors:
+        if len(errored_models) > 0:
+            run_succeeded_without_errors = False
             logging.logger.warning("ran into errors while analyzing use cases - not going to wait for the cron " +
-                                   "schedule, we just start analyzing again")
+                                   "schedule, we just start analyzing again after sleeping for a minute first")
+            time.sleep(60)
         else:
-            logging.logger.info("no errors encountered while analyzing use cases")
+            run_succeeded_without_errors = True
 
         logging.print_generic_intro("finished performing outlier detection")
 
@@ -210,7 +253,8 @@ elif settings.args.run_mode == "interactive":
     housekeeping_job.start()
 
     try:
-        perform_analysis()
+        analyzed_models  = perform_analysis()
+        print_analysis_summary(analyzed_models)
     except KeyboardInterrupt:
         logging.logger.info("keyboard interrupt received, stopping housekeeping thread")
     except Exception:
