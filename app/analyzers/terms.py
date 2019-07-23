@@ -57,6 +57,7 @@ class TermsAnalyzer(Analyzer):
                 except (KeyError, TypeError):
                     logging.logger.debug("Skipping event which does not contain the target and aggregator " +
                                          "fields we are processing. - [" + self.model_name + "]")
+                    print("skip !")
                     will_process_doc = False
 
                 if will_process_doc:
@@ -255,6 +256,12 @@ class TermsAnalyzer(Analyzer):
 
             logging.logger.debug("terms count for aggregator value " + aggregator_value + " -> " +
                                  str(counted_targets))
+
+            # if len(counted_targets) < self.model_settings["min_target_buckets"]:
+            #     logging.logger.debug("less than " + str(self.model_settings["min_target_buckets"]) +
+            #                          " time buckets, skipping analysis")
+            #     continue
+
             decision_frontier = helpers.utils.get_decision_frontier(self.model_settings["trigger_method"],
                                                                     counted_target_values,
                                                                     self.model_settings["trigger_sensitivity"],

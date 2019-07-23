@@ -81,7 +81,7 @@
         },
         "outliers": {
             "reason": ["dummy reason"],
-            "model_type": ["beaconing"], 
+            "model_type": ["terms"],
             "term": ["WIN-EVB-draman"], 
             "confidence": [0.6666666666666667],
             "type": ["dummy type"],
