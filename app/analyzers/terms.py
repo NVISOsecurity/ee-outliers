@@ -57,7 +57,6 @@ class TermsAnalyzer(Analyzer):
                 except (KeyError, TypeError):
                     logging.logger.debug("Skipping event which does not contain the target and aggregator " +
                                          "fields we are processing. - [" + self.model_name + "]")
-                    print("skip !")
                     will_process_doc = False
 
                 if will_process_doc:
@@ -81,6 +80,7 @@ class TermsAnalyzer(Analyzer):
                 last_batch = (logging.current_step == self.total_events)
                 if last_batch or total_terms_added >= settings.config.getint("terms", "terms_batch_eval_size"):
                     logging.logger.info("evaluating batch of " + "{:,}".format(total_terms_added) + " terms")
+                    print("eval !")
                     outliers = self.evaluate_batch_for_outliers(terms=eval_terms_array)
 
                     if len(outliers) > 0:
@@ -257,6 +257,7 @@ class TermsAnalyzer(Analyzer):
             logging.logger.debug("terms count for aggregator value " + aggregator_value + " -> " +
                                  str(counted_targets))
 
+            print("counted: ", counted_targets)
             # if len(counted_targets) < self.model_settings["min_target_buckets"]:
             #     logging.logger.debug("less than " + str(self.model_settings["min_target_buckets"]) +
             #                          " time buckets, skipping analysis")
@@ -272,14 +273,18 @@ class TermsAnalyzer(Analyzer):
 
             non_outlier_values = set()
             for ii, term_value in enumerate(terms[aggregator_value]["targets"]):
+                print("targets")
                 term_value_count = counted_targets[term_value]
+                print(term_value_count, decision_frontier, self.model_settings["trigger_on"])
                 is_outlier = helpers.utils.is_outlier(term_value_count, decision_frontier,
                                                       self.model_settings["trigger_on"])
 
                 if is_outlier:
+                    print("is outlier")
                     outliers.append(self._create_outlier(non_outlier_values, term_value_count, aggregator_value,
                                                          term_value, decision_frontier, terms, ii))
                 else:
+                    print("is not !")
                     non_outlier_values.add(term_value)
         return outliers
 
