@@ -5,7 +5,6 @@ from typing import DefaultDict, Optional, Dict
 
 import dateutil
 import copy
-import numpy as np
 
 from helpers.singletons import settings, es, logging
 import helpers.utils
