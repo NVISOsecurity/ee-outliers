@@ -163,8 +163,8 @@ class TermsAnalyzer(Analyzer):
 
         self.model_settings["trigger_on"] = settings.config.get(self.config_section_name, "trigger_on")
         self.model_settings["trigger_method"] = settings.config.get(self.config_section_name, "trigger_method")
-        self.model_settings["trigger_sensitivity"] = settings.config.getint(self.config_section_name,
-                                                                            "trigger_sensitivity")
+        self.model_settings["trigger_sensitivity"] = settings.config.getfloat(self.config_section_name,
+                                                                              "trigger_sensitivity")
 
         self.model_settings["target_count_method"] = settings.config.get(self.config_section_name,
                                                                          "target_count_method")
