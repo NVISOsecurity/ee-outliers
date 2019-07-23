@@ -166,15 +166,15 @@ class TestBeaconingAnalyzer(unittest.TestCase):
         self.assertEqual(outlier, expected_outlier)
 
     def test_prepare_and_process_outlier_check_es_have_request(self):  # TODO adapt name
-        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/beaconing_test_01.conf")
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/beaconing_test_02.conf")
         analyzer = BeaconingAnalyzer("beaconing_dummy_test")
         analyzer.extract_additional_model_settings()
 
         # Create a document and ask beaconing to add outlier informations
-        decision_frontier = 1
-        term_value_count = 2
-        aggregator_value = "agg-WIN-EVB-draman"
-        target_value = "WIN-DRA-draman"
+        decision_frontier = 0
+        term_value_count = 1
+        aggregator_value = "DUMMY-PC - 02"
+        target_value = "07"
         observations = {}
         doc = copy.deepcopy(doc_without_outlier_test_file)
         eval_terms_array = analyzer.add_term_to_batch(defaultdict(), aggregator_value, target_value, observations, doc)
@@ -189,11 +189,11 @@ class TestBeaconingAnalyzer(unittest.TestCase):
         self.assertEqual(result, expected_doc)
 
     def test_evaluate_model_beaconing_simple_case(self):
-        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/beaconing_test_01.conf")
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/beaconing_test_02.conf")
         analyzer = BeaconingAnalyzer("beaconing_dummy_test")
 
         doc_without_outlier = copy.deepcopy(doc_without_outlier_test_file)
-        expected_doc = copy.deepcopy(doc_with_beaconing_outlier_test_file)
+        expected_doc = copy.deepcopy(doc_with_beaconing_outlier_without_score_sort_test_file)
         # Add doc to the database
         self.test_es.add_doc(doc_without_outlier)
 

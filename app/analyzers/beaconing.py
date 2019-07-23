@@ -41,6 +41,7 @@ class BeaconingAnalyzer(Analyzer):
                 except (KeyError, TypeError):
                     logging.logger.debug("Skipping event which does not contain the target and aggregator fields " +
                                          "we are processing. - [" + self.model_name + "]")
+                    print("skip !")
                     will_process_doc = False
 
                 if will_process_doc:
@@ -73,8 +74,7 @@ class BeaconingAnalyzer(Analyzer):
         all_outliers = dict()  # Avoid redundancy: create a dictionary where key equals ID
 
         # Evaluate a first documents to detect outliers
-        outliers, documents_need_to_be_removed = self.evaluate_batch_for_outliers(terms=eval_terms_array,
-                                                                                  es_process_outlier=False)
+        outliers, documents_need_to_be_removed = self.evaluate_batch_for_outliers(terms=eval_terms_array)
         # Store all outliers results
         for outlier in outliers:
             all_outliers[outlier.doc['_id']] = outlier
@@ -86,8 +86,7 @@ class BeaconingAnalyzer(Analyzer):
             for term_counter in list_term_counter:
                 new_eval_terms_array = self.remove_term_to_batch(new_eval_terms_array, aggregator_value, term_counter)
 
-        outliers, documents_need_to_be_removed = self.evaluate_batch_for_outliers(terms=new_eval_terms_array,
-                                                                                  es_process_outlier=False)
+        outliers, documents_need_to_be_removed = self.evaluate_batch_for_outliers(terms=new_eval_terms_array)
         # Store all outliers results
         for outlier in outliers:
             all_outliers[outlier.doc['_id']] = outlier
@@ -125,7 +124,7 @@ class BeaconingAnalyzer(Analyzer):
         except NoOptionError:
             self.model_settings["min_target_buckets"] = DEFAULT_MIN_TARGET_BUCKETS
 
-    def evaluate_batch_for_outliers(self, terms=None, es_process_outlier=True):
+    def evaluate_batch_for_outliers(self, terms=None):
         # Initialize
         outliers = list()
         documents_need_to_be_removed = defaultdict(list)
@@ -160,8 +159,7 @@ class BeaconingAnalyzer(Analyzer):
                     term_value_count = counted_targets[term_value]
 
                     outlier = self.prepare_and_process_outlier(coeff_of_variation, term_value_count, terms,
-                                                               aggregator_value, term_counter,
-                                                               es_process_outlier=es_process_outlier)
+                                                               aggregator_value, term_counter, es_process_outlier=False)
                     if outlier.is_whitelisted():
                         documents_need_to_be_removed[aggregator_value].append(term_counter)
                     else:
