@@ -109,7 +109,7 @@ class TestTestStubEs(unittest.TestCase):
         doc_with_outlier_with_derived_timestamp.pop('_score')  # field add by es
         doc_without_outlier = copy.deepcopy(doc_without_outlier_test_file)
         test_outlier = Outlier(outlier_type="dummy type", outlier_reason="dummy reason",
-                               outlier_summary="dummy summary")
+                               outlier_summary="dummy summary", doc=doc_without_outlier)
         test_outlier.outlier_dict["observation"] = "dummy observation"
 
         es.save_outlier(doc_without_outlier, test_outlier)
