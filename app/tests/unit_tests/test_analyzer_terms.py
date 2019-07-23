@@ -16,6 +16,9 @@ doc_without_outliers_test_whitelist_03_test_file = json.load(
     open("/app/tests/unit_tests/files/doc_without_outliers_test_whitelist_03.json"))
 doc_without_outlier_test_file = json.load(open("/app/tests/unit_tests/files/doc_without_outlier.json"))
 doc_with_beaconing_outlier_test_file = json.load(open("/app/tests/unit_tests/files/doc_with_beaconing_outlier.json"))
+doc_with_beaconing_outlier_without_score_sort_test_file = json.load(
+    open("/app/tests/unit_tests/files/doc_with_beaconing_outlier_without_score_sort.json"))
+
 
 
 class TestTermsAnalyzer(unittest.TestCase):
@@ -55,7 +58,7 @@ class TestTermsAnalyzer(unittest.TestCase):
         analyzer = TermsAnalyzer("terms_beaconing_dummy_test")
 
         doc_without_outlier = copy.deepcopy(doc_without_outlier_test_file)
-        expected_doc = copy.deepcopy(doc_with_beaconing_outlier_test_file)
+        expected_doc = copy.deepcopy(doc_with_beaconing_outlier_without_score_sort_test_file)
         # Add doc to the database
         self.test_es.add_doc(doc_without_outlier)
 
@@ -63,5 +66,4 @@ class TestTermsAnalyzer(unittest.TestCase):
         analyzer.evaluate_model()
 
         result = [elem for elem in es.scan()][0]
-        print(result["_source"])
         self.assertEqual(result, expected_doc)
