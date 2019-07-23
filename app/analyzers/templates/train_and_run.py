@@ -17,7 +17,7 @@ class TemplateAnalyzer(Analyzer):
         self.model_settings["train_model"] = settings.config.getboolean(self.config_section_name, "train_model")
 
     def train_model(self):
-        search_query = es.filter_by_query_string(self.model_settings["es_query_filter"])
+        search_query = self.search_query
 
         train_data = list()
 
