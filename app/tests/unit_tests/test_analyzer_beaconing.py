@@ -150,8 +150,8 @@ class TestBeaconingAnalyzer(unittest.TestCase):
 
         # Add outlier to a list
         expected_outliers = []
-        expected_outliers.append(test_outlier_linux)  # First detected document (target [0])
-        expected_outliers.append(test_outlier_linux)  # Second detected document (target [0])
+        expected_outliers.append(test_outlier_linux_1)  # First detected document (target [0])
+        expected_outliers.append(test_outlier_linux_2)  # Second detected document (target [0])
         expected_outliers.append(test_outlier_win)  # Third detected document (target [1])
         self.assertEqual(result, expected_outliers)
 
