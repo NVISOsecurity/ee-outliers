@@ -178,6 +178,20 @@ class GenerateDummyDocuments:
                 list_nbr_documents[index] += 1
         return list_nbr_documents
 
+    def _compute_number_document_respect_min_coef_variation(self, coef_var_min: float, min_number_element: int,
+                                                            min_value: int = 0, max_value: int = 10) -> np.ndarray:
+        list_nbr_documents = np.random.randint(min_value, max_value + 1, size=min_number_element)
+
+        while list_nbr_documents.std()/list_nbr_documents.mean() < coef_var_min:
+            
+        index = np.argmax(list_nbr_documents)
+        while list_nbr_documents.std() < std_min:
+            if list_nbr_documents[index] < list_nbr_documents.mean():
+                list_nbr_documents[index] -= 1
+            else:
+                list_nbr_documents[index] += 1
+        return list_nbr_documents
+
     def create_doc_time_variable_max_sensitivity(self, nbr_val, max_trigger_sensitivity, max_difference, default_value):
         nbr_doc_generated_per_hours = self._compute_number_document_respect_max_std(max_trigger_sensitivity, nbr_val,
                                                                                     default_value - max_difference,
