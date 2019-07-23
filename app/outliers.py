@@ -183,7 +183,7 @@ def run_interactive_mode():
     except KeyboardInterrupt:
         logging.logger.info("keyboard interrupt received, stopping housekeeping thread")
     except Exception:
-        logging.logger.error(traceback.format_exc())
+        logging.logger.error("error running outliers in interactive mode", exc_info=True)
     finally:
         logging.logger.info("asking housekeeping jobs to shutdown after finishing")
         housekeeping_job.shutdown_flag.set()
