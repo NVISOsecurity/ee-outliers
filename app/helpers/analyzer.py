@@ -151,7 +151,8 @@ class Analyzer(abc.ABC):
     def process_outlier(self, fields, doc, extra_outlier_information=dict()):
         outlier_type, outlier_reason, outlier_summary, outlier_assets = \
             self._prepare_outlier_parameters(extra_outlier_information, fields)
-        outlier = Outlier(outlier_type=outlier_type, outlier_reason=outlier_reason, outlier_summary=outlier_summary)
+        outlier = Outlier(outlier_type=outlier_type, outlier_reason=outlier_reason, outlier_summary=outlier_summary,
+                          doc=doc)
 
         if len(outlier_assets) > 0:
             outlier.outlier_dict["assets"] = outlier_assets

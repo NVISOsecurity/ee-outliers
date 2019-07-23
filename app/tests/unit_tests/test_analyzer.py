@@ -46,7 +46,7 @@ class TestAnalyzer(unittest.TestCase):
         doc_fields = doc_without_outlier["_source"]
         outlier = analyzer.process_outlier(doc_fields, doc_without_outlier)
         expected_outlier = Outlier(outlier_type=["dummy type"], outlier_reason=['dummy reason'],
-                                   outlier_summary='dummy summary')
+                                   outlier_summary='dummy summary', doc=doc_without_outlier)
         expected_outlier.outlier_dict['model_name'] = 'dummy_test'
         expected_outlier.outlier_dict['model_type'] = 'analyzer'
         self.assertEqual(outlier, expected_outlier)

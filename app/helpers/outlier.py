@@ -5,21 +5,25 @@ import textwrap
 
 
 class Outlier:
-    def __init__(self, outlier_type, outlier_reason, outlier_summary):
+    def __init__(self, outlier_type, outlier_reason, outlier_summary, doc):
         self.outlier_dict = dict()
         self.outlier_dict["type"] = outlier_type  # can be multiple types, for example: malware, powershell
         self.outlier_dict["reason"] = outlier_reason  # can be multiple reasons, for example: DNS tunneling, IDS alert
         # hard-wrap the length of a summary line to 150 characters to make it easier to visualize
         self.outlier_dict["summary"] = textwrap.fill(outlier_summary, width=150)
+        self.doc = doc
+        self.cache_is_whitelist = None
 
     # Each whitelist item can contain multiple values to match across fields, separated with ",". So we need to
     # support this too.
     # Example: "dns_tunneling_fp = rule_updates.et.com, intel_server" -> should match both values across the entire
     # event (rule_updates.et.com and intel_server);
-    def is_whitelisted(self, additional_dict_values_to_check=None):
-        # Create dictionary that contain all stuff
-        return Outlier.is_whitelisted_doc({'outlier_dict': self.outlier_dict,
-                                           'additional_dict_to_check': additional_dict_values_to_check})
+    def is_whitelisted(self):
+        if self.cache_is_whitelist is None:
+            # Create dictionary that contain all stuff
+            self.cache_is_whitelist = Outlier.is_whitelisted_doc({'outlier_dict': self.outlier_dict,
+                                                                  'additional_dict_to_check': self.doc})
+        return self.cache_is_whitelist
 
     def get_outlier_dict_of_arrays(self):
         outlier_dict_of_arrays = dict()
