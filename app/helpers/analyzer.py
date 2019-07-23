@@ -5,7 +5,6 @@ from typing import DefaultDict, Optional, Dict
 
 import dateutil
 import copy
-import numpy as np
 
 from helpers.singletons import settings, es, logging
 import helpers.utils
@@ -175,7 +174,7 @@ class Analyzer(abc.ABC):
         if total_events == 0:
             logging.logger.warning("no events to analyze!")
 
-    def check_is_whitelist(self, document, extract_field=True):
+    def is_document_whitelisted(self, document, extract_field=True):
         document_to_check = copy.deepcopy(document)
         if extract_field:
             fields = es.extract_fields_from_document(document_to_check,
