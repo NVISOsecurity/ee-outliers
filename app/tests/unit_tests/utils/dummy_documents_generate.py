@@ -10,6 +10,7 @@ all_possible_filename = ["osquery_get_all_scheduled_tasks.log", "osquery_get_all
 all_possible_deployment_name = ["Company Workstations", "Company Localhost", "Localhost", "Company Test", "Testhost",
                                 "Google", "Dummy Environment", "Deployment system", "New Company", "Super Company",
                                 "New deployment", "Test deployment"]
+all_possible_command_query = ["SELECT * FROM scheduled_tasks;"]
 all_possible_toolname = ['osquery']
 all_possible_hostname = ['DUMMY-WIN10-JVZ', 'DUMMY-LINUX-JVZ', 'DUMMY-WIN10-RDE', 'DUMMY-WIN10-DRA', 'LOCAL-WIN-RDE',
                          'TEST-LINUX-XYZ', 'TEST-WIN-XYZ', 'localhost', 'abcdefghijklmno', 'aaaaaaa', "here",
@@ -39,7 +40,7 @@ class DummyDocumentsGenerate:
 
     def generate_document(self, create_outlier=False, nbr_tags=1, index=None, slave_name=None, hostname=None,
                           deployment_name=None, user_id=None, test_hex_value=None, test_base64_value=None,
-                          test_url_value=None):
+                          test_url_value=None, command_query=None):
         doc_date_time = self._generate_date()
         str_date = doc_date_time.strftime("%Y.%m.%d")
 
@@ -53,13 +54,13 @@ class DummyDocumentsGenerate:
             '_version': 2,
             '_source': self._generate_source(doc_date_time, create_outlier, nbr_tags, slave_name, hostname,
                                              deployment_name, user_id, test_hex_value, test_base64_value,
-                                             test_url_value)
+                                             test_url_value, command_query)
         }
         self.id += 1
         return doc
 
     def _generate_source(self, doc_date_time, create_outlier, nbr_tags, slave_name, hostname, deployment_name,
-                         user_id, test_hex_value, test_base64_value, test_url_value):
+                         user_id, test_hex_value, test_base64_value, test_url_value, command_query):
         # Example: 2018-08-23T10:48:16.200315+00:00
         str_timestamp = self._date_time_to_timestamp(doc_date_time)
         filename = random.choice(all_possible_filename)
@@ -75,7 +76,7 @@ class DummyDocumentsGenerate:
             'slave_name': slave_name,
             'type': random.choice(all_possible_doc_source_type),
             'filename': filename,
-            'meta': self._generate_meta(doc_date_time, filename, hostname, deployment_name, user_id),
+            'meta': self._generate_meta(doc_date_time, filename, hostname, deployment_name, user_id, command_query),
             'test': self._generate_test_data(test_hex_value, test_base64_value, test_url_value)
         }
         if create_outlier:
@@ -95,7 +96,7 @@ class DummyDocumentsGenerate:
 
         return list_tags
 
-    def _generate_meta(self, doc_date_time, filename, hostname, deployment_name, user_id):
+    def _generate_meta(self, doc_date_time, filename, hostname, deployment_name, user_id, command_query):
         if hostname is None:
             hostname = random.choice(all_possible_hostname)
 
@@ -107,7 +108,7 @@ class DummyDocumentsGenerate:
 
         return {
             'timestamp': self._date_time_to_timestamp(doc_date_time),
-            'command': self._generate_query_command(),
+            'command': self._generate_query_command(command_query),
             'deployment_name': deployment_name,
             'toolname': random.choice(all_possible_toolname),
             'filename': filename,
@@ -116,10 +117,12 @@ class DummyDocumentsGenerate:
             'user_id': user_id
         }
 
-    def _generate_query_command(self):
+    def _generate_query_command(self, command_query):
+        if command_query is None:
+            command_query = random.choice(all_possible_command_query)
         return {
             'name': "get_all_scheduled_tasks",
-            'query': "SELECT * FROM scheduled_tasks;",
+            'query': command_query,
             'mode': "base_scan"
         }
 

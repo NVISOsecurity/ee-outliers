@@ -36,8 +36,8 @@ class TestSimplequeryAnalyzer(unittest.TestCase):
         dummy_doc_generate = DummyDocumentsGenerate()
         nbr_generated_documents = 5
         all_doc = dummy_doc_generate.create_documents(nbr_generated_documents)
-        new_doc = dummy_doc_generate.generate_document(hostname="whitelist_hostname")
-        all_doc.append(new_doc)
+        whitelisted_document = dummy_doc_generate.generate_document(hostname="whitelist_hostname")
+        all_doc.append(whitelisted_document)
         self.test_es.add_multiple_docs(all_doc)
 
         # Run analyzer
