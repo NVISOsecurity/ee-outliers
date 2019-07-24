@@ -226,6 +226,8 @@ def get_decision_frontier(trigger_method, values_array, trigger_sensitivity, tri
         decision_frontier = get_stdev_decision_frontier(values_array, trigger_sensitivity, trigger_on)
     elif trigger_method == "float":
         decision_frontier = np.float64(trigger_sensitivity)
+    elif trigger_method == "coeff_of_variation":
+        decision_frontier = np.std(values_array) / np.mean(values_array)
     else:
         raise ValueError("Unexpected trigger method " + trigger_method + ", could not calculate decision frontier")
 
