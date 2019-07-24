@@ -11,9 +11,9 @@ all_possible_deployment_name = ["Company Workstations", "Company Localhost", "Lo
                                 "Google", "Dummy Environment", "Deployment system", "New Company", "Super Company",
                                 "New deployment", "Test deployment"]
 all_possible_toolname = ['osquery']
-all_possible_hostname = ['NVISO-WIN10-JVZ', 'NVISO-LINUX-JVZ', 'NVISO-WIN10-RDE', 'NVISO-WIN10-DRA', 'LOCAL-WIN-RDE',
+all_possible_hostname = ['DUMMY-WIN10-JVZ', 'DUMMY-LINUX-JVZ', 'DUMMY-WIN10-RDE', 'DUMMY-WIN10-DRA', 'LOCAL-WIN-RDE',
                          'TEST-LINUX-XYZ', 'TEST-WIN-XYZ', 'localhost', 'abcdefghijklmno', 'aaaaaaa', "here",
-                         "NVISO-VERY-LONG-HOSTNAME-TO-ENHANCE-TEST"]
+                         "DUMMY-VERY-LONG-HOSTNAME-TO-ENHANCE-TEST"]
 all_test_hex_values = ["not hex value", "12177014F73", "5468697320697320612074657374",
                        "The same text 5468652073616d652074657874"]
 all_test_base64_values = ["QVlCQUJUVQ==", "VGhpcyBpcyBhIHRleHQ=", "not base"]

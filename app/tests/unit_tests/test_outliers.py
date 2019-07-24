@@ -19,8 +19,8 @@ doc_for_whitelist_testing_file = json.load(open("/app/tests/unit_tests/files/doc
 nested_doc_for_whitelist_test = {'169.254.184.188', 'fe80::491a:881a:b1bf:b539', 2, 1, '1535026336',
                                  '1535017696_osquery_get_all_scheduled_tasks.log',
                                  'User_Feed_Synchronization-{9CD0CFAD-350E-46BA-8338-932284EF7332}', None,
-                                 'OsqueryFilter', 'get_all_scheduled_tasks', 'NVISO Workstations',
-                                 'osquery_get_all_scheduled_tasks.log', "['user:jvanderzweep', 'host:NVISO-WIN10-JVZ']",
+                                 'OsqueryFilter', 'get_all_scheduled_tasks', 'Dummy Workstations',
+                                 'osquery_get_all_scheduled_tasks.log', "['user:jvanderzweep', 'host:DUMMY-WIN10-JVZ']",
                                  ' C:\\Windows\\system32\\msfeedssync.exe sync',
                                  '\\User_Feed_Synchronization-{9CD0CFAD-350E-46BA-8338-932284EF7332}'}
 
