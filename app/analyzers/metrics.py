@@ -15,8 +15,6 @@ SUPPORTED_TRIGGERS = ["high", "low"]
 class MetricsAnalyzer(Analyzer):
 
     def evaluate_model(self):
-        self.extract_additional_model_settings()
-
         eval_metrics = defaultdict()
         total_metrics_added = 0
 
@@ -75,7 +73,10 @@ class MetricsAnalyzer(Analyzer):
 
         self.print_analysis_summary()
 
-    def extract_additional_model_settings(self):
+    def _extract_additional_model_settings(self):
+        """
+        Override method from Analyzer
+        """
         try:
             self.model_settings["process_documents_chronologically"] = settings.config.getboolean(self.config_section_name, "process_documents_chronologically")
         except NoOptionError:
