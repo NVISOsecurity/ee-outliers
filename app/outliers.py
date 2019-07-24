@@ -210,7 +210,8 @@ def perform_analysis():
                 analyzers.append(_analyzer)
 
             elif config_section_name.startswith("beaconing_"):
-                logging.logger.error("use of the beaconing model is deprecated, please use the terms model using coeff_of_variation trigger method to convert use case " + config_section_name)
+                logging.logger.error("use of the beaconing model is deprecated, please use the terms model using " +
+                                     "coeff_of_variation trigger method to convert use case " + config_section_name)
 
             elif config_section_name.startswith("word2vec_"):
                 _analyzer = Word2VecAnalyzer(config_section_name=config_section_name)
@@ -264,7 +265,8 @@ def print_analysis_summary(analyzed_models):
 
     no_index_models = [analyzer for analyzer in analyzed_models if analyzer.index_not_found_analysis]
     unknown_error_models = [analyzer for analyzer in analyzed_models if analyzer.unknown_error_analysis]
-    configuration_parsing_error_models = [analyzer for analyzer in analyzed_models if analyzer.configuration_parsing_error]
+    configuration_parsing_error_models = [analyzer for analyzer in analyzed_models
+                                          if analyzer.configuration_parsing_error]
 
     total_models_processed = len(completed_models) + len(no_index_models) + len(unknown_error_models)
     logging.logger.info("total use cases processed: %i", total_models_processed)
@@ -275,7 +277,8 @@ def print_analysis_summary(analyzed_models):
     logging.logger.info("succesfully analyzed use cases with events: %i", len(completed_models_with_events))
     logging.logger.info("")
     logging.logger.info("use cases skipped because of missing index: %i", len(no_index_models))
-    logging.logger.info("use cases skipped because of incorrect configuration: %i", len(configuration_parsing_error_models))
+    logging.logger.info("use cases skipped because of incorrect configuration: %i",
+                        len(configuration_parsing_error_models))
     logging.logger.info("use cases that caused an error: %i", len(unknown_error_models))
     logging.logger.info("")
 
