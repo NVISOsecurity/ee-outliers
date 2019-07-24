@@ -95,8 +95,8 @@ class TestTermsAnalyzer(unittest.TestCase):
 
     # coeff_of_variation
     def test_terms_evaluate_coeff_of_variation_like_expected_document(self):
-        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_01.conf")
-        analyzer = TermsAnalyzer("terms_dummy_test_no_bucket")
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/beaconing_test_01.conf")
+        analyzer = TermsAnalyzer("terms_beaconing_dummy_test")
 
         doc_without_outlier = copy.deepcopy(doc_without_outlier_test_file)
         expected_doc = copy.deepcopy(doc_with_beaconing_outlier_without_score_sort_test_file)
