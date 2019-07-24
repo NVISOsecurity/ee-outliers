@@ -162,11 +162,17 @@ class TermsAnalyzer(Analyzer):
 
         self.model_settings["trigger_on"] = settings.config.get(self.config_section_name, "trigger_on")
         self.model_settings["trigger_method"] = settings.config.get(self.config_section_name, "trigger_method")
-        self.model_settings["trigger_sensitivity"] = settings.config.getint(self.config_section_name,
-                                                                            "trigger_sensitivity")
+        self.model_settings["trigger_sensitivity"] = settings.config.getfloat(self.config_section_name,
+                                                                              "trigger_sensitivity")
 
         self.model_settings["target_count_method"] = settings.config.get(self.config_section_name,
                                                                          "target_count_method")
+
+        try:
+            self.model_settings["min_target_buckets"] = settings.config.getint(self.config_section_name,
+                                                                               "min_target_buckets")
+        except NoOptionError:
+            self.model_settings["min_target_buckets"] = None
 
         # Validate model settings
         if self.model_settings["target_count_method"] not in {"within_aggregator", "across_aggregators"}:
@@ -255,6 +261,13 @@ class TermsAnalyzer(Analyzer):
 
             logging.logger.debug("terms count for aggregator value " + aggregator_value + " -> " +
                                  str(counted_targets))
+
+            if self.model_settings["min_target_buckets"] is not None and \
+                    len(counted_targets) < self.model_settings["min_target_buckets"]:
+                logging.logger.debug("less than " + str(self.model_settings["min_target_buckets"]) +
+                                     " time buckets, skipping analysis")
+                continue
+
             decision_frontier = helpers.utils.get_decision_frontier(self.model_settings["trigger_method"],
                                                                     counted_target_values,
                                                                     self.model_settings["trigger_sensitivity"],
@@ -263,17 +276,28 @@ class TermsAnalyzer(Analyzer):
             logging.logger.debug("using " + self.model_settings["trigger_method"] + " decision frontier " +
                                  str(decision_frontier) + " for aggregator " + str(aggregator_value))
 
-            non_outlier_values = set()
-            for ii, term_value in enumerate(terms[aggregator_value]["targets"]):
-                term_value_count = counted_targets[term_value]
-                is_outlier = helpers.utils.is_outlier(term_value_count, decision_frontier,
-                                                      self.model_settings["trigger_on"])
+            if self.model_settings["trigger_method"] == "coeff_of_variation":
+                # decision_frontier = coeff_of_variation. So we need to check if coeff_of_variation is high or low
+                # of the sensitivity
+                if helpers.utils.is_outlier(decision_frontier, self.model_settings["trigger_sensitivity"],
+                                            self.model_settings["trigger_on"]):
+                    non_outlier_values = set()
+                    for ii, term_value in enumerate(terms[aggregator_value]["targets"]):
+                        term_value_count = counted_targets[term_value]
+                        outliers.append(self._create_outlier(non_outlier_values, term_value_count, aggregator_value,
+                                                             term_value, decision_frontier, terms, ii))
+            else:
+                non_outlier_values = set()
+                for ii, term_value in enumerate(terms[aggregator_value]["targets"]):
+                    term_value_count = counted_targets[term_value]
+                    is_outlier = helpers.utils.is_outlier(term_value_count, decision_frontier,
+                                                          self.model_settings["trigger_on"])
 
-                if is_outlier:
-                    outliers.append(self._create_outlier(non_outlier_values, term_value_count, aggregator_value,
-                                                         term_value, decision_frontier, terms, ii))
-                else:
-                    non_outlier_values.add(term_value)
+                    if is_outlier:
+                        outliers.append(self._create_outlier(non_outlier_values, term_value_count, aggregator_value,
+                                                             term_value, decision_frontier, terms, ii))
+                    else:
+                        non_outlier_values.add(term_value)
         return outliers
 
     def _create_outlier(self, non_outlier_values, term_value_count, aggregator_value, term_value, decision_frontier,
