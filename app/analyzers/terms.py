@@ -174,10 +174,11 @@ class TermsAnalyzer(Analyzer):
             self.model_settings["min_target_buckets"] = settings.config.getint(self.config_section_name,
                                                                                "min_target_buckets")
         except NoOptionError:
-            self.model_settings["min_target_buckets"] = DEFAULT_MIN_TARGET_BUCKETS
+            self.model_settings["min_target_buckets"] = None
 
         # Validate model settings
-        if self.model_settings["target_count_method"] not in {"within_aggregator", "across_aggregators"}:
+        if self.model_settings["target_count_method"] not in {"within_aggregator", "across_aggregators",
+                                                              "whole_aggregator"}:
             raise ValueError("target count method " + self.model_settings["target_count_method"] + " not supported")
 
         if self.model_settings["trigger_on"] not in {"high", "low"}:
@@ -206,6 +207,17 @@ class TermsAnalyzer(Analyzer):
         # we then flag an outlier if that "1" is an outlier in the array ["1 1 1 2 1"]
         elif self.model_settings["target_count_method"] == "within_aggregator":
             return self._evaluate_batch_for_outliers_within_aggregator(terms)
+
+        # For example:
+        # terms["smsc.exe"][A, B, C, D, D, E]
+        # terms["abc.exe"][A, A, B]
+        # is converted into:
+        # First iteration: "smsc.exe" -> counted_target_values: {A: 1, B: 1, C: 1, D: 2, E: 1}
+        # Compute the decision frontiere (like coeff_of_variation)
+        # Compare this result with the trigger_sensitivity
+        # If true, all documents in this aggregator are marked as outlier
+        elif self.model_settings["target_count_method"] == "whole_aggregator":
+            return self._evaluate_batch_for_outliers_whole_aggregator(terms)
 
         return list()
 
@@ -264,7 +276,8 @@ class TermsAnalyzer(Analyzer):
             logging.logger.debug("terms count for aggregator value " + aggregator_value + " -> " +
                                  str(counted_targets))
 
-            if len(counted_targets) < self.model_settings["min_target_buckets"]:
+            if self.model_settings["min_target_buckets"] is not None and \
+                    len(counted_targets) < self.model_settings["min_target_buckets"]:
                 logging.logger.debug("less than " + str(self.model_settings["min_target_buckets"]) +
                                      " time buckets, skipping analysis")
                 continue
@@ -288,6 +301,41 @@ class TermsAnalyzer(Analyzer):
                                                          term_value, decision_frontier, terms, ii))
                 else:
                     non_outlier_values.add(term_value)
+        return outliers
+
+    def _evaluate_batch_for_outliers_whole_aggregator(self, terms):
+        # Initialize
+        outliers = list()
+
+        for i, aggregator_value in enumerate(terms):
+            # Count percentage of each target value occuring
+            counted_targets = Counter(terms[aggregator_value]["targets"])
+            counted_target_values = list(counted_targets.values())
+
+            logging.logger.debug("terms count for aggregator value " + aggregator_value + " -> " +
+                                 str(counted_targets))
+
+            if len(counted_targets) < self.model_settings["min_target_buckets"]:
+                logging.logger.debug("less than " + str(self.model_settings["min_target_buckets"]) +
+                                     " time buckets, skipping analysis")
+                continue
+
+            decision_frontier = helpers.utils.get_decision_frontier(self.model_settings["trigger_method"],
+                                                                    counted_target_values,
+                                                                    self.model_settings["trigger_sensitivity"],
+                                                                    self.model_settings["trigger_on"])
+
+            logging.logger.debug("using " + self.model_settings["trigger_method"] + " decision frontier " +
+                                 str(decision_frontier) + " for aggregator " + str(aggregator_value))
+
+            if helpers.utils.is_outlier(self.model_settings["trigger_sensitivity"], decision_frontier,
+                                        self.model_settings["trigger_on"]):
+                non_outlier_values = set()
+                for ii, term_value in enumerate(terms[aggregator_value]["targets"]):
+                    term_value_count = counted_targets[term_value]
+                    outliers.append(self._create_outlier(non_outlier_values, term_value_count, aggregator_value,
+                                                         term_value, decision_frontier, terms, ii))
+
         return outliers
 
     def _create_outlier(self, non_outlier_values, term_value_count, aggregator_value, term_value, decision_frontier,
