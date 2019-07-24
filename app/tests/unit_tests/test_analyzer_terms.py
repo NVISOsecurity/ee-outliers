@@ -61,7 +61,6 @@ class TestTermsAnalyzer(unittest.TestCase):
     def test_evaluate_batch_for_outliers_not_enough_target_buckets_one_doc_max_two(self):
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_01.conf")
         analyzer = TermsAnalyzer("terms_dummy_test")
-        analyzer._extract_additional_model_settings()
 
         aggregator_value = LIST_AGGREGATOR_VALUE[0]
         target_value = random.choice(LIST_TARGET_VALUE)
@@ -75,7 +74,6 @@ class TestTermsAnalyzer(unittest.TestCase):
     def test_evaluate_batch_for_outliers_limit_target_buckets_two_doc_max_two(self):
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_01.conf")
         analyzer = TermsAnalyzer("terms_dummy_test")
-        analyzer._extract_additional_model_settings()
 
         # Create one document with one aggregator
         aggregator_value = LIST_AGGREGATOR_VALUE[0]
@@ -95,7 +93,8 @@ class TestTermsAnalyzer(unittest.TestCase):
         result = analyzer.evaluate_batch_for_outliers(terms=eval_terms_array)
         self.assertEqual(result, [])
 
-    def test_evaluate_model_beaconing_simple_case(self):
+    # coeff_of_variation
+    def test_terms_evaluate_coeff_of_variation_like_expected_document(self):
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/beaconing_test_01.conf")
         analyzer = TermsAnalyzer("terms_beaconing_dummy_test")
 

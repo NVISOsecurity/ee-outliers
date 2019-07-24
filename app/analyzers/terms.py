@@ -11,8 +11,6 @@ from helpers.analyzer import Analyzer
 class TermsAnalyzer(Analyzer):
 
     def evaluate_model(self):
-        self._extract_additional_model_settings()
-
         if self.model_settings["brute_force_target"]:
             logging.logger.warning("running terms model in brute force mode, could take a long time!")
             target_fields_to_brute_force = self._calculate_target_fields_to_brute_force()
@@ -147,8 +145,12 @@ class TermsAnalyzer(Analyzer):
         return field_names_to_brute_force
 
     def _extract_additional_model_settings(self):
+        """
+        Override method from Analyzer
+        """
         try:
-            self.model_settings["process_documents_chronologically"] = settings.config.getboolean(self.config_section_name, "process_documents_chronologically")
+            self.model_settings["process_documents_chronologically"] = settings.config.getboolean(
+                self.config_section_name, "process_documents_chronologically")
         except NoOptionError:
             self.model_settings["process_documents_chronologically"] = True
 

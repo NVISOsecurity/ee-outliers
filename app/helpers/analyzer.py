@@ -23,6 +23,7 @@ class Analyzer(abc.ABC):
 
         # extract all settings for this use case
         self.model_settings = self._extract_model_settings()
+        self._extract_additional_model_settings()
 
         if self.model_settings["es_query_filter"]:
             self.search_query = es.filter_by_query_string(self.model_settings["es_query_filter"])
@@ -114,6 +115,13 @@ class Analyzer(abc.ABC):
             self.config_section_name, "test_model")
 
         return model_settings
+
+    def _extract_additional_model_settings(self):
+        """
+        Method call in the construction to load all parameter of this analyzer
+        This method could be override by children to load content linked to a specific analyzer
+        """
+        pass
 
     def print_analysis_summary(self):
         if len(self.outliers) > 0:

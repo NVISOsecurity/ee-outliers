@@ -14,8 +14,6 @@ DEFAULT_MIN_TARGET_BUCKETS = 10
 class BeaconingAnalyzer(Analyzer):
 
     def evaluate_model(self):
-        self.extract_additional_model_settings()
-
         self.total_events = es.count_documents(index=self.es_index, search_query=self.search_query,
                                                model_settings=self.model_settings)
 
