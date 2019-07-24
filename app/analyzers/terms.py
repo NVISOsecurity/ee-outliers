@@ -154,8 +154,9 @@ class TermsAnalyzer(Analyzer):
         except NoOptionError:
             self.model_settings["process_documents_chronologically"] = True
 
-        self.model_settings["target"] = settings.config.get(self.config_section_name, "target")\
-                                        .replace(' ', '').split(",")  # remove unnecessary whitespace, split fields
+        # remove unnecessary whitespace, split fields
+        self.model_settings["target"] = settings.config.get(self.config_section_name,
+                                                            "target").replace(' ', '').split(",")
 
         self.model_settings["brute_force_target"] = "*" in self.model_settings["target"]
 
@@ -183,7 +184,9 @@ class TermsAnalyzer(Analyzer):
         if self.model_settings["trigger_on"] not in {"high", "low"}:
             raise ValueError("Unexpected outlier trigger condition " + str(self.model_settings["trigger_on"]))
 
-        if self.model_settings["trigger_method"] not in {"percentile", "pct_of_max_value", "pct_of_median_value", "pct_of_avg_value", "mad", "madpos", "stdev", "float", "coeff_of_variation"}:
+        if self.model_settings["trigger_method"] not in {"percentile", "pct_of_max_value", "pct_of_median_value",
+                                                         "pct_of_avg_value", "mad", "madpos", "stdev", "float",
+                                                         "coeff_of_variation"}:
             raise ValueError("Unexpected outlier trigger method " + str(self.model_settings["trigger_method"]))
 
     def evaluate_batch_for_outliers(self, terms=None):
