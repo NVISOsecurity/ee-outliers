@@ -118,8 +118,8 @@ class Analyzer(abc.ABC):
 
     def _extract_additional_model_settings(self):
         """
-        Method call in the construction to load all parameter of this analyzer
-        This method could be override by children to load content linked to a specific analyzer
+        Method call in the construction to load all parameters of this analyzer
+        This method can be overridden by children to load content linked to a specific analyzer
         """
         pass
 
