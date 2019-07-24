@@ -183,7 +183,7 @@ def run_interactive_mode():
     except KeyboardInterrupt:
         logging.logger.info("keyboard interrupt received, stopping housekeeping thread")
     except Exception:
-        logging.logger.error(traceback.format_exc())
+        logging.logger.error("error running outliers in interactive mode", exc_info=True)
     finally:
         logging.logger.info("asking housekeeping jobs to shutdown after finishing")
         housekeeping_job.shutdown_flag.set()
@@ -211,8 +211,7 @@ def perform_analysis():
                 analyzers.append(terms_analyzer)
 
             elif config_section_name.startswith("beaconing_"):
-                beaconing_analyzer = BeaconingAnalyzer(config_section_name=config_section_name)
-                analyzers.append(beaconing_analyzer)
+                logging.logger.error("use of the beaconing model is deprecated, please use the terms model using coeff_of_variation trigger method to convert use case " + config_section_name)
 
             elif config_section_name.startswith("word2vec_"):
                 word2vec_analyzer = Word2VecAnalyzer(config_section_name=config_section_name)
