@@ -39,7 +39,8 @@ class Analyzer(abc.ABC):
             self.model_settings = self._extract_model_settings()
             self._extract_additional_model_settings()
         except Exception:
-            logging.logger.error("error while parsing use case configuration for " + self.config_section_name, exc_info=True)
+            logging.logger.error("error while parsing use case configuration for " + self.config_section_name,
+                                 exc_info=True)
             self.configuration_parsing_error = True
 
     @property
@@ -62,7 +63,8 @@ class Analyzer(abc.ABC):
             model_settings["timestamp_field"] = settings.config.get("general", "timestamp_field", fallback="timestamp")
 
         try:
-            model_settings["history_window_days"] = settings.config.getint(self.config_section_name, "history_window_days")
+            model_settings["history_window_days"] = settings.config.getint(self.config_section_name,
+                                                                           "history_window_days")
         except NoOptionError:
             model_settings["history_window_days"] = settings.config.getint("general", "history_window_days")
 
