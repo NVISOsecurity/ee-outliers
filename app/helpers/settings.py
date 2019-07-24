@@ -31,8 +31,10 @@ class Settings:
         self.loaded_config_paths = None
         self.failed_config_paths = None
 
+        self.whitelist_literals_config = None
+        self.whitelist_regexps_config = None
+
         self.args = parser.parse_args()
-        self.default_args_config = copy.deepcopy(self.args.config)
         self.process_configuration_files()
 
     def process_configuration_files(self):
@@ -47,18 +49,6 @@ class Settings:
 
         self.config = config
 
-    def _change_configuration_path(self, new_path):
-        """
-        Only use by tests
+        self.whitelist_literals_config = self.config.items("whitelist_literals")
+        self.whitelist_regexps_config = self.config.items("whitelist_regexps")
 
-        :param new_path: the new path of the configuration
-        """
-        self.args.config = [new_path]
-        self.process_configuration_files()
-
-    def _restore_default_configuration_path(self):
-        """
-        Only use by tests to restore the default configuration
-        """
-        self.args.config = self.default_args_config
-        self.process_configuration_files()

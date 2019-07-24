@@ -1,3 +1,5 @@
+from configparser import NoOptionError
+
 import numpy as np
 from helpers.singletons import settings, es, logging
 from collections import defaultdict
@@ -30,24 +32,25 @@ class MetricsAnalyzer(Analyzer):
 
                 fields = es.extract_fields_from_document(
                                             doc, extract_derived_fields=self.model_settings["use_derived_fields"])
-
                 try:
                     target_value = helpers.utils.flatten_sentence(helpers.utils.get_dotkey_value(
                                             fields, self.model_settings["target"], case_sensitive=True))
                     aggregator_sentences = helpers.utils.flatten_fields_into_sentences(
                                             fields=fields, sentence_format=self.model_settings["aggregator"])
+                    will_process_doc = True
                 except (KeyError, TypeError):
-                    logging.logger.debug("skipping event which does not contain the target and aggregator fields we " +
-                                         "are processing. - [" + self.model_name + "]")
-                    continue
+                    logging.logger.debug("skipping event which does not contain the target and aggregator " +
+                                         "fields we are processing. - [" + self.model_name + "]")
+                    will_process_doc = False
 
-                metric, observations = self.calculate_metric(self.model_settings["metric"], target_value)
+                if will_process_doc:
+                    metric, observations = self.calculate_metric(self.model_settings["metric"], target_value)
 
-                if metric is not None:  # explicitly check for none, since "0" can be OK as a metric!
-                    total_metrics_added += 1
-                    for aggregator_sentence in aggregator_sentences:
-                        flattened_aggregator_sentence = helpers.utils.flatten_sentence(aggregator_sentence)
-                        eval_metrics = self.add_metric_to_batch(eval_metrics, flattened_aggregator_sentence,
+                    if metric is not None:  # explicitly check for none, since "0" can be OK as a metric!
+                        total_metrics_added += 1
+                        for aggregator_sentence in aggregator_sentences:
+                            flattened_aggregator_sentence = helpers.utils.flatten_sentence(aggregator_sentence)
+                            eval_metrics = self.add_metric_to_batch(eval_metrics, flattened_aggregator_sentence,
                                                                 target_value, metric, observations, doc)
 
                 # Evaluate batch of events against the model
@@ -73,6 +76,11 @@ class MetricsAnalyzer(Analyzer):
         self.print_analysis_summary()
 
     def extract_additional_model_settings(self):
+        try:
+            self.model_settings["process_documents_chronologically"] = settings.config.getboolean(self.config_section_name, "process_documents_chronologically")
+        except NoOptionError:
+            self.model_settings["process_documents_chronologically"] = True
+
         self.model_settings["target"] = settings.config.get(self.config_section_name, "target")
         self.model_settings["aggregator"] = settings.config.get(self.config_section_name, "aggregator")\
             .replace(' ', '').split(",")

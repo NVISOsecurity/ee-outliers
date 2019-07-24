@@ -30,6 +30,7 @@ class HousekeepingJob(threading.Thread):
 
     def run(self):
         logging.logger.info('housekeeping thread #%s started' % self.ident)
+        self.remove_all_whitelisted_outliers()
 
         # Remove all existing whitelisted items if needed
         while not self.shutdown_flag.is_set():
@@ -46,22 +47,24 @@ class HousekeepingJob(threading.Thread):
 
             if self.last_config_parameters != self._get_config_whitelist_parameters():
                 self.last_config_parameters = self._get_config_whitelist_parameters()
-                logging.logger.info("housekeeping - changes detected about the 'whitelist' in the configuration")
+                logging.logger.info("housekeeping - changes detected in the whitelist configuration")
+                self.remove_all_whitelisted_outliers()
 
-                if settings.config.getboolean("general", "es_wipe_all_whitelisted_outliers"):
-                    try:
-                        logging.logger.info("housekeeping - going to remove all whitelisted outliers")
-                        total_docs_whitelisted = es.remove_all_whitelisted_outliers()
+    @staticmethod
+    def remove_all_whitelisted_outliers():
+        if settings.config.getboolean("general", "es_wipe_all_whitelisted_outliers"):
+            try:
+                logging.logger.info("housekeeping - going to remove all whitelisted outliers")
+                total_docs_whitelisted = es.remove_all_whitelisted_outliers()
 
-                        if total_docs_whitelisted > 0:
-                            logging.logger.info(
-                                "housekeeping - total whitelisted documents cleared from outliers: " +
-                                "{:,}".format(total_docs_whitelisted))
-                        else:
-                            logging.logger.info("housekeeping - whitelist did not remove any outliers")
+                if total_docs_whitelisted > 0:
+                    logging.logger.info(
+                        "housekeeping - total whitelisted documents cleared from outliers: " +
+                        "{:,}".format(total_docs_whitelisted))
+                else:
+                    logging.logger.info("housekeeping - whitelist did not remove any outliers")
 
-                    except Exception:
-                        logging.logger.error("housekeeping - something went removing whitelisted outliers")
-                        logging.logger.error(traceback.format_exc())
+            except Exception:
+                logging.logger.error("housekeeping - something went removing whitelisted outliers", exc_info=True)
 
-                    logging.logger.info("housekeeping - finished round of cleaning whitelisted items")
+            logging.logger.info("housekeeping - finished round of cleaning whitelisted items")

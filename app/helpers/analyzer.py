@@ -4,6 +4,7 @@ from configparser import NoOptionError
 from typing import DefaultDict, Optional, Dict
 
 import dateutil
+import copy
 
 from helpers.singletons import settings, es, logging
 import helpers.utils
@@ -30,10 +31,29 @@ class Analyzer(abc.ABC):
             self.search_query = es.filter_by_dsl_query(self.model_settings["es_dsl_filter"])
 
         self.total_events = 0
+
+        self.analysis_start_time = None
+        self.analysis_end_time = None
+
+        self.completed_analysis = False
+        self.index_not_found_analysis = False
+        self.unknown_error_analysis = False
+
         self.outliers = list()
+
+    @property
+    def analysis_time_seconds(self):
+        if self.completed_analysis:
+            return float(self.analysis_end_time - self.analysis_start_time)
+        else:
+            return None
 
     def _extract_model_settings(self):
         model_settings = dict()
+
+        # by default, we don't process documents chronologically when analyzing the model, as it
+        # has a high impact on performance when scanning in Elasticsearch
+        model_settings["process_documents_chronologically"] = False
 
         try:
             model_settings["timestamp_field"] = settings.config.get(self.config_section_name, "timestamp_field")
@@ -41,13 +61,13 @@ class Analyzer(abc.ABC):
             model_settings["timestamp_field"] = settings.config.get("general", "timestamp_field", fallback="timestamp")
 
         try:
-            model_settings["history_window_days"] = settings.config.get(self.config_section_name, "history_window_days")
+            model_settings["history_window_days"] = settings.config.getint(self.config_section_name, "history_window_days")
         except NoOptionError:
             model_settings["history_window_days"] = settings.config.getint("general", "history_window_days")
 
         try:
-            model_settings["history_window_hours"] = settings.config.get(self.config_section_name,
-                                                                         "history_window_hours")
+            model_settings["history_window_hours"] = settings.config.getint(self.config_section_name,
+                                                                            "history_window_hours")
         except NoOptionError:
             model_settings["history_window_hours"] = settings.config.getint("general", "history_window_hours")
 
@@ -103,7 +123,7 @@ class Analyzer(abc.ABC):
         else:
             logging.logger.info("no outliers detected for use case")
 
-    def process_outlier(self, fields, doc, extra_outlier_information=dict()):
+    def _prepare_outlier_parameters(self, extra_outlier_information, fields):
         extra_outlier_information["model_name"] = self.model_name
         extra_outlier_information["model_type"] = self.model_type
 
@@ -116,9 +136,9 @@ class Analyzer(abc.ABC):
         # for both outlier types and reasons, we also allow the case where multiples values are provided at once.
         # example: type = malware, IDS
         outlier_type = helpers.utils.replace_placeholder_fields_with_values(
-                                self.model_settings["outlier_type"], fields_and_extra_outlier_information).split(",")
+            self.model_settings["outlier_type"], fields_and_extra_outlier_information).split(",")
         outlier_reason = helpers.utils.replace_placeholder_fields_with_values(
-                                self.model_settings["outlier_reason"], fields_and_extra_outlier_information).split(",")
+            self.model_settings["outlier_reason"], fields_and_extra_outlier_information).split(",")
 
         # remove any leading or trailing whitespace from either. For example: "type = malware,  IDS" should just
         # return ["malware","IDS"] instead of ["malware", "  IDS"]
@@ -126,7 +146,13 @@ class Analyzer(abc.ABC):
         outlier_reason = [item.strip() for item in outlier_reason]
 
         outlier_assets = helpers.utils.extract_outlier_asset_information(fields, settings)
-        outlier = Outlier(outlier_type=outlier_type, outlier_reason=outlier_reason, outlier_summary=outlier_summary)
+        return outlier_type, outlier_reason, outlier_summary, outlier_assets
+
+    def process_outlier(self, fields, doc, extra_outlier_information=dict()):
+        outlier_type, outlier_reason, outlier_summary, outlier_assets = \
+            self._prepare_outlier_parameters(extra_outlier_information, fields)
+        outlier = Outlier(outlier_type=outlier_type, outlier_reason=outlier_reason, outlier_summary=outlier_summary,
+                          doc=doc)
 
         if len(outlier_assets) > 0:
             outlier.outlier_dict["assets"] = outlier_assets
@@ -141,13 +167,24 @@ class Analyzer(abc.ABC):
 
     def print_analysis_intro(self, event_type, total_events):
         logging.logger.info("")
-        logging.logger.info("===== " + event_type + " outlier detection =====")
+        logging.logger.info("===== " + event_type + " [" + self.model_type + " model] ===")
         logging.logger.info("analyzing " + "{:,}".format(total_events) + " events")
         logging.logger.info(self.get_time_window_info(history_days=self.model_settings["history_window_days"],
                                                       history_hours=self.model_settings["history_window_days"]))
 
         if total_events == 0:
             logging.logger.warning("no events to analyze!")
+
+    def is_document_whitelisted(self, document, extract_field=True):
+        document_to_check = copy.deepcopy(document)
+        if extract_field:
+            fields = es.extract_fields_from_document(document_to_check,
+                                                     extract_derived_fields=self.model_settings["use_derived_fields"])
+        else:
+            fields = document
+        outlier_param = self._prepare_outlier_parameters(dict(), fields)
+        document_to_check['__whitelist_extra'] = outlier_param
+        return Outlier.is_whitelisted_doc(document_to_check)
 
     @staticmethod
     def get_time_window_info(history_days=None, history_hours=None):

@@ -17,11 +17,9 @@ class TemplateAnalyzer(Analyzer):
         self.model_settings["train_model"] = settings.config.getboolean(self.config_section_name, "train_model")
 
     def train_model(self):
-        search_query = es.filter_by_query_string(self.model_settings["es_query_filter"])
-
         train_data = list()
 
-        self.total_events = es.count_documents(index=self.es_index, search_query=search_query,
+        self.total_events = es.count_documents(index=self.es_index, search_query=self.search_query,
                                                model_settings=self.model_settings)
         training_data_size_pct = settings.config.getint("machine_learning", "training_data_size_pct")
         training_data_size = self.total_events / 100 * training_data_size_pct
@@ -31,7 +29,7 @@ class TemplateAnalyzer(Analyzer):
 
         logging.init_ticker(total_steps=total_training_events, desc=self.model_name + " - preparing SVM training set")
         if self.total_events > 0:
-            for doc in es.scan(index=self.es_index, search_query=search_query, model_settings=self.model_settings):
+            for doc in es.scan(index=self.es_index, search_query=self.search_query, model_settings=self.model_settings):
                 if len(train_data) < total_training_events:
                     logging.tick()
                     fields = es.extract_fields_from_document(
@@ -42,8 +40,11 @@ class TemplateAnalyzer(Analyzer):
                     break
 
         # Now, train the model
-        if len(train_data) > 0:
+        if train_data:
             pass  # Train!!
         else:
             logging.logger.warning("no sentences to train model on. Are you sure the sentence configuration is " +
                                    "correctly defined?")
+
+    def run_model(self):
+        pass
