@@ -279,7 +279,9 @@ class TermsAnalyzer(Analyzer):
                                  str(decision_frontier) + " for aggregator " + str(aggregator_value))
 
             if self.model_settings["trigger_method"] == "coeff_of_variation":
-                if helpers.utils.is_outlier(self.model_settings["trigger_sensitivity"], decision_frontier,
+                # decision_frontier = coeff_of_variation. So we need to check if coeff_of_variation is high or low
+                # of the sensitivity
+                if helpers.utils.is_outlier(decision_frontier, self.model_settings["trigger_sensitivity"],
                                             self.model_settings["trigger_on"]):
                     non_outlier_values = set()
                     for ii, term_value in enumerate(terms[aggregator_value]["targets"]):
