@@ -8,7 +8,10 @@ from helpers.analyzer import Analyzer
 
 class Word2VecAnalyzer(Analyzer):
 
-    def extract_extra_model_settings(self):
+    def _extract_additional_model_settings(self):
+        """
+        Override method from Analyzer
+        """
         self.model_settings["sentence_format"] = settings.config.get(self.config_section_name, "sentence_format")\
             .replace(' ', '').split(",")  # remove unnecessary whitespace, split fields
         logging.logger.debug("using word2vec sentence format " + ','.join(self.model_settings["sentence_format"]))
@@ -61,8 +64,6 @@ class Word2VecAnalyzer(Analyzer):
                                    "correctly defined?")
 
     def evaluate_model(self):
-        self.extract_extra_model_settings()
-
         # Train the model
         if self.model_settings["train_model"]:
             self.train_model()

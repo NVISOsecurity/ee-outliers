@@ -62,7 +62,6 @@ class TestTermsAnalyzer(unittest.TestCase):
     def test_evaluate_batch_for_outliers_not_enough_target_buckets_one_doc_max_two(self):
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_01.conf")
         analyzer = TermsAnalyzer("terms_dummy_test")
-        analyzer._extract_additional_model_settings()
 
         aggregator_value = LIST_AGGREGATOR_VALUE[0]
         target_value = random.choice(LIST_TARGET_VALUE)
@@ -76,7 +75,6 @@ class TestTermsAnalyzer(unittest.TestCase):
     def test_evaluate_batch_for_outliers_limit_target_buckets_two_doc_max_two(self):
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_01.conf")
         analyzer = TermsAnalyzer("terms_dummy_test")
-        analyzer._extract_additional_model_settings()
 
         # Create one document with one aggregator
         aggregator_value = LIST_AGGREGATOR_VALUE[0]
@@ -115,7 +113,6 @@ class TestTermsAnalyzer(unittest.TestCase):
     def test_terms_generated_document_coeff_of_variation_not_respect_min(self):
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_01.conf")
         analyzer = TermsAnalyzer("terms_dummy_test_no_bucket")
-        analyzer._extract_additional_model_settings()
 
         doc_generator = DummyDocumentsGenerate()
         nbr_val = 24  # Like 24 hours
@@ -136,7 +133,6 @@ class TestTermsAnalyzer(unittest.TestCase):
     def test_terms_generated_document_coeff_of_variation_respect_min(self):
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_01.conf")
         analyzer = TermsAnalyzer("terms_dummy_test_no_bucket")
-        analyzer._extract_additional_model_settings()
 
         doc_generator = DummyDocumentsGenerate()
         nbr_val = 24  # Like 24 hours
