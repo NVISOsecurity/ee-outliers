@@ -95,18 +95,6 @@ class TestStubEs:
                 raise KeyError('Unknown bulk action: "' + bulk['_op_type'] + '"')
         es.bulk_actions = []
 
-    def generate_data(self, nbr_data=1, fixed_infos=dict()):
-        for _ in range(nbr_data):
-            timestamp = get_random_timestamp()
-            slave_name = random.choice(POSSIBLE_SLAVE_NAME)
-            meta_cmd_name = random.choice(POSSIBLE_META_CMD_NAME)
-            tags = random.choice(POSSIBLE_TAGS)
-
-            dictionary_data = {"@timestamp": timestamp, "timestamp": timestamp, "tags": tags, "slave_name": slave_name,
-                               "meta.command.name": meta_cmd_name}
-            dictionary_data.update(fixed_infos)
-            self.add_data(dictionary_data)
-
     def add_data(self, dictionary_data):
         """
         Add "fake" data, that can be return by custom elastic search
@@ -127,6 +115,10 @@ class TestStubEs:
         if doc['_id'] in self.list_data:
             raise KeyError("Key " + str(doc['_id']) + " already exist in testStubEs")
         self.list_data[doc['_id']] = doc
+
+    def add_multiple_docs(self, list_doc):
+        for doc in list_doc:
+            self.add_doc(doc)
 
     def _create_dict_based_on_key(self, doc, key, data):
         self.list_key = key.split(".")
