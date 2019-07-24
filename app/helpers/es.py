@@ -159,8 +159,8 @@ class ES:
                     outlier_summary = doc["_source"]["outliers"]["summary"][i]
 
                     outlier = Outlier(outlier_type=outlier_type, outlier_reason=outlier_reason,
-                                      outlier_summary=outlier_summary)
-                    if outlier.is_whitelisted(additional_dict_values_to_check=doc):
+                                      outlier_summary=outlier_summary, doc=doc)
+                    if outlier.is_whitelisted():
                         total_whitelisted += 1
 
                 # if all outliers for this document are whitelisted, removed them all. If not, don't touch the document.
@@ -180,7 +180,7 @@ class ES:
                 if self.logging.verbosity >= 5:
                     should_log = True
                 else:
-                    should_log = total_outliers_processed % max(1, int(math.pow(10, (6 - self.logging.verbosity)))) == 0 or \
+                    should_log = total_outliers_processed % max(1, int(math.pow(10, (5 - self.logging.verbosity)))) == 0 or \
                                  total_outliers_processed == total_nr_outliers
 
                 if should_log:
@@ -227,7 +227,7 @@ class ES:
 
     def process_outliers(self, doc=None, outliers=None, should_notify=False):
         for outlier in outliers:
-            if outlier.is_whitelisted(additional_dict_values_to_check=doc):
+            if outlier.is_whitelisted():
                 if self.settings.config.getboolean("general", "print_outliers_to_console"):
                     self.logging.logger.info(outlier.outlier_dict["summary"] + " [whitelisted outlier]")
             else:

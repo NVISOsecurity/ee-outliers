@@ -48,7 +48,7 @@ def run_outliers():
     if settings.args.run_mode == "daemon":
         run_daemon_mode()
 
-    if settings.args.run_mode == "interactive":
+    elif settings.args.run_mode == "interactive":
         run_interactive_mode()
 
 
@@ -68,8 +68,8 @@ def setup_logging():
     if os.path.exists(os.path.dirname(log_file)):
         logging.add_file_handler(log_file)
     else:
-        logging.logger.warning("log directory for log file %s does not exist, check your settings! Only logging to stdout.",
-                               log_file)
+        logging.logger.warning("log directory for log file %s does not exist, check your settings! Only logging " +
+                               "to stdout.", log_file)
 
 
 def print_intro():
@@ -183,7 +183,7 @@ def run_interactive_mode():
     except KeyboardInterrupt:
         logging.logger.info("keyboard interrupt received, stopping housekeeping thread")
     except Exception:
-        logging.logger.error(traceback.format_exc())
+        logging.logger.error("error running outliers in interactive mode", exc_info=True)
     finally:
         logging.logger.info("asking housekeeping jobs to shutdown after finishing")
         housekeeping_job.shutdown_flag.set()
@@ -211,8 +211,7 @@ def perform_analysis():
                 analyzers.append(terms_analyzer)
 
             elif config_section_name.startswith("beaconing_"):
-                beaconing_analyzer = BeaconingAnalyzer(config_section_name=config_section_name)
-                analyzers.append(beaconing_analyzer)
+                logging.logger.error("use of the beaconing model is deprecated, please use the terms model using coeff_of_variation trigger method to convert use case " + config_section_name)
 
             elif config_section_name.startswith("word2vec_"):
                 word2vec_analyzer = Word2VecAnalyzer(config_section_name=config_section_name)
@@ -257,7 +256,8 @@ def print_analysis_summary(analyzed_models):
     logging.logger.info("============================")
 
     completed_models = [analyzer for analyzer in analyzed_models if analyzer.completed_analysis]
-    completed_models_with_events = [analyzer for analyzer in analyzed_models if (analyzer.completed_analysis and analyzer.total_events > 0)]
+    completed_models_with_events = [analyzer for analyzer in analyzed_models
+                                    if (analyzer.completed_analysis and analyzer.total_events > 0)]
 
     no_index_models = [analyzer for analyzer in analyzed_models if analyzer.index_not_found_analysis]
     errored_models = [analyzer for analyzer in analyzed_models if analyzer.unknown_error_analysis]
@@ -266,7 +266,8 @@ def print_analysis_summary(analyzed_models):
     logging.logger.info("total use cases processed: %i", total_models_processed)
     logging.logger.info("")
     logging.logger.info("succesfully analyzed use cases: %i", len(completed_models))
-    logging.logger.info("succesfully analyzed use cases without events: %i", len(completed_models) - len(completed_models_with_events))
+    logging.logger.info("succesfully analyzed use cases without events: %i",
+                        len(completed_models) - len(completed_models_with_events))
     logging.logger.info("succesfully analyzed use cases with events: %i", len(completed_models_with_events))
     logging.logger.info("")
     logging.logger.info("use cases skipped because of missing index: %i", len(no_index_models))
@@ -276,8 +277,10 @@ def print_analysis_summary(analyzed_models):
     completed_models_with_events.sort(key=lambda _: _.analysis_time_seconds, reverse=True)
 
     if completed_models_with_events:
-        logging.logger.info("total analysis time: " + helpers.utils.seconds_to_pretty_str(seconds=round(float(np.sum(analysis_times)))))
-        logging.logger.info("average analysis time: " + helpers.utils.seconds_to_pretty_str(seconds=round(np.average(analysis_times))))
+        logging.logger.info("total analysis time: " +
+                            helpers.utils.seconds_to_pretty_str(seconds=round(float(np.sum(analysis_times)))))
+        logging.logger.info("average analysis time: " +
+                            helpers.utils.seconds_to_pretty_str(seconds=round(np.average(analysis_times))))
 
         # print most time consuming use cases
         logging.logger.info("")
@@ -285,7 +288,8 @@ def print_analysis_summary(analyzed_models):
         completed_models_with_events_taking_most_time = completed_models_with_events[:10]
 
         for model in completed_models_with_events_taking_most_time:
-            logging.logger.info("\t+ " + model.config_section_name + " - " + "{:,}".format(model.total_events) + " events - " + helpers.utils.seconds_to_pretty_str(round(model.analysis_time_seconds)))
+            logging.logger.info("\t+ " + model.config_section_name + " - " + "{:,}".format(model.total_events) +
+                                " events - " + helpers.utils.seconds_to_pretty_str(round(model.analysis_time_seconds)))
 
     if not analyzed_models:
         logging.logger.warning("no use cases were analyzed. are you sure your configuration file contains use " +
