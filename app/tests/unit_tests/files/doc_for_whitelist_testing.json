@@ -39,10 +39,10 @@
         "hardware_vendor": "VMware, Inc.",
         "cpu_subtype": "-1",
         "hardware_model": "VMware Virtual Platform",
-        "hostname": "NVISO-WIN10-JVZ.nviso.be",
+        "hostname": "DUMMY-WIN10-JVZ.dummy.be",
         "cpu_brand": "Intel(R) Core(TM) i7-6820HQ CPU @ 2.70GHz",
         "cpu_logical_cores": "2",
-        "computer_name": "NVISO-WIN10-JVZ",
+        "computer_name": "DUMMY-WIN10-JVZ",
         "cpu_physical_cores": "2"
       },
       "command": {
@@ -50,7 +50,7 @@
         "query": "SELECT * FROM scheduled_tasks;",
         "mode": "base_scan"
       },
-      "deployment_name": "NVISO Workstations",
+      "deployment_name": "DUMMY Workstations",
       "iface_addresses": [
         "fe80::787a:6a42:b06f:7a2a",
         "172.16.63.129",
@@ -81,7 +81,7 @@
       ],
       "toolname": "osquery",
       "filename": "osquery_get_all_scheduled_tasks.log",
-      "hostname": "NVISO-WIN10-JVZ",
+      "hostname": "DUMMY-WIN10-JVZ",
       "logged_in_users": [
         "jvanderzweep"
       ],
@@ -99,7 +99,7 @@
       "assets": [
         [
           "user:jvanderzweep",
-          "host:NVISO-WIN10-JVZ"
+          "host:DUMMY-WIN10-JVZ"
         ]
       ],
       "aggregator": [
@@ -112,7 +112,7 @@
         "pct_of_max_value"
       ],
       "term": [
-        "NVISO-WIN10-JVZ"
+        "DUMMY-WIN10-JVZ"
       ],
       "decision_frontier": [
         1.1
@@ -141,7 +141,7 @@
   },
   "highlight": {
     "meta.deployment_name.raw": [
-      "@kibana-highlighted-field@NVISO Workstations@/kibana-highlighted-field@"
+      "@kibana-highlighted-field@DUMMY Workstations@/kibana-highlighted-field@"
     ],
     "outliers.summary.raw": [
       "@kibana-highlighted-field@rare scheduled task: User_Feed_Synchronization-{9CD0CFAD-350E-46BA-8338-932284EF7332}@/kibana-highlighted-field@"

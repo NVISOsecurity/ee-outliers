@@ -50,7 +50,7 @@
                 "name": "get_all_processes_with_listening_conns",
                 "query": "select p.*, hash.*, lp.* from processes p, listening_ports lp, hash WHERE lp.pid = p.pid AND hash.path = p.path;"
             },
-            "deployment_name": "NVISO Workstations",
+            "deployment_name": "DUMMY Workstations",
             "filename": "osquery_get_all_processes_with_listening_conns.log",
             "hostname": "DUMMY-PC",
             "logged_in_users": [
