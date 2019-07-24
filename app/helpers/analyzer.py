@@ -21,16 +21,6 @@ class Analyzer(abc.ABC):
         self.model_type = self.config_section_name.split("_")[0]
         self.model_name = "_".join((self.config_section_name.split("_")[1:]))
 
-        # extract all settings for this use case
-        self.model_settings = self._extract_model_settings()
-        self._extract_additional_model_settings()
-
-        if self.model_settings["es_query_filter"]:
-            self.search_query = es.filter_by_query_string(self.model_settings["es_query_filter"])
-
-        if self.model_settings["es_dsl_filter"]:
-            self.search_query = es.filter_by_dsl_query(self.model_settings["es_dsl_filter"])
-
         self.total_events = 0
 
         self.analysis_start_time = None
@@ -41,6 +31,16 @@ class Analyzer(abc.ABC):
         self.unknown_error_analysis = False
 
         self.outliers = list()
+
+        # extract all settings for this use case
+        self.configuration_parsing_error = False
+
+        try:
+            self.model_settings = self._extract_model_settings()
+            self._extract_additional_model_settings()
+        except Exception:
+            logging.logger.error("error while parsing use case configuration for " + self.config_section_name, exc_info=True)
+            self.configuration_parsing_error = True
 
     @property
     def analysis_time_seconds(self):
@@ -74,11 +74,15 @@ class Analyzer(abc.ABC):
 
         try:
             model_settings["es_query_filter"] = settings.config.get(self.config_section_name, "es_query_filter")
+            self.search_query = es.filter_by_query_string(model_settings["es_query_filter"])
+
         except NoOptionError:
             model_settings["es_query_filter"] = None
 
         try:
             model_settings["es_dsl_filter"] = settings.config.get(self.config_section_name, "es_dsl_filter")
+            self.search_query = es.filter_by_dsl_query(model_settings["es_dsl_filter"])
+
         except NoOptionError:
             model_settings["es_dsl_filter"] = None
 
@@ -118,8 +122,8 @@ class Analyzer(abc.ABC):
 
     def _extract_additional_model_settings(self):
         """
-        Method call in the construction to load all parameter of this analyzer
-        This method could be override by children to load content linked to a specific analyzer
+        Method call in the construction to load all parameters of this analyzer
+        This method can be overridden by children to load content linked to a specific analyzer
         """
         pass
 

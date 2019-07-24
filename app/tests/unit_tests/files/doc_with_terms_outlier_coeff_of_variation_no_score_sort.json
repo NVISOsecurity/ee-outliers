@@ -86,7 +86,7 @@
             "term_count": [1], 
             "decision_frontier": [0.0],
             "aggregator": ["DUMMY-PC - 02"],
-            "model_name": ["beaconing_dummy_test"],
+            "model_name": ["dummy_test_no_bucket"],
             "total_outliers": 1,
             "summary": ["dummy summary"],
             "non_outlier_values_sample": [""],
