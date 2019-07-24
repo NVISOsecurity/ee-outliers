@@ -275,15 +275,9 @@ def get_mad_decision_frontier(values_array, trigger_sensitivity, trigger_on):
 
 def is_outlier(term_value_count, decision_frontier, trigger_on):
     if trigger_on == "high":
-        if term_value_count > decision_frontier:
-            return True
-        else:
-            return False
+        return term_value_count > decision_frontier
     elif trigger_on == "low":
-        if term_value_count < decision_frontier:
-            return decision_frontier
-        else:
-            return False
+        return term_value_count < decision_frontier
     else:
         raise ValueError("Unexpected outlier trigger condition " + trigger_on)
 
