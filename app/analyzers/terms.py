@@ -7,8 +7,6 @@ from collections import Counter
 import helpers.utils
 from helpers.analyzer import Analyzer
 
-DEFAULT_MIN_TARGET_BUCKETS = 10
-
 
 class TermsAnalyzer(Analyzer):
 
