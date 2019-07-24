@@ -211,8 +211,7 @@ def perform_analysis():
                 analyzers.append(terms_analyzer)
 
             elif config_section_name.startswith("beaconing_"):
-                beaconing_analyzer = BeaconingAnalyzer(config_section_name=config_section_name)
-                analyzers.append(beaconing_analyzer)
+                logging.logger.error("use of the beaconing model is deprecated, please use the terms model using coeff_of_variation trigger method to convert use case " + config_section_name)
 
             elif config_section_name.startswith("word2vec_"):
                 word2vec_analyzer = Word2VecAnalyzer(config_section_name=config_section_name)
