@@ -13,7 +13,7 @@ from analyzers.metrics import MetricsAnalyzer
 from helpers.singletons import logging, es
 import helpers.utils
 from tests.unit_tests.utils.test_settings import TestSettings
-from tests.unit_tests.utils.generate_dummy_documents import GenerateDummyDocuments
+from tests.unit_tests.utils.dummy_documents_generate import DummyDocumentsGenerate
 
 doc_without_outliers_test_whitelist_01_test_file = json.load(
     open("/app/tests/unit_tests/files/doc_without_outliers_test_whitelist_01.json"))
@@ -107,7 +107,7 @@ class TestMetricsAnalyzer(unittest.TestCase):
         return target_per_deployment
 
     def _generate_random_documents(self):
-        self.doc_generator = GenerateDummyDocuments()
+        self.doc_generator = DummyDocumentsGenerate()
         all_doc = self.doc_generator.create_documents(20)
         self.test_es.add_multiple_docs(all_doc)
         return all_doc

@@ -9,8 +9,9 @@ all_possible_tags = ["endpoint", "tag"]
 all_possible_slave_name = ["eaglesnest.cloud", "eaglesnest.local"]
 all_possible_doc_source_type = ["eagleeye", "dummy"]
 all_possible_filename = ["osquery_get_all_scheduled_tasks.log", "osquery_get_all_scheduled_actions.log"]
-all_possible_deployment_name = ["NVISO Workstations", "NVISO Localhost", "Localhost", "NVISO Test", "Testhost",
-                                "Google", "Dummy Environment", "Deployment system"]
+all_possible_deployment_name = ["Company Workstations", "Company Localhost", "Localhost", "Company Test", "Testhost",
+                                "Google", "Dummy Environment", "Deployment system", "New Company", "Super Company",
+                                "New deployment", "Test deployment"]
 all_possible_toolname = ['osquery']
 all_possible_hostname = ['NVISO-WIN10-JVZ', 'NVISO-LINUX-JVZ', 'NVISO-WIN10-RDE', 'NVISO-WIN10-DRA', 'LOCAL-WIN-RDE',
                          'TEST-LINUX-XYZ', 'TEST-WIN-XYZ', 'localhost', 'abcdefghijklmno', 'aaaaaaa', "here",
@@ -22,7 +23,7 @@ all_test_url_values = ["http://google.be", "This is a test without URL", "Exampl
                        "http://nviso.be", "http://long-url-example-to-test.brussels"]
 
 
-class GenerateDummyDocuments:
+class DummyDocumentsGenerate:
 
     def __init__(self):
         self.id = 0
@@ -178,18 +179,34 @@ class GenerateDummyDocuments:
                 list_nbr_documents[index] += 1
         return list_nbr_documents
 
-    def _compute_number_document_respect_min_coef_variation(self, coef_var_min: float, min_number_element: int,
-                                                            min_value: int = 0, max_value: int = 10) -> np.ndarray:
+    def _compute_number_document_have_at_least_specific_coef_variation(self, coef_var_min: float,
+                                                                       min_number_element: int, min_value: int = 0,
+                                                                       max_value: int = 10) -> np.ndarray:
         list_nbr_documents = np.random.randint(min_value, max_value + 1, size=min_number_element)
 
+        # While current list doesn't have the minimum coef
         while list_nbr_documents.std()/list_nbr_documents.mean() < coef_var_min:
-            
-        index = np.argmax(list_nbr_documents)
-        while list_nbr_documents.std() < std_min:
+            index = np.argmax(list_nbr_documents)
             if list_nbr_documents[index] < list_nbr_documents.mean():
                 list_nbr_documents[index] -= 1
             else:
                 list_nbr_documents[index] += 1
+
+        return list_nbr_documents
+
+    def _compute_number_document_have_at_most_specific_coef_variation(self, coef_var_max: float,
+                                                                      min_number_element: int, min_value: int = 0,
+                                                                      max_value: int = 10) -> np.ndarray:
+        list_nbr_documents = np.random.randint(min_value, max_value + 1, size=min_number_element)
+
+        # While current list doesn't have the minimum coef
+        while list_nbr_documents.std()/list_nbr_documents.mean() > coef_var_max:
+            index = np.argmax(list_nbr_documents)
+            if list_nbr_documents[index] < list_nbr_documents.mean():
+                list_nbr_documents[index] += 1
+            else:
+                list_nbr_documents[index] -= 1
+
         return list_nbr_documents
 
     def create_doc_time_variable_max_sensitivity(self, nbr_val, max_trigger_sensitivity, max_difference, default_value):
@@ -237,7 +254,10 @@ class GenerateDummyDocuments:
 
         index = 0
         for nbr_doc in nbr_doc_generated_per_target:
-            deployment_name = all_possible_deployment_name[index]
+            if index < len(all_possible_deployment_name):
+                deployment_name = all_possible_deployment_name[index]
+            else:
+                deployment_name = "DeploymentName " + str(len(all_possible_deployment_name) - index)
             deployment_name_number_doc[deployment_name] = nbr_doc
             for _ in range(nbr_doc):
                 all_doc.append(self.generate_document(hostname=hostname, deployment_name=deployment_name))
@@ -261,19 +281,41 @@ class GenerateDummyDocuments:
 
         return self._generate_doc_uniq_target_variable_sensitivity(nbr_doc_generated)
 
+    def create_doc_uniq_target_variable_at_least_specific_coef_variation(self, nbr_val, coef_var_min, max_difference,
+                                                                         default_value):
+        nbr_doc_to_generate = self._compute_number_document_have_at_least_specific_coef_variation(
+            coef_var_min, nbr_val, default_value - max_difference, default_value + max_difference)
+
+        return self._generate_doc_time_variable_sensitivity(nbr_doc_to_generate)
+
+    def create_doc_uniq_target_variable_at_most_specific_coef_variation(self, nbr_val, coef_var_max, max_difference,
+                                                                        default_value):
+        nbr_doc_to_generate = self._compute_number_document_have_at_most_specific_coef_variation(
+            coef_var_max, nbr_val, default_value - max_difference, default_value + max_difference)
+
+        return self._generate_doc_time_variable_sensitivity(nbr_doc_to_generate)
+
     def _generate_doc_uniq_target_variable_sensitivity(self, nbr_doc_generated_per_target):
         all_doc = []
         hostname_name_number_doc = dict()
 
         index_hostname = 0
         for nbr_uniq_deployment_name in nbr_doc_generated_per_target:
-            hostname = all_possible_hostname[index_hostname]
+            if index_hostname < len(all_possible_hostname):
+                hostname = all_possible_hostname[index_hostname]
+            else:
+                hostname = "Hostname" + str(len(all_possible_hostname) - index_hostname)
+
             hostname_name_number_doc[hostname] = nbr_uniq_deployment_name
 
             index_deployment = 0
             for _ in range(nbr_uniq_deployment_name):
-                deployment_name = all_possible_deployment_name[index_deployment]
-                all_doc.append(self.generate_document(hostname=hostname, deployment_name=deployment_name))
+                if index_deployment < len(all_possible_deployment_name):
+                    deployment_name = all_possible_deployment_name[index_deployment]
+                else:
+                    deployment_name = "DeploymentName " + str(len(all_possible_deployment_name) - index_deployment)
+                new_doc = self.generate_document(hostname=hostname, deployment_name=deployment_name)
+                all_doc.append(new_doc)
                 index_deployment += 1
             index_hostname += 1
 
