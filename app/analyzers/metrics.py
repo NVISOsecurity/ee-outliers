@@ -37,18 +37,20 @@ class MetricsAnalyzer(Analyzer):
                                             fields, self.model_settings["target"], case_sensitive=True))
                     aggregator_sentences = helpers.utils.flatten_fields_into_sentences(
                                             fields=fields, sentence_format=self.model_settings["aggregator"])
+                    will_process_doc = True
                 except (KeyError, TypeError):
                     logging.logger.debug("skipping event which does not contain the target and aggregator " +
                                          "fields we are processing. - [" + self.model_name + "]")
-                    continue
+                    will_process_doc = False
 
-                metric, observations = self.calculate_metric(self.model_settings["metric"], target_value)
+                if will_process_doc:
+                    metric, observations = self.calculate_metric(self.model_settings["metric"], target_value)
 
-                if metric is not None:  # explicitly check for none, since "0" can be OK as a metric!
-                    total_metrics_added += 1
-                    for aggregator_sentence in aggregator_sentences:
-                        flattened_aggregator_sentence = helpers.utils.flatten_sentence(aggregator_sentence)
-                        eval_metrics = self.add_metric_to_batch(eval_metrics, flattened_aggregator_sentence,
+                    if metric is not None:  # explicitly check for none, since "0" can be OK as a metric!
+                        total_metrics_added += 1
+                        for aggregator_sentence in aggregator_sentences:
+                            flattened_aggregator_sentence = helpers.utils.flatten_sentence(aggregator_sentence)
+                            eval_metrics = self.add_metric_to_batch(eval_metrics, flattened_aggregator_sentence,
                                                                 target_value, metric, observations, doc)
 
                 # Evaluate batch of events against the model
