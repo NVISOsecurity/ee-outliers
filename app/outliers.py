@@ -3,7 +3,6 @@ import time
 import os
 import sys
 import unittest
-import traceback
 import numpy as np
 
 import elasticsearch.exceptions
@@ -19,7 +18,6 @@ from helpers.housekeeping import HousekeepingJob
 from analyzers.metrics import MetricsAnalyzer
 from analyzers.simplequery import SimplequeryAnalyzer
 from analyzers.terms import TermsAnalyzer
-from analyzers.beaconing import BeaconingAnalyzer
 from analyzers.word2vec import Word2VecAnalyzer
 
 
