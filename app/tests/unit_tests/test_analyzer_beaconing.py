@@ -1,62 +1,62 @@
-import unittest
-
-import copy
-import json
-import random
-
-from collections import defaultdict
-
-from tests.unit_tests.test_stubs.test_stub_es import TestStubEs
-from tests.unit_tests.utils.test_settings import TestSettings
-from helpers.singletons import settings, es, logging
-from analyzers.beaconing import BeaconingAnalyzer
-from helpers.outlier import Outlier
-
-doc_without_outlier_test_file = json.load(open("/app/tests/unit_tests/files/doc_without_outlier.json"))
-doc_without_outliers_test_whitelist_01_test_file = json.load(
-    open("/app/tests/unit_tests/files/doc_without_outliers_test_whitelist_01.json"))
-doc_without_outliers_test_whitelist_02_test_file = json.load(
-    open("/app/tests/unit_tests/files/doc_without_outliers_test_whitelist_02.json"))
-doc_without_outliers_test_whitelist_03_test_file = json.load(
-    open("/app/tests/unit_tests/files/doc_without_outliers_test_whitelist_03.json"))
-doc_without_outliers_test_whitelist_04_test_file = json.load(
-    open("/app/tests/unit_tests/files/doc_without_outliers_test_whitelist_04.json"))
-doc_with_beaconing_outlier_test_file = json.load(open("/app/tests/unit_tests/files/doc_with_beaconing_outlier.json"))
-doc_with_beaconing_outlier_without_score_sort_test_file = json.load(
-    open("/app/tests/unit_tests/files/doc_with_beaconing_outlier_without_score_sort.json"))
-
-LIST_AGGREGATOR_VALUE = ["agg-WIN-EVB-draman", "agg-WIN-DRA-draman"]
-LIST_TARGET_VALUE = ["WIN-DRA-draman", "WIN-EVB-draman", "LINUX-DRA-draman"]
-LIST_DOC = [doc_without_outlier_test_file]
-
-
-class TestBeaconingAnalyzer(unittest.TestCase):
-
-    @classmethod
-    def setUpClass(cls):
-        logging.verbosity = 0
-
-    def setUp(self):
-        self.test_es = TestStubEs()
-        self.test_settings = TestSettings()
-
-    def tearDown(self):
-        # restore the default configuration file so we don't influence other unit tests that use the settings singleton
-        self.test_settings.restore_default_configuration_path()
-        self.test_es.restore_es()
-
-    def _create_outliers(self, outlier_type, outlier_reason, outlier_summary, model_type, model_name, term, aggregator,
-                         confidence, decision_frontier, term_count, doc):
-        outlier = Outlier(outlier_type=outlier_type, outlier_reason=outlier_reason, outlier_summary=outlier_summary,
-                          doc=doc)
-        outlier.outlier_dict["model_type"] = model_type
-        outlier.outlier_dict["model_name"] = model_name
-        outlier.outlier_dict["term"] = term
-        outlier.outlier_dict["aggregator"] = aggregator
-        outlier.outlier_dict["confidence"] = confidence
-        outlier.outlier_dict["decision_frontier"] = decision_frontier
-        outlier.outlier_dict["term_count"] = term_count
-        return outlier
+# import unittest
+#
+# import copy
+# import json
+# import random
+#
+# from collections import defaultdict
+#
+# from tests.unit_tests.test_stubs.test_stub_es import TestStubEs
+# from tests.unit_tests.utils.test_settings import TestSettings
+# from helpers.singletons import settings, es, logging
+# from analyzers.beaconing import BeaconingAnalyzer
+# from helpers.outlier import Outlier
+#
+# doc_without_outlier_test_file = json.load(open("/app/tests/unit_tests/files/doc_without_outlier.json"))
+# doc_without_outliers_test_whitelist_01_test_file = json.load(
+#     open("/app/tests/unit_tests/files/doc_without_outliers_test_whitelist_01.json"))
+# doc_without_outliers_test_whitelist_02_test_file = json.load(
+#     open("/app/tests/unit_tests/files/doc_without_outliers_test_whitelist_02.json"))
+# doc_without_outliers_test_whitelist_03_test_file = json.load(
+#     open("/app/tests/unit_tests/files/doc_without_outliers_test_whitelist_03.json"))
+# doc_without_outliers_test_whitelist_04_test_file = json.load(
+#     open("/app/tests/unit_tests/files/doc_without_outliers_test_whitelist_04.json"))
+# doc_with_beaconing_outlier_test_file = json.load(open("/app/tests/unit_tests/files/doc_with_beaconing_outlier.json"))
+# doc_with_beaconing_outlier_without_score_sort_test_file = json.load(
+#     open("/app/tests/unit_tests/files/doc_with_beaconing_outlier_without_score_sort.json"))
+#
+# LIST_AGGREGATOR_VALUE = ["agg-WIN-EVB-draman", "agg-WIN-DRA-draman"]
+# LIST_TARGET_VALUE = ["WIN-DRA-draman", "WIN-EVB-draman", "LINUX-DRA-draman"]
+# LIST_DOC = [doc_without_outlier_test_file]
+#
+#
+# class TestBeaconingAnalyzer(unittest.TestCase):
+#
+#     @classmethod
+#     def setUpClass(cls):
+#         logging.verbosity = 0
+#
+#     def setUp(self):
+#         self.test_es = TestStubEs()
+#         self.test_settings = TestSettings()
+#
+#     def tearDown(self):
+#         # restore the default configuration file so we don't influence other unit tests that use the settings singleton
+#         self.test_settings.restore_default_configuration_path()
+#         self.test_es.restore_es()
+#
+#     def _create_outliers(self, outlier_type, outlier_reason, outlier_summary, model_type, model_name, term, aggregator,
+#                          confidence, decision_frontier, term_count, doc):
+#         outlier = Outlier(outlier_type=outlier_type, outlier_reason=outlier_reason, outlier_summary=outlier_summary,
+#                           doc=doc)
+#         outlier.outlier_dict["model_type"] = model_type
+#         outlier.outlier_dict["model_name"] = model_name
+#         outlier.outlier_dict["term"] = term
+#         outlier.outlier_dict["aggregator"] = aggregator
+#         outlier.outlier_dict["confidence"] = confidence
+#         outlier.outlier_dict["decision_frontier"] = decision_frontier
+#         outlier.outlier_dict["term_count"] = term_count
+#         return outlier
 #
 #     def test_evaluate_batch_for_outliers_not_enough_target_buckets_one_doc_max_two(self):
 #         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/beaconing_test_01.conf")
@@ -200,21 +200,21 @@ class TestBeaconingAnalyzer(unittest.TestCase):
 #
 #         result = [elem for elem in es.scan()][0]
 #         self.assertEqual(result, expected_doc)
-
-    def test_evaluate_model_beaconing_simple_case(self):
-        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/beaconing_test_01.conf")
-        analyzer = BeaconingAnalyzer("beaconing_dummy_test")
-
-        doc_without_outlier = copy.deepcopy(doc_without_outlier_test_file)
-        expected_doc = copy.deepcopy(doc_with_beaconing_outlier_without_score_sort_test_file)
-        # Add doc to the database
-        self.test_es.add_doc(doc_without_outlier)
-
-        # Make test (suppose that all doc match with the query)
-        analyzer.evaluate_model()
-
-        result = [elem for elem in es.scan()][0]
-        self.assertEqual(result, expected_doc)
+#
+#     def test_evaluate_model_beaconing_simple_case(self):
+#         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/beaconing_test_01.conf")
+#         analyzer = BeaconingAnalyzer("beaconing_dummy_test")
+#
+#         doc_without_outlier = copy.deepcopy(doc_without_outlier_test_file)
+#         expected_doc = copy.deepcopy(doc_with_beaconing_outlier_without_score_sort_test_file)
+#         # Add doc to the database
+#         self.test_es.add_doc(doc_without_outlier)
+#
+#         # Make test (suppose that all doc match with the query)
+#         analyzer.evaluate_model()
+#
+#         result = [elem for elem in es.scan()][0]
+#         self.assertEqual(result, expected_doc)
 #
 #     def _test_whitelist_batch_document_not_process_all(self):  # TODO FIX with new whitelist system
 #         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/beaconing_test_with_whitelist.conf")

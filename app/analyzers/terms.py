@@ -7,6 +7,8 @@ from collections import Counter
 import helpers.utils
 from helpers.analyzer import Analyzer
 
+DEFAULT_MIN_TARGET_BUCKETS = 10
+
 
 class TermsAnalyzer(Analyzer):
 
@@ -168,6 +170,12 @@ class TermsAnalyzer(Analyzer):
         self.model_settings["target_count_method"] = settings.config.get(self.config_section_name,
                                                                          "target_count_method")
 
+        try:
+            self.model_settings["min_target_buckets"] = settings.config.getint(self.config_section_name,
+                                                                               "min_target_buckets")
+        except NoOptionError:
+            self.model_settings["min_target_buckets"] = DEFAULT_MIN_TARGET_BUCKETS
+
         # Validate model settings
         if self.model_settings["target_count_method"] not in {"within_aggregator", "across_aggregators"}:
             raise ValueError("target count method " + self.model_settings["target_count_method"] + " not supported")
@@ -256,10 +264,10 @@ class TermsAnalyzer(Analyzer):
             logging.logger.debug("terms count for aggregator value " + aggregator_value + " -> " +
                                  str(counted_targets))
 
-            # if len(counted_targets) < self.model_settings["min_target_buckets"]:
-            #     logging.logger.debug("less than " + str(self.model_settings["min_target_buckets"]) +
-            #                          " time buckets, skipping analysis")
-            #     continue
+            if len(counted_targets) < self.model_settings["min_target_buckets"]:
+                logging.logger.debug("less than " + str(self.model_settings["min_target_buckets"]) +
+                                     " time buckets, skipping analysis")
+                continue
 
             decision_frontier = helpers.utils.get_decision_frontier(self.model_settings["trigger_method"],
                                                                     counted_target_values,
