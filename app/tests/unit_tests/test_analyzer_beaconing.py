@@ -23,7 +23,7 @@
 #     open("/app/tests/unit_tests/files/doc_without_outliers_test_whitelist_04.json"))
 # doc_with_beaconing_outlier_test_file = json.load(open("/app/tests/unit_tests/files/doc_with_beaconing_outlier.json"))
 # doc_with_beaconing_outlier_without_score_sort_test_file = json.load(
-#     open("/app/tests/unit_tests/files/doc_with_beaconing_outlier_without_score_sort.json"))
+#     open("/app/tests/unit_tests/files/doc_with_terms_outlier_coeff_of_variation_no_score_sort.json"))
 #
 # LIST_AGGREGATOR_VALUE = ["agg-WIN-EVB-draman", "agg-WIN-DRA-draman"]
 # LIST_TARGET_VALUE = ["WIN-DRA-draman", "WIN-EVB-draman", "LINUX-DRA-draman"]

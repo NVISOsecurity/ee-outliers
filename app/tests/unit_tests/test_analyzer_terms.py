@@ -9,6 +9,7 @@ from tests.unit_tests.test_stubs.test_stub_es import TestStubEs
 from analyzers.terms import TermsAnalyzer
 from helpers.singletons import logging, es
 from tests.unit_tests.utils.test_settings import TestSettings
+from tests.unit_tests.utils.dummy_documents_generate import DummyDocumentsGenerate
 
 doc_without_outliers_test_whitelist_01_test_file = json.load(
     open("/app/tests/unit_tests/files/doc_without_outliers_test_whitelist_01.json"))
@@ -17,9 +18,8 @@ doc_without_outliers_test_whitelist_02_test_file = json.load(
 doc_without_outliers_test_whitelist_03_test_file = json.load(
     open("/app/tests/unit_tests/files/doc_without_outliers_test_whitelist_03.json"))
 doc_without_outlier_test_file = json.load(open("/app/tests/unit_tests/files/doc_without_outlier.json"))
-doc_with_beaconing_outlier_test_file = json.load(open("/app/tests/unit_tests/files/doc_with_beaconing_outlier.json"))
-doc_with_beaconing_outlier_without_score_sort_test_file = json.load(
-    open("/app/tests/unit_tests/files/doc_with_beaconing_outlier_without_score_sort.json"))
+doc_with_terms_outlier_coeff_of_variation_no_score_sort = json.load(
+    open("/app/tests/unit_tests/files/doc_with_terms_outlier_coeff_of_variation_no_score_sort.json"))
 
 LIST_AGGREGATOR_VALUE = ["agg-WIN-EVB-draman", "agg-WIN-DRA-draman"]
 LIST_TARGET_VALUE = ["WIN-DRA-draman", "WIN-EVB-draman", "LINUX-DRA-draman"]
@@ -95,11 +95,11 @@ class TestTermsAnalyzer(unittest.TestCase):
 
     # coeff_of_variation
     def test_terms_evaluate_coeff_of_variation_like_expected_document(self):
-        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/beaconing_test_01.conf")
-        analyzer = TermsAnalyzer("terms_beaconing_dummy_test")
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_01.conf")
+        analyzer = TermsAnalyzer("terms_dummy_test_no_bucket")
 
         doc_without_outlier = copy.deepcopy(doc_without_outlier_test_file)
-        expected_doc = copy.deepcopy(doc_with_beaconing_outlier_without_score_sort_test_file)
+        expected_doc = copy.deepcopy(doc_with_terms_outlier_coeff_of_variation_no_score_sort)
         # Add doc to the database
         self.test_es.add_doc(doc_without_outlier)
 
@@ -108,3 +108,43 @@ class TestTermsAnalyzer(unittest.TestCase):
 
         result = [elem for elem in es.scan()][0]
         self.assertEqual(result, expected_doc)
+
+    def test_terms_generated_document_coeff_of_variation_not_respect_min(self):
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_01.conf")
+        analyzer = TermsAnalyzer("terms_dummy_test_no_bucket")
+
+        doc_generator = DummyDocumentsGenerate()
+        nbr_val = 24  # Like 24 hours
+        min_trigger_sensitivity = analyzer.model_settings["trigger_sensitivity"]
+        default_value = 5  # Per default, 5 documents create per hour (arbitrarily)
+        max_difference = 3  # Maximum difference between the number of document (so between 2 and 8 (included))
+        all_doc = doc_generator.create_doc_uniq_target_variable_at_least_specific_coef_variation(
+            nbr_val, min_trigger_sensitivity, max_difference, default_value)
+        self.test_es.add_multiple_docs(all_doc)
+        analyzer.evaluate_model()
+
+        nbr_outliers = 0
+        for doc in es.scan():
+            if "outliers" in doc['_source']:
+                nbr_outliers += 1
+        self.assertEqual(nbr_outliers, 0)
+
+    def test_terms_generated_document_coeff_of_variation_respect_min(self):
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_01.conf")
+        analyzer = TermsAnalyzer("terms_dummy_test_no_bucket")
+
+        doc_generator = DummyDocumentsGenerate()
+        nbr_val = 24  # Like 24 hours
+        max_trigger_sensitivity = analyzer.model_settings["trigger_sensitivity"]
+        default_value = 5  # Per default, 5 documents create per hour (arbitrarily)
+        max_difference = 3  # Maximum difference between the number of document (so between 2 and 8 (included))
+        all_doc = doc_generator.create_doc_uniq_target_variable_at_most_specific_coef_variation(
+            nbr_val, max_trigger_sensitivity, max_difference, default_value)
+        self.test_es.add_multiple_docs(all_doc)
+        analyzer.evaluate_model()
+
+        nbr_outliers = 0
+        for doc in es.scan():
+            if "outliers" in doc['_source']:
+                nbr_outliers += 1
+        self.assertEqual(nbr_outliers, len(all_doc))
