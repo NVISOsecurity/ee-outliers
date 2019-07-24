@@ -7,6 +7,7 @@ from tests.unit_tests.test_stubs.test_stub_es import TestStubEs
 from analyzers.simplequery import SimplequeryAnalyzer
 from helpers.singletons import logging, es
 from tests.unit_tests.utils.test_settings import TestSettings
+from tests.unit_tests.utils.dummy_documents_generate import DummyDocumentsGenerate
 
 doc_without_outlier_test_file = json.load(open("/app/tests/unit_tests/files/doc_without_outlier.json"))
 doc_with_outlier_test_file = json.load(
@@ -30,6 +31,24 @@ class TestSimplequeryAnalyzer(unittest.TestCase):
     def _get_simplequery_analyzer(self, config_file, config_section):
         self.test_settings.change_configuration_path(config_file)
         return SimplequeryAnalyzer(config_section_name=config_section)
+
+    def test_simplequery_whitelist_work_test_es_result(self):
+        dummy_doc_generate = DummyDocumentsGenerate()
+        nbr_generated_documents = 5
+        all_doc = dummy_doc_generate.create_documents(nbr_generated_documents)
+        new_doc = dummy_doc_generate.generate_document(hostname="whitelist_hostname")
+        all_doc.append(new_doc)
+        self.test_es.add_multiple_docs(all_doc)
+
+        # Run analyzer
+        self._get_simplequery_analyzer("/app/tests/unit_tests/files/simplequery_test_whitelist.conf",
+                                       "simplequery_dummy_test").evaluate_model()
+
+        nbr_outliers = 0
+        for elem in es.scan():
+            if "outliers" in elem["_source"]:
+                nbr_outliers += 1
+        self.assertEqual(nbr_outliers, nbr_generated_documents)
 
     def test_one_doc_outlier_correctly_add(self):
         doc_without_outlier = copy.deepcopy(doc_without_outlier_test_file)
