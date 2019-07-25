@@ -76,7 +76,8 @@ class BeaconingAnalyzer(Analyzer):
 
     def extract_additional_model_settings(self):
         try:
-            self.model_settings["process_documents_chronologically"] = settings.config.getboolean(self.config_section_name, "process_documents_chronologically")
+            self.model_settings["process_documents_chronologically"] = settings.config.getboolean(
+                self.config_section_name, "process_documents_chronologically")
         except NoOptionError:
             self.model_settings["process_documents_chronologically"] = True
 
@@ -85,7 +86,7 @@ class BeaconingAnalyzer(Analyzer):
         self.model_settings["aggregator"] = settings.config.get(self.config_section_name, "aggregator")\
             .replace(' ', '').split(",")  # remove unnecessary whitespace, split fields
         self.model_settings["trigger_sensitivity"] = settings.config.getfloat(self.config_section_name,
-                                                                            "trigger_sensitivity")
+                                                                              "trigger_sensitivity")
         self.model_settings["batch_eval_size"] = settings.config.getint("beaconing", "beaconing_batch_eval_size")
 
         try:

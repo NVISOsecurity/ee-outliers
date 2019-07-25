@@ -49,7 +49,7 @@ class MetricsAnalyzer(Analyzer):
                         for aggregator_sentence in aggregator_sentences:
                             flattened_aggregator_sentence = helpers.utils.flatten_sentence(aggregator_sentence)
                             eval_metrics = self.add_metric_to_batch(eval_metrics, flattened_aggregator_sentence,
-                                                                target_value, metric, observations, doc)
+                                                                    target_value, metric, observations, doc)
 
                 # Evaluate batch of events against the model
                 last_batch = (logging.current_step == self.total_events)
@@ -78,7 +78,8 @@ class MetricsAnalyzer(Analyzer):
         Override method from Analyzer
         """
         try:
-            self.model_settings["process_documents_chronologically"] = settings.config.getboolean(self.config_section_name, "process_documents_chronologically")
+            self.model_settings["process_documents_chronologically"] = settings.config.getboolean(
+                self.config_section_name, "process_documents_chronologically")
         except NoOptionError:
             self.model_settings["process_documents_chronologically"] = True
 
