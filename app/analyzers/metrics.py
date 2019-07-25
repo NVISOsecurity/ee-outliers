@@ -90,22 +90,16 @@ class MetricsAnalyzer(Analyzer):
                 del remaining_metrics[aggregator_value]
 
             # Calculate the decision frontier
-            print('model_settings["trigger_sensitivity"]', model_settings["trigger_sensitivity"])
             decision_frontier = helpers.utils.get_decision_frontier(model_settings["trigger_method"],
                                                                     metrics[aggregator_value]["metrics"],
                                                                     model_settings["trigger_sensitivity"],
                                                                     model_settings["trigger_on"])
-            print("decision_frontier", decision_frontier)
-            print("model_settings", model_settings)
             logging.logger.debug("using decision frontier " + str(decision_frontier) + " for aggregator " + str(aggregator_value) + " - " + model_settings["metric"])
             logging.logger.debug("example metric from batch for " + metrics[aggregator_value]["observations"][0]["target"] + ": " + str(metrics[aggregator_value]["metrics"][0]))
 
             # Calculate all outliers in array
             for ii, metric_value in enumerate(metrics[aggregator_value]["metrics"]):
-                print("metric_value", metric_value, type(metric_value))
-                print("decision_frontier", decision_frontier, type(decision_frontier))
                 is_outlier = helpers.utils.is_outlier(metric_value, decision_frontier, model_settings["trigger_on"])
-                print("Outlier:", is_outlier)
 
                 if is_outlier:
                     confidence = np.abs(decision_frontier - metric_value)
