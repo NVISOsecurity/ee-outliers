@@ -132,6 +132,17 @@ class TestMetricsAnalyzer(unittest.TestCase):
 
         self.assertEqual(len(analyzer.outliers), 1)
 
+    def test_metrics_use_derived_fields_in_doc(self):
+        dummy_doc_generate = DummyDocumentsGenerate()
+        self.test_es.add_doc(dummy_doc_generate.generate_document())
+
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/metrics_test_01.conf")
+        analyzer = MetricsAnalyzer("metrics_dummy_test_derived")
+        analyzer.evaluate_model()
+
+        result = [elem for elem in es.scan()][0]
+        self.assertTrue("timestamp_year" in result['_source'])
+
     def _test_whitelist_batch_document_not_process_all(self):  # TODO FIX with new whitelist system
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/metrics_test_with_whitelist.conf")
         analyzer = MetricsAnalyzer("metrics_length_dummy_test")
