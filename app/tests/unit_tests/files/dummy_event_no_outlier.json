@@ -23,8 +23,8 @@
                 "notafter": "2018-07-30T09:00:07",
                 "notbefore": "2018-05-01T09:00:07",
                 "serial": "04:53:86:67:D7:25:F8:D6:5C:C1:70:2E:AE:B2:B0:AF:88:71",
-                "sni": "apkscan.nviso.be",
-                "subject": "CN=apkscan.nviso.be",
+                "sni": "apkscan.dummy.be",
+                "subject": "CN=apkscan.dummy.be",
                 "version": "TLS 1.2"
             }
         },

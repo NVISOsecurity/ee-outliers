@@ -3,7 +3,6 @@ import time
 import os
 import sys
 import unittest
-import traceback
 import numpy as np
 
 import elasticsearch.exceptions
@@ -19,7 +18,6 @@ from helpers.housekeeping import HousekeepingJob
 from analyzers.metrics import MetricsAnalyzer
 from analyzers.simplequery import SimplequeryAnalyzer
 from analyzers.terms import TermsAnalyzer
-from analyzers.beaconing import BeaconingAnalyzer
 from analyzers.word2vec import Word2VecAnalyzer
 
 
@@ -197,27 +195,30 @@ def perform_analysis():
     analyzers = list()
 
     for config_section_name in settings.config.sections():
+        _analyzer = None
         try:
             if config_section_name.startswith("simplequery_"):
-                simplequery_analyzer = SimplequeryAnalyzer(config_section_name=config_section_name)
-                analyzers.append(simplequery_analyzer)
+                _analyzer = SimplequeryAnalyzer(config_section_name=config_section_name)
+                analyzers.append(_analyzer)
 
             elif config_section_name.startswith("metrics_"):
-                metrics_analyzer = MetricsAnalyzer(config_section_name=config_section_name)
-                analyzers.append(metrics_analyzer)
+                _analyzer = MetricsAnalyzer(config_section_name=config_section_name)
+                analyzers.append(_analyzer)
 
             elif config_section_name.startswith("terms_"):
-                terms_analyzer = TermsAnalyzer(config_section_name=config_section_name)
-                analyzers.append(terms_analyzer)
+                _analyzer = TermsAnalyzer(config_section_name=config_section_name)
+                analyzers.append(_analyzer)
 
             elif config_section_name.startswith("beaconing_"):
-                logging.logger.error("use of the beaconing model is deprecated, please use the terms model using coeff_of_variation trigger method to convert use case " + config_section_name)
+                logging.logger.error("use of the beaconing model is deprecated, please use the terms model using " +
+                                     "coeff_of_variation trigger method to convert use case " + config_section_name)
 
             elif config_section_name.startswith("word2vec_"):
-                word2vec_analyzer = Word2VecAnalyzer(config_section_name=config_section_name)
-                analyzers.append(word2vec_analyzer)
+                _analyzer = Word2VecAnalyzer(config_section_name=config_section_name)
+                analyzers.append(_analyzer)
         except Exception:
-            logging.logger.error("error while parsing use case configuration", exc_info=True)
+            logging.logger.error("error while initializing analyzer " + config_section_name, exc_info=True)
+
     analyzers_to_evaluate = list()
 
     for analyzer in analyzers:
@@ -227,6 +228,9 @@ def perform_analysis():
     random.shuffle(analyzers_to_evaluate)
 
     for index, analyzer in enumerate(analyzers_to_evaluate):
+        if analyzer.configuration_parsing_error:
+            continue
+
         try:
             analyzer.analysis_start_time = datetime.today().timestamp()
             analyzer.evaluate_model()
@@ -260,9 +264,11 @@ def print_analysis_summary(analyzed_models):
                                     if (analyzer.completed_analysis and analyzer.total_events > 0)]
 
     no_index_models = [analyzer for analyzer in analyzed_models if analyzer.index_not_found_analysis]
-    errored_models = [analyzer for analyzer in analyzed_models if analyzer.unknown_error_analysis]
+    unknown_error_models = [analyzer for analyzer in analyzed_models if analyzer.unknown_error_analysis]
+    configuration_parsing_error_models = [analyzer for analyzer in analyzed_models
+                                          if analyzer.configuration_parsing_error]
 
-    total_models_processed = len(completed_models) + len(no_index_models) + len(errored_models)
+    total_models_processed = len(completed_models) + len(no_index_models) + len(unknown_error_models)
     logging.logger.info("total use cases processed: %i", total_models_processed)
     logging.logger.info("")
     logging.logger.info("succesfully analyzed use cases: %i", len(completed_models))
@@ -271,7 +277,10 @@ def print_analysis_summary(analyzed_models):
     logging.logger.info("succesfully analyzed use cases with events: %i", len(completed_models_with_events))
     logging.logger.info("")
     logging.logger.info("use cases skipped because of missing index: %i", len(no_index_models))
-    logging.logger.info("use cases that caused an error: %i", len(errored_models))
+    logging.logger.info("use cases skipped because of incorrect configuration: %i",
+                        len(configuration_parsing_error_models))
+    logging.logger.info("use cases that caused an error: %i", len(unknown_error_models))
+    logging.logger.info("")
 
     analysis_times = [_.analysis_time_seconds for _ in completed_models_with_events]
     completed_models_with_events.sort(key=lambda _: _.analysis_time_seconds, reverse=True)
@@ -290,6 +299,20 @@ def print_analysis_summary(analyzed_models):
         for model in completed_models_with_events_taking_most_time:
             logging.logger.info("\t+ " + model.config_section_name + " - " + "{:,}".format(model.total_events) +
                                 " events - " + helpers.utils.seconds_to_pretty_str(round(model.analysis_time_seconds)))
+
+    if configuration_parsing_error_models:
+        logging.logger.info("")
+        logging.logger.info("models for which the configuration parsing failed:")
+
+        for model in configuration_parsing_error_models:
+            logging.logger.info("\t+ " + model.config_section_name)
+
+    if unknown_error_models:
+        logging.logger.info("")
+        logging.logger.info("models for which an unexpected error was encountered:")
+
+        for model in unknown_error_models:
+            logging.logger.info("\t+ " + model.config_section_name)
 
     if not analyzed_models:
         logging.logger.warning("no use cases were analyzed. are you sure your configuration file contains use " +

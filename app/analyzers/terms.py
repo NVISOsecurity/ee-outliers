@@ -11,8 +11,6 @@ from helpers.analyzer import Analyzer
 class TermsAnalyzer(Analyzer):
 
     def evaluate_model(self):
-        self._extract_additional_model_settings()
-
         if self.model_settings["brute_force_target"]:
             logging.logger.warning("running terms model in brute force mode, could take a long time!")
             target_fields_to_brute_force = self._calculate_target_fields_to_brute_force()
@@ -147,13 +145,18 @@ class TermsAnalyzer(Analyzer):
         return field_names_to_brute_force
 
     def _extract_additional_model_settings(self):
+        """
+        Override method from Analyzer
+        """
         try:
-            self.model_settings["process_documents_chronologically"] = settings.config.getboolean(self.config_section_name, "process_documents_chronologically")
+            self.model_settings["process_documents_chronologically"] = settings.config.getboolean(
+                self.config_section_name, "process_documents_chronologically")
         except NoOptionError:
             self.model_settings["process_documents_chronologically"] = True
 
-        self.model_settings["target"] = settings.config.get(self.config_section_name, "target")\
-                                        .replace(' ', '').split(",")  # remove unnecessary whitespace, split fields
+        # remove unnecessary whitespace, split fields
+        self.model_settings["target"] = settings.config.get(self.config_section_name,
+                                                            "target").replace(' ', '').split(",")
 
         self.model_settings["brute_force_target"] = "*" in self.model_settings["target"]
 
@@ -179,7 +182,12 @@ class TermsAnalyzer(Analyzer):
             raise ValueError("target count method " + self.model_settings["target_count_method"] + " not supported")
 
         if self.model_settings["trigger_on"] not in {"high", "low"}:
-            raise ValueError("Unexpected outlier trigger condition " + self.model_settings["trigger_on"])
+            raise ValueError("Unexpected outlier trigger condition " + str(self.model_settings["trigger_on"]))
+
+        if self.model_settings["trigger_method"] not in {"percentile", "pct_of_max_value", "pct_of_median_value",
+                                                         "pct_of_avg_value", "mad", "madpos", "stdev", "float",
+                                                         "coeff_of_variation"}:
+            raise ValueError("Unexpected outlier trigger method " + str(self.model_settings["trigger_method"]))
 
     def evaluate_batch_for_outliers(self, terms=None):
         # In case we want to count terms across different aggregators, we need to first iterate over all aggregators

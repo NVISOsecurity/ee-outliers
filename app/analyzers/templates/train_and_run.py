@@ -5,15 +5,16 @@ from helpers.analyzer import Analyzer
 class TemplateAnalyzer(Analyzer):
 
     def evaluate_model(self):
-        self.extract_extra_model_settings()
-
         if self.model_settings["train_model"]:
             self.train_model()
 
         if self.model_settings["run_model"] or self.model_settings["test_model"]:
             self.run_model()
 
-    def extract_extra_model_settings(self):
+    def _extract_additional_model_settings(self):
+        """
+        Override method from Analyzer
+        """
         self.model_settings["train_model"] = settings.config.getboolean(self.config_section_name, "train_model")
 
     def train_model(self):
