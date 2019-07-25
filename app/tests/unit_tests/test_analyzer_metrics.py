@@ -54,7 +54,7 @@ class TestMetricsAnalyzer(unittest.TestCase):
                 nbr_outliers += 1
         self.assertEqual(nbr_outliers, nbr_generated_documents)
 
-    def test_metrics_detect_one_outlier(self):
+    def test_metrics_detect_one_outlier_es_check(self):
         dummy_doc_generate = DummyDocumentsGenerate()
 
         list_user_id = [11, 10, 8, 0, 0, 0]
@@ -74,6 +74,63 @@ class TestMetricsAnalyzer(unittest.TestCase):
             if "outliers" in elem["_source"]:
                 nbr_outliers += 1
         self.assertEqual(nbr_outliers, 1)
+
+    def test_metrics_detect_one_outlier_batch_check(self):
+        dummy_doc_generate = DummyDocumentsGenerate()
+
+        list_user_id = [11, 10, 8, 0, 0, 0]
+
+        # Generate document
+        for user_id in list_user_id:
+            self.test_es.add_doc(dummy_doc_generate.generate_document(user_id=user_id))
+        # Only the fist one must be detected like outlier, because user_id need to be bigger than 10
+
+        # Run analyzer
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/metrics_test_01.conf")
+        analyzer = MetricsAnalyzer("metrics_numerical_value_dummy_test")
+        analyzer.evaluate_model()
+
+        self.assertEqual(len(analyzer.outliers), 1)
+
+    def test_metrics_small_batch_treat_all(self):
+        dummy_doc_generate = DummyDocumentsGenerate()
+
+        # Init the list of user
+        default_user_id = 11
+        number_of_user = 20
+        list_user_id = [default_user_id for _ in range(number_of_user)]
+
+        # Generate document
+        for user_id in list_user_id:
+            self.test_es.add_doc(dummy_doc_generate.generate_document(user_id=user_id))
+
+        # Run analyzer
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/metrics_test_small_batch_eval.conf")
+        analyzer = MetricsAnalyzer("metrics_numerical_value_dummy_test")
+        analyzer.evaluate_model()
+
+        self.assertEqual(len(analyzer.outliers), number_of_user)
+
+    def test_metrics_small_batch_last_outlier(self):
+        dummy_doc_generate = DummyDocumentsGenerate()
+
+        # Init the list of user
+        default_user_id = 0
+        number_of_user = 19
+        list_user_id = [default_user_id for _ in range(number_of_user)]
+        # Add a value at the end that must be detected like outlier (limit on 10)
+        list_user_id.append(11)
+
+        # Generate document
+        for user_id in list_user_id:
+            self.test_es.add_doc(dummy_doc_generate.generate_document(user_id=user_id))
+
+        # Run analyzer
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/metrics_test_small_batch_eval.conf")
+        analyzer = MetricsAnalyzer("metrics_numerical_value_dummy_test")
+        analyzer.evaluate_model()
+
+        self.assertEqual(len(analyzer.outliers), 1)
 
     def _test_whitelist_batch_document_not_process_all(self):  # TODO FIX with new whitelist system
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/metrics_test_with_whitelist.conf")
