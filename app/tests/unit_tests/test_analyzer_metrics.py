@@ -5,8 +5,9 @@ import copy
 
 from tests.unit_tests.test_stubs.test_stub_es import TestStubEs
 from analyzers.metrics import MetricsAnalyzer
-from helpers.singletons import settings, logging, es
+from helpers.singletons import logging, es
 from tests.unit_tests.utils.test_settings import TestSettings
+from tests.unit_tests.utils.dummy_documents_generate import DummyDocumentsGenerate
 import helpers.utils
 
 from collections import defaultdict
@@ -70,8 +71,7 @@ class TestMetricsAnalyzer(unittest.TestCase):
         aggregator_value = "key"
         target_value = "test"
         observations = {}
-        doc = copy.deepcopy(doc_without_outlier_test_file)
-        return eval_metrics_array, aggregator_value, target_value, metrics_value, observations, doc
+        return eval_metrics_array, aggregator_value, target_value, metrics_value, observations
 
     def test_add_metric_to_batch_empty(self):
         eval_metrics_array = defaultdict()
@@ -80,7 +80,7 @@ class TestMetricsAnalyzer(unittest.TestCase):
         metrics_value = ""
         observations = {}
         doc = {}
-        # # Create expected result
+        # Create expected result
         observations["target"] = [target_value]
         observations["aggregator"] = [aggregator_value]
         expected_eval_terms = defaultdict()
@@ -97,7 +97,7 @@ class TestMetricsAnalyzer(unittest.TestCase):
         eval_metrics_array, aggregator_value, target_value, metrics_value, observations, doc = \
             self._preperate_dummy_data_terms()
 
-        # # Create expected result
+        # Create expected result
         observations["target"] = [target_value]
         observations["aggregator"] = [aggregator_value]
         expected_eval_terms = defaultdict()
@@ -150,11 +150,12 @@ class TestMetricsAnalyzer(unittest.TestCase):
         self.assertEqual(MetricsAnalyzer.calculate_metric("dummy operation", ""), (None, dict()))
 
     def test_evaluate_batch_for_outliers_fetch_remain_metrics(self):
-        settings.process_configuration_files("/app/tests/unit_tests/files/metrics_test_01.conf")
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/metrics_test_01.conf")
         analyzer = MetricsAnalyzer("metrics_dummy_test")
 
-        eval_metrics_array, aggregator_value, target_value, metrics_value, observations, doc = \
+        eval_metrics_array, aggregator_value, target_value, metrics_value, observations = \
             self._preperate_data_terms_with_doc()
+        doc = DummyDocumentsGenerate().generate_document()
         metrics = MetricsAnalyzer.add_metric_to_batch(eval_metrics_array, aggregator_value, target_value, metrics_value,
                                                       observations, doc)
 
@@ -162,49 +163,17 @@ class TestMetricsAnalyzer(unittest.TestCase):
         self.assertEqual(result, ([], metrics))
 
     def test_evaluate_batch_for_outliers_add_outlier(self):
-        settings.process_configuration_files("/app/tests/unit_tests/files/metrics_test_01.conf")
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/metrics_test_01.conf")
         analyzer = MetricsAnalyzer("metrics_dummy_test")
 
-        eval_metrics_array, aggregator_value, target_value, metrics_value, observations, doc = \
+        eval_metrics_array, aggregator_value, target_value, metrics_value, observations = \
             self._preperate_data_terms_with_doc(metrics_value=12)
+        doc_without_outlier = copy.deepcopy(doc_without_outlier_test_file)
         metrics = MetricsAnalyzer.add_metric_to_batch(eval_metrics_array, aggregator_value, target_value, metrics_value,
-                                                      observations, doc)
+                                                      observations, doc_without_outlier)
 
         analyzer.evaluate_batch_for_outliers(metrics, analyzer.model_settings, True)
         result = [elem for elem in es.scan()][0]
         doc_with_outlier = copy.deepcopy(doc_with_outlier_test_file)
+
         self.assertEqual(result, doc_with_outlier)
-
-    # def test_evaluate_batch_for_outliers_not_match_outlier(self):
-    #     settings.process_configuration_files("/app/tests/unit_tests/files/metrics_test_01.conf")
-    #     analyzer = MetricsAnalyzer("metrics_dummy_test")
-    #     analyzer.extract_additional_model_settings()
-    #
-    #     eval_metrics_array, aggregator_value, target_value, metrics_value, observations, doc = \
-    #         self._preperate_data_terms_with_doc()
-    #     metrics = MetricsAnalyzer.add_metric_to_batch(eval_metrics_array, aggregator_value, target_value,
-    #                                                   metrics_value,
-    #                                                   observations, doc)
-    #
-    #     analyzer.evaluate_batch_for_outliers(metrics, analyzer.model_settings, True)
-    #     result = [elem for elem in es.scan()][0]
-    #     doc_with_outlier = copy.deepcopy(doc_with_outlier_test_file)
-    #     self.assertEqual(result, doc_with_outlier)
-
-
-
-        #  aggregator_value = LIST_AGGREGATOR_VALUE[0]
-        # target_value = random.choice(LIST_TARGET_VALUE)
-        # observations = {}
-        # doc = copy.deepcopy(random.choice(LIST_DOC))
-        # eval_terms_array = analyzer.add_term_to_batch(defaultdict(), aggregator_value, target_value, observations, doc)
-        #
-        #  aggregator_value2 = LIST_AGGREGATOR_VALUE[1]
-        # target_value2 = random.choice(LIST_TARGET_VALUE)
-        # observations2 = {}
-        # doc2 = copy.deepcopy(random.choice(LIST_DOC))
-        # eval_terms_array = analyzer.add_term_to_batch(eval_terms_array, aggregator_value2, target_value2, observations2,
-        #                                               doc2)
-        #
-        #  result = analyzer.evaluate_batch_for_outliers(terms=eval_terms_array)
-        # self.assertEqual(result, [])
