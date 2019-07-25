@@ -60,6 +60,7 @@ class BeaconingAnalyzer(Analyzer):
                 if last_batch or total_terms_added >= self.model_settings["batch_eval_size"]:
                     logging.logger.info("evaluating batch of " + "{:,}".format(total_terms_added) + " terms")
                     outliers = self.evaluate_batch_for_outliers(terms=eval_terms_array)
+                    
                     if len(outliers) > 0:
                         unique_summaries = len(set(o.outlier_dict["summary"] for o in outliers))
                         logging.logger.info("total outliers in batch processed: " + str(len(outliers)) + " [" +
@@ -145,4 +146,4 @@ class BeaconingAnalyzer(Analyzer):
         observations["confidence"] = np.abs(decision_frontier - self.model_settings["trigger_sensitivity"])
 
         return self.process_outlier(fields, terms[aggregator_value]["raw_docs"][term_counter],
-                                    extra_outlier_information=observations, es_process_outlier=es_process_outlier)
+                                    extra_outlier_information=observations)
