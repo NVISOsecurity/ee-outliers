@@ -251,4 +251,3 @@
 #         analyzer.evaluate_model()
 #
 #         self.assertEqual(len(analyzer.outliers), 3)
->>>>>>> development
