@@ -62,3 +62,14 @@ class TestSimplequeryAnalyzer(unittest.TestCase):
         # Fetch result to check if it is correct
         result = [elem for elem in es.scan()][0]
         self.assertEqual(result, doc_with_outlier)
+
+    def test_metrics_use_derived_fields_in_doc(self):
+        dummy_doc_generate = DummyDocumentsGenerate()
+        self.test_es.add_doc(dummy_doc_generate.generate_document())
+
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/simplequery_test_02.conf")
+        analyzer = SimplequeryAnalyzer("simplequery_dummy_test_derived")
+        analyzer.evaluate_model()
+
+        result = [elem for elem in es.scan()][0]
+        self.assertTrue("timestamp_year" in result['_source'])
