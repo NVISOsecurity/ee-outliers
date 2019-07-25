@@ -58,6 +58,33 @@ class TestTermsAnalyzer(unittest.TestCase):
 
         self.assertEqual(len(analyzer.outliers), 2)
 
+    def test_terms_whitelist_work_test_es_result(self):
+        dummy_doc_generate = DummyDocumentsGenerate()
+        command_query = "SELECT * FROM dummy_table"  # must be bigger than the trigger value (here 3)
+        nbr_generated_documents = 5
+
+        # Generate document that match outlier
+        command_name = "default_name_"
+        for i in range(nbr_generated_documents):
+            self.test_es.add_doc(dummy_doc_generate.generate_document(command_query=command_query,
+                                                                      command_name=command_name + str(i)))
+        # Generate whitelist document
+        self.test_es.add_doc(dummy_doc_generate.generate_document(hostname="whitelist_hostname",
+                                                                  command_query=command_query,
+                                                                  command_name=command_name + str(
+                                                                      nbr_generated_documents)))
+
+        # Run analyzer
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_with_whitelist.conf")
+        analyzer = TermsAnalyzer("terms_dummy_test")
+        analyzer.evaluate_model()
+
+        nbr_outliers = 0
+        for elem in es.scan():
+            if "outliers" in elem["_source"]:
+                nbr_outliers += 1
+        self.assertEqual(nbr_outliers, nbr_generated_documents)
+
     def test_evaluate_batch_for_outliers_not_enough_target_buckets_one_doc_max_two(self):
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_01.conf")
         analyzer = TermsAnalyzer("terms_dummy_test")
