@@ -1,29 +1,58 @@
+import json
 import unittest
 
-import json
 import copy
 
 from tests.unit_tests.test_stubs.test_stub_es import TestStubEs
-from helpers.singletons import settings, es
 from analyzers.metrics import MetricsAnalyzer
+from helpers.singletons import settings, logging, es
+from tests.unit_tests.utils.test_settings import TestSettings
 import helpers.utils
 
 from collections import defaultdict
+
+doc_without_outliers_test_whitelist_01_test_file = json.load(
+    open("/app/tests/unit_tests/files/doc_without_outliers_test_whitelist_01.json"))
+doc_without_outliers_test_whitelist_02_test_file = json.load(
+    open("/app/tests/unit_tests/files/doc_without_outliers_test_whitelist_02.json"))
+doc_without_outliers_test_whitelist_03_test_file = json.load(
+    open("/app/tests/unit_tests/files/doc_without_outliers_test_whitelist_03.json"))
 
 doc_without_outlier_test_file = json.load(open("/app/tests/unit_tests/files/doc_without_outlier.json"))
 doc_with_outlier_test_file = json.load(open("/app/tests/unit_tests/files/doc_with_metrics_outlier.json"))
 
 
 class TestMetricsAnalyzer(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        logging.verbosity = 0
 
     def setUp(self):
         self.test_es = TestStubEs()
+        self.test_settings = TestSettings()
 
     def tearDown(self):
         # restore the default configuration file so we don't influence other unit tests that use the settings singleton
-        settings.process_configuration_files("/defaults/outliers.conf")
-        settings.process_arguments()
+        self.test_settings.restore_default_configuration_path()
         self.test_es.restore_es()
+
+    def _test_whitelist_batch_document_not_process_all(self):  # TODO FIX with new whitelist system
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/metrics_test_with_whitelist.conf")
+        analyzer = MetricsAnalyzer("metrics_length_dummy_test")
+
+        # Whitelisted (ignored)
+        doc1_without_outlier = copy.deepcopy(doc_without_outliers_test_whitelist_01_test_file)
+        self.test_es.add_doc(doc1_without_outlier)
+        # Not whitelisted (add)
+        doc2_without_outlier = copy.deepcopy(doc_without_outliers_test_whitelist_02_test_file)
+        self.test_es.add_doc(doc2_without_outlier)
+        # Not whitelisted
+        doc3_without_outlier = copy.deepcopy(doc_without_outliers_test_whitelist_03_test_file)
+        self.test_es.add_doc(doc3_without_outlier)
+
+        analyzer.evaluate_model()
+
+        self.assertEqual(len(analyzer.outliers), 2)
 
     def _preperate_dummy_data_terms(self):
         eval_metrics_array = defaultdict()
@@ -123,7 +152,6 @@ class TestMetricsAnalyzer(unittest.TestCase):
     def test_evaluate_batch_for_outliers_fetch_remain_metrics(self):
         settings.process_configuration_files("/app/tests/unit_tests/files/metrics_test_01.conf")
         analyzer = MetricsAnalyzer("metrics_dummy_test")
-        analyzer.extract_additional_model_settings()
 
         eval_metrics_array, aggregator_value, target_value, metrics_value, observations, doc = \
             self._preperate_data_terms_with_doc()
@@ -136,7 +164,6 @@ class TestMetricsAnalyzer(unittest.TestCase):
     def test_evaluate_batch_for_outliers_add_outlier(self):
         settings.process_configuration_files("/app/tests/unit_tests/files/metrics_test_01.conf")
         analyzer = MetricsAnalyzer("metrics_dummy_test")
-        analyzer.extract_additional_model_settings()
 
         eval_metrics_array, aggregator_value, target_value, metrics_value, observations, doc = \
             self._preperate_data_terms_with_doc(metrics_value=12)

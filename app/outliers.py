@@ -3,11 +3,14 @@ import time
 import os
 import sys
 import unittest
+import numpy as np
 
-import traceback
+import elasticsearch.exceptions
+
 from datetime import datetime
 from croniter import croniter
 
+import helpers.utils
 from helpers.singletons import settings, logging, es
 from helpers.watchers import FileModificationWatcher
 from helpers.housekeeping import HousekeepingJob
@@ -15,106 +18,73 @@ from helpers.housekeeping import HousekeepingJob
 from analyzers.metrics import MetricsAnalyzer
 from analyzers.simplequery import SimplequeryAnalyzer
 from analyzers.terms import TermsAnalyzer
-from analyzers.beaconing import BeaconingAnalyzer
 from analyzers.word2vec import Word2VecAnalyzer
+
 
 ##############
 # Entrypoint #
 ##############
-if os.environ.get("SENTRY_SDK_URL"):
-    import sentry_sdk
-    sentry_sdk.init(os.environ.get("SENTRY_SDK_URL"))
+def run_outliers():
+    # Run modes
 
-if settings.args.run_mode == "tests":
+    # if running in test mode, we just want to run the tests and exit as quick as possible.
+    # no need to set up other things like logging, which should happen afterwards.
+    if settings.args.run_mode == "tests":
+        test_filename = 'test_*.py'
+        test_directory = '/app/tests/unit_tests'
 
-    test_filename = 'test_*.py'
-    test_directory = '/app/tests/unit_tests'
+        suite = unittest.TestLoader().discover(test_directory, pattern=test_filename)
+        unittest.TextTestRunner(verbosity=settings.config.getint("general", "log_verbosity")).run(suite)
+        sys.exit()
 
-    suite = unittest.TestLoader().discover(test_directory, pattern=test_filename)
-    unittest.TextTestRunner(verbosity=settings.config.getint("general", "log_verbosity")).run(suite)
-    sys.exit()
+    # at this point, we know we are not running tests, so we should set up logging,
+    # parse the configuration files, etc.
+    setup_logging()
+    print_intro()
 
-# Configuration for which we need access to both settings and logging singletons should happen here
-logging.verbosity = settings.config.getint("general", "log_verbosity")
-logging.logger.setLevel(settings.config.get("general", "log_level"))
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = settings.config.get("machine_learning", "tensorflow_log_level")
+    # everything has been setup correctly, we can now start analysis in the correct run mode
+    if settings.args.run_mode == "daemon":
+        run_daemon_mode()
 
-# Log Handlers
-LOG_FILE = settings.config.get("general", "log_file")
-
-if os.path.exists(os.path.dirname(LOG_FILE)):
-    logging.add_file_handler(LOG_FILE)
-else:
-    logging.logger.warning("log directory for log file %s does not exist, check your settings! Only logging to stdout.", LOG_FILE)
-
-logging.logger.info("outliers.py started - contact: research@nviso.be")
-logging.logger.info("run mode: " + settings.args.run_mode)
-
-logging.print_generic_intro("initializing")
-logging.logger.info("loaded " + str(len(settings.loaded_config_paths)) + " configuration files")
-
-if settings.failed_config_paths:
-    logging.logger.warning("failed to load " + str(len(settings.failed_config_paths)) + " configuration files")
-
-    for failed_config_path in settings.failed_config_paths:
-        logging.logger.warning("failed to load " + str(failed_config_path))
+    elif settings.args.run_mode == "interactive":
+        run_interactive_mode()
 
 
-def perform_analysis():
-    """ The entrypoint for analysis """
-    analyzers = list()
+def setup_logging():
+    if os.environ.get("SENTRY_SDK_URL"):
+        import sentry_sdk
+        sentry_sdk.init(os.environ.get("SENTRY_SDK_URL"))
 
-    for config_section_name in settings.config.sections():
-        try:
-            if config_section_name.startswith("simplequery_"):
-                simplequery_analyzer = SimplequeryAnalyzer(config_section_name=config_section_name)
-                analyzers.append(simplequery_analyzer)
+    # Configuration for which we need access to both settings and logging singletons should happen here
+    logging.verbosity = settings.config.getint("general", "log_verbosity")
+    logging.logger.setLevel(settings.config.get("general", "log_level"))
+    os.environ['TF_CPP_MIN_LOG_LEVEL'] = settings.config.get("machine_learning", "tensorflow_log_level")
 
-            elif config_section_name.startswith("metrics_"):
-                metrics_analyzer = MetricsAnalyzer(config_section_name=config_section_name)
-                analyzers.append(metrics_analyzer)
+    # Log Handlers
+    log_file = settings.config.get("general", "log_file")
 
-            elif config_section_name.startswith("terms_"):
-                terms_analyzer = TermsAnalyzer(config_section_name=config_section_name)
-                analyzers.append(terms_analyzer)
-
-            elif config_section_name.startswith("beaconing_"):
-                beaconing_analyzer = BeaconingAnalyzer(config_section_name=config_section_name)
-                analyzers.append(beaconing_analyzer)
-
-            elif config_section_name.startswith("word2vec_"):
-                word2vec_analyzer = Word2VecAnalyzer(config_section_name=config_section_name)
-                analyzers.append(word2vec_analyzer)
-
-        except Exception:
-            logging.logger.error(traceback.format_exc())
-
-    analyzers_to_evaluate = list()
-
-    for analyzer in analyzers:
-        if analyzer.should_run_model or analyzer.should_test_model:
-            analyzers_to_evaluate.append(analyzer)
-
-    random.shuffle(analyzers_to_evaluate)
-    analyzed_models = 0
-    for analyzer in analyzers_to_evaluate:
-        try:
-            analyzer.evaluate_model()
-            analyzed_models = analyzed_models + 1
-            logging.logger.info("finished processing use case - " + str(analyzed_models) + "/" + str(len(analyzers_to_evaluate)) + " [" + '{:.2f}'.format(round(float(analyzed_models) / float(len(analyzers_to_evaluate)) * 100, 2)) + "% done" + "]")
-        except Exception:
-            logging.logger.error(traceback.format_exc())
-        finally:
-            es.flush_bulk_actions(refresh=True)
-
-    if analyzed_models == 0:
-        logging.logger.warning("no use cases were analyzed. are you sure your configuration file contains use cases, which are enabled?")
-
-    return analyzed_models == len(analyzers_to_evaluate)
+    if os.path.exists(os.path.dirname(log_file)):
+        logging.add_file_handler(log_file)
+    else:
+        logging.logger.warning("log directory for log file %s does not exist, check your settings! Only logging " +
+                               "to stdout.", log_file)
 
 
-# Run modes
-if settings.args.run_mode == "daemon":
+def print_intro():
+    logging.logger.info("outliers.py started - contact: research@nviso.be")
+    logging.logger.info("run mode: " + settings.args.run_mode)
+
+    logging.print_generic_intro("initializing")
+    logging.logger.info("loaded " + str(len(settings.loaded_config_paths)) + " configuration files")
+
+    if settings.failed_config_paths:
+        logging.logger.warning("failed to load " + str(len(settings.failed_config_paths)) + " configuration files")
+
+        for failed_config_path in settings.failed_config_paths:
+            logging.logger.warning("failed to load " + str(failed_config_path))
+
+
+def run_daemon_mode():
     # In daemon mode, we also want to monitor the configuration file for changes.
     # In case of a change, we need to make sure that we are using this new configuration file
     for config_file in settings.args.config:
@@ -138,14 +108,15 @@ if settings.args.run_mode == "daemon":
         next_run = None
         should_schedule_next_run = False
 
-        while (next_run is None or datetime.now() < next_run) and first_run is False and run_succeeded_without_errors is True:
+        while (next_run is None or datetime.now() < next_run) and first_run is False and \
+                run_succeeded_without_errors is True:
             if next_run is None:
                 should_schedule_next_run = True
 
             # Check for configuration file changes and load them in case it's needed
-            if len(file_mod_watcher.files_changed()) > 0:
+            if file_mod_watcher.files_changed():
                 logging.logger.info("configuration file changed, reloading")
-                settings.process_arguments()
+                settings.process_configuration_files()
                 should_schedule_next_run = True
 
             if should_schedule_next_run:
@@ -155,18 +126,20 @@ if settings.args.run_mode == "daemon":
 
             time.sleep(5)
 
-        settings.process_arguments()  # Refresh settings
+        settings.process_configuration_files()  # Refresh settings
 
         if first_run:
             first_run = False
-            logging.logger.info("first run, so we will start immediately - after this, we will respect the cron schedule defined in the configuration file")
+            logging.logger.info("first run, so we will start immediately - after this, we will respect the cron " +
+                                "schedule defined in the configuration file")
 
             # Wipe all existing outliers if needed
             if settings.config.getboolean("general", "es_wipe_all_existing_outliers"):
                 logging.logger.info("wiping all existing outliers on first run")
                 es.remove_all_outliers()
         else:
-            # Make sure we are still connected to Elasticsearch before analyzing, in case something went wrong with the connection in between runs
+            # Make sure we are still connected to Elasticsearch before analyzing, in case something went wrong with
+            # the connection in between runs
             es.init_connection()
 
         # Make sure housekeeping is up and running
@@ -175,18 +148,24 @@ if settings.args.run_mode == "daemon":
 
         # Perform analysis
         logging.print_generic_intro("starting outlier detection")
-        run_succeeded_without_errors = perform_analysis()
+        analyzed_models = perform_analysis()
+        print_analysis_summary(analyzed_models)
+
+        errored_models = [analyzer for analyzer in analyzed_models if analyzer.unknown_error_analysis]
 
         # Check the result of the analysis
-        if not run_succeeded_without_errors:
-            logging.logger.warning("ran into errors while analyzing use cases - not going to wait for the cron schedule, we just start analyzing again")
+        if errored_models:
+            run_succeeded_without_errors = False
+            logging.logger.warning("ran into errors while analyzing use cases - not going to wait for the cron " +
+                                   "schedule, we just start analyzing again after sleeping for a minute first")
+            time.sleep(60)
         else:
-            logging.logger.info("no errors encountered while analyzing use cases")
+            run_succeeded_without_errors = True
 
         logging.print_generic_intro("finished performing outlier detection")
 
 
-elif settings.args.run_mode == "interactive":
+def run_interactive_mode():
     es.init_connection()
 
     if settings.config.getboolean("general", "es_wipe_all_existing_outliers"):
@@ -197,14 +176,145 @@ elif settings.args.run_mode == "interactive":
     housekeeping_job.start()
 
     try:
-        perform_analysis()
+        analyzed_models = perform_analysis()
+        print_analysis_summary(analyzed_models)
     except KeyboardInterrupt:
         logging.logger.info("keyboard interrupt received, stopping housekeeping thread")
     except Exception:
-        logging.logger.error(traceback.format_exc())
+        logging.logger.error("error running outliers in interactive mode", exc_info=True)
     finally:
         logging.logger.info("asking housekeeping jobs to shutdown after finishing")
         housekeeping_job.shutdown_flag.set()
         housekeeping_job.join()
 
     logging.logger.info("finished performing outlier detection")
+
+
+def perform_analysis():
+    """ The entrypoint for analysis """
+    analyzers = list()
+
+    for config_section_name in settings.config.sections():
+        _analyzer = None
+        try:
+            if config_section_name.startswith("simplequery_"):
+                _analyzer = SimplequeryAnalyzer(config_section_name=config_section_name)
+                analyzers.append(_analyzer)
+
+            elif config_section_name.startswith("metrics_"):
+                _analyzer = MetricsAnalyzer(config_section_name=config_section_name)
+                analyzers.append(_analyzer)
+
+            elif config_section_name.startswith("terms_"):
+                _analyzer = TermsAnalyzer(config_section_name=config_section_name)
+                analyzers.append(_analyzer)
+
+            elif config_section_name.startswith("beaconing_"):
+                logging.logger.error("use of the beaconing model is deprecated, please use the terms model using coeff_of_variation trigger method to convert use case " + config_section_name)
+
+            elif config_section_name.startswith("word2vec_"):
+                _analyzer = Word2VecAnalyzer(config_section_name=config_section_name)
+                analyzers.append(_analyzer)
+        except Exception:
+            logging.logger.error("error while initializing analyzer " + config_section_name, exc_info=True)
+
+    analyzers_to_evaluate = list()
+
+    for analyzer in analyzers:
+        if analyzer.should_run_model or analyzer.should_test_model:
+            analyzers_to_evaluate.append(analyzer)
+
+    random.shuffle(analyzers_to_evaluate)
+
+    for index, analyzer in enumerate(analyzers_to_evaluate):
+        if analyzer.configuration_parsing_error:
+            continue
+
+        try:
+            analyzer.analysis_start_time = datetime.today().timestamp()
+            analyzer.evaluate_model()
+            analyzer.analysis_end_time = datetime.today().timestamp()
+            analyzer.completed_analysis = True
+
+            logging.logger.info("finished processing use case - " + str(index + 1) + "/" +
+                                str(len(analyzers_to_evaluate)) + " [" + '{:.2f}'
+                                .format(round((index + 1) / float(len(analyzers_to_evaluate)) * 100, 2)) +
+                                "% done" + "]")
+        except elasticsearch.exceptions.NotFoundError:
+            analyzer.index_not_found_analysis = True
+            logging.logger.warning("index %s does not exist, skipping use case" % analyzer.es_index)
+        except Exception:
+            analyzer.unknown_error_analysis = True
+            logging.logger.error("error while analyzing use case", exc_info=True)
+        finally:
+            es.flush_bulk_actions(refresh=True)
+
+    return analyzers_to_evaluate
+
+
+def print_analysis_summary(analyzed_models):
+    logging.logger.info("")
+    logging.logger.info("============================")
+    logging.logger.info("===== analysis summary =====")
+    logging.logger.info("============================")
+
+    completed_models = [analyzer for analyzer in analyzed_models if analyzer.completed_analysis]
+    completed_models_with_events = [analyzer for analyzer in analyzed_models
+                                    if (analyzer.completed_analysis and analyzer.total_events > 0)]
+
+    no_index_models = [analyzer for analyzer in analyzed_models if analyzer.index_not_found_analysis]
+    unknown_error_models = [analyzer for analyzer in analyzed_models if analyzer.unknown_error_analysis]
+    configuration_parsing_error_models = [analyzer for analyzer in analyzed_models if analyzer.configuration_parsing_error]
+
+    total_models_processed = len(completed_models) + len(no_index_models) + len(unknown_error_models)
+    logging.logger.info("total use cases processed: %i", total_models_processed)
+    logging.logger.info("")
+    logging.logger.info("succesfully analyzed use cases: %i", len(completed_models))
+    logging.logger.info("succesfully analyzed use cases without events: %i",
+                        len(completed_models) - len(completed_models_with_events))
+    logging.logger.info("succesfully analyzed use cases with events: %i", len(completed_models_with_events))
+    logging.logger.info("")
+    logging.logger.info("use cases skipped because of missing index: %i", len(no_index_models))
+    logging.logger.info("use cases skipped because of incorrect configuration: %i", len(configuration_parsing_error_models))
+    logging.logger.info("use cases that caused an error: %i", len(unknown_error_models))
+    logging.logger.info("")
+
+    analysis_times = [_.analysis_time_seconds for _ in completed_models_with_events]
+    completed_models_with_events.sort(key=lambda _: _.analysis_time_seconds, reverse=True)
+
+    if completed_models_with_events:
+        logging.logger.info("total analysis time: " +
+                            helpers.utils.seconds_to_pretty_str(seconds=round(float(np.sum(analysis_times)))))
+        logging.logger.info("average analysis time: " +
+                            helpers.utils.seconds_to_pretty_str(seconds=round(np.average(analysis_times))))
+
+        # print most time consuming use cases
+        logging.logger.info("")
+        logging.logger.info("most time consuming use cases (top 10):")
+        completed_models_with_events_taking_most_time = completed_models_with_events[:10]
+
+        for model in completed_models_with_events_taking_most_time:
+            logging.logger.info("\t+ " + model.config_section_name + " - " + "{:,}".format(model.total_events) +
+                                " events - " + helpers.utils.seconds_to_pretty_str(round(model.analysis_time_seconds)))
+
+    if configuration_parsing_error_models:
+        logging.logger.info("")
+        for model in configuration_parsing_error_models:
+            logging.logger.info("models for which the configuration parsing failed:")
+            logging.logger.info("\t+ " + model.config_section_name)
+
+    if unknown_error_models:
+        logging.logger.info("")
+        for model in unknown_error_models:
+            logging.logger.info("models for which an unexpected error was encountered:")
+            logging.logger.info("\t+ " + model.config_section_name)
+
+    if not analyzed_models:
+        logging.logger.warning("no use cases were analyzed. are you sure your configuration file contains use " +
+                               "cases, which are enabled?")
+
+    logging.logger.info("============================")
+
+
+if __name__ == '__main__':
+    run_outliers()

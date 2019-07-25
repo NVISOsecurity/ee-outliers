@@ -6,6 +6,7 @@ import copy
 from helpers.singletons import es
 from helpers.outlier import Outlier
 from tests.unit_tests.test_stubs.test_stub_es import TestStubEs
+from tests.unit_tests.utils.dummy_documents_generate import DummyDocumentsGenerate
 
 doc_without_outlier_test_file = json.load(open("/app/tests/unit_tests/files/doc_without_outlier.json"))
 doc_with_outlier_with_derived_timestamp_test_file = json.load(
@@ -19,7 +20,8 @@ class TestTestStubEs(unittest.TestCase):
     def tearDown(self):
         self.test_es.restore_es()
 
-    def _get_example_dictionary_key_value_and_expected(self):
+    @staticmethod
+    def _get_example_dictionary_key_value_and_expected():
         dictionary_value = {
             "key.test": 1,
             "key.key2.ok": "test",
@@ -41,7 +43,8 @@ class TestTestStubEs(unittest.TestCase):
         }]
         return dictionary_value, expected_result
 
-    def _get_example_doc(self):
+    @staticmethod
+    def _get_example_doc():
         return {
             '_source': {
                 'key': {
@@ -50,6 +53,11 @@ class TestTestStubEs(unittest.TestCase):
             },
             '_id': 3
         }
+
+    def _generate_documents(self, nbr_generate):
+        dummy_doc_gen = DummyDocumentsGenerate()
+        all_doc = dummy_doc_gen.create_documents(nbr_generate)
+        self.test_es.add_multiple_docs(all_doc)
 
     def test_add_one_data_correctly_encode(self):
         dictionary_value, expected_result = self._get_example_dictionary_key_value_and_expected()
@@ -64,29 +72,29 @@ class TestTestStubEs(unittest.TestCase):
 
     def test_generate_data_count_number_results_of_scan(self):
         nbr_generate = 5
-        self.test_es.generate_data(nbr_generate)
+        self._generate_documents(nbr_generate)
         result = [elem for elem in es.scan()]
         self.assertEqual(len(result), nbr_generate)
 
     def test_generate_data_check_result_count_documents(self):
         nbr_generate = 5
-        self.test_es.generate_data(nbr_generate)
+        self._generate_documents(nbr_generate)
         self.assertEqual(es.count_documents(), nbr_generate)
 
     def test_remove_outliers_give_empty_list(self):
         nbr_generate = 5
-        self.test_es.generate_data(nbr_generate)
+        self._generate_documents(nbr_generate)
         es.remove_all_outliers()
         result = [elem for elem in es.scan()]
         self.assertEqual(len(result), 0)
 
     def test_remove_outliers_give_zero_count_documents(self):
         nbr_generate = 5
-        self.test_es.generate_data(nbr_generate)
+        self._generate_documents(nbr_generate)
         es.remove_all_outliers()
         self.assertEqual(es.count_documents(), 0)
 
-    def test_update_es_correcly_work(self):
+    def test_update_es_correctly_work(self):
         dictionary_value = self._get_example_dictionary_key_value_and_expected()[0]
         self.test_es.add_data(dictionary_value)
         result = [elem for elem in es.scan()][0]
@@ -107,7 +115,7 @@ class TestTestStubEs(unittest.TestCase):
         doc_with_outlier_with_derived_timestamp.pop('_score')  # field add by es
         doc_without_outlier = copy.deepcopy(doc_without_outlier_test_file)
         test_outlier = Outlier(outlier_type="dummy type", outlier_reason="dummy reason",
-                               outlier_summary="dummy summary")
+                               outlier_summary="dummy summary", doc=doc_without_outlier)
         test_outlier.outlier_dict["observation"] = "dummy observation"
 
         es.save_outlier(doc_without_outlier, test_outlier)

@@ -17,7 +17,7 @@ class Logging:
     verbosity = None
 
     def __init__(self, logger_name):
-        # Disable HTTPS warnings
+        # disable HTTPS warnings
         urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
         logging.getLogger('urllib3').setLevel(logging.CRITICAL)
 
@@ -45,20 +45,22 @@ class Logging:
         self.current_step = 0
 
     def tick(self):
-        should_log = False
         self.current_step += 1
 
         if self.verbosity >= 5:
             should_log = True
         else:
-            should_log = self.current_step % max(1, int(math.pow(10, (5 - self.verbosity)))) == 0 or \
+            should_log = self.current_step % max(1, int(math.pow(10, (6 - self.verbosity)))) == 0 or \
                             self.current_step == self.total_steps
 
         if should_log:
-            time_diff = max(float(1), float(dt.datetime.today().timestamp() - self.start_time))  # avoid a division by zero
+            # avoid a division by zero
+            time_diff = max(float(1), float(dt.datetime.today().timestamp() - self.start_time))
             ticks_per_second = "{:,}".format(round(float(self.current_step) / time_diff))
 
-            self.logger.info(self.desc + " [" + ticks_per_second + " eps. - " + '{:.2f}'.format(round(float(self.current_step) / float(self.total_steps) * 100, 2)) + "% done" + "]")
+            self.logger.info(self.desc + " [" + ticks_per_second + " eps. - " + '{:.2f}'
+                             .format(round(float(self.current_step) / float(self.total_steps) * 100, 2)) +
+                             "% done" + "]")
 
     def print_generic_intro(self, title):
         self.logger.info("")
