@@ -25,6 +25,10 @@ LIST_AGGREGATOR_VALUE = ["agg-WIN-EVB-draman", "agg-WIN-DRA-draman"]
 LIST_TARGET_VALUE = ["WIN-DRA-draman", "WIN-EVB-draman", "LINUX-DRA-draman"]
 LIST_DOC = [doc_without_outlier_test_file]
 
+DEFAULT_OUTLIERS_KEY_FIELDS = ["type", "reason", "summary", "model_name", "model_type", "total_outliers"]
+EXTRA_OUTLIERS_KEY_FIELDS = ["term_count", "non_outlier_values_sample", "aggregator", "term", "decision_frontier",
+                             "trigger_method"]
+
 
 class TestTermsAnalyzer(unittest.TestCase):
     @classmethod
@@ -297,3 +301,49 @@ class TestTermsAnalyzer(unittest.TestCase):
         result = [elem for elem in es.scan()][0]
         # The parameter use_derived_fields haven't any impact on outliers keys
         self.assertTrue("derived_timestamp_year" in result['_source']['outliers'])
+
+    def test_terms_default_outlier_infos(self):
+        dummy_doc_generate = DummyDocumentsGenerate()
+
+        # Generate document
+        self.test_es.add_doc(dummy_doc_generate.generate_document())
+
+        # Run analyzer
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_01.conf")
+        analyzer = TermsAnalyzer("terms_dummy_test_float_low")
+        analyzer.evaluate_model()
+
+        result = [elem for elem in es.scan()][0]
+        all_fields_exists = [elem in result['_source']['outliers'] for elem in DEFAULT_OUTLIERS_KEY_FIELDS]
+        self.assertTrue(all(all_fields_exists))
+
+    def test_terms_extra_outlier_infos_all_present(self):
+        dummy_doc_generate = DummyDocumentsGenerate()
+
+        # Generate document
+        self.test_es.add_doc(dummy_doc_generate.generate_document())
+
+        # Run analyzer
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_02.conf")
+        analyzer = TermsAnalyzer("terms_dummy_test_float_low")
+        analyzer.evaluate_model()
+
+        result = [elem for elem in es.scan()][0]
+        all_fields_exists = [elem in result['_source']['outliers'] for elem in EXTRA_OUTLIERS_KEY_FIELDS]
+        self.assertTrue(all(all_fields_exists))
+
+    def test_terms_extra_outlier_infos_new_result(self):
+        dummy_doc_generate = DummyDocumentsGenerate()
+
+        # Generate document
+        self.test_es.add_doc(dummy_doc_generate.generate_document())
+
+        # Run analyzer
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_02.conf")
+        analyzer = TermsAnalyzer("terms_dummy_test_float_low")
+        analyzer.evaluate_model()
+
+        result = [elem for elem in es.scan()][0]
+        all_fields_exists = [elem in EXTRA_OUTLIERS_KEY_FIELDS + DEFAULT_OUTLIERS_KEY_FIELDS
+                             for elem in result['_source']['outliers']]
+        self.assertTrue(all(all_fields_exists))

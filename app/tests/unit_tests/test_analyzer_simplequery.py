@@ -13,6 +13,8 @@ doc_without_outlier_test_file = json.load(open("/app/tests/unit_tests/files/doc_
 doc_with_outlier_test_file = json.load(
                         open("/app/tests/unit_tests/files/doc_with_simple_query_outlier_without_score_and_sort.json"))
 
+DEFAULT_OUTLIERS_KEY_FIELDS = ["type", "reason", "summary", "model_name", "model_type", "total_outliers"]
+
 
 class TestSimplequeryAnalyzer(unittest.TestCase):
     @classmethod
@@ -106,3 +108,33 @@ class TestSimplequeryAnalyzer(unittest.TestCase):
 
         result = [elem for elem in es.scan()][0]
         self.assertTrue("derived_timestamp_year" in result['_source']['outliers'])
+
+    def test_simplequery_default_outlier_infos(self):
+        dummy_doc_generate = DummyDocumentsGenerate()
+
+        # Generate document
+        self.test_es.add_doc(dummy_doc_generate.generate_document())
+
+        # Run analyzer
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/simplequery_test_01.conf")
+        analyzer = SimplequeryAnalyzer("simplequery_dummy_test")
+        analyzer.evaluate_model()
+
+        result = [elem for elem in es.scan()][0]
+        all_fields_exists = [elem in result['_source']['outliers'] for elem in DEFAULT_OUTLIERS_KEY_FIELDS]
+        self.assertTrue(all(all_fields_exists))
+
+    def test_simplequery_no_extra_outlier_infos(self):
+        dummy_doc_generate = DummyDocumentsGenerate()
+
+        # Generate document
+        self.test_es.add_doc(dummy_doc_generate.generate_document())
+
+        # Run analyzer
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/simplequery_test_01.conf")
+        analyzer = SimplequeryAnalyzer("simplequery_dummy_test")
+        analyzer.evaluate_model()
+
+        result = [elem for elem in es.scan()][0]
+        all_fields_exists = [elem in DEFAULT_OUTLIERS_KEY_FIELDS for elem in result['_source']['outliers']]
+        self.assertTrue(all(all_fields_exists))

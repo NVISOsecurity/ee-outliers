@@ -16,6 +16,9 @@ doc_without_outliers_test_whitelist_02_test_file = json.load(
 doc_without_outliers_test_whitelist_03_test_file = json.load(
     open("/app/tests/unit_tests/files/doc_without_outliers_test_whitelist_03.json"))
 
+DEFAULT_OUTLIERS_KEY_FIELDS = ["type", "reason", "summary", "model_name", "model_type", "total_outliers"]
+EXTRA_OUTLIERS_KEY_FIELDS = ["target", "aggregator", "metric", "decision_frontier", "confidence"]
+
 
 class TestMetricsAnalyzer(unittest.TestCase):
     @classmethod
@@ -194,3 +197,49 @@ class TestMetricsAnalyzer(unittest.TestCase):
         analyzer.evaluate_model()
 
         self.assertEqual(len(analyzer.outliers), 2)
+
+    def test_simplequery_default_outlier_infos(self):
+        dummy_doc_generate = DummyDocumentsGenerate()
+
+        # Generate document
+        self.test_es.add_doc(dummy_doc_generate.generate_document(user_id=11))
+
+        # Run analyzer
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/metrics_test_02.conf")
+        analyzer = MetricsAnalyzer("metrics_dummy_test_no_derived")
+        analyzer.evaluate_model()
+
+        result = [elem for elem in es.scan()][0]
+        all_fields_exists = [elem in result['_source']['outliers'] for elem in DEFAULT_OUTLIERS_KEY_FIELDS]
+        self.assertTrue(all(all_fields_exists))
+
+    def test_metrics_extra_outlier_infos_all_present(self):
+        dummy_doc_generate = DummyDocumentsGenerate()
+
+        # Generate document
+        self.test_es.add_doc(dummy_doc_generate.generate_document(user_id=11))
+
+        # Run analyzer
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/metrics_test_02.conf")
+        analyzer = MetricsAnalyzer("metrics_dummy_test_no_derived")
+        analyzer.evaluate_model()
+
+        result = [elem for elem in es.scan()][0]
+        all_fields_exists = [elem in result['_source']['outliers'] for elem in EXTRA_OUTLIERS_KEY_FIELDS]
+        self.assertTrue(all(all_fields_exists))
+
+    def test_metrics_extra_outlier_infos_new_result(self):
+        dummy_doc_generate = DummyDocumentsGenerate()
+
+        # Generate document
+        self.test_es.add_doc(dummy_doc_generate.generate_document(user_id=11))
+
+        # Run analyzer
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/metrics_test_02.conf")
+        analyzer = MetricsAnalyzer("metrics_dummy_test_no_derived")
+        analyzer.evaluate_model()
+
+        result = [elem for elem in es.scan()][0]
+        all_fields_exists = [elem in EXTRA_OUTLIERS_KEY_FIELDS + DEFAULT_OUTLIERS_KEY_FIELDS
+                             for elem in result['_source']['outliers']]
+        self.assertTrue(all(all_fields_exists))
