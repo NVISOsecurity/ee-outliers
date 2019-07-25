@@ -14,8 +14,6 @@ DEFAULT_MIN_TARGET_BUCKETS = 10
 class BeaconingAnalyzer(Analyzer):
 
     def evaluate_model(self):
-        self.extract_additional_model_settings()
-
         self.total_events = es.count_documents(index=self.es_index, search_query=self.search_query,
                                                model_settings=self.model_settings)
 
@@ -41,7 +39,6 @@ class BeaconingAnalyzer(Analyzer):
                 except (KeyError, TypeError):
                     logging.logger.debug("Skipping event which does not contain the target and aggregator fields " +
                                          "we are processing. - [" + self.model_name + "]")
-                    print("skip !")
                     will_process_doc = False
 
                 if will_process_doc:
@@ -62,46 +59,19 @@ class BeaconingAnalyzer(Analyzer):
                 last_batch = (logging.current_step == self.total_events)
                 if last_batch or total_terms_added >= self.model_settings["batch_eval_size"]:
                     logging.logger.info("evaluating batch of " + "{:,}".format(total_terms_added) + " terms")
-                    self._run_evaluate_documents(eval_terms_array)
+                    outliers = self.evaluate_batch_for_outliers(terms=eval_terms_array)
+                    if len(outliers) > 0:
+                        unique_summaries = len(set(o.outlier_dict["summary"] for o in outliers))
+                        logging.logger.info("total outliers in batch processed: " + str(len(outliers)) + " [" +
+                                            str(unique_summaries) + " unique summaries]")
+                    else:
+                        logging.logger.info("no outliers detected in batch")
 
                     # Reset data structures for next batch
                     eval_terms_array = defaultdict()
                     total_terms_added = 0
 
         self.print_analysis_summary()
-
-    def _run_evaluate_documents(self, eval_terms_array):
-        all_outliers = dict()  # Avoid redundancy: create a dictionary where key equals ID
-
-        # Evaluate a first documents to detect outliers
-        outliers, documents_need_to_be_removed = self.evaluate_batch_for_outliers(terms=eval_terms_array)
-        # Store all outliers results
-        for outlier in outliers:
-            all_outliers[outlier.doc['_id']] = outlier
-
-        # Remove whitelisted outlier and store eval_terms that need to be compute again
-        new_eval_terms_array = {}
-        for aggregator_value, list_term_counter in documents_need_to_be_removed.items():
-            new_eval_terms_array[aggregator_value] = eval_terms_array[aggregator_value]
-            for term_counter in list_term_counter:
-                new_eval_terms_array = self.remove_term_to_batch(new_eval_terms_array, aggregator_value, term_counter)
-
-        outliers, documents_need_to_be_removed = self.evaluate_batch_for_outliers(terms=new_eval_terms_array)
-        # Store all outliers results
-        for outlier in outliers:
-            all_outliers[outlier.doc['_id']] = outlier
-
-        # For each result, save it in batch and in ES
-        for outlier in all_outliers.values():
-            self.outliers.append(outlier)
-            es.process_outliers(doc=outlier.doc, outliers=[outlier], should_notify=self.model_settings["should_notify"])
-
-        if len(all_outliers) > 0:
-            unique_summaries = len(set(o.outlier_dict["summary"] for o in all_outliers.values()))
-            logging.logger.info("total outliers in batch processed: " + str(len(all_outliers)) + " [" +
-                                str(unique_summaries) + " unique summaries]")
-        else:
-            logging.logger.info("no outliers detected in batch")
 
     def extract_additional_model_settings(self):
         try:
@@ -127,7 +97,6 @@ class BeaconingAnalyzer(Analyzer):
     def evaluate_batch_for_outliers(self, terms=None):
         # Initialize
         outliers = list()
-        documents_need_to_be_removed = defaultdict(list)
 
         # In case we want to count terms within an aggregator, it's a bit easier.
         # For example:
@@ -157,18 +126,12 @@ class BeaconingAnalyzer(Analyzer):
             if coeff_of_variation < self.model_settings["trigger_sensitivity"]:
                 for term_counter, term_value in enumerate(terms[aggregator_value]["targets"]):
                     term_value_count = counted_targets[term_value]
+                    outliers.append(self.prepare_and_process_outlier(coeff_of_variation, term_value_count, terms,
+                                                                     aggregator_value, term_counter))
 
-                    outlier = self.prepare_and_process_outlier(coeff_of_variation, term_value_count, terms,
-                                                               aggregator_value, term_counter, es_process_outlier=False)
-                    if outlier.is_whitelisted():
-                        documents_need_to_be_removed[aggregator_value].append(term_counter)
-                    else:
-                        outliers.append(outlier)
+        return outliers
 
-        return outliers, documents_need_to_be_removed
-
-    def prepare_and_process_outlier(self, decision_frontier, term_value_count, terms, aggregator_value, term_counter,
-                                    es_process_outlier=True):
+    def prepare_and_process_outlier(self, decision_frontier, term_value_count, terms, aggregator_value, term_counter):
         # Extract fields from raw document
         fields = es.extract_fields_from_document(terms[aggregator_value]["raw_docs"][term_counter],
                                                  extract_derived_fields=self.model_settings["use_derived_fields"])

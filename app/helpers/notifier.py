@@ -52,5 +52,5 @@ class Notifier:
             s.login(self.smtp_user, self.smtp_pass)
             s.send_message(msg)
             s.quit()
-        except Exception as ex:
-            self.logging.logger.error("something went wrong sending notification e-mail: " + str(ex))
+        except Exception:
+            self.logging.logger.error("something went wrong sending notification e-mail", exc_info=True)

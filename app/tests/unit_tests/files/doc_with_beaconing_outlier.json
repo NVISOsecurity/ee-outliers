@@ -51,7 +51,7 @@
                 "name": "get_all_processes_with_listening_conns",
                 "query": "select p.*, hash.*, lp.* from processes p, listening_ports lp, hash WHERE lp.pid = p.pid AND hash.path = p.path;"
             },
-            "deployment_name": "NVISO Workstations",
+            "deployment_name": "DUMMY Workstations",
             "filename": "osquery_get_all_processes_with_listening_conns.log",
             "hostname": "DUMMY-PC",
             "logged_in_users": [
@@ -81,9 +81,9 @@
         },
         "outliers": {
             "reason": ["dummy reason"],
-            "model_type": ["beaconing"], 
-            "term": ["07"],
-            "confidence": [1.0],
+            "model_type": ["terms"],
+            "term": ["WIN-EVB-draman"], 
+            "confidence": [0.6666666666666667],
             "type": ["dummy type"],
             "term_count": [1], 
             "decision_frontier": [0.0],
