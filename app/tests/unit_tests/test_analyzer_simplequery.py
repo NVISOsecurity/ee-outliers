@@ -63,7 +63,7 @@ class TestSimplequeryAnalyzer(unittest.TestCase):
         result = [elem for elem in es.scan()][0]
         self.assertEqual(result, doc_with_outlier)
 
-    def test_metrics_use_derived_fields_in_doc(self):
+    def test_simplequery_use_derived_fields_in_doc(self):
         dummy_doc_generate = DummyDocumentsGenerate()
         self.test_es.add_doc(dummy_doc_generate.generate_document())
 
@@ -73,3 +73,36 @@ class TestSimplequeryAnalyzer(unittest.TestCase):
 
         result = [elem for elem in es.scan()][0]
         self.assertTrue("timestamp_year" in result['_source'])
+
+    def test_simplequery_use_derived_fields_in_outlier(self):
+        dummy_doc_generate = DummyDocumentsGenerate()
+        self.test_es.add_doc(dummy_doc_generate.generate_document())
+
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/simplequery_test_02.conf")
+        analyzer = SimplequeryAnalyzer("simplequery_dummy_test_derived")
+        analyzer.evaluate_model()
+
+        result = [elem for elem in es.scan()][0]
+        self.assertTrue("derived_timestamp_year" in result['_source']['outliers'])
+
+    def test_simplequery_not_use_derived_fields_in_doc(self):
+        dummy_doc_generate = DummyDocumentsGenerate()
+        self.test_es.add_doc(dummy_doc_generate.generate_document())
+
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/simplequery_test_02.conf")
+        analyzer = SimplequeryAnalyzer("simplequery_dummy_test_not_derived")
+        analyzer.evaluate_model()
+
+        result = [elem for elem in es.scan()][0]
+        self.assertFalse("timestamp_year" in result['_source'])
+
+    def test_simplequery_not_use_derived_fields_but_present_in_outlier(self):
+        dummy_doc_generate = DummyDocumentsGenerate()
+        self.test_es.add_doc(dummy_doc_generate.generate_document())
+
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/simplequery_test_02.conf")
+        analyzer = SimplequeryAnalyzer("simplequery_dummy_test_not_derived")
+        analyzer.evaluate_model()
+
+        result = [elem for elem in es.scan()][0]
+        self.assertTrue("derived_timestamp_year" in result['_source']['outliers'])
