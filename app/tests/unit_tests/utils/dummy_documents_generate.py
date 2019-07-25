@@ -218,15 +218,15 @@ class DummyDocumentsGenerate:
         nbr_doc_generated_per_hours = self._compute_number_document_respect_max_std(max_trigger_sensitivity, nbr_val,
                                                                                     default_value - max_difference,
                                                                                     default_value + max_difference)
-        return self._generate_doc_time_variable_sensitivity(nbr_doc_generated_per_hours)
+        return self.generate_doc_time_variable_sensitivity(nbr_doc_generated_per_hours)
 
     def create_doc_time_variable_min_sensitivity(self, nbr_val, min_trigger_sensitivity, max_difference, default_value):
         nbr_doc_generated_per_hours = self._compute_number_document_respect_min_std(min_trigger_sensitivity, nbr_val,
                                                                                     default_value - max_difference,
                                                                                     default_value + max_difference)
-        return self._generate_doc_time_variable_sensitivity(nbr_doc_generated_per_hours)
+        return self.generate_doc_time_variable_sensitivity(nbr_doc_generated_per_hours)
 
-    def _generate_doc_time_variable_sensitivity(self, nbr_doc_generated_per_hours):
+    def generate_doc_time_variable_sensitivity(self, nbr_doc_generated_per_hours):
         all_doc = []
         hostname = random.choice(all_possible_hostname)
 
@@ -291,14 +291,14 @@ class DummyDocumentsGenerate:
         nbr_doc_to_generate = self._compute_number_document_have_at_least_specific_coef_variation(
             coef_var_min, nbr_val, default_value - max_difference, default_value + max_difference)
 
-        return self._generate_doc_time_variable_sensitivity(nbr_doc_to_generate)
+        return self.generate_doc_time_variable_sensitivity(nbr_doc_to_generate)
 
     def create_doc_uniq_target_variable_at_most_specific_coef_variation(self, nbr_val, coef_var_max, max_difference,
                                                                         default_value):
         nbr_doc_to_generate = self._compute_number_document_have_at_most_specific_coef_variation(
             coef_var_max, nbr_val, default_value - max_difference, default_value + max_difference)
 
-        return self._generate_doc_time_variable_sensitivity(nbr_doc_to_generate)
+        return self.generate_doc_time_variable_sensitivity(nbr_doc_to_generate)
 
     def _generate_doc_uniq_target_variable_sensitivity(self, nbr_doc_generated_per_target):
         all_doc = []

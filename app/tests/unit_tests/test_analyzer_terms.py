@@ -85,6 +85,27 @@ class TestTermsAnalyzer(unittest.TestCase):
                 nbr_outliers += 1
         self.assertEqual(nbr_outliers, nbr_generated_documents)
 
+    def test_terms_detect_one_outlier(self):
+        dummy_doc_generate = DummyDocumentsGenerate()
+
+        nbr_doc_generated_per_hours = [5, 3, 1, 2]
+
+        # Generate documents
+        self.test_es.add_multiple_docs(dummy_doc_generate.generate_doc_time_variable_sensitivity(
+            nbr_doc_generated_per_hours))
+        # Only the first groupe of document must be detected like an Outlier because the limit is on 3
+
+        # Run analyzer
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_01.conf")
+        analyzer = TermsAnalyzer("terms_dummy_test_float")
+        analyzer.evaluate_model()
+
+        nbr_outliers = 0
+        for elem in es.scan():
+            if "outliers" in elem["_source"]:
+                nbr_outliers += 1
+        self.assertEqual(nbr_outliers, 5)
+
     def test_evaluate_batch_for_outliers_not_enough_target_buckets_one_doc_max_two(self):
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_01.conf")
         analyzer = TermsAnalyzer("terms_dummy_test")
