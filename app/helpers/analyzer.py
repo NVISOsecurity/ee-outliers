@@ -55,7 +55,7 @@ class Analyzer(abc.ABC):
 
         # by default, we don't process documents chronologically when analyzing the model, as it
         # has a high impact on performance when scanning in Elasticsearch
-        model_settings["process_documents_chronologically"] = False
+        model_settings["process_documents_chronologically"] = True
 
         try:
             model_settings["timestamp_field"] = settings.config.get(self.config_section_name, "timestamp_field")
