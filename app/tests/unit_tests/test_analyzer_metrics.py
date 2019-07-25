@@ -47,3 +47,6 @@ class TestMetricsAnalyzer(unittest.TestCase):
         analyzer.evaluate_model()
 
         self.assertEqual(len(analyzer.outliers), 2)
+
+    def test_whitelist_with_small_batch_eval_size(self):
+
