@@ -302,14 +302,16 @@ def print_analysis_summary(analyzed_models):
 
     if configuration_parsing_error_models:
         logging.logger.info("")
+        logging.logger.info("models for which the configuration parsing failed:")
+
         for model in configuration_parsing_error_models:
-            logging.logger.info("models for which the configuration parsing failed:")
             logging.logger.info("\t+ " + model.config_section_name)
 
     if unknown_error_models:
         logging.logger.info("")
+        logging.logger.info("models for which an unexpected error was encountered:")
+
         for model in unknown_error_models:
-            logging.logger.info("models for which an unexpected error was encountered:")
             logging.logger.info("\t+ " + model.config_section_name)
 
     if not analyzed_models:
