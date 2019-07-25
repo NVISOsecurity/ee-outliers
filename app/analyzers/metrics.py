@@ -81,7 +81,7 @@ class MetricsAnalyzer(Analyzer):
             self.model_settings["process_documents_chronologically"] = settings.config.getboolean(
                 self.config_section_name, "process_documents_chronologically")
         except NoOptionError:
-            self.model_settings["process_documents_chronologically"] = True
+            self.model_settings["process_documents_chronologically"] = False
 
         self.model_settings["target"] = settings.config.get(self.config_section_name, "target")
         self.model_settings["aggregator"] = settings.config.get(self.config_section_name, "aggregator")\
