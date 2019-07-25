@@ -194,18 +194,3 @@ class TestMetricsAnalyzer(unittest.TestCase):
         analyzer.evaluate_model()
 
         self.assertEqual(len(analyzer.outliers), 2)
-
-    # def test_metrics_extra_outlier_infos(self):
-    #     dummy_doc_generate = DummyDocumentsGenerate()
-    #
-    #     # Generate document
-    #     self.test_es.add_doc(dummy_doc_generate.generate_document(user_id=11))
-    #
-    #     # Run analyzer
-    #     self.test_settings.change_configuration_path("/app/tests/unit_tests/files/metrics_test_01.conf")
-    #     analyzer = MetricsAnalyzer("metrics_numerical_value_dummy_test")
-    #     analyzer.evaluate_model()
-    #
-    #     result = [elem for elem in es.scan()][0]
-    #     print(result['_source']['outliers'])
-    #     print("")
