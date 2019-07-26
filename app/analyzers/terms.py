@@ -7,6 +7,8 @@ from collections import Counter
 import helpers.utils
 from helpers.analyzer import Analyzer
 
+from typing import DefaultDict, Optional, Dict
+
 
 class TermsAnalyzer(Analyzer):
 
@@ -68,9 +70,10 @@ class TermsAnalyzer(Analyzer):
 
                         for aggregator_sentence in aggregator_sentences:
                             flattened_aggregator_sentence = helpers.utils.flatten_sentence(aggregator_sentence)
-                            eval_terms_array = self.add_term_to_batch(eval_terms_array,
-                                                                      flattened_aggregator_sentence,
-                                                                      flattened_target_sentence, observations, doc)
+                            eval_terms_array = TermsAnalyzer.add_term_to_batch(eval_terms_array,
+                                                                               flattened_aggregator_sentence,
+                                                                               flattened_target_sentence, observations,
+                                                                               doc)
 
                     total_terms_added += len(target_sentences)
 
@@ -78,6 +81,16 @@ class TermsAnalyzer(Analyzer):
                 last_batch = (logging.current_step == self.total_events)
                 if last_batch or total_terms_added >= settings.config.getint("terms", "terms_batch_eval_size"):
                     logging.logger.info("evaluating batch of " + "{:,}".format(total_terms_added) + " terms")
+
+                    # first_run = True
+                    # remaining_metrics = []
+                    # while first_run or (last_batch and len(remaining_metrics) > 0):
+                    #     first_run = False
+                    #     remaining_metrics = self._run_evaluate_documents(eval_metrics, last_batch)
+                    #
+                    #     # Reset data structures for next batch
+                    #     eval_metrics = remaining_metrics.copy()
+
                     outliers = self.evaluate_batch_for_outliers(terms=eval_terms_array)
 
                     if len(outliers) > 0:
@@ -261,6 +274,8 @@ class TermsAnalyzer(Analyzer):
     def _evaluate_batch_for_outliers_within_aggregator(self, terms):
         # Initialize
         outliers = list()
+        remaining_terms = terms.copy()
+        documents_need_to_be_removed = defaultdict(list)
 
         for i, aggregator_value in enumerate(terms):
             # Count percentage of each target value occuring
@@ -302,10 +317,23 @@ class TermsAnalyzer(Analyzer):
                                                           self.model_settings["trigger_on"])
 
                     if is_outlier:
-                        outliers.append(self._create_outlier(non_outlier_values, term_value_count, aggregator_value,
-                                                             term_value, decision_frontier, terms, ii))
+                        outlier = self._create_outlier(non_outlier_values, term_value_count, aggregator_value,
+                                                       term_value, decision_frontier, terms, ii)
+                        if outlier.is_whitelisted():
+                            outliers.append(outlier)
+                        else:
+                            documents_need_to_be_removed[aggregator_value].append(ii)
                     else:
                         non_outlier_values.add(term_value)
+
+            if aggregator_value not in documents_need_to_be_removed:
+                del remaining_terms[aggregator_value]
+            else:
+                for index in documents_need_to_be_removed[aggregator_value]:
+                    TermsAnalyzer.remove_term_to_batch(remaining_terms, aggregator_value, index)
+                if aggregator_value in outliers:
+                    del outliers[aggregator_value]
+
         return outliers
 
     def _create_outlier(self, non_outlier_values, term_value_count, aggregator_value, term_value, decision_frontier,
@@ -327,3 +355,22 @@ class TermsAnalyzer(Analyzer):
         fields = es.extract_fields_from_document(raw_doc,
                                                  extract_derived_fields=self.model_settings["use_derived_fields"])
         return self.process_outlier(fields, raw_doc, extra_outlier_information=calculated_observations)
+
+    @staticmethod
+    def add_term_to_batch(eval_terms_array: DefaultDict, aggregator_value: Optional[str], target_value: Optional[str],
+                          observations: Dict, doc: Dict) -> DefaultDict:
+        if aggregator_value not in eval_terms_array.keys():
+            eval_terms_array[aggregator_value] = defaultdict(list)
+
+        eval_terms_array[aggregator_value]["targets"].append(target_value)
+        eval_terms_array[aggregator_value]["observations"].append(observations)
+        eval_terms_array[aggregator_value]["raw_docs"].append(doc)
+
+        return eval_terms_array
+
+    @staticmethod
+    def remove_term_to_batch(eval_terms_array, aggregator_value, term_counter):
+        eval_terms_array[aggregator_value]["targets"].pop(term_counter)
+        eval_terms_array[aggregator_value]["observations"].pop(term_counter)
+        eval_terms_array[aggregator_value]["raw_docs"].pop(term_counter)
+        return eval_terms_array
