@@ -7,6 +7,8 @@ from collections import Counter
 import helpers.utils
 from helpers.analyzer import Analyzer
 
+from typing import DefaultDict, Optional, Dict
+
 
 class TermsAnalyzer(Analyzer):
 
@@ -68,9 +70,10 @@ class TermsAnalyzer(Analyzer):
 
                         for aggregator_sentence in aggregator_sentences:
                             flattened_aggregator_sentence = helpers.utils.flatten_sentence(aggregator_sentence)
-                            eval_terms_array = self.add_term_to_batch(eval_terms_array,
-                                                                      flattened_aggregator_sentence,
-                                                                      flattened_target_sentence, observations, doc)
+                            eval_terms_array = TermsAnalyzer.add_term_to_batch(eval_terms_array,
+                                                                               flattened_aggregator_sentence,
+                                                                               flattened_target_sentence, observations,
+                                                                               doc)
 
                     total_terms_added += len(target_sentences)
 
@@ -327,3 +330,15 @@ class TermsAnalyzer(Analyzer):
         fields = es.extract_fields_from_document(raw_doc,
                                                  extract_derived_fields=self.model_settings["use_derived_fields"])
         return self.process_outlier(fields, raw_doc, extra_outlier_information=calculated_observations)
+
+    @staticmethod
+    def add_term_to_batch(eval_terms_array: DefaultDict, aggregator_value: Optional[str], target_value: Optional[str],
+                          observations: Dict, doc: Dict) -> DefaultDict:
+        if aggregator_value not in eval_terms_array.keys():
+            eval_terms_array[aggregator_value] = defaultdict(list)
+
+        eval_terms_array[aggregator_value]["targets"].append(target_value)
+        eval_terms_array[aggregator_value]["observations"].append(observations)
+        eval_terms_array[aggregator_value]["raw_docs"].append(doc)
+
+        return eval_terms_array

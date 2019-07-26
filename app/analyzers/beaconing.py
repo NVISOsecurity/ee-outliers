@@ -8,6 +8,8 @@ from collections import defaultdict
 from collections import Counter
 import helpers.utils
 
+from typing import DefaultDict, Optional, Dict
+
 DEFAULT_MIN_TARGET_BUCKETS = 10
 
 
@@ -49,9 +51,10 @@ class BeaconingAnalyzer(Analyzer):
 
                         for aggregator_sentence in aggregator_sentences:
                             flattened_aggregator_sentence = helpers.utils.flatten_sentence(aggregator_sentence)
-                            eval_terms_array = self.add_term_to_batch(eval_terms_array,
-                                                                      flattened_aggregator_sentence,
-                                                                      flattened_target_sentence, observations, doc)
+                            eval_terms_array = BeaconingAnalyzer.add_term_to_batch(eval_terms_array,
+                                                                                   flattened_aggregator_sentence,
+                                                                                   flattened_target_sentence,
+                                                                                   observations, doc)
 
                     total_terms_added += len(target_sentences)
 
@@ -147,3 +150,15 @@ class BeaconingAnalyzer(Analyzer):
 
         return self.process_outlier(fields, terms[aggregator_value]["raw_docs"][term_counter],
                                     extra_outlier_information=observations)
+
+    @staticmethod
+    def add_term_to_batch(eval_terms_array: DefaultDict, aggregator_value: Optional[str], target_value: Optional[str],
+                          observations: Dict, doc: Dict) -> DefaultDict:
+        if aggregator_value not in eval_terms_array.keys():
+            eval_terms_array[aggregator_value] = defaultdict(list)
+
+        eval_terms_array[aggregator_value]["targets"].append(target_value)
+        eval_terms_array[aggregator_value]["observations"].append(observations)
+        eval_terms_array[aggregator_value]["raw_docs"].append(doc)
+
+        return eval_terms_array
