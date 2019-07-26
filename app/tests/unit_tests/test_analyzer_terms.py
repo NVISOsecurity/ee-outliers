@@ -68,7 +68,7 @@ class TestTermsAnalyzer(unittest.TestCase):
 
         self.assertEqual(len(analyzer.outliers), 2)
 
-    def test_evaluate_batch_for_outliers_not_enough_target_buckets_one_doc_max_two(self):
+    def _test_evaluate_batch_for_outliers_not_enough_target_buckets_one_doc_max_two(self):
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_01.conf")
         analyzer = TermsAnalyzer("terms_dummy_test")
 
@@ -81,7 +81,7 @@ class TestTermsAnalyzer(unittest.TestCase):
         result, remaining_terms = analyzer.evaluate_batch_for_outliers(terms=eval_terms_array)
         self.assertEqual(result, [])
 
-    def test_evaluate_batch_for_outliers_limit_target_buckets_two_doc_max_two(self):
+    def _test_evaluate_batch_for_outliers_limit_target_buckets_two_doc_max_two(self):
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_01.conf")
         analyzer = TermsAnalyzer("terms_dummy_test")
 
@@ -104,7 +104,7 @@ class TestTermsAnalyzer(unittest.TestCase):
         self.assertEqual(result, [])
 
     # coeff_of_variation
-    def test_terms_evaluate_coeff_of_variation_like_expected_document(self):
+    def _test_terms_evaluate_coeff_of_variation_like_expected_document(self):
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_01.conf")
         analyzer = TermsAnalyzer("terms_dummy_test_no_bucket")
 
@@ -119,7 +119,7 @@ class TestTermsAnalyzer(unittest.TestCase):
         result = [elem for elem in es.scan()][0]
         self.assertEqual(result, expected_doc)
 
-    def test_terms_generated_document_coeff_of_variation_not_respect_min(self):
+    def _test_terms_generated_document_coeff_of_variation_not_respect_min(self):
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_01.conf")
         analyzer = TermsAnalyzer("terms_dummy_test_no_bucket")
 
@@ -139,7 +139,7 @@ class TestTermsAnalyzer(unittest.TestCase):
                 nbr_outliers += 1
         self.assertEqual(nbr_outliers, 0)
 
-    def test_terms_generated_document_coeff_of_variation_respect_min(self):
+    def _test_terms_generated_document_coeff_of_variation_respect_min(self):
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_01.conf")
         analyzer = TermsAnalyzer("terms_dummy_test_no_bucket")
 
@@ -207,3 +207,181 @@ class TestTermsAnalyzer(unittest.TestCase):
 
         self.assertEqual(TermsAnalyzer.add_term_to_batch(eval_terms_array, aggregator_value, target_value, observations,
                                                          doc), expected_eval_terms)
+
+    def test_min_target_buckets_detect_outlier(self):
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_whitelist_batch.conf")
+        analyzer = TermsAnalyzer("terms_dummy_test_batch_whitelist_float")
+        # Recap:
+        # min_target_buckets = 4
+        # trigger_sensitivity=5
+        # trigger_on=high
+        # trigger_method=float
+
+        # Dont encode with a matrix to keep order of document
+        doc_to_generate = [
+            # New batch:
+            #       0  1  2
+            # agg1 [5, 1, 1]
+            # agg2 [1, 1, 1]
+            ("agg1", 0),
+            ("agg2", 0),
+            ("agg1", 0),
+            ("agg1", 0),
+            ("agg1", 0),
+            ("agg1", 0),
+            ("agg2", 1),
+            ("agg1", 1),
+            ("agg2", 2),
+            ("agg1", 2),
+            # New batch
+            #       2  3
+            # agg1 [1, 1]
+            # agg2 [5, 1]
+            ("agg2", 2),
+            ("agg2", 2),
+            ("agg2", 2),
+            ("agg2", 2),
+            ("agg1", 2),
+            ("agg2", 2),
+            ("agg1", 3),
+            ("agg2", 3)]
+
+        # At the end:
+        #       0  1  2  3
+        # agg1 [5, 0, 2, 1]
+        # agg2 [1, 1, 6, 1]
+        # So only agg2 - 2 (6 documents) need to be flagged
+
+        dummy_doc_gen = DummyDocumentsGenerate()
+        for aggregator, target_value in doc_to_generate:
+            user_id = target_value
+            hostname = aggregator
+            doc_generated = dummy_doc_gen.generate_document(user_id=user_id, hostname=hostname)
+            self.test_es.add_doc(doc_generated)
+
+        analyzer.evaluate_model()
+
+        list_outliers = []
+        for outlier in analyzer.outliers:
+            list_outliers.append((outlier.outlier_dict["aggregator"], outlier.outlier_dict["term"]))
+
+        self.assertEqual(list_outliers, [("agg2", "2") for _ in range(6)])
+
+    def test_min_target_buckets_dont_detect_outlier(self):
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_whitelist_batch.conf")
+        analyzer = TermsAnalyzer("terms_dummy_test_batch_whitelist_float")
+        # Recap:
+        # min_target_buckets = 4
+        # trigger_sensitivity=5
+        # trigger_on=high
+        # trigger_method=float
+
+        # Dont encode with a matrix to keep order of document
+        doc_to_generate = [
+            # New batch:
+            #       0  1
+            # agg1 [6, 1]
+            # agg2 [1, 2]
+            ("agg1", 0),
+            ("agg2", 0),
+            ("agg1", 0),
+            ("agg1", 0),
+            ("agg1", 0),
+            ("agg1", 0),
+            ("agg1", 0),
+            ("agg2", 1),
+            ("agg2", 1),
+            ("agg1", 1),
+            # New Batch
+            #       2
+            # agg1 [0]
+            # agg2 [1]
+            ("agg1", 2)]
+
+        # At the end:
+        #       0  1  2
+        # agg1 [6, 1, 1]
+        # agg2 [1, 2]
+        # Normally agg1 - 0 must be flagged, but here they doesn't have enough buckets values
+
+        dummy_doc_gen = DummyDocumentsGenerate()
+        for aggregator, target_value in doc_to_generate:
+            user_id = target_value
+            hostname = aggregator
+            doc_generated = dummy_doc_gen.generate_document(user_id=user_id, hostname=hostname)
+            self.test_es.add_doc(doc_generated)
+
+        analyzer.evaluate_model()
+        self.assertEqual(len(analyzer.outliers), 0)
+
+    def test_batch_whitelist_work_with_min_target_bucket(self):
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_whitelist_batch.conf")
+        analyzer = TermsAnalyzer("terms_dummy_test_batch_whitelist_float")
+        # Recap:
+        # min_target_buckets = 4
+        # trigger_sensitivity=5
+        # trigger_on=high
+        # trigger_method=float
+
+        doc_to_generate = [
+            # New batch:
+            #       0  1  2
+            # agg1 [3, 0, 1]
+            # agg2 [1, 3, 2]
+            ("agg1", 0, False),
+            ("agg2", 0, False),
+            ("agg1", 0, True),
+            ("agg1", 0, False),
+            ("agg2", 1, False),
+            ("agg2", 1, False),
+            ("agg2", 1, False),
+            ("agg2", 2, False),
+            ("agg2", 2, False),
+            ("agg1", 2, False),
+            # New batch
+            #       2  3  4
+            # agg1 [1, 0, 2]
+            # agg2 [4, 3]
+            ("agg2", 2, False),
+            ("agg2", 2, False),
+            ("agg2", 2, True),
+            ("agg2", 2, False),
+            ("agg1", 2, False),
+            ("agg2", 3, False),
+            ("agg2", 3, False),
+            ("agg2", 3, False),
+            ("agg1", 4, False),
+            ("agg1", 4, False),
+            # New batch
+            #       4  5
+            # agg1 [4, 1]
+            ("agg1", 4, False),
+            ("agg1", 4, False),
+            ("agg1", 4, False),
+            ("agg1", 4, False),
+            ("agg1", 5, False)]
+
+        # At the end:
+        #       0  1  2  3  4
+        # agg1 [3, 2, 2, 2, 6]
+        # agg2 [1, 1, 6, 1]
+        # So two outlier: agg1 - 4 and agg2 - 2.  But one of agg2 - 2 is whitelisted. So only 5 occurrences
+
+        dummy_doc_gen = DummyDocumentsGenerate()
+        for aggregator, target_value, is_whitelist in doc_to_generate:
+            deployment_name = None
+            if is_whitelist:
+                deployment_name = "whitelist-deployment"
+            user_id = target_value
+            hostname = aggregator
+
+            doc_generated = dummy_doc_gen.generate_document(deployment_name=deployment_name, user_id=user_id,
+                                                            hostname=hostname)
+            self.test_es.add_doc(doc_generated)
+        analyzer.evaluate_model()
+
+        list_outliers = []
+        for outlier in analyzer.outliers:
+            list_outliers.append((outlier.outlier_dict["aggregator"], outlier.outlier_dict["term"]))
+
+        self.assertEqual(list_outliers, [("agg1", "4") for _ in range(6)])

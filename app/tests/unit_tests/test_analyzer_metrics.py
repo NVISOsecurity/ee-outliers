@@ -96,7 +96,6 @@ class TestMetricsAnalyzer(unittest.TestCase):
             list_outliers.append((outlier.outlier_dict["aggregator"], outlier.outlier_dict["target"]))
 
         self.assertEqual(list_outliers, [("agg1", "7"), ("agg2", "6")])
-
         MetricsAnalyzer.MIN_EVALUATE_BATCH = backup_min_eval_batch
 
     def test_metrics_batch_whitelist_outlier_detect_after_process_all_and_remove_whitelist(self):
@@ -126,5 +125,4 @@ class TestMetricsAnalyzer(unittest.TestCase):
         # Without the batch whitelist, the only outlier will be ("agg1", 6) (the ("agg1", 7) is whitelist).
         # But with batch whitelist, the avg is update and all value of "agg1" (except 3) are detected outlier
         self.assertEqual(list_outliers, [("agg1", "5"), ("agg1", "5"), ("agg1", "6"), ("agg1", "5")])
-
         MetricsAnalyzer.MIN_EVALUATE_BATCH = backup_min_eval_batch

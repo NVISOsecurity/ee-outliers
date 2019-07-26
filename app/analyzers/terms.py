@@ -74,7 +74,6 @@ class TermsAnalyzer(Analyzer):
                                                                                flattened_aggregator_sentence,
                                                                                flattened_target_sentence, observations,
                                                                                doc)
-
                     total_terms_added += len(target_sentences)
 
                 # Evaluate batch of events against the model
@@ -82,25 +81,15 @@ class TermsAnalyzer(Analyzer):
                 if last_batch or total_terms_added >= settings.config.getint("terms", "terms_batch_eval_size"):
                     logging.logger.info("evaluating batch of " + "{:,}".format(total_terms_added) + " terms")
 
-                    # first_run = True
-                    # remaining_metrics = []
-                    # while first_run or (last_batch and len(remaining_metrics) > 0):
-                    #     first_run = False
-                    #     remaining_metrics = self._run_evaluate_documents(eval_metrics, last_batch)
-                    #
-                    #     # Reset data structures for next batch
-                    #     eval_metrics = remaining_metrics.copy()
+                    first_run = True
+                    remaining_terms = []
+                    while first_run or (last_batch and len(remaining_terms) > 0):
+                        first_run = False
+                        outlier_batches_trend, remaining_terms = self._run_evaluate_documents(
+                            eval_terms_array=eval_terms_array, last_batch=last_batch)
 
-                    outliers, remaining_terms = self.evaluate_batch_for_outliers(terms=eval_terms_array)
-
-                    if len(outliers) > 0:
-                        unique_summaries = len(set(o.outlier_dict["summary"] for o in outliers))
-                        logging.logger.info("total outliers in batch processed: " + str(len(outliers)) + " [" +
-                                            str(unique_summaries) + " unique summaries]")
-                        outlier_batches_trend += 1
-                    else:
-                        logging.logger.info("no outliers detected in batch")
-                        outlier_batches_trend -= 1
+                        # Reset data structures for next batch
+                        eval_terms_array = remaining_terms.copy()
 
                     if brute_force:
                         if outlier_batches_trend == -3:
@@ -113,11 +102,30 @@ class TermsAnalyzer(Analyzer):
                                                 "forcing")
                             break
 
-                    # Reset data structures for next batch
-                    eval_terms_array = defaultdict()
                     total_terms_added = 0
 
         self.print_analysis_summary()
+
+    def _run_evaluate_documents(self, eval_terms_array, last_batch):
+        outlier_batches_trend = 0
+
+        outliers, remaining_terms = self.evaluate_batch_for_outliers(terms=eval_terms_array, last_batch=last_batch)
+
+        # For each result, save it in batch and in ES
+        for outlier in outliers:
+            self.outliers.append(outlier)
+            es.process_outliers(doc=outlier.doc, outliers=[outlier], should_notify=self.model_settings["should_notify"])
+
+        if len(outliers) > 0:
+            unique_summaries = len(set(o.outlier_dict["summary"] for o in outliers))
+            logging.logger.info("total outliers in batch processed: " + str(len(outliers)) + " [" +
+                                str(unique_summaries) + " unique summaries]")
+            outlier_batches_trend += 1
+        else:
+            logging.logger.info("no outliers detected in batch")
+            outlier_batches_trend -= 1
+
+        return outlier_batches_trend, remaining_terms
 
     def _calculate_target_fields_to_brute_force(self):
         batch_size = settings.config.getint("terms", "terms_batch_eval_size")
@@ -202,7 +210,7 @@ class TermsAnalyzer(Analyzer):
                                                          "coeff_of_variation"}:
             raise ValueError("Unexpected outlier trigger method " + str(self.model_settings["trigger_method"]))
 
-    def evaluate_batch_for_outliers(self, terms=None):
+    def evaluate_batch_for_outliers(self, last_batch, terms=None):
         # In case we want to count terms across different aggregators, we need to first iterate over all aggregators
         # and calculate the total number of unique terms for each aggregated value.
         # For example:
@@ -224,7 +232,7 @@ class TermsAnalyzer(Analyzer):
         # term_value_count for a document with term "A" then becomes "1" in the example above.
         # we then flag an outlier if that "1" is an outlier in the array ["1 1 1 2 1"]
         elif self.model_settings["target_count_method"] == "within_aggregator":
-            return self._evaluate_batch_for_outliers_within_aggregator(terms)
+            return self._evaluate_batch_for_outliers_within_aggregator(terms, last_batch)
 
         return list(), list()
 
@@ -287,24 +295,29 @@ class TermsAnalyzer(Analyzer):
 
         return [outlier for list_outliers in outliers.values() for outlier in list_outliers], remaining_terms
 
-    def _evaluate_batch_for_outliers_within_aggregator(self, terms):
+    def _evaluate_batch_for_outliers_within_aggregator(self, terms, last_batch):
         # Initialize
         outliers = defaultdict(list)
         remaining_terms = terms.copy()
         documents_need_to_be_removed = defaultdict(list)
 
         for i, aggregator_value in enumerate(terms):
-            # Count percentage of each target value occuring
+            # Count percentage of each target value occurring
             counted_targets = Counter(terms[aggregator_value]["targets"])
             counted_target_values = list(counted_targets.values())
 
             logging.logger.debug("terms count for aggregator value " + aggregator_value + " -> " +
                                  str(counted_targets))
 
+            # If not enough bucket we "continue" the loop
             if self.model_settings["min_target_buckets"] is not None and \
                     len(counted_targets) < self.model_settings["min_target_buckets"]:
-                logging.logger.debug("less than " + str(self.model_settings["min_target_buckets"]) +
-                                     " time buckets, skipping analysis")
+
+                # If last batch we remove data from remaining_terms to avoid infinite loop
+                if last_batch:
+                    logging.logger.debug("less than " + str(self.model_settings["min_target_buckets"]) +
+                                         " time buckets, skipping analysis")
+                    del remaining_terms[aggregator_value]
                 continue
 
             decision_frontier = helpers.utils.get_decision_frontier(self.model_settings["trigger_method"],
@@ -348,6 +361,7 @@ class TermsAnalyzer(Analyzer):
                             outliers[aggregator_value].append(outlier)
                         else:
                             documents_need_to_be_removed[aggregator_value].append(ii)
+
                     else:
                         non_outlier_values.add(term_value)
 
@@ -379,7 +393,8 @@ class TermsAnalyzer(Analyzer):
         raw_doc = terms[observations["aggregator"]]["raw_docs"][ii]
         fields = es.extract_fields_from_document(raw_doc,
                                                  extract_derived_fields=self.model_settings["use_derived_fields"])
-        return self.process_outlier(fields, raw_doc, extra_outlier_information=calculated_observations)
+        return self.process_outlier(fields, raw_doc, extra_outlier_information=calculated_observations,
+                                    es_process_outlier=False)
 
     @staticmethod
     def add_term_to_batch(eval_terms_array: DefaultDict, aggregator_value: Optional[str], target_value: Optional[str],
