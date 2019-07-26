@@ -14,6 +14,8 @@ SUPPORTED_TRIGGERS = ["high", "low"]
 
 class MetricsAnalyzer(Analyzer):
 
+    MIN_EVALUATE_BATCH = 100
+
     def evaluate_model(self):
         eval_metrics = defaultdict()
         total_metrics_added = 0
@@ -57,43 +59,32 @@ class MetricsAnalyzer(Analyzer):
                     logging.logger.info("evaluating batch of " + "{:,}".format(total_metrics_added) + " metrics [" +
                                         "{:,}".format(logging.current_step) + " events processed]")
 
-                    remaining_metrics = self._run_evaluate_documents(eval_metrics, last_batch)
+                    first_run = True
+                    remaining_metrics = []
+                    while first_run or (last_batch and len(remaining_metrics) > 0):
+                        first_run = False
+                        remaining_metrics = self._run_evaluate_documents(eval_metrics, last_batch)
 
-                    # Reset data structures for next batch
-                    eval_metrics = remaining_metrics.copy()
+                        # Reset data structures for next batch
+                        eval_metrics = remaining_metrics.copy()
+
                     total_metrics_added = 0
 
         self.print_analysis_summary()
 
     def _run_evaluate_documents(self, eval_metrics, last_batch):
-        all_outliers = dict()  # Avoid redundancy: create a dictionary where key equals ID
-        outliers, remaining_metrics, documents_need_to_be_removed = self.evaluate_batch_for_outliers(
-            metrics=eval_metrics, model_settings=self.model_settings, last_batch=last_batch)
-        # Store all outliers results
-        for outlier in outliers:
-            all_outliers[outlier.doc['_id']] = outlier
-
-        # Remove whitelisted outlier and store eval_terms that need to be compute again
-        new_metrics = {}
-        for aggregator_value, list_index in documents_need_to_be_removed.items():
-            new_metrics[aggregator_value] = remaining_metrics[aggregator_value]
-            for index in list_index:
-                new_metrics = self.remove_metric_to_batch(new_metrics, aggregator_value, index)
-
-        outliers, remaining_metrics, documents_need_to_be_removed = self.evaluate_batch_for_outliers(
-            metrics=new_metrics, model_settings=self.model_settings, last_batch=last_batch)
-        # Store all outliers results
-        for outlier in outliers:
-            all_outliers[outlier.doc['_id']] = outlier
+        outliers, remaining_metrics = self.evaluate_batch_for_outliers(metrics=eval_metrics,
+                                                                       model_settings=self.model_settings,
+                                                                       last_batch=last_batch)
 
         # For each result, save it in batch and in ES
-        for outlier in all_outliers.values():
+        for outlier in outliers:
             self.outliers.append(outlier)
             es.process_outliers(doc=outlier.doc, outliers=[outlier], should_notify=self.model_settings["should_notify"])
 
-        if len(all_outliers) > 0:
-            unique_summaries = len(set(o.outlier_dict["summary"] for o in all_outliers.values()))
-            logging.logger.info("total outliers in batch processed: " + str(len(all_outliers)) + " [" +
+        if len(outliers) > 0:
+            unique_summaries = len(set(o.outlier_dict["summary"] for o in outliers))
+            logging.logger.info("total outliers in batch processed: " + str(len(outliers)) + " [" +
                                 str(unique_summaries) + " unique summaries]")
         else:
             logging.logger.info("no outliers detected in batch")
@@ -128,15 +119,15 @@ class MetricsAnalyzer(Analyzer):
 
     def evaluate_batch_for_outliers(self, metrics=None, model_settings=None, last_batch=False):
         # Initialize
-        outliers = list()
-        documents_need_to_be_removed = defaultdict(list)
+        outliers = defaultdict(list)
         remaining_metrics = metrics.copy()
+        documents_need_to_be_removed = defaultdict(list)
 
         for _, aggregator_value in enumerate(metrics):
-
             # Check if we have sufficient data, meaning at least 100 metrics. if not, continue. Else,
             # evaluate for outliers.
-            if len(metrics[aggregator_value]["metrics"]) < 100 and last_batch is False:
+            if len(metrics[aggregator_value]["metrics"]) < MetricsAnalyzer.MIN_EVALUATE_BATCH and \
+                    last_batch is False:
                 continue
             # Else, we will remove it (only if not whitelisted)
 
@@ -160,8 +151,8 @@ class MetricsAnalyzer(Analyzer):
 
                     # Extract fields from raw document
                     fields = es.extract_fields_from_document(
-                                                    metrics[aggregator_value]["raw_docs"][ii],
-                                                    extract_derived_fields=self.model_settings["use_derived_fields"])
+                        metrics[aggregator_value]["raw_docs"][ii],
+                        extract_derived_fields=self.model_settings["use_derived_fields"])
 
                     observations = metrics[aggregator_value]["observations"][ii]
                     observations["metric"] = metric_value
@@ -171,15 +162,20 @@ class MetricsAnalyzer(Analyzer):
                     outlier = self.process_outlier(fields, metrics[aggregator_value]["raw_docs"][ii],
                                                    extra_outlier_information=observations, es_process_outlier=False)
                     if not outlier.is_whitelisted():
-                        outliers.append(outlier)
+                        outliers[aggregator_value].append(outlier)
                     else:
                         documents_need_to_be_removed[aggregator_value].append(ii)
 
             # If no document should be deleted, so there is no need to process it anymore:
             if aggregator_value not in documents_need_to_be_removed:
                 del remaining_metrics[aggregator_value]
+            else:
+                for index in documents_need_to_be_removed[aggregator_value]:
+                    MetricsAnalyzer.remove_metric_to_batch(remaining_metrics, aggregator_value, index)
+                if aggregator_value in outliers:
+                    del outliers[aggregator_value]
 
-        return outliers, remaining_metrics, documents_need_to_be_removed
+        return [outlier for list_outliers in outliers.values() for outlier in list_outliers], remaining_metrics
 
     @staticmethod
     def add_metric_to_batch(eval_metrics_array, aggregator_value, target_value, metrics_value, observations, doc):
