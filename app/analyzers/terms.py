@@ -91,7 +91,7 @@ class TermsAnalyzer(Analyzer):
                     #     # Reset data structures for next batch
                     #     eval_metrics = remaining_metrics.copy()
 
-                    outliers = self.evaluate_batch_for_outliers(terms=eval_terms_array)
+                    outliers, remaining_terms = self.evaluate_batch_for_outliers(terms=eval_terms_array)
 
                     if len(outliers) > 0:
                         unique_summaries = len(set(o.outlier_dict["summary"] for o in outliers))
@@ -226,11 +226,13 @@ class TermsAnalyzer(Analyzer):
         elif self.model_settings["target_count_method"] == "within_aggregator":
             return self._evaluate_batch_for_outliers_within_aggregator(terms)
 
-        return list()
+        return list(), list()
 
     def _evaluate_batch_for_outliers_across_aggregators(self, terms):
         # Initialize
-        outliers = list()
+        outliers = defaultdict(list)
+        remaining_terms = terms.copy()
+        documents_need_to_be_removed = defaultdict(list)
 
         unique_target_counts_across_aggregators = list()
 
@@ -263,17 +265,31 @@ class TermsAnalyzer(Analyzer):
 
             if is_outlier:
                 for ii, term_value in enumerate(terms[aggregator_value]["targets"]):
-                    outliers.append(self._create_outlier(non_outlier_values, unique_target_count_across_aggregators,
-                                                         aggregator_value, term_value, decision_frontier, terms,
-                                                         ii))
+                    outlier = self._create_outlier(non_outlier_values, unique_target_count_across_aggregators,
+                                                   aggregator_value, term_value, decision_frontier, terms, ii)
+                    if outlier.is_whitelisted():
+                        outliers[aggregator_value].append(outlier)
+                    else:
+                        documents_need_to_be_removed[aggregator_value].append(ii)
+
             else:
                 for _, term_value in enumerate(terms[aggregator_value]["targets"]):
                     non_outlier_values.add(term_value)
-        return outliers
+
+            # If no document should be deleted, so there is no need to process it anymore:
+            if aggregator_value not in documents_need_to_be_removed:
+                del remaining_terms[aggregator_value]
+            else:
+                for index in documents_need_to_be_removed[aggregator_value]:
+                    TermsAnalyzer.remove_term_to_batch(remaining_terms, aggregator_value, index)
+                if aggregator_value in outliers:
+                    del outliers[aggregator_value]
+
+        return [outlier for list_outliers in outliers.values() for outlier in list_outliers], remaining_terms
 
     def _evaluate_batch_for_outliers_within_aggregator(self, terms):
         # Initialize
-        outliers = list()
+        outliers = defaultdict(list)
         remaining_terms = terms.copy()
         documents_need_to_be_removed = defaultdict(list)
 
@@ -305,10 +321,19 @@ class TermsAnalyzer(Analyzer):
                 if helpers.utils.is_outlier(decision_frontier, self.model_settings["trigger_sensitivity"],
                                             self.model_settings["trigger_on"]):
                     non_outlier_values = set()
+                    new_outliers = []
                     for ii, term_value in enumerate(terms[aggregator_value]["targets"]):
                         term_value_count = counted_targets[term_value]
-                        outliers.append(self._create_outlier(non_outlier_values, term_value_count, aggregator_value,
-                                                             term_value, decision_frontier, terms, ii))
+                        outlier = self._create_outlier(non_outlier_values, term_value_count, aggregator_value,
+                                                       term_value, decision_frontier, terms, ii)
+                        if not outlier.is_whitelisted():
+                            new_outliers.append(outlier)
+                        else:
+                            documents_need_to_be_removed[aggregator_value].append(ii)
+
+                    # If all document aren't whitelist
+                    if len(documents_need_to_be_removed[aggregator_value]) == 0:
+                        outliers[aggregator_value] += new_outliers
             else:
                 non_outlier_values = set()
                 for ii, term_value in enumerate(terms[aggregator_value]["targets"]):
@@ -319,8 +344,8 @@ class TermsAnalyzer(Analyzer):
                     if is_outlier:
                         outlier = self._create_outlier(non_outlier_values, term_value_count, aggregator_value,
                                                        term_value, decision_frontier, terms, ii)
-                        if outlier.is_whitelisted():
-                            outliers.append(outlier)
+                        if not outlier.is_whitelisted():
+                            outliers[aggregator_value].append(outlier)
                         else:
                             documents_need_to_be_removed[aggregator_value].append(ii)
                     else:
@@ -334,7 +359,7 @@ class TermsAnalyzer(Analyzer):
                 if aggregator_value in outliers:
                     del outliers[aggregator_value]
 
-        return outliers
+        return [outlier for list_outliers in outliers.values() for outlier in list_outliers], remaining_terms
 
     def _create_outlier(self, non_outlier_values, term_value_count, aggregator_value, term_value, decision_frontier,
                         terms, ii):
