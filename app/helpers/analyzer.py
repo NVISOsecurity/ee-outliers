@@ -189,17 +189,6 @@ class Analyzer(abc.ABC):
         if total_events == 0:
             logging.logger.warning("no events to analyze!")
 
-    def is_document_whitelisted(self, document, extract_field=True):
-        document_to_check = copy.deepcopy(document)
-        if extract_field:
-            fields = es.extract_fields_from_document(document_to_check,
-                                                     extract_derived_fields=self.model_settings["use_derived_fields"])
-        else:
-            fields = document
-        outlier_param = self._prepare_outlier_parameters(dict(), fields)
-        document_to_check['__whitelist_extra'] = outlier_param
-        return Outlier.is_whitelisted_doc(document_to_check)
-
     @staticmethod
     def get_time_window_info(history_days=None, history_hours=None):
         search_range = es.get_time_filter(days=history_days, hours=history_hours,
