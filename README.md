@@ -18,11 +18,11 @@ Developed by NVISO Labs (https://blog.nviso.be - https://twitter.com/NVISO_Labs)
 
 **Table of contents**
 - [Introduction](#introduction)
-- [Core features](#)
-- [Screenshots](#)
-- [License](#)
-- [Contact](#)
-- [Acknowledgements](#)
+- [Core features](#core-features)
+- [Screenshots](#screenshots)
+- [License](#license)
+- [Contact](#contact)
+- [Acknowledgements](#acknowledgements)
 
 **Other pages:**
 - [Installation](doc/INSTALL.md)
@@ -92,3 +92,4 @@ Thank you for using ee-outliers and we look forward to your feedback! 🐀
 We are grateful for the support received by [INNOVIRIS](https://innoviris.brussels/) and the Brussels region in funding our Research & Development activities. 
 
 
+<p align="right"><a href="doc/INSTALL.md">Installation &#8594;</a></p>
