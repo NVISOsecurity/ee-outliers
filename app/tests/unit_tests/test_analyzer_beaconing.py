@@ -41,12 +41,13 @@
 #         self.test_settings = TestSettings()
 #
 #     def tearDown(self):
-#         # restore the default configuration file so we don't influence other unit tests that use the settings singleton
+#         # restore the default configuration file so we don't influence other unit tests that use the settings
+#         # singleton
 #         self.test_settings.restore_default_configuration_path()
 #         self.test_es.restore_es()
 #
-#     def _create_outliers(self, outlier_type, outlier_reason, outlier_summary, model_type, model_name, term, aggregator,
-#                          confidence, decision_frontier, term_count, doc):
+#     def _create_outliers(self, outlier_type, outlier_reason, outlier_summary, model_type, model_name, term,
+#                          aggregator, confidence, decision_frontier, term_count, doc):
 #         outlier = Outlier(outlier_type=outlier_type, outlier_reason=outlier_reason, outlier_summary=outlier_summary,
 #                           doc=doc)
 #         outlier.outlier_dict["model_type"] = model_type
@@ -67,7 +68,8 @@
 #         target_value = random.choice(LIST_TARGET_VALUE)
 #         observations = {}
 #         doc = copy.deepcopy(random.choice(LIST_DOC))
-#         eval_terms_array = analyzer.add_term_to_batch(defaultdict(), aggregator_value, target_value, observations, doc)
+#         eval_terms_array = analyzer.add_term_to_batch(defaultdict(), aggregator_value, target_value, observations,
+#                                                       doc)
 #
 #         result = analyzer.evaluate_batch_for_outliers(terms=eval_terms_array)
 #         self.assertEqual(result, [])
@@ -82,14 +84,15 @@
 #         target_value = random.choice(LIST_TARGET_VALUE)
 #         observations = {}
 #         doc = copy.deepcopy(random.choice(LIST_DOC))
-#         eval_terms_array = analyzer.add_term_to_batch(defaultdict(), aggregator_value, target_value, observations, doc)
+#         eval_terms_array = analyzer.add_term_to_batch(defaultdict(), aggregator_value, target_value, observations,
+#                                                       doc)
 #         # Create a second document with another aggregator
 #         aggregator_value2 = LIST_AGGREGATOR_VALUE[1]
 #         target_value2 = random.choice(LIST_TARGET_VALUE)
 #         observations2 = {}
 #         doc2 = copy.deepcopy(random.choice(LIST_DOC))
-#         eval_terms_array = analyzer.add_term_to_batch(eval_terms_array, aggregator_value2, target_value2, observations2,
-#                                                       doc2)
+#         eval_terms_array = analyzer.add_term_to_batch(eval_terms_array, aggregator_value2, target_value2,
+#                                                       observations2, doc2)
 #
 #         # Expect to get nothing due to "min_target_buckets" set to 2
 #         result = analyzer.evaluate_batch_for_outliers(terms=eval_terms_array)
@@ -105,7 +108,8 @@
 #         target_value = LIST_TARGET_VALUE[0]
 #         observations = {}
 #         doc = copy.deepcopy(random.choice(LIST_DOC))
-#         eval_terms_array = analyzer.add_term_to_batch(defaultdict(), aggregator_value, target_value, observations, doc)
+#         eval_terms_array = analyzer.add_term_to_batch(defaultdict(), aggregator_value, target_value, observations,
+#                                                       doc)
 #
 #         # Create another document with same aggregator[0] and same target [0]
 #         observations2 = {}
@@ -117,23 +121,24 @@
 #         target_value2 = LIST_TARGET_VALUE[1]
 #         observations3 = {}
 #         doc3 = random.choice(LIST_DOC)
-#         eval_terms_array = analyzer.add_term_to_batch(eval_terms_array, aggregator_value, target_value2, observations3,
-#                                                       doc3)
+#         eval_terms_array = analyzer.add_term_to_batch(eval_terms_array, aggregator_value, target_value2,
+#                                                       observations3, doc3)
 #
 #         # Create another document with different aggregator [1] and different target [random]
 #         aggregator_value2 = LIST_AGGREGATOR_VALUE[1]
 #         target_value3 = random.choice(LIST_TARGET_VALUE)
 #         observations4 = {}
 #         doc4 = copy.deepcopy(random.choice(LIST_DOC))
-#         eval_terms_array = analyzer.add_term_to_batch(eval_terms_array, aggregator_value2, target_value3, observations4,
-#                                                       doc4)
+#         eval_terms_array = analyzer.add_term_to_batch(eval_terms_array, aggregator_value2, target_value3,
+#                                                       observations4, doc4)
 #
 #         result = analyzer.evaluate_batch_for_outliers(terms=eval_terms_array)
 #         # Create expected outlier
 #         # aggregator [0] and target[0]
 #         test_outlier_linux_1 = self._create_outliers(["dummy type"], ["dummy reason"], "dummy summary", "beaconing",
 #                                                      "dummy_test", target_value, aggregator_value,
-#                                                      confidence=0.6666666666666667, decision_frontier=0.3333333333333333,
+#                                                      confidence=0.6666666666666667,
+#                                                      decision_frontier=0.3333333333333333,
 #                                                      term_count=2, doc=doc)
 #         # aggregator [0] and target[1]
 #         test_outlier_linux_2 = self._create_outliers(["dummy type"], ["dummy reason"], "dummy summary", "beaconing",
@@ -167,7 +172,8 @@
 #         target_value = random.choice(LIST_TARGET_VALUE)
 #         observations = {}
 #         doc = copy.deepcopy(random.choice(LIST_DOC))
-#         eval_terms_array = analyzer.add_term_to_batch(defaultdict(), aggregator_value, target_value, observations, doc)
+#         eval_terms_array = analyzer.add_term_to_batch(defaultdict(), aggregator_value, target_value, observations,
+#                                                       doc)
 #
 #         outlier = analyzer.prepare_and_process_outlier(decision_frontier, term_value_count, eval_terms_array,
 #                                                        aggregator_value, 0)
@@ -190,7 +196,8 @@
 #         target_value = "WIN-DRA-draman"
 #         observations = {}
 #         doc = copy.deepcopy(doc_without_outlier_test_file)
-#         eval_terms_array = analyzer.add_term_to_batch(defaultdict(), aggregator_value, target_value, observations, doc)
+#         eval_terms_array = analyzer.add_term_to_batch(defaultdict(), aggregator_value, target_value, observations,
+#                                                       doc)
 #
 #         analyzer.prepare_and_process_outlier(decision_frontier, term_value_count, eval_terms_array,
 #                                              aggregator_value, 0)
