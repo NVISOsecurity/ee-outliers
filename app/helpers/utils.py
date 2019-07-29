@@ -7,7 +7,6 @@ import re
 from statistics import mean, median
 import validators
 from string import Formatter
-from datetime import timedelta
 
 import helpers.singletons
 

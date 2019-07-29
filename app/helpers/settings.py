@@ -2,7 +2,6 @@ import configparser
 import argparse
 
 from helpers.singleton import singleton
-import copy
 
 parser = argparse.ArgumentParser()
 
