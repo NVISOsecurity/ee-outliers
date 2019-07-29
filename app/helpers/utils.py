@@ -6,6 +6,7 @@ import base64
 import re
 from statistics import mean, median
 import validators
+from string import Formatter
 
 import helpers.singletons
 
@@ -16,7 +17,7 @@ if TYPE_CHECKING:
     from helpers.settings import Settings
 
 
-def flatten_dict(d: MutableMapping, parent_key: str='', sep: str='.') -> Dict:
+def flatten_dict(d: MutableMapping, parent_key: str = '', sep: str = '.') -> Dict:
     items: List = []
     for k, v in d.items():
         new_key: str = parent_key + sep + k if parent_key else k
@@ -27,7 +28,7 @@ def flatten_dict(d: MutableMapping, parent_key: str='', sep: str='.') -> Dict:
     return dict(items)
 
 
-def dict_contains_dotkey(dict_value: Dict, key_name: str, case_sensitive: bool=True) -> bool:
+def dict_contains_dotkey(dict_value: Dict, key_name: str, case_sensitive: bool = True) -> bool:
     try:
         get_dotkey_value(dict_value, key_name, case_sensitive)
         return True
@@ -35,7 +36,7 @@ def dict_contains_dotkey(dict_value: Dict, key_name: str, case_sensitive: bool=T
         return False
 
 
-def get_dotkey_value(dict_value: Dict, key_name: str, case_sensitive: bool=True) -> Dict:
+def get_dotkey_value(dict_value: Dict, key_name: str, case_sensitive: bool = True) -> Dict:
     """
     Get value by dot key in dictionary
     By default, the dotkey is matched case sensitive; for example, key "OsqueryFilter.process_name" will only match if
@@ -86,15 +87,14 @@ def extract_outlier_asset_information(fields: Dict, settings: 'Settings') -> Lis
     outlier_assets: List[str] = list()
     for (asset_field_name, asset_field_type) in settings.config.items("assets"):
         if dict_contains_dotkey(fields, asset_field_name, case_sensitive=False):
-
-            asset_field_values_including_empty: List[List] = flatten_fields_into_sentences(fields,
-                                                                               sentence_format=[asset_field_name])
+            asset_field_values_including_empty: List[List] = flatten_fields_into_sentences(
+                fields, sentence_format=[asset_field_name])
             # also remove all empty asset strings
-            asset_field_values: List = [sentence[0] for sentence in asset_field_values_including_empty \
+            asset_field_values: List = [sentence[0] for sentence in asset_field_values_including_empty
                                         if "" not in sentence]
 
-            for asset_field_value in asset_field_values:  # make sure we don't process empty process information,
-                # for example an empty user field
+            # make sure we don't process empty process information, for example an empty user field
+            for asset_field_value in asset_field_values:
                 outlier_assets.append(asset_field_type + ": " + asset_field_value)
 
     return outlier_assets
@@ -102,14 +102,14 @@ def extract_outlier_asset_information(fields: Dict, settings: 'Settings') -> Lis
 
 # Convert a sentence value into a flat string, if possible
 # If not, just return None
-def flatten_sentence(sentence: Any=None) -> Optional[str]:
+def flatten_sentence(sentence: Any = None) -> Optional[str]:
     if sentence is None:
         return None
     field_value: str
 
     if type(sentence) is list:
-        # Make sure the list does not contain nested lists, but only strings.
-        # If it's a nested list, we give up and return None
+        # Make sure the list does not contain nested lists, but only strings. If it's a nested list, we give up and
+        # return None
         if any(isinstance(i, list) or isinstance(i, dict) for i in sentence):
             return None
         else:
@@ -203,9 +203,8 @@ def is_url(_str: str) -> Union[bool, validators.utils.ValidationFailure]:
         return False
 
 
-def get_decision_frontier(trigger_method: str, values_array: List, trigger_sensitivity: int,
-                          trigger_on: Optional[str]=None) -> Union[int, float, np.float64]:
-    
+def get_decision_frontier(trigger_method: str, values_array: List, trigger_sensitivity: Union[int, float],
+                          trigger_on: Optional[str] = None) -> Union[int, float, np.float64]:
     decision_frontier: Union[int, float, np.float64]
     if trigger_method == "percentile":
         decision_frontier = get_percentile_decision_frontier(values_array, trigger_sensitivity)
@@ -237,6 +236,8 @@ def get_decision_frontier(trigger_method: str, values_array: List, trigger_sensi
         decision_frontier = get_stdev_decision_frontier(values_array, trigger_sensitivity, trigger_on)
     elif trigger_method == "float":
         decision_frontier = np.float64(trigger_sensitivity)
+    elif trigger_method == "coeff_of_variation":
+        decision_frontier = np.std(values_array) / np.mean(values_array)
     else:
         raise ValueError("Unexpected trigger method " + trigger_method + ", could not calculate decision frontier")
 
@@ -292,15 +293,9 @@ def get_mad_decision_frontier(values_array: List, trigger_sensitivity: int,
 def is_outlier(term_value_count: int, decision_frontier: Union[int, float, np.float64],
                trigger_on: Optional[str]) -> Union[int, float, np.float64, bool]:
     if trigger_on == "high":
-        if term_value_count > decision_frontier:
-            return True
-        else:
-            return False
+        return term_value_count > decision_frontier
     elif trigger_on == "low":
-        if term_value_count < decision_frontier:
-            return decision_frontier
-        else:
-            return False
+        return term_value_count < decision_frontier
     else:
         raise ValueError("Unexpected outlier trigger condition " + str(trigger_on))
 
@@ -311,3 +306,55 @@ def nested_dict_values(d: Dict) -> Iterable[Any]:
             yield from nested_dict_values(v)
         else:
             yield v
+
+
+def seconds_to_pretty_str(seconds):
+    return strfdelta(tdelta=seconds, inputtype="seconds", fmt='{D}d {H}h {M}m {S}s')
+
+
+def strfdelta(tdelta, fmt='{D:02}d {H:02}h {M:02}m {S:02}s', inputtype='timedelta'):
+    """Convert a datetime.timedelta object or a regular number to a custom-
+    formatted string, just like the stftime() method does for datetime.datetime
+    objects.
+
+    The fmt argument allows custom formatting to be specified.  Fields can
+    include seconds, minutes, hours, days, and weeks.  Each field is optional.
+
+    Some examples:
+        '{D:02}d {H:02}h {M:02}m {S:02}s' --> '05d 08h 04m 02s' (default)
+        '{W}w {D}d {H}:{M:02}:{S:02}'     --> '4w 5d 8:04:02'
+        '{D:2}d {H:2}:{M:02}:{S:02}'      --> ' 5d  8:04:02'
+        '{H}h {S}s'                       --> '72h 800s'
+
+    The inputtype argument allows tdelta to be a regular number instead of the
+    default, which is a datetime.timedelta object.  Valid inputtype strings:
+        's', 'seconds',
+        'm', 'minutes',
+        'h', 'hours',
+        'd', 'days',
+        'w', 'weeks'
+    """
+
+    # Convert tdelta to integer seconds.
+    if inputtype == 'timedelta':
+        remainder = int(tdelta.total_seconds())
+    elif inputtype in ['s', 'seconds']:
+        remainder = int(tdelta)
+    elif inputtype in ['m', 'minutes']:
+        remainder = int(tdelta)*60
+    elif inputtype in ['h', 'hours']:
+        remainder = int(tdelta)*3600
+    elif inputtype in ['d', 'days']:
+        remainder = int(tdelta)*86400
+    elif inputtype in ['w', 'weeks']:
+        remainder = int(tdelta)*604800
+
+    f = Formatter()
+    desired_fields = [field_tuple[1] for field_tuple in f.parse(fmt)]
+    possible_fields = ('W', 'D', 'H', 'M', 'S')
+    constants = {'W': 604800, 'D': 86400, 'H': 3600, 'M': 60, 'S': 1}
+    values = {}
+    for field in possible_fields:
+        if field in desired_fields and field in constants:
+            values[field], remainder = divmod(remainder, constants[field])
+    return f.format(fmt, **values)

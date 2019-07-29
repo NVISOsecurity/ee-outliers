@@ -30,11 +30,11 @@ class Word2Vec:
         self.all_probabilities_cache: Dict = dict()
 
         # Set up logging directory
-        self.name: str = name
+        self.name :str = name
         self.model_name: str = self.name + "_word2vec"
+        # important: need '' at end so it's treated as directory!
         self.models_dir: str = os.path.join(settings.config.get("machine_learning", "models_directory"),
                                             self.model_name, '')
-        # important: need '' at end so it's treated as directory!
 
         now: datetime.datetime = datetime.datetime.now()
         self.log_dir: str = os.path.join(self.models_dir, now.strftime("%Y-%m-%d %H:%M"), 'log')
@@ -217,16 +217,16 @@ class Word2Vec:
             with open(self.words_to_indices_filename, "r") as f:
                 words_to_indices = json.load(f)
         except FileNotFoundError:
-            logging.logger.warn(self.words_to_indices_filename + " not found, did you train the model before " + \
-                                                                 "running it?")
-            return None
+            logging.logger.warn(self.words_to_indices_filename + " not found, did you train the model before " +
+                                "running it?")
+            return
 
         try:
             with open(self.indices_to_words_filename, "r") as f:
                 indices_to_words: Dict = json.load(f)
         except FileNotFoundError:
-            logging.logger.warn(self.indices_to_words_filename + " not found, did you train the model before " + \
-                                                                 "running it?")
+            logging.logger.warn(self.indices_to_words_filename + " not found, did you train the model before " +
+                                "running it?")
             return None
 
         graph = tf.Graph()
@@ -261,17 +261,13 @@ class Word2Vec:
                             if word in self.all_probabilities_cache.keys():
                                 all_probabilities = self.all_probabilities_cache[word]
                             else:
-                                all_probabilities = tf.nn.softmax(tf.nn.xw_plus_b(
-                                                            tf.expand_dims(final_embeddings[words_to_indices[word]], 0),
-                                                            tf.transpose(weights),
-                                                            biases)).eval()
+                                all_probabilities = tf.nn.softmax(tf.nn.xw_plus_b(tf.expand_dims(
+                                    final_embeddings[words_to_indices[word]], 0), tf.transpose(weights), biases)).eval()
                                 self.all_probabilities_cache[word] = all_probabilities
                         else:
                             # For each word: Get the probabilities of all context words
-                            all_probabilities = tf.nn.softmax(tf.nn.xw_plus_b(
-                                tf.expand_dims(final_embeddings[words_to_indices[word]], 0),
-                                tf.transpose(weights),
-                                biases)).eval()
+                            all_probabilities = tf.nn.softmax(tf.nn.xw_plus_b(tf.expand_dims(
+                                final_embeddings[words_to_indices[word]], 0), tf.transpose(weights), biases)).eval()
 
                         word_probs = all_probabilities[0]
 
@@ -283,7 +279,7 @@ class Word2Vec:
                                 tmp_probs.append(target_word_prob)
 
                                 if self.use_test_data:
-                                    logging.logger.info("probability of seeing " + word + " in context of " + \
+                                    logging.logger.info("probability of seeing " + word + " in context of " +
                                                         target_word + " is " + str(target_word_prob))
 
                 # In case we could not calculate any probability, due to all words being unknown, we return NaN
@@ -346,7 +342,8 @@ def get_sentence_skipgrams_build(sentence: List, skip_window: int) -> Tuple[List
     sentence_targets: List = []
     sentence_labels: List = []
     for i in range(len(sentence)):  # i = target word
-        context_indices = [j for j in range(max(0, (i -skip_window)), min(len(sentence), i +1+ skip_window)) if j != i]
+        context_indices = [j for j in range(max(0, (i - skip_window)), min(len(sentence), i + 1 + skip_window))
+                           if j != i]
         for context_index in context_indices:
             sentence_targets.append(sentence[i])
             sentence_labels.append(sentence[context_index])
@@ -359,7 +356,8 @@ def get_sentence_skipgrams_restore(sentence: List, skip_window: int) -> Tuple[Li
     sentence_targets: List = []
     sentence_labels: List = []
     for i in range(len(sentence)):  # i = target word
-        context_indices: List = [j for j in range(max(0,(i -skip_window)), min(len(sentence), i+1+skip_window)) if j!=i]
+        context_indices: List = [j for j in range(max(0, (i - skip_window)), min(len(sentence), i + 1 + skip_window))
+                           if j != i]
         sentence_targets.append(sentence[i])
         labels: List = []
         for context_index in context_indices:

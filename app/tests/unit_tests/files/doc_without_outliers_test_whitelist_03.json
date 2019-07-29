@@ -1,9 +1,9 @@
 {
-    "_id": "d8_9WWQBFCEzBdQxDtu-",
+    "_id": "e9_9WWQBFCEzBdQxDtu-",
     "_index": "logstash-eagleeye-osqueryfilter-2018.07.02",
     "_score": null,
     "_source": {
-        "@timestamp": "2018-07-02T07:54:30.549Z",
+        "@timestamp": "2018-07-02T07:54:32.549Z",
         "@version": "1",
         "OsqueryFilter": {
             "address": "192.168.67.175",
@@ -76,31 +76,16 @@
                 }
             ],
             "output_file_path": "osquery_get_all_processes_with_listening_conns.log",
-            "timestamp": "2018-07-02T07:54:30.549523+00:00",
+            "timestamp": "2018-07-02T07:54:32.549523+00:00",
             "toolname": "osquery"
-        },
-        "outliers": {
-            "observation": ["dummy observation"],
-            "reason": ["dummy reason"],
-            "total_outliers": 1,
-            "type": ["dummy type"],
-            "summary": ["dummy summary"],
-            "derived_timestamp_minute": ["54"],
-            "derived_timestamp_second": ["30.549523"],
-            "derived_timestamp_year": ["2018"],
-            "derived_timestamp_hour": ["07"],
-            "derived_timestamp_timezone": ["+00:00"],
-            "derived_timestamp_day": ["02"],
-            "derived_timestamp_month": ["07"]
         },
         "slave_name": "ee-slave-lab",
         "smoky_filter_name": "OsqueryFilter",
         "tags": [
             "unknown_hashes",
-            "endpoint",
-            "outlier"
+            "endpoint"
         ],
-        "timestamp": "2018-07-02T07:54:30.549523+00:00",
+        "timestamp": "2018-07-02T07:54:32.549523+00:00",
         "type": "eagleeye"
     },
     "_type": "doc",

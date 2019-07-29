@@ -3,10 +3,13 @@ import datetime
 import helpers.utils
 import helpers.logging
 import json
+import datetime as dt
 from pygrok import Grok
+import math
 
 from helpers.singleton import singleton
 from helpers.notifier import Notifier
+from helpers.outlier import Outlier
 from collections import defaultdict
 from itertools import chain
 
@@ -19,10 +22,6 @@ if TYPE_CHECKING:
 
 @singleton
 class ES:
-    index = None # Always None ?
-    # conn: Elasticsearch = None
-    # settings: Settings = None
-
     grok_filters: Dict[str, Grok] = dict()
 
     notifier: Notifier
@@ -54,8 +53,9 @@ class ES:
 
     def scan(self, index: str, bool_clause: Optional[Dict[str, List]] = None, sort_clause: Optional[Dict] = None,
              query_fields: Optional[Dict] = None, search_query: Optional[Dict[str, List]] = None,
-             model_settings: Optional[Dict] =None) -> Dict:
-        preserve_order: bool = True if sort_clause is not None else False
+             model_settings: Optional[Dict] = None) -> Dict:
+
+        preserve_order: bool = False
 
         timestamp_field: str
         history_window_days: int
@@ -69,10 +69,15 @@ class ES:
             history_window_days = model_settings["history_window_days"]
             history_window_hours = model_settings["history_window_hours"]
 
+            if model_settings["process_documents_chronologically"]:
+                sort_clause = {"sort": [{model_settings["timestamp_field"]: "desc"}]}
+                preserve_order = True
+
         search_range: Dict[str, Dict] = self.get_time_filter(days=history_window_days, hours=history_window_hours,
                                                              timestamp_field=timestamp_field)
         return eshelpers.scan(self.conn, request_timeout=self.settings.config.getint("general", "es_timeout"),
-                              index=index, query=build_search_query(bool_clause=bool_clause, sort_clause=sort_clause,
+                              index=index, query=build_search_query(bool_clause=bool_clause,
+                                                                    sort_clause=sort_clause,
                                                                     search_range=search_range,
                                                                     query_fields=query_fields,
                                                                     search_query=search_query),
@@ -112,73 +117,99 @@ class ES:
         else:
             return result
 
-    def _update_es(self, doc: Dict[str, Any])  -> None:
+    def _update_es(self, doc: Dict[str, Any]) -> None:
         self.conn.delete(index=doc["_index"], doc_type=doc["_type"], id=doc["_id"], refresh=True)
         self.conn.create(index=doc["_index"], doc_type=doc["_type"], id=doc["_id"], body=doc["_source"], refresh=True)
 
     @staticmethod
     def filter_by_query_string(query_string: Optional[str] = None) -> Dict[str, List]:
-        bool_clause: Dict[str, List] = {"filter": [
+        filter_clause: Dict[str, List] = {"filter": [
             {"query_string": {"query": query_string}}
         ]}
-        return bool_clause
+
+        return filter_clause
 
     @staticmethod
     def filter_by_dsl_query(dsl_query: Optional[str] = None) -> Dict[str, List]:
         json_result: Union[Dict, List] = json.loads(dsl_query)
 
-        bool_clause: Dict[str, List]
+        filter_clause: Dict[str, List]
         if isinstance(json_result, list):
-            bool_clause = {"filter": []}
+            filter_clause = {"filter": []}
             for query in json_result:
-                bool_clause["filter"].append(query["query"])
+                filter_clause["filter"].append(query["query"])
         else:
-            bool_clause = {"filter": [
+            filter_clause = {"filter": [
                 json_result["query"]
             ]}
-        return bool_clause
+        return filter_clause
 
     # this is part of housekeeping, so we should not access non-threat-save objects, such as logging progress to
     # the console using ticks!
     def remove_all_whitelisted_outliers(self) -> int:
-        from helpers.outlier import Outlier  # import goes here to avoid issues with singletons & circular
-        # requirements ... //TODO: fix this
-
         outliers_filter_query: Dict[str, List] = {"filter": [{"term": {"tags": "outlier"}}]}
-        total_docs_whitelisted: int = 0
+
+        total_outliers_whitelisted: int = 0
+        total_outliers_processed: int = 0
 
         idx: str = self.settings.config.get("general", "es_index_pattern")
         total_nr_outliers: int = self.count_documents(index=idx, bool_clause=outliers_filter_query)
-        self.logging.logger.info("going to analyze %s outliers and remove all whitelisted items", "{:,}"\
+        self.logging.logger.info("going to analyze %s outliers and remove all whitelisted items", "{:,}"
                                  .format(total_nr_outliers))
 
         if total_nr_outliers > 0:
-            for doc in self.scan(index=idx, bool_clause=outliers_filter_query):
-                total_outliers: int = int(doc["_source"]["outliers"]["total_outliers"])
-                # Generate all outlier objects for this document
-                total_whitelisted = 0
+            start_time = dt.datetime.today().timestamp()
 
-                for i in range(total_outliers):
+            for doc in self.scan(index=idx, bool_clause=outliers_filter_query):
+                total_outliers_processed = total_outliers_processed + 1
+                total_outliers_in_doc: int = int(doc["_source"]["outliers"]["total_outliers"])
+                # generate all outlier objects for this document
+                total_whitelisted: int = 0
+
+                for i in range(total_outliers_in_doc):
                     outlier_type: str = doc["_source"]["outliers"]["type"][i]
                     outlier_reason: str = doc["_source"]["outliers"]["reason"][i]
                     outlier_summary: str = doc["_source"]["outliers"]["summary"][i]
 
                     outlier: Outlier = Outlier(outlier_type=outlier_type, outlier_reason=outlier_reason,
-                                               outlier_summary=outlier_summary)
-                    if outlier.is_whitelisted(additional_dict_values_to_check=doc):
+                                               outlier_summary=outlier_summary, doc=doc)
+                    if outlier.is_whitelisted():
                         total_whitelisted += 1
 
                 # if all outliers for this document are whitelisted, removed them all. If not, don't touch the document.
-                # this is a limitation in the way our outliers are stored: if not ALL of them are whitelisted, we can't remove just the whitelisted ones
-                # from the Elasticsearch event, as they are stored as array elements and potentially contain observations that should be removed, too.
+                # this is a limitation in the way our outliers are stored: if not ALL of them are whitelisted, we
+                # can't remove just the whitelisted ones
+                # from the Elasticsearch event, as they are stored as array elements and potentially contain
+                # observations that should be removed, too.
                 # In this case, just don't touch the document.
-                if total_whitelisted == total_outliers:
-                    total_docs_whitelisted += 1
+                if total_whitelisted == total_outliers_in_doc:
+                    total_outliers_whitelisted += 1
                     doc = remove_outliers_from_document(doc)
-
                     self._update_es(doc)
 
-        return total_docs_whitelisted
+                # we don't use the ticker from the logger singleton, as this will be called from the housekeeping thread
+                # if we share a same ticker between multiple threads, strange results would start to appear in
+                # progress logging
+                # so, we duplicate part of the functionality from the logger singleton
+                if self.logging.verbosity >= 5:
+                    should_log = True
+                else:
+                    should_log = total_outliers_processed % max(1,
+                                                                int(math.pow(10, (5 - self.logging.verbosity)))) == 0 \
+                                 or total_outliers_processed == total_nr_outliers
+
+                if should_log:
+                    # avoid a division by zero
+                    time_diff = max(float(1), float(dt.datetime.today().timestamp() - start_time))
+                    ticks_per_second = "{:,}".format(round(float(total_outliers_processed) / time_diff))
+
+                    self.logging.logger.info("whitelisting historical outliers " + " [" + ticks_per_second + " eps." +
+                                             " - " + '{:.2f}'.format(round(float(total_outliers_processed) /
+                                                                           float(total_nr_outliers) * 100, 2)) +
+                                             "% done" + " - " + str(total_outliers_whitelisted) +
+                                             " outliers whitelisted]")
+
+        return total_outliers_whitelisted
 
     def remove_all_outliers(self) -> None:
         idx: str = self.settings.config.get("general", "es_index_pattern")
@@ -194,11 +225,10 @@ class ES:
 
             search_range: Dict[str, Dict] = self.get_time_filter(days=history_window_days, hours=history_window_hours,
                                                                  timestamp_field=timestamp_field)
-
             query: Dict[str, Dict] = build_search_query(bool_clause=must_clause, search_range=search_range)
 
             script: Dict[str, str] = {
-                "source": "ctx._source.remove(\"outliers\"); " + \
+                "source": "ctx._source.remove(\"outliers\"); " +
                           "ctx._source.tags.remove(ctx._source.tags.indexOf(\"outlier\"))",
                 "lang": "painless"
             }
@@ -213,7 +243,7 @@ class ES:
 
     def process_outliers(self, doc: Dict[str, Any], outliers: List['Outlier'], should_notify: bool = False) -> None:
         for outlier in outliers:
-            if outlier.is_whitelisted(additional_dict_values_to_check=doc):
+            if outlier.is_whitelisted():
                 if self.settings.config.getboolean("general", "print_outliers_to_console"):
                     self.logging.logger.info(outlier.outlier_dict["summary"] + " [whitelisted outlier]")
             else:
@@ -286,7 +316,8 @@ class ES:
 
         return doc_fields
 
-    def get_time_filter(self, days: float, hours: float, timestamp_field: str = "timestamp") -> Dict[str, Dict]:
+    @staticmethod
+    def get_time_filter(days: float = None, hours: float = None, timestamp_field: str = "timestamp") -> Dict[str, Dict]:
         time_start: str = (datetime.datetime.now() - datetime.timedelta(days=days, hours=hours)).isoformat()
         time_stop: str = datetime.datetime.now().isoformat()
 
@@ -366,8 +397,8 @@ def build_search_query(bool_clause: Optional[Dict[str, Any]] = None, sort_clause
         query["_source"] = query_fields
 
     if bool_clause:
-        query["query"]["bool"]["filter"] = bool_clause["filter"].copy()  # To avoid side effects (multiple search_
-        # range) when calling multiple times the function on the same bool_clause
+        # To avoid side effects (multiple search_range) when calling multiple times the function on the same bool_clause
+        query["query"]["bool"]["filter"] = bool_clause["filter"].copy()
 
     if sort_clause:
         query.update(sort_clause)

@@ -3,7 +3,7 @@ import argparse
 
 from helpers.singleton import singleton
 
-from typing import Dict, List, Set
+from typing import Dict, List, Set, Optional, AbstractSet, Tuple
 
 
 parser: argparse.ArgumentParser = argparse.ArgumentParser()
@@ -37,24 +37,24 @@ class Settings:
         self.search_range_end: str
         self.search_range: Dict[str, Dict]
 
-        self.process_arguments()
+        self.whitelist_literals_config: Optional[AbstractSet[Tuple]] = None
+        self.whitelist_regexps_config: Optional[AbstractSet[Tuple]] = None
 
-    def process_arguments(self) -> None:
-        args: argparse.Namespace = parser.parse_args()
-        self.args = args
+        self.args: argparse.Namespace = parser.parse_args()
+        self.process_configuration_files()
 
-        self.process_configuration_files(args.config)
+    def process_configuration_files(self) -> None:
+        config_paths = self.args.config
 
-    def reload_configuration_files(self) -> None:
-        self.process_configuration_files(self.args.config)
-
-    def process_configuration_files(self, config_paths: str) -> None:
         # Read configuration files
         config: configparser.ConfigParser = configparser.ConfigParser(interpolation=None)
         # preserve case sensitivity in config keys, important for derived field names
-        config.optionxform = str # type: ignore
+        config.optionxform = str  # type: ignore
 
         self.loaded_config_paths = config.read(config_paths)
         self.failed_config_paths = set(config_paths) - set(self.loaded_config_paths)
 
-        self.config = config
+        self.config: configparser.ConfigParser = config
+
+        self.whitelist_literals_config = self.config.items("whitelist_literals")
+        self.whitelist_regexps_config = self.config.items("whitelist_regexps")

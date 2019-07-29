@@ -10,7 +10,7 @@ from helpers.singleton import singleton
 
 @singleton
 class Logging:
-    #start_time = None"""
+    # start_time = None"""
     logger: logging.Logger
 
     total_steps: Optional[int]
@@ -20,7 +20,7 @@ class Logging:
     verbosity: int = 0
 
     def __init__(self, logger_name: str) -> None:
-        # Disable HTTPS warnings
+        # disable HTTPS warnings
         urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
         logging.getLogger('urllib3').setLevel(logging.CRITICAL)
 
@@ -50,13 +50,12 @@ class Logging:
         self.current_step: int = 0
 
     def tick(self) -> None:
-        should_log: bool = False
         self.current_step += 1
-
+        should_log: bool
         if self.verbosity >= 5:
             should_log = True
         else:
-            should_log = self.current_step % max(1, int(math.pow(10, (5 - self.verbosity)))) == 0 or \
+            should_log = self.current_step % max(1, int(math.pow(10, (6 - self.verbosity)))) == 0 or \
                             self.current_step == self.total_steps
 
         if should_log:
@@ -64,8 +63,8 @@ class Logging:
             time_diff: float = max(float(1), float(dt.datetime.today().timestamp() - self.start_time))
             ticks_per_second: str = "{:,}".format(round(float(self.current_step) / time_diff))
 
-            self.logger.info(str(self.desc) + " [" + ticks_per_second + " eps. - " + '{:.2f}'
-                             .format(round(float(self.current_step) / float(cast(int, self.total_steps)) * 100, 2)) +
+            self.logger.info(self.desc + " [" + ticks_per_second + " eps. - " + '{:.2f}'
+                             .format(round(float(self.current_step) / float(self.total_steps) * 100, 2)) +
                              "% done" + "]")
 
     def print_generic_intro(self, title: str) -> None:

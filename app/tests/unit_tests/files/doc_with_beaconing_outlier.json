@@ -80,18 +80,17 @@
             "toolname": "osquery"
         },
         "outliers": {
-            "observation": ["dummy observation"],
             "reason": ["dummy reason"],
-            "total_outliers": 1,
+            "model_type": ["terms"],
+            "term": ["WIN-EVB-draman"], 
+            "confidence": [0.6666666666666667],
             "type": ["dummy type"],
-            "summary": ["dummy summary"],
-            "derived_timestamp_minute": ["54"],
-            "derived_timestamp_second": ["30.549523"],
-            "derived_timestamp_year": ["2018"],
-            "derived_timestamp_hour": ["07"],
-            "derived_timestamp_timezone": ["+00:00"],
-            "derived_timestamp_day": ["02"],
-            "derived_timestamp_month": ["07"]
+            "term_count": [1], 
+            "decision_frontier": [0.3333333333333333],
+            "aggregator": ["agg-WIN-EVB-draman"],
+            "model_name": ["dummy_test"], 
+            "total_outliers": 1,
+            "summary": ["dummy summary"]
         },
         "slave_name": "ee-slave-lab",
         "smoky_filter_name": "OsqueryFilter",

@@ -42,9 +42,9 @@ class Notifier:
             self.last_seen_ignore_queue.append(outlier.outlier_dict["summary"])
             email_dict: Dict[str, str] = dict()
             email_dict["subject"] = "Eagle Eye - outlier alert: " + outlier.outlier_dict["summary"]
-            email_dict["body"] = str(outlier) + "\n\n\n========RAW EVENT========\n\n\n\n" + \
-                                 json.dumps(doc, sort_keys=True, indent=4)
-
+            email_dict["body"] = str(outlier) + "\n\n\n========RAW EVENT========\n\n\n\n" + json.dumps(doc,
+                                                                                                       sort_keys=True,
+                                                                                                       indent=4)
             self.send_email(email_dict)
 
     def send_email(self, email_dict: Dict[str, str]) -> None:
@@ -58,5 +58,5 @@ class Notifier:
             s.login(self.smtp_user, self.smtp_pass)
             s.send_message(msg)
             s.quit()
-        except Exception as ex:
-            self.logging.logger.error("something went wrong sending notification e-mail: " + str(ex))
+        except Exception:
+            self.logging.logger.error("something went wrong sending notification e-mail", exc_info=True)
