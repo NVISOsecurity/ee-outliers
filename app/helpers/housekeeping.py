@@ -1,5 +1,4 @@
 import threading
-import traceback
 
 from helpers.singletons import logging, settings, es
 from helpers.watchers import FileModificationWatcher
