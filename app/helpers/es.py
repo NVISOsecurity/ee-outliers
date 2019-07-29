@@ -64,7 +64,7 @@ class ES:
             history_window_hours = model_settings["history_window_hours"]
 
             if model_settings["process_documents_chronologically"]:
-                sort_clause = {"sort": [{model_settings["timestamp_field"] : "desc" }]}
+                sort_clause = {"sort": [{model_settings["timestamp_field"]: "desc"}]}
                 preserve_order = True
 
         search_range = self.get_time_filter(days=history_window_days, hours=history_window_hours,
