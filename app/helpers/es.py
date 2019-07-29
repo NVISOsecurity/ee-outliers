@@ -175,22 +175,26 @@ class ES:
                     self._update_es(doc)
 
                 # we don't use the ticker from the logger singleton, as this will be called from the housekeeping thread
-                # if we share a same ticker between multiple threads, strange results would start to appear in progress logging
+                # if we share a same ticker between multiple threads, strange results would start to appear in
+                # progress logging
                 # so, we duplicate part of the functionality from the logger singleton
                 if self.logging.verbosity >= 5:
                     should_log = True
                 else:
-                    should_log = total_outliers_processed % max(1, int(math.pow(10, (6 - self.logging.verbosity)))) == 0 or \
-                                 total_outliers_processed == total_nr_outliers
+                    should_log = total_outliers_processed % max(1, int(math.pow(10,
+                                                                                (6 - self.logging.verbosity)))) == 0 \
+                                 or total_outliers_processed == total_nr_outliers
 
                 if should_log:
                     # avoid a division by zero
                     time_diff = max(float(1), float(dt.datetime.today().timestamp() - start_time))
                     ticks_per_second = "{:,}".format(round(float(total_outliers_processed) / time_diff))
 
-                    self.logging.logger.info("whitelisting historical outliers " + " [" + ticks_per_second + " eps. - " + '{:.2f}'
-                                     .format(round(float(total_outliers_processed) / float(total_nr_outliers) * 100, 2)) +
-                                     "% done" + " - " + str(total_outliers_whitelisted) + " outliers whitelisted]")
+                    self.logging.logger.info("whitelisting historical outliers " + " [" + ticks_per_second +
+                                             " eps. - " + '{:.2f}'.format(round(float(total_outliers_processed) /
+                                                                                float(total_nr_outliers) * 100, 2)) +
+                                             "% done" + " - " + str(total_outliers_whitelisted) +
+                                             " outliers whitelisted]")
 
         return total_outliers_whitelisted
 
