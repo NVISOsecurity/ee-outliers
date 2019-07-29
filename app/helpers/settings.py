@@ -50,4 +50,3 @@ class Settings:
 
         self.whitelist_literals_config = self.config.items("whitelist_literals")
         self.whitelist_regexps_config = self.config.items("whitelist_regexps")
-

@@ -157,8 +157,9 @@ class TermsAnalyzer(Analyzer):
 
         self.model_settings["brute_force_target"] = "*" in self.model_settings["target"]
 
-        self.model_settings["aggregator"] = settings.config.get(self.config_section_name, "aggregator")\
-            .replace(' ', '').split(",")  # remove unnecessary whitespace, split fields
+        # remove unnecessary whitespace, split fields
+        self.model_settings["aggregator"] = settings.config.get(self.config_section_name,
+                                                                "aggregator").replace(' ', '').split(",")
 
         self.model_settings["trigger_on"] = settings.config.get(self.config_section_name, "trigger_on")
         self.model_settings["trigger_method"] = settings.config.get(self.config_section_name, "trigger_method")
