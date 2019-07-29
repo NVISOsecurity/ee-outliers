@@ -225,6 +225,8 @@ def get_decision_frontier(trigger_method, values_array, trigger_sensitivity, tri
         decision_frontier = get_stdev_decision_frontier(values_array, trigger_sensitivity, trigger_on)
     elif trigger_method == "float":
         decision_frontier = np.float64(trigger_sensitivity)
+    elif trigger_method == "coeff_of_variation":
+        decision_frontier = np.std(values_array) / np.mean(values_array)
     else:
         raise ValueError("Unexpected trigger method " + trigger_method + ", could not calculate decision frontier")
 
@@ -274,15 +276,9 @@ def get_mad_decision_frontier(values_array, trigger_sensitivity, trigger_on):
 
 def is_outlier(term_value_count, decision_frontier, trigger_on):
     if trigger_on == "high":
-        if term_value_count > decision_frontier:
-            return True
-        else:
-            return False
+        return term_value_count > decision_frontier
     elif trigger_on == "low":
-        if term_value_count < decision_frontier:
-            return decision_frontier
-        else:
-            return False
+        return term_value_count < decision_frontier
     else:
         raise ValueError("Unexpected outlier trigger condition " + trigger_on)
 
