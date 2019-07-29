@@ -68,16 +68,11 @@ package "app/helpers" {
 [analyzer] --> [outlier]
 
 package "app/analyzers" {
-  [beaconing]
   [metrics]
   [simplequery]
   [terms]
   [word2vec]
 }
-
-[beaconing] --> [analyzer]
-[beaconing] --> [singletons]
-[beaconing] --> [utils]
 
 [metrics] --> [singletons]
 [metrics] --> [utils]
