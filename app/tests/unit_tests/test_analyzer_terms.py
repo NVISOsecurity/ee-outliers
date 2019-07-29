@@ -50,7 +50,7 @@ class TestTermsAnalyzer(unittest.TestCase):
         doc = {'source': 'this', 'target': 12}
         return eval_terms_array, aggregator_value, target_value, observations, doc
 
-    def _test_whitelist_batch_document_not_process_all(self):  # TODO FIX with new whitelist system
+    def test_whitelist_batch_document_not_process_all(self):  # TODO FIX with new whitelist system
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_with_whitelist.conf")
         analyzer = TermsAnalyzer("terms_dummy_test")
 
@@ -68,7 +68,7 @@ class TestTermsAnalyzer(unittest.TestCase):
 
         self.assertEqual(len(analyzer.outliers), 2)
 
-    def _test_evaluate_batch_for_outliers_not_enough_target_buckets_one_doc_max_two(self):
+    def _est_evaluate_batch_for_outliers_not_enough_target_buckets_one_doc_max_two(self):
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_01.conf")
         analyzer = TermsAnalyzer("terms_dummy_test")
 
@@ -81,7 +81,7 @@ class TestTermsAnalyzer(unittest.TestCase):
         result, remaining_terms = analyzer.evaluate_batch_for_outliers(terms=eval_terms_array)
         self.assertEqual(result, [])
 
-    def _test_evaluate_batch_for_outliers_limit_target_buckets_two_doc_max_two(self):
+    def test_evaluate_batch_for_outliers_limit_target_buckets_two_doc_max_two(self):
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_01.conf")
         analyzer = TermsAnalyzer("terms_dummy_test")
 
@@ -100,11 +100,11 @@ class TestTermsAnalyzer(unittest.TestCase):
                                                       doc2)
 
         # Expect to get nothing due to "min_target_buckets" set to 2
-        result, remaining_terms = analyzer.evaluate_batch_for_outliers(terms=eval_terms_array)
+        result, remaining_terms = analyzer.evaluate_batch_for_outliers(last_batch=True, terms=eval_terms_array)
         self.assertEqual(result, [])
 
     # coeff_of_variation
-    def _test_terms_evaluate_coeff_of_variation_like_expected_document(self):
+    def test_terms_evaluate_coeff_of_variation_like_expected_document(self):
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_01.conf")
         analyzer = TermsAnalyzer("terms_dummy_test_no_bucket")
 
@@ -119,7 +119,7 @@ class TestTermsAnalyzer(unittest.TestCase):
         result = [elem for elem in es.scan()][0]
         self.assertEqual(result, expected_doc)
 
-    def _test_terms_generated_document_coeff_of_variation_not_respect_min(self):
+    def test_terms_generated_document_coeff_of_variation_not_respect_min(self):
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_01.conf")
         analyzer = TermsAnalyzer("terms_dummy_test_no_bucket")
 
@@ -139,7 +139,7 @@ class TestTermsAnalyzer(unittest.TestCase):
                 nbr_outliers += 1
         self.assertEqual(nbr_outliers, 0)
 
-    def _test_terms_generated_document_coeff_of_variation_respect_min(self):
+    def test_terms_generated_document_coeff_of_variation_respect_min(self):
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_01.conf")
         analyzer = TermsAnalyzer("terms_dummy_test_no_bucket")
 
@@ -157,6 +157,7 @@ class TestTermsAnalyzer(unittest.TestCase):
         for doc in es.scan():
             if "outliers" in doc['_source']:
                 nbr_outliers += 1
+
         self.assertEqual(nbr_outliers, len(all_doc))
 
     def test_add_term_to_batch_empty(self):

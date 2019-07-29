@@ -12,6 +12,8 @@ from typing import DefaultDict, Optional, Dict
 
 class TermsAnalyzer(Analyzer):
 
+    DEBUG = False
+
     def evaluate_model(self):
         if self.model_settings["brute_force_target"]:
             logging.logger.warning("running terms model in brute force mode, could take a long time!")
@@ -24,8 +26,7 @@ class TermsAnalyzer(Analyzer):
                 self.evaluate_target(target=[self.model_settings["brute_forced_field"]], search_query=search_query,
                                      brute_force=True)
         else:
-            self.evaluate_target(target=self.model_settings["target"],
-                                 search_query=self.search_query,
+            self.evaluate_target(target=self.model_settings["target"], search_query=self.search_query,
                                  brute_force=False)
 
     def evaluate_target(self, target, search_query, brute_force=False):
@@ -296,6 +297,9 @@ class TermsAnalyzer(Analyzer):
         return [outlier for list_outliers in outliers.values() for outlier in list_outliers], remaining_terms
 
     def _evaluate_batch_for_outliers_within_aggregator(self, terms, last_batch):
+        if TermsAnalyzer.DEBUG:
+            print("")
+            print("new batch")
         # Initialize
         outliers = defaultdict(list)
         remaining_terms = terms.copy()
@@ -319,6 +323,9 @@ class TermsAnalyzer(Analyzer):
                                          " time buckets, skipping analysis")
                     del remaining_terms[aggregator_value]
                 continue
+
+            if TermsAnalyzer.DEBUG:
+                print("treat aggregator:", aggregator_value)
 
             decision_frontier = helpers.utils.get_decision_frontier(self.model_settings["trigger_method"],
                                                                     counted_target_values,
@@ -345,8 +352,13 @@ class TermsAnalyzer(Analyzer):
                             documents_need_to_be_removed[aggregator_value].append(ii)
 
                     # If all document aren't whitelist
-                    if len(documents_need_to_be_removed[aggregator_value]) == 0:
+                    if aggregator_value not in documents_need_to_be_removed:
                         outliers[aggregator_value] += new_outliers
+                        if TermsAnalyzer.DEBUG:
+                            print("Add all new outliers")
+                elif TermsAnalyzer.DEBUG:
+                    print(aggregator_value, False)
+
             else:
                 non_outlier_values = set()
                 for ii, term_value in enumerate(terms[aggregator_value]["targets"]):
@@ -361,13 +373,20 @@ class TermsAnalyzer(Analyzer):
                             outliers[aggregator_value].append(outlier)
                         else:
                             documents_need_to_be_removed[aggregator_value].append(ii)
+                            if TermsAnalyzer.DEBUG:
+                                print("add here !")
+                                print(aggregator_value, True, term_value, outlier.is_whitelisted())
 
                     else:
                         non_outlier_values.add(term_value)
 
             if aggregator_value not in documents_need_to_be_removed:
+                if TermsAnalyzer.DEBUG:
+                    print("delete", aggregator_value)
                 del remaining_terms[aggregator_value]
             else:
+                if TermsAnalyzer.DEBUG:
+                    print("aggregator in document to remove", documents_need_to_be_removed[aggregator_value])
                 for index in documents_need_to_be_removed[aggregator_value]:
                     TermsAnalyzer.remove_term_to_batch(remaining_terms, aggregator_value, index)
                 if aggregator_value in outliers:
