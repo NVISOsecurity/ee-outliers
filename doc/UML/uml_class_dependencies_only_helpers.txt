@@ -17,8 +17,16 @@ skinparam component {
   ArrowColor CornflowerBlue
   BorderColor CornflowerBlue
 }
+
+skinparam note {
+  BackgroundColor AliceBlue
+  ArrowColor CornflowerBlue
+  BorderColor CornflowerBlue
+}
+
 skinparam stereotypeCBackgroundColor OldLace
 
+title ee-outliers - Class Dependencies (only helpers)
 
 package "app" {
   [outliers]
@@ -34,36 +42,44 @@ package "app/helpers" {
   [settings]
   [singleton]
   [singletons]
+  [watchers]
   [utils]
 }
 
 [outliers] --> [singletons]
 [outliers] --> [utils]
 [outliers] --> [housekeeping]
-[outliers] --> [analyzer]
+[outliers] --> [watchers]
 
 [singletons] --> [settings]
 [singletons] --> [logging]
 [singletons] --> [es]
 
-[settings] --> [es]
 [settings] --> [singleton]
+
+[utils] --> [singletons]
 
 [outlier] --> [singletons]
 [outlier] --> [utils]
 
-[notifier] --> [logging]
-
 [logging] --> [singleton]
 
 [housekeeping] --> [singletons]
+[housekeeping] --> [watchers]
 
 [es] --> [singleton]
 [es] --> [notifier]
 [es] --> [utils]
 [es] --> [logging]
+[es] --> [outlier]
 
 [analyzer] --> [singletons]
 [analyzer] --> [utils]
 [analyzer] --> [outlier]
+
+note as N1 
+    <b>Legend:</b>
+    //Arrow:// . . .import. . .
+end note
+
 @enduml
