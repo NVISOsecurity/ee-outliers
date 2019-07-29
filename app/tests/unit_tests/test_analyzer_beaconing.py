@@ -8,7 +8,7 @@ from collections import defaultdict
 
 from tests.unit_tests.test_stubs.test_stub_es import TestStubEs
 from tests.unit_tests.utils.test_settings import TestSettings
-from helpers.singletons import settings, es, logging
+from helpers.singletons import es, logging
 from analyzers.beaconing import BeaconingAnalyzer
 from helpers.outlier import Outlier
 
@@ -129,9 +129,9 @@ class TestBeaconingAnalyzer(unittest.TestCase):
 
         # Add outlier to a list
         expected_outliers = []
-        expected_outliers.append(test_outlier_linux) # First detected document (target [0])
-        expected_outliers.append(test_outlier_linux) # Second detected document (target [0])
-        expected_outliers.append(test_outlier_win)   # Third detected document (target [1])
+        expected_outliers.append(test_outlier_linux)  # First detected document (target [0])
+        expected_outliers.append(test_outlier_linux)  # Second detected document (target [0])
+        expected_outliers.append(test_outlier_win)    # Third detected document (target [1])
         self.assertEqual(result, expected_outliers)
 
     def test_prepare_and_process_outlier_one_outlier(self):
