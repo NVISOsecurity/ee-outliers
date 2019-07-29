@@ -1,7 +1,7 @@
 # Configuring outlier detection models
 
-- [Existing detection models](./)
-- [General model parameters](./)
+- [Existing detection models](#existing-detection-models)
+- [General model parameters](#general-model-parameters)
 
 
 ## Existing detection models
@@ -14,8 +14,6 @@ The different types of detection models that can be configured are listed below.
 - **metrics models**: the metrics model looks for outliers based on a calculated metric of a specific field of events. These metrics include the length of a field, its entropy, and more. Example use case: tag all events that represent Windows processes that were launched using a high number of base64 encoded parameters in order to detect obfuscated fileless malware.
 
 - **terms models**:  the terms model looks for outliers by calculting rare combinations of a certain field(s) in combination with other field(s). Example use case: tag all events that represent Windows network processes that are rarely observed across all reporting endpoints in order to detect C2 phone home activity.
-
-- **beaconing models**:  the beaconing model can be used to look for events that occur repeatedly with a fixed time interval. Example use case: look for signs of a piece of malware sending out beacons to a Command & Control server at fixed time intervals each minute, hour or day.
 
 - **word2vec models (BETA)**: the word2vec model is the first Machine Learning model defined in ee-outliers. It allows the analyst to train a model based on a set of features that are expected to appear in the same context. After initial training, the model is then able to spot anomalies in unexected combinations of the trained features. Exampleuse case: train a model to learn which usernames, workstations and user roles are expected to appear together in order to alert on breached Windows accounts that are used to laterally move in the network.
 
