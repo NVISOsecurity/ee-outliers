@@ -49,6 +49,7 @@ Possible ``trigger_method`` values:
  - ``madpos``: same as ``mad`` but the trigger value will always be positive. In case mad is negative, it will result 0.
  - ``stdev``: Standard Deviation. ``trigger_sensitivity`` defines the total number of deviations and ranges from``0-Inf.``.
  - ``float``: fixed value to trigger on. ``trigger_sensitivity`` defines the trigger value.
+ - ``coeff_of_variation``: Coefficient of variation. ``trigger_sensitivity`` defines the comparison value (the value of each document is not taking into account). Value with a range from ``0-Inf.``.
 
 **outlier_type**
 
