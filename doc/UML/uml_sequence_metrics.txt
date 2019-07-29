@@ -1,0 +1,85 @@
+@startuml
+'no shadow
+skinparam shadowing false
+ 
+'size of picture
+skinparam dpi 100
+ 
+'color
+skinparam participant {
+  BackgroundColor AliceBlue
+  ArrowColor CornflowerBlue
+  BorderColor CornflowerBlue
+}
+
+skinparam component {
+  BackgroundColor AliceBlue
+  ArrowColor CornflowerBlue
+  BorderColor CornflowerBlue
+}
+
+skinparam database {
+  BackgroundColor AliceBlue
+  ArrowColor CornflowerBlue
+  BorderColor CornflowerBlue
+}
+
+skinparam note {
+  BackgroundColor AliceBlue
+  BorderColor CornflowerBlue
+}
+
+skinparam sequence {
+  LifeLineBorderColor CornflowerBlue
+  LifeLineBackgroundColor AliceBlue
+}
+
+skinparam stereotypeCBackgroundColor OldLace
+
+title ee-outliers - Sequence - Metrics
+
+participant Metrics
+participant Analyzer
+participant ES 
+database ElasticSearch
+
+Metrics -> Metrics : evalute_model
+activate Metrics
+
+Metrics -> Metrics : evaluate_batch_for_outliers
+activate Metrics
+
+note left of Metrics
+    Condition to detect outlier
+end note
+
+Metrics -> Analyzer : process_outier
+activate Analyzer
+
+note right of Analyzer
+    Create Outlier(...)
+end note
+
+note right of Analyzer
+    Save batch outliers
+end note
+
+Analyzer -> ES : process_outliers
+activate ES
+note right of ES
+    is_whitelist
+end note
+
+ES -> ES : save_outlier
+activate ES
+ES -> ElasticSearch
+deactivate ES
+return 
+
+return outliers
+
+' back to evalute_model
+deactivate Metrics
+' end of evalute_model
+deactivate Metrics
+@enduml
