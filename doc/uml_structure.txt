@@ -1,0 +1,96 @@
+@startuml
+'no shadow
+skinparam shadowing false
+ 
+'size of picture
+skinparam dpi 100
+ 
+'color
+skinparam package {
+  BackgroundColor AliceBlue
+  ArrowColor CornflowerBlue
+  BorderColor CornflowerBlue
+}
+
+skinparam component {
+  BackgroundColor AliceBlue
+  ArrowColor CornflowerBlue
+  BorderColor CornflowerBlue
+}
+skinparam stereotypeCBackgroundColor OldLace
+
+
+package "app" {
+  [outliers]
+}
+
+package "app/helpers" {
+  [analyzer]
+  [es]
+  [housekeeping]
+  [logging]
+  [notifier]
+  [outlier]
+  [settings]
+  [singleton]
+  [singletons]
+  [utils]
+}
+
+[outliers] --> [singletons]
+[outliers] --> [utils]
+[outliers] --> [housekeeping]
+[outliers] --> [analyzer]
+
+[singletons] --> [settings]
+[singletons] --> [logging]
+[singletons] --> [es]
+
+[settings] --> [es]
+[settings] --> [singleton]
+
+[outlier] --> [singletons]
+[outlier] --> [utils]
+
+[notifier] --> [logging]
+
+[logging] --> [singleton]
+
+[housekeeping] --> [singletons]
+
+[es] --> [singleton]
+[es] --> [notifier]
+[es] --> [utils]
+[es] --> [logging]
+
+[analyzer] --> [singletons]
+[analyzer] --> [utils]
+[analyzer] --> [outlier]
+
+package "app/analyzers" {
+  [beaconing]
+  [metrics]
+  [simplequery]
+  [terms]
+  [word2vec]
+}
+
+[beaconing] --> [analyzer]
+[beaconing] --> [singletons]
+[beaconing] --> [utils]
+
+[metrics] --> [singletons]
+[metrics] --> [utils]
+[metrics] --> [analyzer]
+
+[simplequery] --> [singletons]
+[simplequery] --> [analyzer]
+
+[terms] --> [singletons]
+[terms] --> [utils]
+[terms] --> [analyzer]
+
+[word2vec] --> [utils]
+[word2vec] --> [singletons]
+[word2vec] --> [analyzer]
+@enduml
