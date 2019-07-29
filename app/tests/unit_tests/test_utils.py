@@ -1,5 +1,4 @@
 import unittest
-from _ast import expr, excepthandler
 
 import helpers.utils
 from helpers.singletons import logging
