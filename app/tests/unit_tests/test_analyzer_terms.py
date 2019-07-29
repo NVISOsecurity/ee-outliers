@@ -41,7 +41,7 @@ class TestTermsAnalyzer(unittest.TestCase):
         self.test_es.restore_es()
 
     @staticmethod
-    def _preperate_data_terms():
+    def _prepare_data_terms():
         eval_terms_array = defaultdict()
         # "random" value
         aggregator_value = "key"
@@ -50,25 +50,29 @@ class TestTermsAnalyzer(unittest.TestCase):
         doc = {'source': 'this', 'target': 12}
         return eval_terms_array, aggregator_value, target_value, observations, doc
 
-    def test_whitelist_batch_document_not_process_all(self):  # TODO FIX with new whitelist system
-        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_with_whitelist.conf")
-        analyzer = TermsAnalyzer("terms_dummy_test")
+    # This test work only if we try to detect whitelist element on non outliers elements
+    # Here the count is not lower than three, so documents aren't outliers, and we never see that the first one is
+    # whitelisted
+    #
+    # def test_whitelist_batch_document_not_process_all(self):
+    #     self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_with_whitelist.conf")
+    #     analyzer = TermsAnalyzer("terms_dummy_test")
+    #
+    #     # Whitelisted (ignored)
+    #     doc1_without_outlier = copy.deepcopy(doc_without_outliers_test_whitelist_01_test_file)
+    #     self.test_es.add_doc(doc1_without_outlier)
+    #     # Not whitelisted (add)
+    #     doc2_without_outlier = copy.deepcopy(doc_without_outliers_test_whitelist_02_test_file)
+    #     self.test_es.add_doc(doc2_without_outlier)
+    #     # Not whitelisted
+    #     doc3_without_outlier = copy.deepcopy(doc_without_outliers_test_whitelist_03_test_file)
+    #     self.test_es.add_doc(doc3_without_outlier)
+    #
+    #     analyzer.evaluate_model()
+    #
+    #     self.assertEqual(len(analyzer.outliers), 2)
 
-        # Whitelisted (ignored)
-        doc1_without_outlier = copy.deepcopy(doc_without_outliers_test_whitelist_01_test_file)
-        self.test_es.add_doc(doc1_without_outlier)
-        # Not whitelisted (add)
-        doc2_without_outlier = copy.deepcopy(doc_without_outliers_test_whitelist_02_test_file)
-        self.test_es.add_doc(doc2_without_outlier)
-        # Not whitelisted
-        doc3_without_outlier = copy.deepcopy(doc_without_outliers_test_whitelist_03_test_file)
-        self.test_es.add_doc(doc3_without_outlier)
-
-        analyzer.evaluate_model()
-
-        self.assertEqual(len(analyzer.outliers), 2)
-
-    def _est_evaluate_batch_for_outliers_not_enough_target_buckets_one_doc_max_two(self):
+    def test_evaluate_batch_for_outliers_not_enough_target_buckets_one_doc_max_two(self):
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_01.conf")
         analyzer = TermsAnalyzer("terms_dummy_test")
 
@@ -78,7 +82,7 @@ class TestTermsAnalyzer(unittest.TestCase):
         doc = copy.deepcopy(random.choice(LIST_DOC))
         eval_terms_array = analyzer.add_term_to_batch(defaultdict(), aggregator_value, target_value, observations, doc)
 
-        result, remaining_terms = analyzer.evaluate_batch_for_outliers(terms=eval_terms_array)
+        result, remaining_terms = analyzer.evaluate_batch_for_outliers(True, terms=eval_terms_array)
         self.assertEqual(result, [])
 
     def test_evaluate_batch_for_outliers_limit_target_buckets_two_doc_max_two(self):
@@ -177,7 +181,7 @@ class TestTermsAnalyzer(unittest.TestCase):
                                                          doc), expected_eval_terms)
 
     def test_add_term_to_batch_no_modification(self):
-        eval_terms_array, aggregator_value, target_value, observations, doc = self._preperate_data_terms()
+        eval_terms_array, aggregator_value, target_value, observations, doc = self._prepare_data_terms()
         # Create expected result
         expected_eval_terms = defaultdict()
         expected_eval_terms[aggregator_value] = defaultdict(list)
@@ -189,7 +193,7 @@ class TestTermsAnalyzer(unittest.TestCase):
                                                          doc), expected_eval_terms)
 
     def test_add_term_to_batch_concerv_extra_value(self):
-        eval_terms_array, aggregator_value, target_value, observations, doc = self._preperate_data_terms()
+        eval_terms_array, aggregator_value, target_value, observations, doc = self._prepare_data_terms()
         # Add extra value:
         eval_terms_array["newKey"] = defaultdict(list)
         eval_terms_array["newKey2"] = "empty"

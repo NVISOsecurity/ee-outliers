@@ -12,8 +12,6 @@ from typing import DefaultDict, Optional, Dict
 
 class TermsAnalyzer(Analyzer):
 
-    DEBUG = False
-
     def evaluate_model(self):
         if self.model_settings["brute_force_target"]:
             logging.logger.warning("running terms model in brute force mode, could take a long time!")
@@ -276,11 +274,10 @@ class TermsAnalyzer(Analyzer):
                 for ii, term_value in enumerate(terms[aggregator_value]["targets"]):
                     outlier = self._create_outlier(non_outlier_values, unique_target_count_across_aggregators,
                                                    aggregator_value, term_value, decision_frontier, terms, ii)
-                    if outlier.is_whitelisted():
+                    if not outlier.is_whitelisted():
                         outliers[aggregator_value].append(outlier)
                     else:
                         documents_need_to_be_removed[aggregator_value].append(ii)
-
             else:
                 for _, term_value in enumerate(terms[aggregator_value]["targets"]):
                     non_outlier_values.add(term_value)
@@ -297,9 +294,6 @@ class TermsAnalyzer(Analyzer):
         return [outlier for list_outliers in outliers.values() for outlier in list_outliers], remaining_terms
 
     def _evaluate_batch_for_outliers_within_aggregator(self, terms, last_batch):
-        if TermsAnalyzer.DEBUG:
-            print("")
-            print("new batch")
         # Initialize
         outliers = defaultdict(list)
         remaining_terms = terms.copy()
@@ -323,9 +317,6 @@ class TermsAnalyzer(Analyzer):
                                          " time buckets, skipping analysis")
                     del remaining_terms[aggregator_value]
                 continue
-
-            if TermsAnalyzer.DEBUG:
-                print("treat aggregator:", aggregator_value)
 
             decision_frontier = helpers.utils.get_decision_frontier(self.model_settings["trigger_method"],
                                                                     counted_target_values,
@@ -354,10 +345,6 @@ class TermsAnalyzer(Analyzer):
                     # If all document aren't whitelist
                     if aggregator_value not in documents_need_to_be_removed:
                         outliers[aggregator_value] += new_outliers
-                        if TermsAnalyzer.DEBUG:
-                            print("Add all new outliers")
-                elif TermsAnalyzer.DEBUG:
-                    print(aggregator_value, False)
 
             else:
                 non_outlier_values = set()
@@ -373,20 +360,13 @@ class TermsAnalyzer(Analyzer):
                             outliers[aggregator_value].append(outlier)
                         else:
                             documents_need_to_be_removed[aggregator_value].append(ii)
-                            if TermsAnalyzer.DEBUG:
-                                print("add here !")
-                                print(aggregator_value, True, term_value, outlier.is_whitelisted())
 
                     else:
                         non_outlier_values.add(term_value)
 
             if aggregator_value not in documents_need_to_be_removed:
-                if TermsAnalyzer.DEBUG:
-                    print("delete", aggregator_value)
                 del remaining_terms[aggregator_value]
             else:
-                if TermsAnalyzer.DEBUG:
-                    print("aggregator in document to remove", documents_need_to_be_removed[aggregator_value])
                 for index in documents_need_to_be_removed[aggregator_value]:
                     TermsAnalyzer.remove_term_to_batch(remaining_terms, aggregator_value, index)
                 if aggregator_value in outliers:
@@ -429,7 +409,10 @@ class TermsAnalyzer(Analyzer):
 
     @staticmethod
     def remove_term_to_batch(eval_terms_array, aggregator_value, term_counter):
-        eval_terms_array[aggregator_value]["targets"].pop(term_counter)
-        eval_terms_array[aggregator_value]["observations"].pop(term_counter)
-        eval_terms_array[aggregator_value]["raw_docs"].pop(term_counter)
+        if term_counter < len(eval_terms_array[aggregator_value]["targets"]):
+            eval_terms_array[aggregator_value]["targets"].pop(term_counter)
+        if term_counter < len(eval_terms_array[aggregator_value]["observations"]):
+            eval_terms_array[aggregator_value]["observations"].pop(term_counter)
+        if term_counter < len(eval_terms_array[aggregator_value]["raw_docs"]):
+            eval_terms_array[aggregator_value]["raw_docs"].pop(term_counter)
         return eval_terms_array
