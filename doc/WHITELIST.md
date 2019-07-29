@@ -1,8 +1,10 @@
+<p align="left"><a href="CONFIG_OUTLIERS.md">&#8592; Configuring outliers</a></p>
+
 # Whitelisting
 
 **Table of contents**
-- [Literals whitelist](#)
-- [Regular expression whitelist](#)
+- [Literals whitelist](#literals-whitelist)
+- [Regular expression whitelist](#regular-expression-whitelist)
 
 ee-outliers provides support for whitelisting of certain outliers. By whitelisting an outlier, you prevent them from being tagged and stored in Elasticsearch.
 
@@ -34,3 +36,5 @@ Example:
 scheduled_task_user_specific_2=^.*rare scheduled task:.*-.*-.*-.*-.*$
 autorun_user_specific=^.*rare autorun:.*-.*-.*-.*-.*$
 ```
+
+<p align="right"><a href="DEVELOPMENT.md">Development information &#8594;</a></p>

@@ -1,9 +1,11 @@
+<p align="left"><a href="WHITELIST.md">&#8592; Whitelist system</a></p>
+
 # Developing and debugging ee-outliers
 
 **Table of contents:**
-- [Running in test mode](#)
-- [Running in profiler mode](#)
-- [Checking code style, PEP8 compliance & dead code](#)
+- [Running in test mode](#running-in-test-mode)
+- [Running in profiler mode](#running-in-profiler-mode)
+- [Checking code style, PEP8 compliance & dead code](#checking-code-style-pep8-compliance--dead-code)
 
 ee-outliers supports additional run modes (in addition to interactive and daemon) that can be useful for developing and debugging purposes.
 

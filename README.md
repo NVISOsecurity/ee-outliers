@@ -28,7 +28,7 @@ Developed by NVISO Labs (https://blog.nviso.be - https://twitter.com/NVISO_Labs)
 - [Installation](doc/INSTALL.md)
 - [Configuring outliers](doc/CONFIG_OUTLIERS.md)
 - [Whitelist system](doc/WHITELIST.md)
-- [Development informations](doc/DEVELOPMENT.md)
+- [Development information](doc/DEVELOPMENT.md)
 
 ## Introduction
 
