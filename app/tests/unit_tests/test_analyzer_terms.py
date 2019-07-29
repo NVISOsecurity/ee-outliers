@@ -215,9 +215,9 @@ class TestTermsAnalyzer(unittest.TestCase):
 
     def test_min_target_buckets_detect_outlier(self):
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_whitelist_batch.conf")
-        analyzer = TermsAnalyzer("terms_dummy_test_batch_whitelist_float")
+        analyzer = TermsAnalyzer("terms_dummy_test_batch_whitelist_within_float")
         # Recap:
-        # min_target_buckets = 4
+        # min_target_buckets=4
         # trigger_sensitivity=5
         # trigger_on=high
         # trigger_method=float
@@ -274,9 +274,9 @@ class TestTermsAnalyzer(unittest.TestCase):
 
     def test_min_target_buckets_dont_detect_outlier(self):
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_whitelist_batch.conf")
-        analyzer = TermsAnalyzer("terms_dummy_test_batch_whitelist_float")
+        analyzer = TermsAnalyzer("terms_dummy_test_batch_whitelist_within_float")
         # Recap:
-        # min_target_buckets = 4
+        # min_target_buckets=4
         # trigger_sensitivity=5
         # trigger_on=high
         # trigger_method=float
@@ -321,9 +321,9 @@ class TestTermsAnalyzer(unittest.TestCase):
 
     def test_batch_whitelist_work_with_min_target_bucket(self):
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_whitelist_batch.conf")
-        analyzer = TermsAnalyzer("terms_dummy_test_batch_whitelist_float")
+        analyzer = TermsAnalyzer("terms_dummy_test_batch_whitelist_within_float")
         # Recap:
-        # min_target_buckets = 4
+        # min_target_buckets=4
         # trigger_sensitivity=5
         # trigger_on=high
         # trigger_method=float
@@ -390,3 +390,39 @@ class TestTermsAnalyzer(unittest.TestCase):
             list_outliers.append((outlier.outlier_dict["aggregator"], outlier.outlier_dict["term"]))
 
         self.assertEqual(list_outliers, [("agg1", "4") for _ in range(6)])
+
+    def test_batch_whitelist_work_doent_match_outlier_in_across(self):
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_whitelist_batch.conf")
+        analyzer = TermsAnalyzer("terms_dummy_test_batch_whitelist_across_float")
+
+        doc_to_generate = [
+            # agg1 (0, 1, 2) -> 3 but with whitelist: (0, 2) -> 2
+            # agg2 (0, 3, 4) -> 3
+            ("agg1", 0, False),
+            ("agg1", 1, True),
+            ("agg2", 0, False),
+            ("agg2", 0, False),
+            ("agg1", 2, False),
+            ("agg2", 3, False),
+            ("agg2", 4, False)]
+
+        dummy_doc_gen = DummyDocumentsGenerate()
+        for aggregator, target_value, is_whitelist in doc_to_generate:
+            deployment_name = None
+            if is_whitelist:
+                deployment_name = "whitelist-deployment"
+            user_id = target_value
+            hostname = aggregator
+
+            doc_generated = dummy_doc_gen.generate_document(deployment_name=deployment_name, user_id=user_id,
+                                                            hostname=hostname)
+            self.test_es.add_doc(doc_generated)
+
+        analyzer.evaluate_model()
+
+        list_outliers = []
+        for outlier in analyzer.outliers:
+            list_outliers.append((outlier.outlier_dict["aggregator"], outlier.outlier_dict["term"]))
+
+        # We detect agg2 but not agg1
+        self.assertEqual(list_outliers, [("agg2", "0"), ("agg2", "0"), ("agg2", "3"), ("agg2", "4")])
