@@ -267,7 +267,7 @@ class TestUtils(unittest.TestCase):
                 expected_res = np.percentile(set_values_array, sensitivity)
 
                 if expected_res < 0:
-                    with self.assertLogs(logging.logger, level='WARNING') as cm:
+                    with self.assertLogs(logging.logger, level='WARNING'):
                         res = helpers.utils.get_decision_frontier("percentile", values_array, sensitivity)
                 else:
                     res = helpers.utils.get_decision_frontier("percentile", values_array, sensitivity)
@@ -280,7 +280,7 @@ class TestUtils(unittest.TestCase):
 
                 expected_res = np.float64(max_values_array * (sensitivity / 100))
                 if expected_res < 0:
-                    with self.assertLogs(logging.logger, level='WARNING') as cm:
+                    with self.assertLogs(logging.logger, level='WARNING'):
                         res = helpers.utils.get_decision_frontier("pct_of_max_value", values_array, sensitivity)
                 else:
                     res = helpers.utils.get_decision_frontier("pct_of_max_value", values_array, sensitivity)
@@ -293,7 +293,7 @@ class TestUtils(unittest.TestCase):
 
                 expected_res = np.float64(median_values_array * (sensitivity / 100))
                 if expected_res < 0:
-                    with self.assertLogs(logging.logger, level='WARNING') as cm:
+                    with self.assertLogs(logging.logger, level='WARNING'):
                         res = helpers.utils.get_decision_frontier("pct_of_median_value", values_array, sensitivity)
                 else:
                     res = helpers.utils.get_decision_frontier("pct_of_median_value", values_array, sensitivity)
@@ -306,7 +306,7 @@ class TestUtils(unittest.TestCase):
 
                 expected_res = np.float64(mean_values_array * (sensitivity / 100))
                 if expected_res < 0:
-                    with self.assertLogs(logging.logger, level='WARNING') as cm:
+                    with self.assertLogs(logging.logger, level='WARNING'):
                         res = helpers.utils.get_decision_frontier("pct_of_avg_value", values_array, sensitivity)
                 else:
                     res = helpers.utils.get_decision_frontier("pct_of_avg_value", values_array, sensitivity)
@@ -319,7 +319,7 @@ class TestUtils(unittest.TestCase):
 
                 expected_res = np.nanmedian(values_array) - sensitivity * mad
                 if expected_res < 0:
-                    with self.assertLogs(logging.logger, level='WARNING') as cm:
+                    with self.assertLogs(logging.logger, level='WARNING'):
                         res = helpers.utils.get_decision_frontier("mad", values_array, sensitivity, "low")
                 else:
                     res = helpers.utils.get_decision_frontier("mad", values_array, sensitivity, "low")
@@ -332,7 +332,7 @@ class TestUtils(unittest.TestCase):
 
                 expected_res = np.nanmedian(values_array) + sensitivity * mad
                 if expected_res < 0:
-                    with self.assertLogs(logging.logger, level='WARNING') as cm:
+                    with self.assertLogs(logging.logger, level='WARNING'):
                         res = helpers.utils.get_decision_frontier("mad", values_array, sensitivity, "high")
                 else:
                     res = helpers.utils.get_decision_frontier("mad", values_array, sensitivity, "high")
@@ -363,7 +363,7 @@ class TestUtils(unittest.TestCase):
                 expected_result = np.nanmedian(values_array) - sensitivity * mad
                 expected_res = np.float64(max([expected_result, 0]))
                 if expected_res < 0:
-                    with self.assertLogs(logging.logger, level='WARNING') as cm:
+                    with self.assertLogs(logging.logger, level='WARNING'):
                         res = helpers.utils.get_decision_frontier("madpos", values_array, sensitivity, "low")
                 else:
                     res = helpers.utils.get_decision_frontier("madpos", values_array, sensitivity, "low")
@@ -377,7 +377,7 @@ class TestUtils(unittest.TestCase):
                 expected_result = np.nanmedian(values_array) + sensitivity * mad
                 expected_res = np.float64(max([expected_result, 0]))
                 if expected_res < 0:
-                    with self.assertLogs(logging.logger, level='WARNING') as cm:
+                    with self.assertLogs(logging.logger, level='WARNING'):
                         res = helpers.utils.get_decision_frontier("madpos", values_array, sensitivity, "high")
                 else:
                     res = helpers.utils.get_decision_frontier("madpos", values_array, sensitivity, "high")
@@ -411,7 +411,7 @@ class TestUtils(unittest.TestCase):
 
                 expected_res = nanmean_values_array - sensitivity * std_values_array
                 if expected_res < 0:
-                    with self.assertLogs(logging.logger, level='WARNING') as cm:
+                    with self.assertLogs(logging.logger, level='WARNING'):
                         res = helpers.utils.get_decision_frontier("stdev", values_array, sensitivity, "low")
                 else:
                     res = helpers.utils.get_decision_frontier("stdev", values_array, sensitivity, "low")
@@ -425,7 +425,7 @@ class TestUtils(unittest.TestCase):
             for sensitivity in list_sensitivity:
                 expected_res = nanmean_values_array + sensitivity * std_values_array
                 if expected_res < 0:
-                    with self.assertLogs(logging.logger, level='WARNING') as cm:
+                    with self.assertLogs(logging.logger, level='WARNING'):
                         res = helpers.utils.get_decision_frontier("stdev", values_array, sensitivity, "high")
                 else:
                     res = helpers.utils.get_decision_frontier("stdev", values_array, sensitivity, "high")
