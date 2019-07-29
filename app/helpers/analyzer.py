@@ -175,7 +175,7 @@ class Analyzer(abc.ABC):
             outlier.outlier_dict[k] = v
 
         self.outliers.append(outlier)
-        es.process_outliers(doc=doc, outliers=[outlier], should_notify=self.model_settings["should_notify"])
+        es.process_outliers(outlier=outlier, should_notify=self.model_settings["should_notify"])
 
         return outlier
 

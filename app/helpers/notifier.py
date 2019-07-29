@@ -27,7 +27,7 @@ class Notifier:
 
         self.last_seen_ignore_queue = collections.deque(maxlen=1000)
 
-    def notify_on_outlier(self, doc=None, outlier=None):
+    def notify_on_outlier(self, outlier=None):
         if outlier.outlier_dict["summary"] in self.last_seen_ignore_queue:
             self.logging.logger.debug("not notifying on outlier because it is still in the ignore queue - " +
                                       outlier.outlier_dict["summary"])
@@ -35,7 +35,7 @@ class Notifier:
             self.last_seen_ignore_queue.append(outlier.outlier_dict["summary"])
             email_dict = dict()
             email_dict["subject"] = "Eagle Eye - outlier alert: " + outlier.outlier_dict["summary"]
-            email_dict["body"] = str(outlier) + "\n\n\n========RAW EVENT========\n\n\n\n" + json.dumps(doc,
+            email_dict["body"] = str(outlier) + "\n\n\n========RAW EVENT========\n\n\n\n" + json.dumps(outlier.doc,
                                                                                                        sort_keys=True,
                                                                                                        indent=4)
 

@@ -229,20 +229,19 @@ class ES:
         else:
             self.logging.logger.info("no existing outliers were found, so nothing was wiped")
 
-    def process_outliers(self, doc=None, outliers=None, should_notify=False):
-        for outlier in outliers:
-            if outlier.is_whitelisted():
-                if self.settings.config.getboolean("general", "print_outliers_to_console"):
-                    self.logging.logger.info(outlier.outlier_dict["summary"] + " [whitelisted outlier]")
-            else:
-                if self.settings.config.getboolean("general", "es_save_results"):
-                    self.save_outlier(doc=doc, outlier=outlier)
+    def process_outliers(self, outlier=None, should_notify=False):
+        if outlier.is_whitelisted():
+            if self.settings.config.getboolean("general", "print_outliers_to_console"):
+                self.logging.logger.info(outlier.outlier_dict["summary"] + " [whitelisted outlier]")
+        else:
+            if self.settings.config.getboolean("general", "es_save_results"):
+                self.save_outlier(outlier=outlier)
 
-                if should_notify:
-                    self.notifier.notify_on_outlier(doc=doc, outlier=outlier)
+            if should_notify:
+                self.notifier.notify_on_outlier(outlier=outlier)
 
-                if self.settings.config.getboolean("general", "print_outliers_to_console"):
-                    self.logging.logger.info("outlier - " + outlier.outlier_dict["summary"])
+            if self.settings.config.getboolean("general", "print_outliers_to_console"):
+                self.logging.logger.info("outlier - " + outlier.outlier_dict["summary"])
 
     def add_bulk_action(self, action):
         self.bulk_actions.append(action)
@@ -255,13 +254,13 @@ class ES:
         eshelpers.bulk(self.conn, self.bulk_actions, stats_only=True, refresh=refresh)
         self.bulk_actions = []
 
-    def save_outlier(self, doc=None, outlier=None):
+    def save_outlier(self, outlier=None):
         # add the derived fields as outlier observations
-        derived_fields = self.extract_derived_fields(doc["_source"])
+        derived_fields = self.extract_derived_fields(outlier.doc["_source"])
         for derived_field, derived_value in derived_fields.items():
             outlier.outlier_dict["derived_" + derived_field] = derived_value
 
-        doc = add_outlier_to_document(doc, outlier)
+        doc = add_outlier_to_document(outlier)
 
         action = {
             '_op_type': 'update',
@@ -319,8 +318,8 @@ class ES:
         return time_filter
 
 
-def add_outlier_to_document(doc, outlier):
-    doc = add_tag_to_document(doc, "outlier")
+def add_outlier_to_document(outlier):
+    doc = add_tag_to_document(outlier.doc, "outlier")
 
     if "outliers" in doc["_source"]:
         if outlier.outlier_dict["summary"] not in doc["_source"]["outliers"]["summary"]:
