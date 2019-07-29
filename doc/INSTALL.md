@@ -1,4 +1,4 @@
-<p align="left"><a href="README">&#8592; README</a></p>
+<p align="left"><a href="../README.md">&#8592; README</a></p>
 
 # Installation
 
@@ -61,4 +61,4 @@ The following modifications might need to be made to the above commands for your
 - The path of the configuration file (``--config``)
 
 
-<p align="right"><a href="doc/CONFIG_OUTLIERS.md">Configuring outliers &#8594;</a></p>
+<p align="right"><a href="CONFIG_OUTLIERS.md">Configuring outliers &#8594;</a></p>
