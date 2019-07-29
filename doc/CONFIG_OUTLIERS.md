@@ -1,12 +1,14 @@
+<p align="left"><a href="INSTALL.md">&#8592; Installation</a></p>
+
 # Configuring outlier detection models
 
 **Table of contents**
 - [Existing detection models](#existing-detection-models)
 - [General model parameters](#general-model-parameters)
-- [simplequery models](#)
-- [metrics models](#)
-- [terms models](#)
-- [beaconing models](#)
+- [simplequery models](#simplequery-models)
+- [metrics models](#metrics-models)
+- [terms models](#terms-models)
+- [beaconing models](#beaconing-models)
 
 
 ## Existing detection models
@@ -75,6 +77,7 @@ Switch to enable / disable testing of the model
 
 Switch to enable / disable notifications for the model
 
+--------------------
 
 ## simplequery models
 
@@ -302,3 +305,4 @@ The “beaconing” model has a built-in requirement where at least 10 buckets s
 Beaconing events are tagged with a range of new fields, all prefixed with ``outliers.<outlier_field_name>``. 
 
 
+<p align="right"><a href="WHITELIST.md">Whitelist system &#8594;</a></p>
