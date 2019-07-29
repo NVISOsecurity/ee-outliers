@@ -25,7 +25,7 @@ In this mode, ee-outliers will run once and finish. This is the ideal run mode t
 
 Running ee-outliers in interactive mode:
 
-```
+```BASH
 # Build the image
 docker build -t "outliers-dev" .
 
@@ -45,7 +45,7 @@ schedule=10 0 * * *
 
 Running ee-outliers in daemon mode:
 
-```
+```BASH
 # Build the image
 docker build -t "outliers-dev" .
 

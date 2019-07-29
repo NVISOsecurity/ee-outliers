@@ -14,7 +14,7 @@ In this mode, ee-outliers will run all unit tests and finish, providing feedback
 
 Running outliers in tests mode:
 
-```
+```BASH
 # Build the image
 docker build -t "outliers-dev" .
 
@@ -27,7 +27,7 @@ In this mode, ee-outliers will run a performance profile (``py-spy``) in order t
 
 Running outliers in profiler mode:
 
-```
+```BASH
 # Build the image
 docker build -t "outliers-dev" .
 
@@ -40,7 +40,7 @@ In this mode, flake8 is used to check potential issues with style and PEP8.
 
 Running outliers in this mode:
 
-```
+```BASH
 # Build the image
 docker build -t "outliers-dev" .
 
@@ -50,13 +50,13 @@ docker run -v "$PWD/defaults:/mappedvolumes/config" -i outliers-dev:latest flake
 
 You can also provide additional arguments to flake8, for example to ignore certain checks (such as the one around long lines):
 
-```
+```BASH
 docker run -v "$PWD/defaults:/mappedvolumes/config" -i outliers-dev:latest flake8 /app "--ignore=E501"
 ```
 
 To check the code for signs of dead code, we can use vulture:
 
-```
+```BASH
 docker run -v "$PWD/defaults:/mappedvolumes/config" -i  outliers-dev:latest python3 -m vulture /app
 ```
 
