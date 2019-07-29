@@ -5,7 +5,7 @@ import copy
 
 from tests.unit_tests.test_stubs.test_stub_es import TestStubEs
 from analyzers.metrics import MetricsAnalyzer
-from helpers.singletons import settings, logging, es
+from helpers.singletons import logging
 from tests.unit_tests.utils.test_settings import TestSettings
 
 doc_without_outliers_test_whitelist_01_test_file = json.load(
