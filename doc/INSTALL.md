@@ -1,0 +1,54 @@
+# Install
+
+## Requirements
+- Docker to build and run ee-outliers
+- Internet connectivity to build ee-outliers (internet is not required to run ee-outliers)
+
+## Getting started
+
+### Configuring ee-outliers
+
+ee-outliers makes use of a single configuration file, in which both technical parameters (such as connectivity with your Elasticsearch cluster, logging, etc.) are defined as well as the detection use cases.
+
+An example configuration file with all required configuration sections and parameters, along with an explanation, can be found in ``defaults/outliers.conf``. We recommend starting from this file when running ee-outlie$
+Continue reading for all the details on how to define your own outlier detection use cases.
+
+### Running in interactive mode
+In this mode, ee-outliers will run once and finish. This is the ideal run mode to use when testing ee-outliers straight from the command line.
+
+Running ee-outliers in interactive mode:
+
+```
+# Build the image
+docker build -t "outliers-dev" .
+
+# Run the image
+docker run --network=sensor_network -v "$PWD/defaults:/mappedvolumes/config" -i  outliers-dev:latest python3 outliers.py interactive --config /mappedvolumes/config/outliers.conf
+```
+
+### Running in daemon mode
+In this mode, ee-outliers will continuously run based on a cron schedule defined in the outliers configuration file.
+
+Example from the default configuration file which will run ee-outliers at 00:10 each night (format: Minutes Hours DayNumber Month DayName):
+
+```
+[daemon]
+schedule=10 0 * * *
+```
+
+Running ee-outliers in daemon mode:
+
+```
+# Build the image
+docker build -t "outliers-dev" .
+
+# Run the image
+docker run --network=sensor_network -v "$PWD/defaults:/mappedvolumes/config" -d outliers-dev:latest python3 outliers.py daemon --config /mappedvolumes/config/outliers.conf
+```
+
+### Customizing your Docker run parameters
+
+The following modifications might need to be made to the above commands for your specific situation:
+- The name of the docker network through which the Elasticsearch cluster is reachable (``--network``)
+- The mapped volumes so that your configuration file can be found (``-v``). By default, the default configuration file in ``/defaults`` is mapped to ``/mappedvolumes/config``
+- The path of the configuration file (``--config``)
