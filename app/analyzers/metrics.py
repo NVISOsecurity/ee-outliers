@@ -45,7 +45,7 @@ class MetricsAnalyzer(Analyzer):
                                          "fields we are processing. - [" + self.model_name + "]")
                     will_process_doc = False
 
-                if will_process_doc:
+                if will_process_doc and target_value is not None:
                     metric: Union[None, float, int]
                     observations: Dict
                     metric, observations = self.calculate_metric(self.model_settings["metric"], target_value)
@@ -238,8 +238,8 @@ class MetricsAnalyzer(Analyzer):
             for word in target_value_words:
                 decoded_word: Union[None, bool, str] = helpers.utils.is_base64_encoded(word)
                 # let's match at least 5 characters, meaning 10 base64 digits
-                if decoded_word and len(decoded_word) >= 5:
-                    base64_decoded_words.append(decoded_word)
+                if decoded_word and len(cast(str, decoded_word)) >= 5:
+                    base64_decoded_words.append(cast(str, decoded_word))
 
             if len(base64_decoded_words) > 0:
                 sorted_base64_decoded_words: List[str] = sorted(base64_decoded_words, key=len)
