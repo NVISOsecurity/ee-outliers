@@ -4,23 +4,25 @@ import traceback
 from helpers.singletons import logging, settings, es
 from helpers.watchers import FileModificationWatcher
 
+from typing import Dict, Any
+
 
 class HousekeepingJob(threading.Thread):
 
     def __init__(self) -> None:
         threading.Thread.__init__(self)
 
-        self.file_mod_watcher = FileModificationWatcher()
+        self.file_mod_watcher: FileModificationWatcher = FileModificationWatcher()
         self.file_mod_watcher.add_files(settings.args.config)
 
-        self.last_config_parameters = self._get_config_whitelist_parameters()
+        self.last_config_parameters: Dict[str, Any] = self._get_config_whitelist_parameters()
 
         # The shutdown_flag is a threading.Event object that
         # indicates whether the thread should be terminated.
         self.shutdown_flag: threading.Event = threading.Event()
 
     @staticmethod
-    def _get_config_whitelist_parameters():
+    def _get_config_whitelist_parameters() -> Dict[str, Any]:
         return {
             'whitelist_literals': settings.config.items("whitelist_literals"),
             'whitelist_regexps': settings.config.items("whitelist_regexps"),
@@ -39,7 +41,7 @@ class HousekeepingJob(threading.Thread):
 
         logging.logger.info('housekeeping thread #%s stopped' % self.ident)
 
-    def execute_housekeeping(self):
+    def execute_housekeeping(self) -> None:
         if len(self.file_mod_watcher.files_changed()) > 0:
             # reload configuration file, in case new whitelisted items were added by the analyst, they
             # should be processed!
@@ -51,11 +53,11 @@ class HousekeepingJob(threading.Thread):
                 self.remove_all_whitelisted_outliers()
 
     @staticmethod
-    def remove_all_whitelisted_outliers():
+    def remove_all_whitelisted_outliers() -> None:
         if settings.config.getboolean("general", "es_wipe_all_whitelisted_outliers"):
             try:
                 logging.logger.info("housekeeping - going to remove all whitelisted outliers")
-                total_docs_whitelisted = es.remove_all_whitelisted_outliers()
+                total_docs_whitelisted: int = es.remove_all_whitelisted_outliers()
 
                 if total_docs_whitelisted > 0:
                     logging.logger.info(
