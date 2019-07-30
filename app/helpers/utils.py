@@ -7,11 +7,12 @@ import re
 from statistics import mean, median
 import validators
 from string import Formatter
+import datetime
 
 import helpers.singletons
 
 
-from typing import Dict, List, MutableMapping, Any, Optional, Union, Iterable, TYPE_CHECKING
+from typing import Dict, List, Tuple, MutableMapping, Any, Optional, Union, Iterable, TYPE_CHECKING, cast, SupportsInt
 
 if TYPE_CHECKING:
     from helpers.settings import Settings
@@ -49,8 +50,8 @@ def get_dotkey_value(dict_value: Dict, key_name: str, case_sensitive: bool = Tru
 
     for k in keys:
         if not case_sensitive:
-            dict_keys: List = list(dict_value.keys())
-            lowercase_keys: List = list(map(str.lower, dict_keys))
+            dict_keys: List[str] = list(dict_value.keys())
+            lowercase_keys: List[str] = list(map(str.lower, dict_keys))
             lowercase_key_to_match: str = k.lower()
             if lowercase_key_to_match in lowercase_keys:
                 matched_index: int = lowercase_keys.index(lowercase_key_to_match)
@@ -252,12 +253,12 @@ def get_decision_frontier(trigger_method: str, values_array: List, trigger_sensi
 # Calculate percentile decision frontier
 # Example: values array is [0 5 10 20 30 2 5 5]
 # trigger_sensitivity is 10 (meaning: 10th percentile)
-def get_percentile_decision_frontier(values_array: List, percentile: int) -> Union[int, float, np.float64]:
+def get_percentile_decision_frontier(values_array: List, percentile: float) -> Union[int, float, np.float64]:
     res: Union[int, float, np.float64] = np.percentile(list(set(values_array)), percentile)
     return res
 
 
-def get_stdev_decision_frontier(values_array: List, trigger_sensitivity: int,
+def get_stdev_decision_frontier(values_array: List, trigger_sensitivity: float,
                                 trigger_on: Optional[str]) -> Union[None, int, float, np.float64]:
     stdev: Union[int, float, np.float64] = np.std(values_array)
 
@@ -273,7 +274,7 @@ def get_stdev_decision_frontier(values_array: List, trigger_sensitivity: int,
     return decision_frontier
 
 
-def get_mad_decision_frontier(values_array: List, trigger_sensitivity: int,
+def get_mad_decision_frontier(values_array: List, trigger_sensitivity: float,
                               trigger_on: Optional[str]) -> Union[int, float, np.float64]:
     # median absolute deviation
     mad: Union[int, float, np.float64] = np.nanmedian(np.absolute(values_array - np.nanmedian(values_array, 0)), 0)
@@ -308,11 +309,12 @@ def nested_dict_values(d: Dict) -> Iterable[Any]:
             yield v
 
 
-def seconds_to_pretty_str(seconds):
+def seconds_to_pretty_str(seconds: int) -> str:
     return strfdelta(tdelta=seconds, inputtype="seconds", fmt='{D}d {H}h {M}m {S}s')
 
 
-def strfdelta(tdelta, fmt='{D:02}d {H:02}h {M:02}m {S:02}s', inputtype='timedelta'):
+def strfdelta(tdelta: Union[SupportsInt, datetime.timedelta], fmt: str = '{D:02}d {H:02}h {M:02}m {S:02}s',
+              inputtype: str = 'timedelta') -> str:
     """Convert a datetime.timedelta object or a regular number to a custom-
     formatted string, just like the stftime() method does for datetime.datetime
     objects.
@@ -336,24 +338,29 @@ def strfdelta(tdelta, fmt='{D:02}d {H:02}h {M:02}m {S:02}s', inputtype='timedelt
     """
 
     # Convert tdelta to integer seconds.
+    remainder: int
     if inputtype == 'timedelta':
-        remainder = int(tdelta.total_seconds())
-    elif inputtype in ['s', 'seconds']:
-        remainder = int(tdelta)
-    elif inputtype in ['m', 'minutes']:
-        remainder = int(tdelta)*60
-    elif inputtype in ['h', 'hours']:
-        remainder = int(tdelta)*3600
-    elif inputtype in ['d', 'days']:
-        remainder = int(tdelta)*86400
-    elif inputtype in ['w', 'weeks']:
-        remainder = int(tdelta)*604800
+        remainder = int(cast(datetime.timedelta, tdelta).total_seconds())
+    else:
+        int_tdelta = cast(int, tdelta)
+        if inputtype in ['s', 'seconds']:
+            remainder = int_tdelta
+        elif inputtype in ['m', 'minutes']:
+            remainder = int_tdelta * 60
+        elif inputtype in ['h', 'hours']:
+            remainder = int_tdelta * 3600
+        elif inputtype in ['d', 'days']:
+            remainder = int_tdelta * 86400
+        elif inputtype in ['w', 'weeks']:
+            remainder = int_tdelta * 604800
+        else:
+            remainder = 0
 
     f = Formatter()
     desired_fields = [field_tuple[1] for field_tuple in f.parse(fmt)]
-    possible_fields = ('W', 'D', 'H', 'M', 'S')
-    constants = {'W': 604800, 'D': 86400, 'H': 3600, 'M': 60, 'S': 1}
-    values = {}
+    possible_fields: Tuple[str, str, str, str, str] = ('W', 'D', 'H', 'M', 'S')
+    constants: Dict[str, int] = {'W': 604800, 'D': 86400, 'H': 3600, 'M': 60, 'S': 1}
+    values: Dict[str, Any] = {}
     for field in possible_fields:
         if field in desired_fields and field in constants:
             values[field], remainder = divmod(remainder, constants[field])
