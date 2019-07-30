@@ -112,7 +112,7 @@ class TermsAnalyzer(Analyzer):
 
         # For each result, save it in batch and in ES
         for outlier in outliers:
-            self.save_outlier_to_es(outlier, outlier.doc)
+            self.save_outlier_to_es(outlier)
 
         if len(outliers) > 0:
             unique_summaries = len(set(o.outlier_dict["summary"] for o in outliers))
