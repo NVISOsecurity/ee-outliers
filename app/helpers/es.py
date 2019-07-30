@@ -229,7 +229,7 @@ class ES:
         else:
             self.logging.logger.info("no existing outliers were found, so nothing was wiped")
 
-    def process_outliers(self, outlier=None, should_notify=False):
+    def process_outlier(self, outlier=None, should_notify=False):
         if outlier.is_whitelisted():
             if self.settings.config.getboolean("general", "print_outliers_to_console"):
                 self.logging.logger.info(outlier.outlier_dict["summary"] + " [whitelisted outlier]")
