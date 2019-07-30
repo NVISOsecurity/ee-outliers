@@ -10,7 +10,7 @@ from helpers.singletons import settings, es, logging
 import helpers.utils
 from helpers.outlier import Outlier
 
-from typing import Dict, Any, List
+from typing import Dict, Tuple, Any, List, Union, Optional, cast
 
 
 class Analyzer(abc.ABC):
@@ -25,12 +25,12 @@ class Analyzer(abc.ABC):
 
         self.total_events: int = 0
 
-        self.analysis_start_time = None
-        self.analysis_end_time = None
+        self.analysis_start_time: Optional[float] = None
+        self.analysis_end_time: Optional[float] = None
 
-        self.completed_analysis = False
-        self.index_not_found_analysis = False
-        self.unknown_error_analysis = False
+        self.completed_analysis: bool = False
+        self.index_not_found_analysis: bool = False
+        self.unknown_error_analysis: bool = False
 
         self.outliers: List[Outlier] = list()
 
@@ -48,12 +48,12 @@ class Analyzer(abc.ABC):
     @property
     def analysis_time_seconds(self) -> Optional[float]:
         if self.completed_analysis:
-            return float(self.analysis_end_time - self.analysis_start_time)
+            return float(cast(float, self.analysis_end_time) - cast(float, self.analysis_start_time))
         else:
             return None
 
     def _extract_model_settings(self) -> Dict[str, Any]:
-        model_settings = dict()
+        model_settings: Dict[str, Optional[Union[int, str, bool]]] = dict()
 
         # by default, we don't process documents chronologically when analyzing the model, as it
         # has a high impact on performance when scanning in Elasticsearch
@@ -78,14 +78,14 @@ class Analyzer(abc.ABC):
 
         try:
             model_settings["es_query_filter"] = settings.config.get(self.config_section_name, "es_query_filter")
-            self.search_query = es.filter_by_query_string(model_settings["es_query_filter"])
+            self.search_query = es.filter_by_query_string(cast(str, model_settings["es_query_filter"]))
 
         except NoOptionError:
             model_settings["es_query_filter"] = None
 
         try:
             model_settings["es_dsl_filter"] = settings.config.get(self.config_section_name, "es_dsl_filter")
-            self.search_query = es.filter_by_dsl_query(model_settings["es_dsl_filter"])
+            self.search_query = es.filter_by_dsl_query(cast(str, model_settings["es_dsl_filter"]))
 
         except NoOptionError:
             model_settings["es_dsl_filter"] = None
@@ -131,15 +131,16 @@ class Analyzer(abc.ABC):
         """
         pass
 
-    def print_analysis_summary(self):
+    def print_analysis_summary(self) -> None:
         if len(self.outliers) > 0:
-            unique_summaries = len(set(o.outlier_dict["summary"] for o in self.outliers))
+            unique_summaries: int = len(set(o.outlier_dict["summary"] for o in self.outliers))
             logging.logger.info("total outliers processed for use case: " + str(len(self.outliers)) + " [" +
                                 str(unique_summaries) + " unique summaries]")
         else:
             logging.logger.info("no outliers detected for use case")
 
-    def _prepare_outlier_parameters(self, extra_outlier_information, fields):
+    def _prepare_outlier_parameters(self, extra_outlier_information: Dict[str, Any],
+                                    fields: Dict) -> Tuple[List[str], List[str], str, List[str]]:
         extra_outlier_information["model_name"] = self.model_name
         extra_outlier_information["model_type"] = self.model_type
 
@@ -164,11 +165,12 @@ class Analyzer(abc.ABC):
         outlier_assets: List[str] = helpers.utils.extract_outlier_asset_information(fields, settings)
         return outlier_type, outlier_reason, outlier_summary, outlier_assets
 
-    def process_outlier(self, fields, doc, extra_outlier_information=dict()):
+    def process_outlier(self, fields: Dict, doc: Dict[str, Any],
+                        extra_outlier_information: Dict[str, Any] = dict()) -> Outlier:
         outlier_type, outlier_reason, outlier_summary, outlier_assets = \
             self._prepare_outlier_parameters(extra_outlier_information, fields)
-        outlier: Outlier = Outlier(outlier_type=outlier_type, outlier_reason=outlier_reason, outlier_summary=outlier_summary,
-                          doc=doc)
+        outlier: Outlier = Outlier(outlier_type=outlier_type, outlier_reason=outlier_reason,
+                                   outlier_summary=outlier_summary, doc=doc)
 
         if len(outlier_assets) > 0:
             outlier.outlier_dict["assets"] = outlier_assets
@@ -191,19 +193,19 @@ class Analyzer(abc.ABC):
         if total_events == 0:
             logging.logger.warning("no events to analyze!")
 
-    def is_document_whitelisted(self, document, extract_field=True):
-        document_to_check = copy.deepcopy(document)
+    def is_document_whitelisted(self, document: Dict[str, Any], extract_field: bool = True) -> bool:
+        document_to_check: Dict[str, Any] = copy.deepcopy(document)
         if extract_field:
-            fields = es.extract_fields_from_document(document_to_check,
-                                                     extract_derived_fields=self.model_settings["use_derived_fields"])
+            fields: Dict[str, Any] = es.extract_fields_from_document(
+                document_to_check, extract_derived_fields=self.model_settings["use_derived_fields"])
         else:
             fields = document
-        outlier_param = self._prepare_outlier_parameters(dict(), fields)
+        outlier_param: Tuple[List[str], List[str], str, List[str]] = self._prepare_outlier_parameters(dict(), fields)
         document_to_check['__whitelist_extra'] = outlier_param
         return Outlier.is_whitelisted_doc(document_to_check)
 
     @staticmethod
-    def get_time_window_info(history_days: float = None, history_hours: float = None) -> str:
+    def get_time_window_info(history_days: float, history_hours: float) -> str:
         search_range: Dict[str, Any] = es.get_time_filter(days=history_days, hours=history_hours,
                                                           timestamp_field=settings.config.get("general",
                                                                                               "timestamp_field",
@@ -214,8 +216,8 @@ class Analyzer(abc.ABC):
         search_range_end = search_range["range"][str(settings.config.get("general", "timestamp_field",
                                                                          fallback="timestamp"))]["lte"]
 
-        search_start_range_printable = dateutil.parser.parse(search_range_start).strftime('%Y-%m-%d %H:%M:%S')
-        search_end_range_printable = dateutil.parser.parse(search_range_end).strftime('%Y-%m-%d %H:%M:%S')
+        search_start_range_printable: str = dateutil.parser.parse(search_range_start).strftime('%Y-%m-%d %H:%M:%S')
+        search_end_range_printable: str = dateutil.parser.parse(search_range_end).strftime('%Y-%m-%d %H:%M:%S')
         return "processing events between " + search_start_range_printable + " and " + search_end_range_printable
 
     @abc.abstractmethod
