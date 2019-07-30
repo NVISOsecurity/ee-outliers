@@ -412,6 +412,11 @@ class TermsAnalyzer(Analyzer):
 
     @staticmethod
     def remove_term_from_batch(eval_terms_array, aggregator_value, term_counter):
+        logging.logger.info("aggregator : " + aggregator_value)
+        logging.logger.info("evals target length : " + str(len(eval_terms_array[aggregator_value]["targets"])))
+        logging.logger.info("evals observations length : " + str(len(eval_terms_array[aggregator_value]["observations"])))
+        logging.logger.info("evals raw docs length : " + str(len(eval_terms_array[aggregator_value]["raw_docs"])))
+
         eval_terms_array[aggregator_value]["targets"].pop(term_counter)
         eval_terms_array[aggregator_value]["observations"].pop(term_counter)
         eval_terms_array[aggregator_value]["raw_docs"].pop(term_counter)
