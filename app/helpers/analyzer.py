@@ -139,8 +139,10 @@ class Analyzer(abc.ABC):
         else:
             logging.logger.info("no outliers detected for use case")
 
-    def _prepare_outlier_parameters(self, extra_outlier_information: Dict[str, Any],
+    def _prepare_outlier_parameters(self, extra_outlier_information: Optional[Dict[str, Any]],
                                     fields: Dict) -> Tuple[List[str], List[str], str, List[str]]:
+        if extra_outlier_information is None:
+            extra_outlier_information = dict()
         extra_outlier_information["model_name"] = self.model_name
         extra_outlier_information["model_type"] = self.model_type
 
@@ -166,7 +168,7 @@ class Analyzer(abc.ABC):
         return outlier_type, outlier_reason, outlier_summary, outlier_assets
 
     def process_outlier(self, fields: Dict, doc: Dict[str, Any],
-                        extra_outlier_information: Dict[str, Any] = dict()) -> Outlier:
+                        extra_outlier_information: Optional[Dict[str, Any]] = dict()) -> Outlier:
         outlier_type, outlier_reason, outlier_summary, outlier_assets = \
             self._prepare_outlier_parameters(extra_outlier_information, fields)
         outlier: Outlier = Outlier(outlier_type=outlier_type, outlier_reason=outlier_reason,
@@ -175,8 +177,9 @@ class Analyzer(abc.ABC):
         if len(outlier_assets) > 0:
             outlier.outlier_dict["assets"] = outlier_assets
 
-        for k, v in extra_outlier_information.items():
-            outlier.outlier_dict[k] = v
+        if extra_outlier_information is not None:
+            for k, v in extra_outlier_information.items():
+                outlier.outlier_dict[k] = v
 
         self.outliers.append(outlier)
         es.process_outliers(doc=doc, outliers=[outlier], should_notify=self.model_settings["should_notify"])
