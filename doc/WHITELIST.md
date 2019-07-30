@@ -1,6 +1,6 @@
 <p align="left"><a href="CONFIG_OUTLIERS.md">&#8592; Configuring outliers</a></p>
 
-# Whitelisting
+# Whitelisting outliers
 
 **Table of contents**
 - [Literals whitelist](#literals-whitelist)
@@ -37,4 +37,4 @@ scheduled_task_user_specific_2=^.*rare scheduled task:.*-.*-.*-.*-.*$
 autorun_user_specific=^.*rare autorun:.*-.*-.*-.*-.*$
 ```
 
-<p align="right"><a href="DEVELOPMENT.md">Development information &#8594;</a></p>
+<p align="right"><a href="DEVELOPMENT.md">Information fo developers &#8594;</a></p>

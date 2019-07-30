@@ -11,24 +11,16 @@ Open-source framework to detect outliers in Elasticsearch events
 Developed by NVISO Labs (https://blog.nviso.be - https://twitter.com/NVISO_Labs)
 ```
 
-<p align="center">
-<img alt="Detecting beaconing TLS connections using ee-outliers" src="https://forever.daanraman.com/screenshots/Beaconing%20detection.png?raw=true" width="650"/><br/>
-<i>Detecting beaconing TLS connections using ee-outliers</i>
-</p>
-
 **Table of contents**
 - [Introduction](#introduction)
-- [Core features](#core-features)
+- [Getting started](doc/INSTALL.md)
+- [Building detection use cases](doc/CONFIG_OUTLIERS.md)
+- [Whitelisting outliers](doc/WHITELIST.md)
+- [Information fo developers](doc/DEVELOPMENT.md)
 - [Screenshots](#screenshots)
-- [License](#license)
+- [License](LICENSE)
 - [Contact](#contact)
 - [Acknowledgements](#acknowledgements)
-
-**Other pages:**
-- [Installation](doc/INSTALL.md)
-- [Configuring outliers](doc/CONFIG_OUTLIERS.md)
-- [Whitelist system](doc/WHITELIST.md)
-- [Development information](doc/DEVELOPMENT.md)
 
 ## Introduction
 
@@ -52,7 +44,7 @@ The possibilities of the type of anomalies you can spot using ee-outliers is vir
 Checkout the screenshots at the end of this readme for a few examples.
 Continue reading if you would like to get started with outlier detection in Elasticsearch yourself!
 
-## Core features
+#### Core features
 - Create your own custom outlier detection use cases specifically for your own needs
 - Send automatic e-mail notifications in case one of your outlier use cases hit
 - Automatic tagging of asset fields to quickly spot the most interesting assets to investigate
@@ -76,9 +68,6 @@ Continue reading if you would like to get started with outlier detection in Elas
 <i>Detected outlier events are enriched with new fields in Elasticsearch</i>
 </p>
 
-## License
-
-See the [LICENSE](LICENSE) file for details
 
 ## Contact
 
