@@ -412,10 +412,7 @@ class TermsAnalyzer(Analyzer):
 
     @staticmethod
     def remove_term_from_batch(eval_terms_array, aggregator_value, term_counter):
-        if term_counter < len(eval_terms_array[aggregator_value]["targets"]):
-            eval_terms_array[aggregator_value]["targets"].pop(term_counter)
-        if term_counter < len(eval_terms_array[aggregator_value]["observations"]):
-            eval_terms_array[aggregator_value]["observations"].pop(term_counter)
-        if term_counter < len(eval_terms_array[aggregator_value]["raw_docs"]):
-            eval_terms_array[aggregator_value]["raw_docs"].pop(term_counter)
+        eval_terms_array[aggregator_value]["targets"].pop(term_counter)
+        eval_terms_array[aggregator_value]["observations"].pop(term_counter)
+        eval_terms_array[aggregator_value]["raw_docs"].pop(term_counter)
         return eval_terms_array
