@@ -99,12 +99,10 @@ def run_daemon_mode():
     # Create housekeeping job, don't start it yet
     housekeeping_job = HousekeepingJob()
 
-    num_runs = 0
     first_run = True
     run_succeeded_without_errors = None
 
     while True:
-        num_runs += 1
         next_run = None
         should_schedule_next_run = False
 
