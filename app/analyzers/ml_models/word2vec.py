@@ -10,7 +10,8 @@ import time
 from tensorflow.contrib.tensorboard.plugins import projector
 from helpers.singletons import logging, settings
 
-from typing import List, Tuple, Dict, Any, Union
+from typing import List, Tuple, Dict, Any, Union, Optional
+
 
 class Word2Vec:
     def __init__(self, name: str) -> None:
@@ -211,22 +212,22 @@ class Word2Vec:
         except FileNotFoundError:
             return False
 
-    def evaluate_sentences(self, sentences: List) -> Union[None, List[List[Union[int, float, np.float64]]]]:
+    def evaluate_sentences(self, sentences: List) -> Optional[List[List[Union[int, float, np.float64]]]]:
         # Load mapping dicts saved while training the model
         try:
             with open(self.words_to_indices_filename, "r") as f:
                 words_to_indices = json.load(f)
         except FileNotFoundError:
-            logging.logger.warn(self.words_to_indices_filename + " not found, did you train the model before " +
-                                "running it?")
-            return
+            logging.logger.warning(self.words_to_indices_filename + " not found, did you train the model before " +
+                                   "running it?")
+            return None
 
         try:
             with open(self.indices_to_words_filename, "r") as f:
                 indices_to_words: Dict = json.load(f)
         except FileNotFoundError:
-            logging.logger.warn(self.indices_to_words_filename + " not found, did you train the model before " +
-                                "running it?")
+            logging.logger.warning(self.indices_to_words_filename + " not found, did you train the model before " +
+                                   "running it?")
             return None
 
         graph = tf.Graph()
@@ -379,7 +380,7 @@ def generate_batch(batch_size: int, skip_window: int, sentences: List[List],
         # When at the end of our sentences, start over
         sentence_index = (sentence_index + 1) % len(sentences)
     # Backtrack to avoid skipping words at the end of sentences
-    sentence_index: int = max(0, (sentence_index - 1))
+    sentence_index = max(0, (sentence_index - 1))
     # Model requires numpy arrays
     batch_out = np.asarray(batch, dtype=np.int32)
     labels_out = np.asarray(labels, dtype=np.int32)
