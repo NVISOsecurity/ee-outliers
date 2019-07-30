@@ -10,6 +10,8 @@ all_possible_filename = ["osquery_get_all_scheduled_tasks.log", "osquery_get_all
 all_possible_deployment_name = ["Company Workstations", "Company Localhost", "Localhost", "Company Test", "Testhost",
                                 "Google", "Dummy Environment", "Deployment system", "New Company", "Super Company",
                                 "New deployment", "Test deployment"]
+all_possible_command_query = ["SELECT * FROM scheduled_tasks;"]
+all_possible_command_name = ["get_all_scheduled_tasks"]
 all_possible_toolname = ['osquery']
 all_possible_hostname = ['DUMMY-WIN10-JVZ', 'DUMMY-LINUX-JVZ', 'DUMMY-WIN10-RDE', 'DUMMY-WIN10-DRA', 'LOCAL-WIN-RDE',
                          'TEST-LINUX-XYZ', 'TEST-WIN-XYZ', 'localhost', 'abcdefghijklmno', 'aaaaaaa', "here",
@@ -39,7 +41,7 @@ class DummyDocumentsGenerate:
 
     def generate_document(self, create_outlier=False, nbr_tags=1, index=None, slave_name=None, hostname=None,
                           deployment_name=None, user_id=None, test_hex_value=None, test_base64_value=None,
-                          test_url_value=None):
+                          test_url_value=None, command_query=None, command_name=None):
         doc_date_time = self._generate_date()
         str_date = doc_date_time.strftime("%Y.%m.%d")
 
@@ -53,13 +55,13 @@ class DummyDocumentsGenerate:
             '_version': 2,
             '_source': self._generate_source(doc_date_time, create_outlier, nbr_tags, slave_name, hostname,
                                              deployment_name, user_id, test_hex_value, test_base64_value,
-                                             test_url_value)
+                                             test_url_value, command_query, command_name)
         }
         self.id += 1
         return doc
 
     def _generate_source(self, doc_date_time, create_outlier, nbr_tags, slave_name, hostname, deployment_name,
-                         user_id, test_hex_value, test_base64_value, test_url_value):
+                         user_id, test_hex_value, test_base64_value, test_url_value, command_query, command_name):
         # Example: 2018-08-23T10:48:16.200315+00:00
         str_timestamp = self._date_time_to_timestamp(doc_date_time)
         filename = random.choice(all_possible_filename)
@@ -75,7 +77,8 @@ class DummyDocumentsGenerate:
             'slave_name': slave_name,
             'type': random.choice(all_possible_doc_source_type),
             'filename': filename,
-            'meta': self._generate_meta(doc_date_time, filename, hostname, deployment_name, user_id),
+            'meta': self._generate_meta(doc_date_time, filename, hostname, deployment_name, user_id, command_query,
+                                        command_name),
             'test': self._generate_test_data(test_hex_value, test_base64_value, test_url_value)
         }
         if create_outlier:
@@ -95,7 +98,7 @@ class DummyDocumentsGenerate:
 
         return list_tags
 
-    def _generate_meta(self, doc_date_time, filename, hostname, deployment_name, user_id):
+    def _generate_meta(self, doc_date_time, filename, hostname, deployment_name, user_id, command_query, command_name):
         if hostname is None:
             hostname = random.choice(all_possible_hostname)
 
@@ -107,7 +110,7 @@ class DummyDocumentsGenerate:
 
         return {
             'timestamp': self._date_time_to_timestamp(doc_date_time),
-            'command': self._generate_query_command(),
+            'command': self._generate_query_command(command_query, command_name),
             'deployment_name': deployment_name,
             'toolname': random.choice(all_possible_toolname),
             'filename': filename,
@@ -116,10 +119,14 @@ class DummyDocumentsGenerate:
             'user_id': user_id
         }
 
-    def _generate_query_command(self):
+    def _generate_query_command(self, command_query, command_name):
+        if command_query is None:
+            command_query = random.choice(all_possible_command_query)
+        if command_name is None:
+            command_name = random.choice(all_possible_command_name)
         return {
-            'name': "get_all_scheduled_tasks",
-            'query': "SELECT * FROM scheduled_tasks;",
+            'name': command_name,
+            'query': command_query,
             'mode': "base_scan"
         }
 
@@ -211,15 +218,15 @@ class DummyDocumentsGenerate:
         nbr_doc_generated_per_hours = self._compute_number_document_respect_max_std(max_trigger_sensitivity, nbr_val,
                                                                                     default_value - max_difference,
                                                                                     default_value + max_difference)
-        return self._generate_doc_time_variable_sensitivity(nbr_doc_generated_per_hours)
+        return self.generate_doc_time_variable_sensitivity(nbr_doc_generated_per_hours)
 
     def create_doc_time_variable_min_sensitivity(self, nbr_val, min_trigger_sensitivity, max_difference, default_value):
         nbr_doc_generated_per_hours = self._compute_number_document_respect_min_std(min_trigger_sensitivity, nbr_val,
                                                                                     default_value - max_difference,
                                                                                     default_value + max_difference)
-        return self._generate_doc_time_variable_sensitivity(nbr_doc_generated_per_hours)
+        return self.generate_doc_time_variable_sensitivity(nbr_doc_generated_per_hours)
 
-    def _generate_doc_time_variable_sensitivity(self, nbr_doc_generated_per_hours):
+    def generate_doc_time_variable_sensitivity(self, nbr_doc_generated_per_hours):
         all_doc = []
         hostname = random.choice(all_possible_hostname)
 
@@ -284,14 +291,14 @@ class DummyDocumentsGenerate:
         nbr_doc_to_generate = self._compute_number_document_have_at_least_specific_coef_variation(
             coef_var_min, nbr_val, default_value - max_difference, default_value + max_difference)
 
-        return self._generate_doc_time_variable_sensitivity(nbr_doc_to_generate)
+        return self.generate_doc_time_variable_sensitivity(nbr_doc_to_generate)
 
     def create_doc_uniq_target_variable_at_most_specific_coef_variation(self, nbr_val, coef_var_max, max_difference,
                                                                         default_value):
         nbr_doc_to_generate = self._compute_number_document_have_at_most_specific_coef_variation(
             coef_var_max, nbr_val, default_value - max_difference, default_value + max_difference)
 
-        return self._generate_doc_time_variable_sensitivity(nbr_doc_to_generate)
+        return self.generate_doc_time_variable_sensitivity(nbr_doc_to_generate)
 
     def _generate_doc_uniq_target_variable_sensitivity(self, nbr_doc_generated_per_target):
         all_doc = []
