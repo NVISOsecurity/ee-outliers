@@ -23,7 +23,7 @@ class TemplateAnalyzer(Analyzer):
         train_data: List[Dict] = list()
 
         self.total_events: int = es.count_documents(index=self.es_index, search_query=self.search_query,
-                                               model_settings=self.model_settings)
+                                                    model_settings=self.model_settings)
         training_data_size_pct: int = settings.config.getint("machine_learning", "training_data_size_pct")
         training_data_size: float = self.total_events / 100 * training_data_size_pct
 
@@ -49,5 +49,5 @@ class TemplateAnalyzer(Analyzer):
             logging.logger.warning("no sentences to train model on. Are you sure the sentence configuration is " +
                                    "correctly defined?")
 
-    def run_model(self):
+    def run_model(self) -> None:
         pass
