@@ -7,7 +7,7 @@ import numpy as np
 
 import elasticsearch.exceptions
 
-from typing import List, Optional
+from typing import List, Optional, cast
 
 from datetime import datetime
 from croniter import croniter
@@ -27,7 +27,7 @@ from analyzers.word2vec import Word2VecAnalyzer
 ##############
 # Entrypoint #
 ##############
-def run_outliers():
+def run_outliers() -> None:
     # Run modes
 
     # if running in test mode, we just want to run the tests and exit as quick as possible.
@@ -53,7 +53,7 @@ def run_outliers():
         run_interactive_mode()
 
 
-def setup_logging():
+def setup_logging() -> None:
     if os.environ.get("SENTRY_SDK_URL"):
         import sentry_sdk
         sentry_sdk.init(os.environ.get("SENTRY_SDK_URL"))
@@ -73,7 +73,7 @@ def setup_logging():
                                "to stdout.", log_file)
 
 
-def print_intro():
+def print_intro() -> None:
     logging.logger.info("outliers.py started - contact: research@nviso.be")
     logging.logger.info("run mode: " + settings.args.run_mode)
 
@@ -87,7 +87,7 @@ def print_intro():
             logging.logger.warning("failed to load " + str(failed_config_path))
 
 
-def run_daemon_mode():
+def run_daemon_mode() -> None:
     # In daemon mode, we also want to monitor the configuration file for changes.
     # In case of a change, we need to make sure that we are using this new configuration file
     for config_file in settings.args.config:
@@ -151,10 +151,10 @@ def run_daemon_mode():
 
         # Perform analysis
         logging.print_generic_intro("starting outlier detection")
-        analyzed_models: int = perform_analysis()
+        analyzed_models: List[Analyzer] = perform_analysis()
         print_analysis_summary(analyzed_models)
 
-        errored_models = [analyzer for analyzer in analyzed_models if analyzer.unknown_error_analysis]
+        errored_models: List[Analyzer] = [analyzer for analyzer in analyzed_models if analyzer.unknown_error_analysis]
 
         # Check the result of the analysis
         if errored_models:
@@ -168,7 +168,7 @@ def run_daemon_mode():
         logging.print_generic_intro("finished performing outlier detection")
 
 
-def run_interactive_mode():
+def run_interactive_mode() -> None:
     es.init_connection()
 
     if settings.config.getboolean("general", "es_wipe_all_existing_outliers"):
@@ -179,7 +179,7 @@ def run_interactive_mode():
     housekeeping_job.start()
 
     try:
-        analyzed_models = perform_analysis()
+        analyzed_models: List[Analyzer] = perform_analysis()
         print_analysis_summary(analyzed_models)
     except KeyboardInterrupt:
         logging.logger.info("keyboard interrupt received, stopping housekeeping thread")
@@ -256,7 +256,7 @@ def perform_analysis() -> List[Analyzer]:
     return analyzers_to_evaluate
 
 
-def print_analysis_summary(analyzed_models):
+def print_analysis_summary(analyzed_models: List[Analyzer]) -> None:
     logging.logger.info("")
     logging.logger.info("============================")
     logging.logger.info("===== analysis summary =====")
@@ -301,7 +301,8 @@ def print_analysis_summary(analyzed_models):
 
         for model in completed_models_with_events_taking_most_time:
             logging.logger.info("\t+ " + model.config_section_name + " - " + "{:,}".format(model.total_events) +
-                                " events - " + helpers.utils.seconds_to_pretty_str(round(model.analysis_time_seconds)))
+                                " events - " +
+                                helpers.utils.seconds_to_pretty_str(round(cast(float, model.analysis_time_seconds))))
 
     if configuration_parsing_error_models:
         logging.logger.info("")
