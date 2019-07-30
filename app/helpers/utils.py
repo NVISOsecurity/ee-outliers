@@ -291,8 +291,8 @@ def get_mad_decision_frontier(values_array: List, trigger_sensitivity: float,
     return decision_frontier
 
 
-def is_outlier(term_value_count: int, decision_frontier: Union[int, float, np.float64],
-               trigger_on: Optional[str]) -> Union[int, float, np.float64, bool]:
+def is_outlier(term_value_count: Union[int, float, np.float64], decision_frontier: Union[int, float, np.float64],
+               trigger_on: Optional[str]) -> bool:
     if trigger_on == "high":
         return term_value_count > decision_frontier
     elif trigger_on == "low":
