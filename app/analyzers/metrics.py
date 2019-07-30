@@ -79,8 +79,7 @@ class MetricsAnalyzer(Analyzer):
 
         # For each result, save it in batch and in ES
         for outlier in outliers:
-            self.outliers.append(outlier)
-            es.process_outliers(doc=outlier.doc, outliers=[outlier], should_notify=self.model_settings["should_notify"])
+            self.save_outlier_to_es(outlier, outlier.doc)
 
         if len(outliers) > 0:
             unique_summaries = len(set(o.outlier_dict["summary"] for o in outliers))

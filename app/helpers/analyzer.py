@@ -173,10 +173,13 @@ class Analyzer(abc.ABC):
             outlier.outlier_dict[k] = v
 
         if es_process_outlier:
-            self.outliers.append(outlier)
-            es.process_outliers(doc=doc, outliers=[outlier], should_notify=self.model_settings["should_notify"])
+            self.save_outlier_to_es(outlier, doc)
 
         return outlier
+
+    def save_outlier_to_es(self, outlier, doc):
+        self.outliers.append(outlier)
+        es.process_outliers(doc=doc, outliers=[outlier], should_notify=self.model_settings["should_notify"])
 
     def print_analysis_intro(self, event_type, total_events):
         logging.logger.info("")
