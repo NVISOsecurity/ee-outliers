@@ -13,8 +13,6 @@ class Logging:
     # start_time = None"""
     logger: logging.Logger
 
-    total_steps: Optional[int]
-    desc: Optional[str]
     current_step: int
 
     verbosity: int = 0
