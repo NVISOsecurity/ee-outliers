@@ -158,8 +158,8 @@ class MetricsAnalyzer(Analyzer):
                     observations["decision_frontier"] = decision_frontier
                     observations["confidence"] = confidence
 
-                    outlier = self.process_outlier(fields, metrics[aggregator_value]["raw_docs"][ii],
-                                                   extra_outlier_information=observations, es_process_outlier=False)
+                    outlier = self.create_outlier(fields, metrics[aggregator_value]["raw_docs"][ii],
+                                                  extra_outlier_information=observations, es_process_outlier=False)
                     if not outlier.is_whitelisted():
                         outliers[aggregator_value].append(outlier)
                     else:

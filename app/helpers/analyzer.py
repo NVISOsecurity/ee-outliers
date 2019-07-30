@@ -2,7 +2,6 @@ import abc
 from configparser import NoOptionError
 
 import dateutil
-import copy
 
 from helpers.singletons import settings, es, logging
 import helpers.utils
@@ -160,7 +159,7 @@ class Analyzer(abc.ABC):
         outlier_assets = helpers.utils.extract_outlier_asset_information(fields, settings)
         return outlier_type, outlier_reason, outlier_summary, outlier_assets
 
-    def process_outlier(self, fields, doc, extra_outlier_information=dict(), es_process_outlier=True):
+    def create_outlier(self, fields, doc, extra_outlier_information=dict(), es_process_outlier=True):
         outlier_type, outlier_reason, outlier_summary, outlier_assets = \
             self._prepare_outlier_parameters(extra_outlier_information, fields)
         outlier = Outlier(outlier_type=outlier_type, outlier_reason=outlier_reason, outlier_summary=outlier_summary,
@@ -173,13 +172,12 @@ class Analyzer(abc.ABC):
             outlier.outlier_dict[k] = v
 
         if es_process_outlier:
-            self.save_outlier_to_es(outlier, doc)
-
+            self.save_outlier_to_es(outlier)
         return outlier
 
-    def save_outlier_to_es(self, outlier, doc):
+    def save_outlier_to_es(self, outlier):
         self.outliers.append(outlier)
-        es.process_outliers(doc=doc, outliers=[outlier], should_notify=self.model_settings["should_notify"])
+        es.process_outlier(outlier=outlier, should_notify=self.model_settings["should_notify"])
 
     def print_analysis_intro(self, event_type, total_events):
         logging.logger.info("")
@@ -190,17 +188,6 @@ class Analyzer(abc.ABC):
 
         if total_events == 0:
             logging.logger.warning("no events to analyze!")
-
-    def is_document_whitelisted(self, document, extract_field=True):
-        document_to_check = copy.deepcopy(document)
-        if extract_field:
-            fields = es.extract_fields_from_document(document_to_check,
-                                                     extract_derived_fields=self.model_settings["use_derived_fields"])
-        else:
-            fields = document
-        outlier_param = self._prepare_outlier_parameters(dict(), fields)
-        document_to_check['__whitelist_extra'] = outlier_param
-        return Outlier.is_whitelisted_doc(document_to_check)
 
     @staticmethod
     def get_time_window_info(history_days=None, history_hours=None):

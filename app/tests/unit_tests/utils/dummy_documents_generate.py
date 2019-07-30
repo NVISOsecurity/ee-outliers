@@ -152,38 +152,6 @@ class DummyDocumentsGenerate:
             all_doc.append(self.generate_document())
         return all_doc
 
-    def _compute_number_document_respect_max_std(self, std_max: float, number_element: int, min_value: int = 0,
-                                                 max_value: int = 10) -> np.ndarray:
-        """
-        Compute a list of integers (corresponding to a number of documents to be generated) having a std less
-        or equal to the defined parameter (std_max)
-
-        :param std_max: maximum value accepted for std
-        :param number_element: number of samples to generate:
-        :param min_value: minimum document
-        :param max_value: maximum document
-        :return: a list of number of document that must be generated
-        """
-        list_nbr_documents = np.random.randint(min_value, max_value + 1, size=number_element)
-        while list_nbr_documents.std() > std_max:
-            index = np.argmax(np.abs(list_nbr_documents - list_nbr_documents.mean()))
-            if list_nbr_documents[index] < list_nbr_documents.mean():
-                list_nbr_documents[index] += 1
-            else:
-                list_nbr_documents[index] -= 1
-        return list_nbr_documents
-
-    def _compute_number_document_respect_min_std(self, std_min: float, number_element: int, min_value: int = 0,
-                                                 max_value: int = 10) -> np.ndarray:
-        list_nbr_documents = np.random.randint(min_value, max_value + 1, size=number_element)
-        index = np.argmax(list_nbr_documents)
-        while list_nbr_documents.std() < std_min:
-            if list_nbr_documents[index] < list_nbr_documents.mean():
-                list_nbr_documents[index] -= 1
-            else:
-                list_nbr_documents[index] += 1
-        return list_nbr_documents
-
     def _compute_number_document_have_at_least_specific_coef_variation(self, coef_var_min: float,
                                                                        min_number_element: int, min_value: int = 0,
                                                                        max_value: int = 10) -> np.ndarray:
@@ -214,18 +182,6 @@ class DummyDocumentsGenerate:
 
         return list_nbr_documents
 
-    def create_doc_time_variable_max_sensitivity(self, nbr_val, max_trigger_sensitivity, max_difference, default_value):
-        nbr_doc_generated_per_hours = self._compute_number_document_respect_max_std(max_trigger_sensitivity, nbr_val,
-                                                                                    default_value - max_difference,
-                                                                                    default_value + max_difference)
-        return self.generate_doc_time_variable_sensitivity(nbr_doc_generated_per_hours)
-
-    def create_doc_time_variable_min_sensitivity(self, nbr_val, min_trigger_sensitivity, max_difference, default_value):
-        nbr_doc_generated_per_hours = self._compute_number_document_respect_min_std(min_trigger_sensitivity, nbr_val,
-                                                                                    default_value - max_difference,
-                                                                                    default_value + max_difference)
-        return self.generate_doc_time_variable_sensitivity(nbr_doc_generated_per_hours)
-
     def generate_doc_time_variable_sensitivity(self, nbr_doc_generated_per_hours):
         all_doc = []
         hostname = random.choice(all_possible_hostname)
@@ -237,54 +193,6 @@ class DummyDocumentsGenerate:
             self.start_timestamp = self.start_timestamp.replace(minute=0, second=0)
 
         return all_doc
-
-    def create_doc_target_variable_max_sensitivity(self, nbr_val, max_trigger_sensitivity, max_difference,
-                                                   default_value):
-        nbr_doc_generated_per_target = self._compute_number_document_respect_max_std(max_trigger_sensitivity, nbr_val,
-                                                                                     default_value - max_difference,
-                                                                                     default_value + max_difference)
-        return self._generate_doc_target_variable_sensitivity(nbr_doc_generated_per_target)
-
-    def create_doc_target_variable_min_sensitivity(self, nbr_val, max_trigger_sensitivity, max_difference,
-                                                   default_value):
-        nbr_doc_generated_per_target = self._compute_number_document_respect_min_std(max_trigger_sensitivity, nbr_val,
-                                                                                     default_value - max_difference,
-                                                                                     default_value + max_difference)
-        return self._generate_doc_target_variable_sensitivity(nbr_doc_generated_per_target)
-
-    def _generate_doc_target_variable_sensitivity(self, nbr_doc_generated_per_target):
-        all_doc = []
-        deployment_name_number_doc = dict()
-        hostname = random.choice(all_possible_hostname)
-
-        index = 0
-        for nbr_doc in nbr_doc_generated_per_target:
-            if index < len(all_possible_deployment_name):
-                deployment_name = all_possible_deployment_name[index]
-            else:
-                deployment_name = "DeploymentName " + str(len(all_possible_deployment_name) - index)
-            deployment_name_number_doc[deployment_name] = nbr_doc
-            for _ in range(nbr_doc):
-                all_doc.append(self.generate_document(hostname=hostname, deployment_name=deployment_name))
-            index += 1
-
-        return deployment_name_number_doc, all_doc
-
-    def create_doc_uniq_target_variable_max_sensitivity(self, nbr_val, max_trigger_sensitivity, max_difference,
-                                                        default_value):
-        nbr_doc_generated = self._compute_number_document_respect_max_std(max_trigger_sensitivity, nbr_val,
-                                                                          default_value - max_difference,
-                                                                          default_value + max_difference)
-
-        return self._generate_doc_uniq_target_variable_sensitivity(nbr_doc_generated)
-
-    def create_doc_uniq_target_variable_min_sensitivity(self, nbr_val, max_trigger_sensitivity, max_difference,
-                                                        default_value):
-        nbr_doc_generated = self._compute_number_document_respect_min_std(max_trigger_sensitivity, nbr_val,
-                                                                          default_value - max_difference,
-                                                                          default_value + max_difference)
-
-        return self._generate_doc_uniq_target_variable_sensitivity(nbr_doc_generated)
 
     def create_doc_uniq_target_variable_at_least_specific_coef_variation(self, nbr_val, coef_var_min, max_difference,
                                                                          default_value):
@@ -299,63 +207,3 @@ class DummyDocumentsGenerate:
             coef_var_max, nbr_val, default_value - max_difference, default_value + max_difference)
 
         return self.generate_doc_time_variable_sensitivity(nbr_doc_to_generate)
-
-    def _generate_doc_uniq_target_variable_sensitivity(self, nbr_doc_generated_per_target):
-        all_doc = []
-        hostname_name_number_doc = dict()
-
-        index_hostname = 0
-        for nbr_uniq_deployment_name in nbr_doc_generated_per_target:
-            if index_hostname < len(all_possible_hostname):
-                hostname = all_possible_hostname[index_hostname]
-            else:
-                hostname = "Hostname" + str(len(all_possible_hostname) - index_hostname)
-
-            hostname_name_number_doc[hostname] = nbr_uniq_deployment_name
-
-            index_deployment = 0
-            for _ in range(nbr_uniq_deployment_name):
-                if index_deployment < len(all_possible_deployment_name):
-                    deployment_name = all_possible_deployment_name[index_deployment]
-                else:
-                    deployment_name = "DeploymentName " + str(len(all_possible_deployment_name) - index_deployment)
-                new_doc = self.generate_document(hostname=hostname, deployment_name=deployment_name)
-                all_doc.append(new_doc)
-                index_deployment += 1
-            index_hostname += 1
-
-        return hostname_name_number_doc, all_doc
-
-    def create_doc_target_variable_range(self, min_nbr_doc, max_nbr_doc):
-        all_doc = []
-        deployment_name_number_doc = dict()
-        hostname = random.choice(all_possible_hostname)
-
-        index = 0
-        for nbr_doc in range(min_nbr_doc, max_nbr_doc+1):
-            deployment_name = all_possible_deployment_name[index]
-            deployment_name_number_doc[deployment_name] = nbr_doc
-            for _ in range(nbr_doc):
-                all_doc.append(self.generate_document(hostname=hostname, deployment_name=deployment_name))
-            index += 1
-
-        return deployment_name_number_doc, all_doc
-
-    def create_doc_uniq_target_variable(self, min_nbr_doc, max_nbr_doc):
-        all_doc = []
-        hostname_name_number_doc = dict()
-
-        index_hostname = 0
-        for nbr_uniq_deployment_name in range(min_nbr_doc, max_nbr_doc+1):
-            hostname = all_possible_hostname[index_hostname]
-            hostname_name_number_doc[hostname] = nbr_uniq_deployment_name
-
-            index_deployment = 0
-            for _ in range(nbr_uniq_deployment_name):
-                deployment_name = all_possible_deployment_name[index_deployment]
-                all_doc.append(self.generate_document(hostname=hostname, deployment_name=deployment_name))
-                index_deployment += 1
-
-            index_hostname += 1
-
-        return hostname_name_number_doc, all_doc

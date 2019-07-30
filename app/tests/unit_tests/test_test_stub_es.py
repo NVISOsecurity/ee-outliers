@@ -118,6 +118,6 @@ class TestTestStubEs(unittest.TestCase):
                                outlier_summary="dummy summary", doc=doc_without_outlier)
         test_outlier.outlier_dict["observation"] = "dummy observation"
 
-        es.save_outlier(doc_without_outlier, test_outlier)
+        es.save_outlier(test_outlier)
         result = [elem for elem in es.scan()][0]
         self.assertEqual(result, doc_with_outlier_with_derived_timestamp)

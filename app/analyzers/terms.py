@@ -179,8 +179,9 @@ class TermsAnalyzer(Analyzer):
 
         self.model_settings["brute_force_target"] = "*" in self.model_settings["target"]
 
-        self.model_settings["aggregator"] = settings.config.get(self.config_section_name, "aggregator")\
-            .replace(' ', '').split(",")  # remove unnecessary whitespace, split fields
+        # remove unnecessary whitespace, split fields
+        self.model_settings["aggregator"] = settings.config.get(self.config_section_name,
+                                                                "aggregator").replace(' ', '').split(",")
 
         self.model_settings["trigger_on"] = settings.config.get(self.config_section_name, "trigger_on")
         self.model_settings["trigger_method"] = settings.config.get(self.config_section_name, "trigger_method")
@@ -394,8 +395,8 @@ class TermsAnalyzer(Analyzer):
         raw_doc = terms[observations["aggregator"]]["raw_docs"][ii]
         fields = es.extract_fields_from_document(raw_doc,
                                                  extract_derived_fields=self.model_settings["use_derived_fields"])
-        return self.process_outlier(fields, raw_doc, extra_outlier_information=calculated_observations,
-                                    es_process_outlier=False)
+        return self.create_outlier(fields, raw_doc, extra_outlier_information=calculated_observations,
+                                   es_process_outlier=False)
 
     @staticmethod
     def add_term_to_batch(eval_terms_array: DefaultDict, aggregator_value: Optional[str], target_value: Optional[str],
