@@ -290,7 +290,7 @@ class TermsAnalyzer(Analyzer):
                 del remaining_terms[aggregator_value]
             else:
                 for index in documents_need_to_be_removed[aggregator_value]:
-                    TermsAnalyzer.remove_term_to_batch(remaining_terms, aggregator_value, index)
+                    TermsAnalyzer.remove_term_from_batch(remaining_terms, aggregator_value, index)
                 if aggregator_value in outliers:
                     del outliers[aggregator_value]
 
@@ -371,7 +371,7 @@ class TermsAnalyzer(Analyzer):
                 del remaining_terms[aggregator_value]
             else:
                 for index in documents_need_to_be_removed[aggregator_value]:
-                    TermsAnalyzer.remove_term_to_batch(remaining_terms, aggregator_value, index)
+                    TermsAnalyzer.remove_term_from_batch(remaining_terms, aggregator_value, index)
                 if aggregator_value in outliers:
                     del outliers[aggregator_value]
 
@@ -411,7 +411,7 @@ class TermsAnalyzer(Analyzer):
         return eval_terms_array
 
     @staticmethod
-    def remove_term_to_batch(eval_terms_array, aggregator_value, term_counter):
+    def remove_term_from_batch(eval_terms_array, aggregator_value, term_counter):
         if term_counter < len(eval_terms_array[aggregator_value]["targets"]):
             eval_terms_array[aggregator_value]["targets"].pop(term_counter)
         if term_counter < len(eval_terms_array[aggregator_value]["observations"]):

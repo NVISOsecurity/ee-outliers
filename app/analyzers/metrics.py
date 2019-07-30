@@ -170,7 +170,7 @@ class MetricsAnalyzer(Analyzer):
                 del remaining_metrics[aggregator_value]
             else:
                 for index in documents_need_to_be_removed[aggregator_value]:
-                    MetricsAnalyzer.remove_metric_to_batch(remaining_metrics, aggregator_value, index)
+                    MetricsAnalyzer.remove_metric_from_batch(remaining_metrics, aggregator_value, index)
                 if aggregator_value in outliers:
                     del outliers[aggregator_value]
 
@@ -191,7 +191,7 @@ class MetricsAnalyzer(Analyzer):
         return eval_metrics_array
 
     @staticmethod
-    def remove_metric_to_batch(eval_metrics_array, aggregator_value, index):
+    def remove_metric_from_batch(eval_metrics_array, aggregator_value, index):
         eval_metrics_array[aggregator_value]["metrics"].pop(index)
         eval_metrics_array[aggregator_value]["observations"].pop(index)
         eval_metrics_array[aggregator_value]["raw_docs"].pop(index)
