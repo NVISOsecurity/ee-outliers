@@ -1,6 +1,6 @@
-<p align="left"><a href="INSTALL.md">&#8592; Installation</a></p>
+<p align="left"><a href="INSTALL.md">&#8592; Getting started</a></p>
 
-# Configuring outlier detection models
+# Building detection use cases
 
 **Table of contents**
 - [Existing detection models](#existing-detection-models)
