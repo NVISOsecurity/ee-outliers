@@ -2,7 +2,6 @@ import abc
 from configparser import NoOptionError
 
 import dateutil
-import copy
 
 from helpers.singletons import settings, es, logging
 import helpers.utils
@@ -160,7 +159,7 @@ class Analyzer(abc.ABC):
         outlier_assets = helpers.utils.extract_outlier_asset_information(fields, settings)
         return outlier_type, outlier_reason, outlier_summary, outlier_assets
 
-    def create_outlier(self, fields, doc, extra_outlier_information=dict()):
+    def create_outlier(self, fields, doc, extra_outlier_information=dict(), es_process_outlier=True):
         outlier_type, outlier_reason, outlier_summary, outlier_assets = \
             self._prepare_outlier_parameters(extra_outlier_information, fields)
         outlier = Outlier(outlier_type=outlier_type, outlier_reason=outlier_reason, outlier_summary=outlier_summary,
@@ -172,10 +171,13 @@ class Analyzer(abc.ABC):
         for k, v in extra_outlier_information.items():
             outlier.outlier_dict[k] = v
 
+        if es_process_outlier:
+            self.save_outlier_to_es(outlier)
+        return outlier
+
+    def save_outlier_to_es(self, outlier):
         self.outliers.append(outlier)
         es.process_outlier(outlier=outlier, should_notify=self.model_settings["should_notify"])
-
-        return outlier
 
     def print_analysis_intro(self, event_type, total_events):
         logging.logger.info("")
