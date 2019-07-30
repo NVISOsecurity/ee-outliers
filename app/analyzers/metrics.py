@@ -173,7 +173,8 @@ class MetricsAnalyzer(Analyzer):
             if aggregator_value not in documents_need_to_be_removed:
                 del remaining_metrics[aggregator_value]
             else:
-                for index in documents_need_to_be_removed[aggregator_value]:
+                # browse the list in reverse order (to remove first biggest index)
+                for index in documents_need_to_be_removed[aggregator_value][::-1]:
                     MetricsAnalyzer.remove_metric_from_batch(remaining_metrics, aggregator_value, index)
                 if aggregator_value in outliers:
                     del outliers[aggregator_value]
