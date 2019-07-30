@@ -289,7 +289,7 @@ class TermsAnalyzer(Analyzer):
             if aggregator_value not in documents_need_to_be_removed:
                 del remaining_terms[aggregator_value]
             else:
-                logging.logger.info("removing " + str(len(documents_need_to_be_removed[aggregator_value])) + " whitelisted documents from the batch for aggregator " + str(aggregator_value))
+                logging.logger.info("removing " + "{:,}".format((len(documents_need_to_be_removed[aggregator_value]))) + " whitelisted documents from the batch for aggregator " + str(aggregator_value))
 
                 # browse the list in reverse order (to remove first biggest index)
                 for index in documents_need_to_be_removed[aggregator_value][::-1]:
@@ -374,7 +374,7 @@ class TermsAnalyzer(Analyzer):
                 del remaining_terms[aggregator_value]
             else:
                 if documents_need_to_be_removed[aggregator_value]:
-                    logging.logger.info("removing " + str(len(documents_need_to_be_removed[aggregator_value])) + " whitelisted documents from the batch for aggregator " + str(aggregator_value))
+                    logging.logger.info("removing " + "{:,}".format((len(documents_need_to_be_removed[aggregator_value]))) + " whitelisted documents from the batch for aggregator " + str(aggregator_value))
 
                 # browse the list in reverse order (to remove first biggest index)
                 for index in documents_need_to_be_removed[aggregator_value][::-1]:
