@@ -13,7 +13,7 @@ from helpers.outlier import Outlier
 from collections import defaultdict
 from itertools import chain
 
-from typing import Dict, List, DefaultDict, AnyStr, Any, Optional, Union, TYPE_CHECKING
+from typing import Dict, List, DefaultDict, cast, Any, Optional, Union, TYPE_CHECKING
 if TYPE_CHECKING:
     from helpers.settings import Settings
     from helpers.logging import Logging
@@ -87,7 +87,7 @@ class ES:
 
     def count_documents(self, index: str, bool_clause: Optional[Dict[str, List]] = None,
                         query_fields: Optional[Dict] = None, search_query: Optional[Dict[str, List]] = None,
-                        model_settings: Dict[str, Any] = None) -> int:
+                        model_settings: Optional[Dict[str, Any]] = None) -> int:
         timestamp_field: str
         history_window_days: int
         history_window_hours: int
@@ -109,11 +109,11 @@ class ES:
                                                                                     search_query=search_query),
                                                size=self.settings.config.getint("general", "es_scan_size"),
                                                scroll=self.settings.config.get("general", "es_scroll_time"))
-        result: Union[Dict, int] = res["hits"]["total"]
+        result: Union[Dict[str, Any], int] = res["hits"]["total"]
 
         # Result depend of the version of ElasticSearch (> 7, the result is a dictionary)
         if isinstance(result, dict):
-            return result["value"]
+            return cast(int, result["value"])
         else:
             return result
 
@@ -130,7 +130,7 @@ class ES:
         return filter_clause
 
     @staticmethod
-    def filter_by_dsl_query(dsl_query: Optional[str] = None) -> Dict[str, List]:
+    def filter_by_dsl_query(dsl_query: str) -> Dict[str, List]:
         json_result: Union[Dict, List] = json.loads(dsl_query)
 
         filter_clause: Dict[str, List]
@@ -317,7 +317,7 @@ class ES:
         return doc_fields
 
     @staticmethod
-    def get_time_filter(days: float = None, hours: float = None, timestamp_field: str = "timestamp") -> Dict[str, Dict]:
+    def get_time_filter(days: float, hours: float, timestamp_field: str = "timestamp") -> Dict[str, Dict]:
         time_start: str = (datetime.datetime.now() - datetime.timedelta(days=days, hours=hours)).isoformat()
         time_stop: str = datetime.datetime.now().isoformat()
 
