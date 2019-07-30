@@ -14,7 +14,6 @@ doc_without_outlier_test_file = json.load(open("/app/tests/unit_tests/files/doc_
 doc_with_outlier_test_file = json.load(open("/app/tests/unit_tests/files/doc_with_outlier.json"))
 doc_with_two_outliers_test_file = json.load(open("/app/tests/unit_tests/files/doc_with_two_outliers.json"))
 doc_with_three_outliers_test_file = json.load(open("/app/tests/unit_tests/files/doc_with_three_outliers.json"))
-doc_for_whitelist_testing_file = json.load(open("/app/tests/unit_tests/files/doc_for_whitelist_testing.json"))
 
 nested_doc_for_whitelist_test = {'169.254.184.188', 'fe80::491a:881a:b1bf:b539', 2, 1, '1535026336',
                                  '1535017696_osquery_get_all_scheduled_tasks.log',
