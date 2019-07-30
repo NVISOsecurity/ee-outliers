@@ -76,16 +76,16 @@ class TermsAnalyzer(Analyzer):
                     total_terms_added += len(target_sentences)
 
                 # Evaluate batch of events against the model
-                last_batch = (logging.current_step == self.total_events)
-                if last_batch or total_terms_added >= settings.config.getint("terms", "terms_batch_eval_size"):
+                is_last_batch = (logging.current_step == self.total_events)
+                if is_last_batch or total_terms_added >= settings.config.getint("terms", "terms_batch_eval_size"):
                     logging.logger.info("evaluating batch of " + "{:,}".format(total_terms_added) + " terms")
 
                     first_run = True
                     remaining_terms = []
-                    while first_run or (last_batch and len(remaining_terms) > 0):
+                    while first_run or (is_last_batch and len(remaining_terms) > 0):
                         first_run = False
                         outlier_batches_trend, remaining_terms = self._run_evaluate_documents(
-                            eval_terms_array=eval_terms_array, last_batch=last_batch)
+                            eval_terms_array=eval_terms_array, is_last_batch=is_last_batch)
 
                         # Reset data structures for next batch
                         eval_terms_array = remaining_terms.copy()
@@ -105,10 +105,10 @@ class TermsAnalyzer(Analyzer):
 
         self.print_analysis_summary()
 
-    def _run_evaluate_documents(self, eval_terms_array, last_batch):
+    def _run_evaluate_documents(self, eval_terms_array, is_last_batch):
         outlier_batches_trend = 0
 
-        outliers, remaining_terms = self.evaluate_batch_for_outliers(terms=eval_terms_array, last_batch=last_batch)
+        outliers, remaining_terms = self.evaluate_batch_for_outliers(terms=eval_terms_array, is_last_batch=is_last_batch)
 
         # For each result, save it in batch and in ES
         for outlier in outliers:
@@ -212,7 +212,7 @@ class TermsAnalyzer(Analyzer):
                                                          "coeff_of_variation"}:
             raise ValueError("Unexpected outlier trigger method " + str(self.model_settings["trigger_method"]))
 
-    def evaluate_batch_for_outliers(self, last_batch, terms=None):
+    def evaluate_batch_for_outliers(self, is_last_batch, terms=None):
         # In case we want to count terms across different aggregators, we need to first iterate over all aggregators
         # and calculate the total number of unique terms for each aggregated value.
         # For example:
@@ -234,7 +234,7 @@ class TermsAnalyzer(Analyzer):
         # term_value_count for a document with term "A" then becomes "1" in the example above.
         # we then flag an outlier if that "1" is an outlier in the array ["1 1 1 2 1"]
         elif self.model_settings["target_count_method"] == "within_aggregator":
-            return self._evaluate_batch_for_outliers_within_aggregator(terms, last_batch)
+            return self._evaluate_batch_for_outliers_within_aggregator(terms, is_last_batch)
 
         return list(), list()
 
@@ -296,7 +296,7 @@ class TermsAnalyzer(Analyzer):
 
         return [outlier for list_outliers in outliers.values() for outlier in list_outliers], remaining_terms
 
-    def _evaluate_batch_for_outliers_within_aggregator(self, terms, last_batch):
+    def _evaluate_batch_for_outliers_within_aggregator(self, terms, is_last_batch):
         # Initialize
         outliers = defaultdict(list)
         remaining_terms = terms.copy()
@@ -315,7 +315,7 @@ class TermsAnalyzer(Analyzer):
                     len(counted_targets) < self.model_settings["min_target_buckets"]:
 
                 # If last batch we remove data from remaining_terms to avoid infinite loop
-                if last_batch:
+                if is_last_batch:
                     logging.logger.debug("less than " + str(self.model_settings["min_target_buckets"]) +
                                          " time buckets, skipping analysis")
                     del remaining_terms[aggregator_value]

@@ -212,7 +212,7 @@ class TestTermsAnalyzer(unittest.TestCase):
                                                       doc2)
 
         # Expect to get nothing due to "min_target_buckets" set to 2
-        result, remaining_terms = analyzer.evaluate_batch_for_outliers(last_batch=True, terms=eval_terms_array)
+        result, remaining_terms = analyzer.evaluate_batch_for_outliers(is_last_batch=True, terms=eval_terms_array)
         self.assertEqual(result, [])
 
     # coeff_of_variation

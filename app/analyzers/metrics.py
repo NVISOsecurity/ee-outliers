@@ -54,16 +54,16 @@ class MetricsAnalyzer(Analyzer):
                                                                     target_value, metric, observations, doc)
 
                 # Evaluate batch of events against the model
-                last_batch = (logging.current_step == self.total_events)
-                if last_batch or total_metrics_added >= settings.config.getint("metrics", "metrics_batch_eval_size"):
+                is_last_batch = (logging.current_step == self.total_events)
+                if is_last_batch or total_metrics_added >= settings.config.getint("metrics", "metrics_batch_eval_size"):
                     logging.logger.info("evaluating batch of " + "{:,}".format(total_metrics_added) + " metrics [" +
                                         "{:,}".format(logging.current_step) + " events processed]")
 
                     first_run = True
                     remaining_metrics = []
-                    while first_run or (last_batch and len(remaining_metrics) > 0):
+                    while first_run or (is_last_batch and len(remaining_metrics) > 0):
                         first_run = False
-                        remaining_metrics = self._run_evaluate_documents(eval_metrics, last_batch)
+                        remaining_metrics = self._run_evaluate_documents(eval_metrics, is_last_batch)
 
                         # Reset data structures for next batch
                         eval_metrics = remaining_metrics.copy()
@@ -72,10 +72,10 @@ class MetricsAnalyzer(Analyzer):
 
         self.print_analysis_summary()
 
-    def _run_evaluate_documents(self, eval_metrics, last_batch):
+    def _run_evaluate_documents(self, eval_metrics, is_last_batch):
         outliers, remaining_metrics = self.evaluate_batch_for_outliers(metrics=eval_metrics,
                                                                        model_settings=self.model_settings,
-                                                                       last_batch=last_batch)
+                                                                       is_last_batch=is_last_batch)
 
         # For each result, save it in batch and in ES
         for outlier in outliers:
@@ -116,7 +116,7 @@ class MetricsAnalyzer(Analyzer):
         if self.model_settings["trigger_on"] not in SUPPORTED_TRIGGERS:
             raise ValueError("Unexpected outlier trigger condition " + self.model_settings["trigger_on"])
 
-    def evaluate_batch_for_outliers(self, metrics=None, model_settings=None, last_batch=False):
+    def evaluate_batch_for_outliers(self, metrics=None, model_settings=None, is_last_batch=False):
         # Initialize
         outliers = defaultdict(list)
         remaining_metrics = metrics.copy()
@@ -126,7 +126,7 @@ class MetricsAnalyzer(Analyzer):
             # Check if we have sufficient data, meaning at least 100 metrics. if not, continue. Else,
             # evaluate for outliers.
             if len(metrics[aggregator_value]["metrics"]) < MetricsAnalyzer.MIN_EVALUATE_BATCH and \
-                    last_batch is False:
+                    is_last_batch is False:
                 continue
             # Else, we will remove it (only if not whitelisted)
 
