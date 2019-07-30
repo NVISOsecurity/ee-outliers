@@ -3,7 +3,7 @@ import re
 import helpers.utils
 import textwrap
 
-from typing import Dict, Set, Any, List, Optional, Union
+from typing import Dict, Set, Any, List, Tuple, Pattern, Optional, Union, cast
 
 
 class Outlier:
@@ -50,11 +50,11 @@ class Outlier:
 
         return _str
 
-    def __eq__(self, other):
+    def __eq__(self, other: Any) -> bool:
         return isinstance(other, Outlier) and self.outlier_dict == other.outlier_dict
 
     @staticmethod
-    def is_whitelisted_doc(dict_to_check: Dict = None):
+    def is_whitelisted_doc(dict_to_check: Dict) -> bool:
         dict_values_to_check: Set[str] = set()
 
         for dict_val in helpers.utils.nested_dict_values(dict_to_check):
@@ -67,7 +67,7 @@ class Outlier:
 
         # Check if value is whitelisted as literal
         for (_, each_whitelist_configuration_file_value) in \
-                helpers.singletons.settings.whitelist_literals_config:
+                cast(List[Tuple[str, str]], helpers.singletons.settings.whitelist_literals_config):
             whitelist_values_to_check: List[str] = each_whitelist_configuration_file_value.split(",")
 
             total_whitelisted_fields_to_match = len(whitelist_values_to_check)
@@ -83,7 +83,7 @@ class Outlier:
 
         # Check if value is whitelisted as regexps
         for (_, each_whitelist_configuration_file_value) in \
-                helpers.singletons.settings.whitelist_regexps_config:
+                cast(List[Tuple[str, str]], helpers.singletons.settings.whitelist_regexps_config):
             whitelist_values_to_check = each_whitelist_configuration_file_value.split(",")
 
             total_whitelisted_fields_to_match = len(whitelist_values_to_check)
@@ -102,14 +102,14 @@ class Outlier:
 
     @staticmethod
     def dictionary_matches_specific_whitelist_item_literally(whitelist_value: str,
-                                                             set_of_values_to_check: Set[str]):
+                                                             set_of_values_to_check: Set[str]) -> bool:
         for value_to_check in set_of_values_to_check:
             if str(value_to_check).strip() == whitelist_value.strip():
                 return True
         return False
 
     @staticmethod
-    def dictionary_matches_specific_whitelist_item_regexp(regex: re, set_of_values_to_check: Set[str]):
+    def dictionary_matches_specific_whitelist_item_regexp(regex: Pattern, set_of_values_to_check: Set[str]) -> bool:
         for value_to_check in set_of_values_to_check:
             if regex.match(str(value_to_check).strip()):
                 return True
