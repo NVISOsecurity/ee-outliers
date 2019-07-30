@@ -27,18 +27,13 @@ tests_parser.add_argument("--config", action='append', help="Configuration file 
 class Settings:
 
     def __init__(self) -> None:
-        self.args: argparse.Namespace
         self.config: configparser.ConfigParser
 
         self.loaded_config_paths: List[str]
         self.failed_config_paths: Set[str]
 
-        self.search_range_start: str
-        self.search_range_end: str
-        self.search_range: Dict[str, Dict]
-
-        self.whitelist_literals_config: Optional[AbstractSet[Tuple]] = None
-        self.whitelist_regexps_config: Optional[AbstractSet[Tuple]] = None
+        self.whitelist_literals_config: Optional[List[Tuple[str, str]]] = None
+        self.whitelist_regexps_config: Optional[List[Tuple[str, str]]] = None
 
         self.args: argparse.Namespace = parser.parse_args()
         self.process_configuration_files()
@@ -54,7 +49,7 @@ class Settings:
         self.loaded_config_paths = config.read(config_paths)
         self.failed_config_paths = set(config_paths) - set(self.loaded_config_paths)
 
-        self.config: configparser.ConfigParser = config
+        self.config = config
 
         self.whitelist_literals_config = self.config.items("whitelist_literals")
         self.whitelist_regexps_config = self.config.items("whitelist_regexps")
