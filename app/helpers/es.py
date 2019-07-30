@@ -7,7 +7,7 @@ import datetime as dt
 from pygrok import Grok
 import math
 
-from helpers.singleton import singleton
+from helpers.singleton import singleton  # type: ignore
 from helpers.notifier import Notifier
 from helpers.outlier import Outlier
 from collections import defaultdict

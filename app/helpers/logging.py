@@ -3,9 +3,7 @@ import urllib3
 import logging
 import datetime as dt
 
-from typing import Optional, cast
-
-from helpers.singleton import singleton
+from helpers.singleton import singleton  # type: ignore
 
 
 @singleton

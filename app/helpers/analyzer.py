@@ -1,7 +1,7 @@
 import abc
 from collections import defaultdict
 from configparser import NoOptionError
-from typing import DefaultDict, Optional, Dict
+from typing import DefaultDict
 
 import dateutil
 import copy
@@ -219,8 +219,10 @@ class Analyzer(abc.ABC):
         search_range_end = search_range["range"][str(settings.config.get("general", "timestamp_field",
                                                                          fallback="timestamp"))]["lte"]
 
-        search_start_range_printable: str = dateutil.parser.parse(search_range_start).strftime('%Y-%m-%d %H:%M:%S')
-        search_end_range_printable: str = dateutil.parser.parse(search_range_end).strftime('%Y-%m-%d %H:%M:%S')
+        search_start_range_printable: str = dateutil.parser.parse(search_range_start).strftime(  # type: ignore
+            '%Y-%m-%d %H:%M:%S')
+        search_end_range_printable: str = dateutil.parser.parse(search_range_end).strftime(  # type: ignore
+            '%Y-%m-%d %H:%M:%S')
         return "processing events between " + search_start_range_printable + " and " + search_end_range_printable
 
     @abc.abstractmethod

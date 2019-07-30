@@ -1,9 +1,9 @@
 import configparser
 import argparse
 
-from helpers.singleton import singleton
+from helpers.singleton import singleton  # type: ignore
 
-from typing import Dict, List, Set, Optional, AbstractSet, Tuple
+from typing import List, Set, Optional, Tuple
 
 
 parser: argparse.ArgumentParser = argparse.ArgumentParser()

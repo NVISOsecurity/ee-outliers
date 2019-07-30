@@ -31,7 +31,7 @@ class Word2Vec:
         self.all_probabilities_cache: Dict = dict()
 
         # Set up logging directory
-        self.name :str = name
+        self.name: str = name
         self.model_name: str = self.name + "_word2vec"
         # important: need '' at end so it's treated as directory!
         self.models_dir: str = os.path.join(settings.config.get("machine_learning", "models_directory"),
@@ -358,7 +358,7 @@ def get_sentence_skipgrams_restore(sentence: List, skip_window: int) -> Tuple[Li
     sentence_labels: List = []
     for i in range(len(sentence)):  # i = target word
         context_indices: List = [j for j in range(max(0, (i - skip_window)), min(len(sentence), i + 1 + skip_window))
-                           if j != i]
+                                 if j != i]
         sentence_targets.append(sentence[i])
         labels: List = []
         for context_index in context_indices:
