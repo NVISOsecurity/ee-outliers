@@ -116,8 +116,8 @@ class TermsAnalyzer(Analyzer):
     def _calculate_target_fields_to_brute_force(self) -> Set:
         batch_size: int = settings.config.getint("terms", "terms_batch_eval_size")
 
-        self.total_events: int = es.count_documents(index=self.es_index, search_query=self.search_query,
-                                                    model_settings=self.model_settings)
+        self.total_events = es.count_documents(index=self.es_index, search_query=self.search_query,
+                                               model_settings=self.model_settings)
         logging.init_ticker(total_steps=min(self.total_events, batch_size),
                             desc=self.model_name + " - extracting brute force fields")
 
@@ -191,7 +191,7 @@ class TermsAnalyzer(Analyzer):
         if self.model_settings["trigger_on"] not in {"high", "low"}:
             raise ValueError("Unexpected outlier trigger condition " + str(self.model_settings["trigger_on"]))
 
-    def evaluate_batch_for_outliers(self, terms: DefaultDict = None) -> List[Outlier]:
+    def evaluate_batch_for_outliers(self, terms: DefaultDict) -> List[Outlier]:
         # In case we want to count terms across different aggregators, we need to first iterate over all aggregators
         # and calculate the total number of unique terms for each aggregated value.
         # For example:
@@ -238,7 +238,7 @@ class TermsAnalyzer(Analyzer):
         logging.logger.debug("using " + self.model_settings["trigger_method"] + " decision frontier " +
                              str(decision_frontier) + " across all aggregators")
 
-        non_outlier_values = set()
+        non_outlier_values: Set[str] = set()
 
         # loop 0: {i=0, aggregator_value = "smsc.exe"}, loop 1: {i=1, aggregator_value = "abc.exe"},
         for i, aggregator_value in enumerate(terms):
@@ -284,20 +284,20 @@ class TermsAnalyzer(Analyzer):
             logging.logger.debug("using " + self.model_settings["trigger_method"] + " decision frontier " +
                                  str(decision_frontier) + " for aggregator " + str(aggregator_value))
 
+            non_outlier_values: Set[str] = set()
+            term_value_count: int
             if self.model_settings["trigger_method"] == "coeff_of_variation":
                 # decision_frontier = coeff_of_variation. So we need to check if coeff_of_variation is high or low
                 # of the sensitivity
                 if helpers.utils.is_outlier(decision_frontier, self.model_settings["trigger_sensitivity"],
                                             self.model_settings["trigger_on"]):
-                    non_outlier_values: Set = set()
                     for ii, term_value in enumerate(terms[aggregator_value]["targets"]):
-                        term_value_count: int = counted_targets[term_value]
+                        term_value_count = counted_targets[term_value]
                         outliers.append(self._create_outlier(non_outlier_values, term_value_count, aggregator_value,
                                                              term_value, decision_frontier, terms, ii))
             else:
-                non_outlier_values: Set[str] = set()
                 for ii, term_value in enumerate(terms[aggregator_value]["targets"]):
-                    term_value_count: int = counted_targets[term_value]
+                    term_value_count = counted_targets[term_value]
                     is_outlier: bool = helpers.utils.is_outlier(term_value_count, decision_frontier,
                                                                 self.model_settings["trigger_on"])
 
