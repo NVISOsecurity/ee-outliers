@@ -193,6 +193,9 @@ class TermsAnalyzer(Analyzer):
         try:
             self.model_settings["min_target_buckets"] = settings.config.getint(self.config_section_name,
                                                                                "min_target_buckets")
+            if self.model_settings["target_count_method"] != "within_aggregator":
+                logging.logger.warning("'min_target_buckets' is only useful when 'target_count_method' is set " +
+                                       "to 'within_aggregator'")
         except NoOptionError:
             self.model_settings["min_target_buckets"] = None
 
