@@ -142,8 +142,8 @@ class MetricsAnalyzer(Analyzer):
                     observations["decision_frontier"] = decision_frontier
                     observations["confidence"] = confidence
 
-                    self.process_outlier(fields, metrics[aggregator_value]["raw_docs"][ii],
-                                         extra_outlier_information=observations)
+                    self.create_outlier(fields, metrics[aggregator_value]["raw_docs"][ii],
+                                        extra_outlier_information=observations)
 
         return outliers, remaining_metrics
 
