@@ -160,7 +160,7 @@ class Analyzer(abc.ABC):
         outlier_assets = helpers.utils.extract_outlier_asset_information(fields, settings)
         return outlier_type, outlier_reason, outlier_summary, outlier_assets
 
-    def process_outlier(self, fields, doc, extra_outlier_information=dict()):
+    def create_outlier(self, fields, doc, extra_outlier_information=dict()):
         outlier_type, outlier_reason, outlier_summary, outlier_assets = \
             self._prepare_outlier_parameters(extra_outlier_information, fields)
         outlier = Outlier(outlier_type=outlier_type, outlier_reason=outlier_reason, outlier_summary=outlier_summary,
@@ -173,7 +173,7 @@ class Analyzer(abc.ABC):
             outlier.outlier_dict[k] = v
 
         self.outliers.append(outlier)
-        es.process_outliers(doc=doc, outliers=[outlier], should_notify=self.model_settings["should_notify"])
+        es.process_outlier(outlier=outlier, should_notify=self.model_settings["should_notify"])
 
         return outlier
 

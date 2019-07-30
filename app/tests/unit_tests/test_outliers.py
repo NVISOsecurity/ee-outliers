@@ -40,7 +40,7 @@ class TestOutlierOperations(unittest.TestCase):
                                outlier_summary="dummy summary", doc=doc)
         test_outlier.outlier_dict["observation"] = "dummy observation"
 
-        doc_with_outlier = helpers.es.add_outlier_to_document(doc, test_outlier)
+        doc_with_outlier = helpers.es.add_outlier_to_document(test_outlier)
         self.assertDictEqual(doc_with_outlier_test_file, doc_with_outlier)
 
     def test_remove_outlier_from_doc(self):
@@ -49,7 +49,7 @@ class TestOutlierOperations(unittest.TestCase):
                                outlier_summary="dummy summary", doc=doc)
         test_outlier.outlier_dict["observation"] = "dummy observation"
 
-        doc_with_outlier = helpers.es.add_outlier_to_document(doc, test_outlier)
+        doc_with_outlier = helpers.es.add_outlier_to_document(test_outlier)
 
         doc_without_outlier = helpers.es.remove_outliers_from_document(doc_with_outlier)
         self.assertDictEqual(doc_without_outlier, doc_without_outlier_test_file)
@@ -59,8 +59,8 @@ class TestOutlierOperations(unittest.TestCase):
         test_outlier = Outlier(outlier_type="dummy type", outlier_reason="dummy reason",
                                outlier_summary="dummy summary", doc=doc)
 
-        doc_with_outlier = helpers.es.add_outlier_to_document(doc, test_outlier)
-        doc_with_outlier = helpers.es.add_outlier_to_document(doc_with_outlier, test_outlier)
+        doc_with_outlier = helpers.es.add_outlier_to_document(test_outlier)
+        doc_with_outlier = helpers.es.add_outlier_to_document(test_outlier)
 
         self.assertDictEqual(doc, doc_with_outlier)
 
@@ -74,8 +74,8 @@ class TestOutlierOperations(unittest.TestCase):
                                  outlier_summary="dummy summary 2", doc=doc)
         test_outlier_2.outlier_dict["observation_2"] = "dummy observation 2"
 
-        doc_with_outlier = helpers.es.add_outlier_to_document(doc, test_outlier)
-        doc_with_two_outliers = helpers.es.add_outlier_to_document(doc_with_outlier, test_outlier_2)
+        helpers.es.add_outlier_to_document(test_outlier)
+        doc_with_two_outliers = helpers.es.add_outlier_to_document(test_outlier_2)
 
         self.assertDictEqual(doc_with_two_outliers, doc_with_two_outliers_test_file)
 
@@ -93,9 +93,9 @@ class TestOutlierOperations(unittest.TestCase):
                                  outlier_summary="dummy summary 3", doc=doc)
         test_outlier_3.outlier_dict["observation_3"] = "dummy observation 3"
 
-        doc_with_outlier = helpers.es.add_outlier_to_document(doc, test_outlier)
-        doc_with_two_outliers = helpers.es.add_outlier_to_document(doc_with_outlier, test_outlier_2)
-        doc_with_three_outliers = helpers.es.add_outlier_to_document(doc_with_two_outliers, test_outlier_3)
+        helpers.es.add_outlier_to_document(test_outlier)
+        helpers.es.add_outlier_to_document(test_outlier_2)
+        doc_with_three_outliers = helpers.es.add_outlier_to_document(test_outlier_3)
 
         self.assertDictEqual(doc_with_three_outliers, doc_with_three_outliers_test_file)
 

@@ -333,7 +333,7 @@ class TermsAnalyzer(Analyzer):
         raw_doc = terms[observations["aggregator"]]["raw_docs"][ii]
         fields = es.extract_fields_from_document(raw_doc,
                                                  extract_derived_fields=self.model_settings["use_derived_fields"])
-        return self.process_outlier(fields, raw_doc, extra_outlier_information=calculated_observations)
+        return self.create_outlier(fields, raw_doc, extra_outlier_information=calculated_observations)
 
     @staticmethod
     def add_term_to_batch(eval_terms_array: DefaultDict, aggregator_value: Optional[str], target_value: Optional[str],

@@ -34,7 +34,7 @@ class TestAnalyzer(unittest.TestCase):
 
         doc_without_outlier = copy.deepcopy(doc_without_outlier_test_file)
         doc_fields = doc_without_outlier["_source"]
-        outlier = analyzer.process_outlier(doc_fields, doc_without_outlier)
+        outlier = analyzer.create_outlier(doc_fields, doc_without_outlier)
         expected_outlier = Outlier(outlier_type=["dummy type"], outlier_reason=['dummy reason'],
                                    outlier_summary='dummy summary', doc=doc_without_outlier)
         expected_outlier.outlier_dict['model_name'] = 'dummy_test'
@@ -49,7 +49,7 @@ class TestAnalyzer(unittest.TestCase):
         doc_with_outlier = copy.deepcopy(doc_with_outlier_test_file)
 
         doc_fields = doc_without_outlier["_source"]
-        analyzer.process_outlier(doc_fields, doc_without_outlier)
+        analyzer.create_outlier(doc_fields, doc_without_outlier)
 
         result = [elem for elem in es.scan()][0]
         self.assertEqual(result, doc_with_outlier)
