@@ -53,6 +53,6 @@ class SimplequeryAnalyzer(Analyzer):
                 logging.tick()
                 fields: Dict = es.extract_fields_from_document(
                     doc, extract_derived_fields=self.model_settings["use_derived_fields"])
-                self.process_outlier(fields, doc)
+                self.create_outlier(fields, doc)
 
         self.print_analysis_summary()

@@ -1,10 +1,7 @@
 import abc
-from collections import defaultdict
 from configparser import NoOptionError
-from typing import DefaultDict
 
 import dateutil
-import copy
 
 from helpers.singletons import settings, es, logging
 import helpers.utils
@@ -169,8 +166,9 @@ class Analyzer(abc.ABC):
         outlier_assets: List[str] = helpers.utils.extract_outlier_asset_information(fields, settings)
         return outlier_type, outlier_reason, outlier_summary, outlier_assets
 
-    def process_outlier(self, fields: Dict, doc: Dict[str, Any],
-                        extra_outlier_information: Optional[Dict[str, Any]] = dict()) -> Outlier:
+    def create_outlier(self, fields: Dict, doc: Dict[str, Any],
+                       extra_outlier_information: Optional[Dict[str, Any]] = dict(),
+                       es_process_outlier: bool=True) -> Outlier:
         outlier_type, outlier_reason, outlier_summary, outlier_assets = \
             self._prepare_outlier_parameters(extra_outlier_information, fields)
         outlier: Outlier = Outlier(outlier_type=outlier_type, outlier_reason=outlier_reason,
@@ -183,10 +181,13 @@ class Analyzer(abc.ABC):
             for k, v in extra_outlier_information.items():
                 outlier.outlier_dict[k] = v
 
-        self.outliers.append(outlier)
-        es.process_outliers(doc=doc, outliers=[outlier], should_notify=self.model_settings["should_notify"])
-
+        if es_process_outlier:
+            self.save_outlier_to_es(outlier)
         return outlier
+
+    def save_outlier_to_es(self, outlier: Outlier) -> None:
+        self.outliers.append(outlier)
+        es.process_outlier(outlier=outlier, should_notify=self.model_settings["should_notify"])
 
     def print_analysis_intro(self, event_type: str, total_events: int) -> None:
         logging.logger.info("")
@@ -197,17 +198,6 @@ class Analyzer(abc.ABC):
 
         if total_events == 0:
             logging.logger.warning("no events to analyze!")
-
-    def is_document_whitelisted(self, document: Dict[str, Any], extract_field: bool = True) -> bool:
-        document_to_check: Dict[str, Any] = copy.deepcopy(document)
-        if extract_field:
-            fields: Dict[str, Any] = es.extract_fields_from_document(
-                document_to_check, extract_derived_fields=self.model_settings["use_derived_fields"])
-        else:
-            fields = document
-        outlier_param: Tuple[List[str], List[str], str, List[str]] = self._prepare_outlier_parameters(dict(), fields)
-        document_to_check['__whitelist_extra'] = outlier_param
-        return Outlier.is_whitelisted_doc(document_to_check)
 
     @staticmethod
     def get_time_window_info(history_days: float, history_hours: float) -> str:
@@ -230,15 +220,3 @@ class Analyzer(abc.ABC):
     @abc.abstractmethod
     def evaluate_model(self) -> None:
         raise NotImplementedError()
-
-    @staticmethod
-    def add_term_to_batch(eval_terms_array: DefaultDict, aggregator_value: Optional[str], target_value: Optional[str],
-                          observations: Dict, doc: Dict) -> DefaultDict:
-        if aggregator_value not in eval_terms_array.keys():
-            eval_terms_array[aggregator_value] = defaultdict(list)
-
-        eval_terms_array[aggregator_value]["targets"].append(target_value)
-        eval_terms_array[aggregator_value]["observations"].append(observations)
-        eval_terms_array[aggregator_value]["raw_docs"].append(doc)
-
-        return eval_terms_array

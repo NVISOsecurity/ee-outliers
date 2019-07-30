@@ -17,6 +17,8 @@ SUPPORTED_TRIGGERS: List[str] = ["high", "low"]
 
 class MetricsAnalyzer(Analyzer):
 
+    MIN_EVALUATE_BATCH = 100
+
     def evaluate_model(self) -> None:
         eval_metrics: DefaultDict = defaultdict()
         total_metrics_added: int = 0
@@ -58,28 +60,43 @@ class MetricsAnalyzer(Analyzer):
                                                                     target_value, metric, observations, doc)
 
                 # Evaluate batch of events against the model
-                last_batch: bool = (logging.current_step == self.total_events)
-                if last_batch or total_metrics_added >= settings.config.getint("metrics", "metrics_batch_eval_size"):
+                is_last_batch: bool = (logging.current_step == self.total_events)
+                if is_last_batch or total_metrics_added >= settings.config.getint("metrics", "metrics_batch_eval_size"):
                     logging.logger.info("evaluating batch of " + "{:,}".format(total_metrics_added) + " metrics [" +
                                         "{:,}".format(logging.current_step) + " events processed]")
-                    outliers: List
-                    remaining_metrics: DefaultDict
-                    outliers, remaining_metrics = self.evaluate_batch_for_outliers(metrics=eval_metrics,
-                                                                                   model_settings=self.model_settings,
-                                                                                   last_batch=last_batch)
 
-                    if len(outliers) > 0:
-                        unique_summaries: int = len(set(o.outlier_dict["summary"] for o in outliers))
-                        logging.logger.info("total outliers in batch processed: " + str(len(outliers)) + " [" +
-                                            str(unique_summaries) + " unique summaries]")
-                    else:
-                        logging.logger.info("no outliers detected in batch")
+                    first_run: bool = True
+                    remaining_metrics: DefaultDict = defaultdict()
+                    while first_run or (is_last_batch and len(remaining_metrics) > 0):
+                        first_run = False
+                        remaining_metrics = self._run_evaluate_documents(eval_metrics, is_last_batch)
 
-                    # Reset data structures for next batch
-                    eval_metrics = remaining_metrics.copy()
+                        # Reset data structures for next batch
+                        eval_metrics = remaining_metrics.copy()
+
                     total_metrics_added = 0
 
         self.print_analysis_summary()
+
+    def _run_evaluate_documents(self, eval_metrics: DefaultDict, is_last_batch: bool) -> DefaultDict:
+        outliers: List
+        remaining_metrics: DefaultDict
+        outliers, remaining_metrics = self.evaluate_batch_for_outliers(metrics=eval_metrics,
+                                                                       model_settings=self.model_settings,
+                                                                       is_last_batch=is_last_batch)
+
+        # For each result, save it in batch and in ES
+        for outlier in outliers:
+            self.save_outlier_to_es(outlier)
+
+        if len(outliers) > 0:
+            unique_summaries = len(set(o.outlier_dict["summary"] for o in outliers))
+            logging.logger.info("total outliers in batch processed: " + str(len(outliers)) + " [" +
+                                str(unique_summaries) + " unique summaries]")
+        else:
+            logging.logger.info("no outliers detected in batch")
+
+        return remaining_metrics
 
     def _extract_additional_model_settings(self) -> None:
         """
@@ -108,19 +125,19 @@ class MetricsAnalyzer(Analyzer):
             raise ValueError("Unexpected outlier trigger condition " + self.model_settings["trigger_on"])
 
     def evaluate_batch_for_outliers(self, metrics: DefaultDict, model_settings: Dict[str, Any],
-                                    last_batch: bool = False) -> Tuple[List, DefaultDict]:
+                                    is_last_batch: bool = False) -> Tuple[List, DefaultDict]:
         # Initialize
-        outliers: List = list()  # TODO Never change ?
+        outliers: DefaultDict[str, Outlier] = defaultdict(list)
         remaining_metrics: DefaultDict = metrics.copy()
+        documents_need_to_be_removed: DefaultDict = defaultdict(list)
 
         for _, aggregator_value in enumerate(metrics):
             # Check if we have sufficient data, meaning at least 100 metrics. if not, continue. Else,
             # evaluate for outliers.
-            if len(metrics[aggregator_value]["metrics"]) < 100 and last_batch is False:
+            if len(metrics[aggregator_value]["metrics"]) < MetricsAnalyzer.MIN_EVALUATE_BATCH and \
+                    is_last_batch is False:
                 continue
-            else:
-                # Remove from remaining metrics, as we will be handling it in a second
-                del remaining_metrics[aggregator_value]
+            # Else, we will remove it (only if not whitelisted)
 
             # Calculate the decision frontier
             decision_frontier: Union[int, float, float64] = helpers.utils.get_decision_frontier(
@@ -151,9 +168,23 @@ class MetricsAnalyzer(Analyzer):
                     observations["decision_frontier"] = decision_frontier
                     observations["confidence"] = confidence
 
-                    self.process_outlier(fields, metrics[aggregator_value]["raw_docs"][ii],
-                                         extra_outlier_information=observations)
-        return outliers, remaining_metrics
+                    outlier = self.create_outlier(fields, metrics[aggregator_value]["raw_docs"][ii],
+                                                  extra_outlier_information=observations, es_process_outlier=False)
+                    if not outlier.is_whitelisted():
+                        outliers[aggregator_value].append(outlier)
+                    else:
+                        documents_need_to_be_removed[aggregator_value].append(ii)
+
+            # If no document should be deleted, so there is no need to process it anymore:
+            if aggregator_value not in documents_need_to_be_removed:
+                del remaining_metrics[aggregator_value]
+            else:
+                for index in documents_need_to_be_removed[aggregator_value]:
+                    MetricsAnalyzer.remove_metric_from_batch(remaining_metrics, aggregator_value, index)
+                if aggregator_value in outliers:
+                    del outliers[aggregator_value]
+
+        return [outlier for list_outliers in outliers.values() for outlier in list_outliers], remaining_metrics
 
     @staticmethod
     def add_metric_to_batch(eval_metrics_array: DefaultDict, aggregator_value: Optional[str],
@@ -172,8 +203,16 @@ class MetricsAnalyzer(Analyzer):
         return eval_metrics_array
 
     @staticmethod
-    def calculate_metric(metric: str, value: str) -> Tuple[Union[None, float, int], Dict]:
+    def remove_metric_from_batch(eval_metrics_array: Dict[str, Any], aggregator_value: str,
+                                 index: int) -> Dict[str, Any]:
+        eval_metrics_array[aggregator_value]["metrics"].pop(index)
+        eval_metrics_array[aggregator_value]["observations"].pop(index)
+        eval_metrics_array[aggregator_value]["raw_docs"].pop(index)
 
+        return eval_metrics_array
+
+    @staticmethod
+    def calculate_metric(metric: str, value: str) -> Tuple[Union[None, float, int], Dict]:
         observations: Dict[str, Any] = dict()
         target_value_words: List[str]
 

@@ -156,7 +156,7 @@ class Word2VecAnalyzer(Analyzer):
             if is_outlier:
                 fields: Dict = es.extract_fields_from_document(
                                         raw_docs[i], extract_derived_fields=self.model_settings["use_derived_fields"])
-                outliers.append(self.process_outlier(fields, raw_docs[i], extra_outlier_information=None))
+                outliers.append(self.create_outlier(fields, raw_docs[i], extra_outlier_information=None))
             else:
                 if w2v_model.use_test_data:
                     logging.logger.info("Not an outlier: " + str(eval_sentences[i]) + " - " + str(single_sentence_prob))
