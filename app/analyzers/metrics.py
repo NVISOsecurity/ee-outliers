@@ -157,7 +157,7 @@ class MetricsAnalyzer(Analyzer):
 
     @staticmethod
     def add_metric_to_batch(eval_metrics_array: DefaultDict, aggregator_value: Optional[str],
-                            target_value: Optional[str], metrics_value: Union[None, float, int], 
+                            target_value: Optional[str], metrics_value: Union[None, float, int],
                             observations: Dict[str, Any], doc: Dict) -> DefaultDict:
         observations["target"] = target_value
         observations["aggregator"] = aggregator_value

@@ -17,7 +17,6 @@ from typing import Dict, List, DefaultDict, cast, Any, Optional, Union, TYPE_CHE
 if TYPE_CHECKING:
     from helpers.settings import Settings
     from helpers.logging import Logging
-    from helpers.outlier import Outlier
 
 
 @singleton
@@ -296,7 +295,7 @@ class ES:
                     grok = Grok(grok_pattern)
                     self.grok_filters[grok_pattern] = grok
 
-                match_dict: Dict = grok.match(helpers.utils.get_dotkey_value(doc_fields, field_name, 
+                match_dict: Dict = grok.match(helpers.utils.get_dotkey_value(doc_fields, field_name,
                                                                              case_sensitive=False))
 
                 if match_dict:

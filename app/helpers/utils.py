@@ -184,7 +184,7 @@ def is_base64_encoded(_str: str) -> Union[None, bool, str]:
         decoded_bytes: bytes = base64.b64decode(_str)
         if base64.b64encode(decoded_bytes) == _str.encode("ascii"):
             return decoded_bytes.decode("ascii")
-        return None # TODO maybe return False also ?
+        return None  # TODO maybe return False also ?
     except Exception:
         return False
 
