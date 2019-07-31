@@ -81,4 +81,4 @@ Thank you for using ee-outliers and we look forward to your feedback! 🐀
 We are grateful for the support received by [INNOVIRIS](https://innoviris.brussels/) and the Brussels region in funding our Research & Development activities. 
 
 
-<p align="right"><a href="doc/INSTALL.md">Installation &#8594;</a></p>
+<p align="right"><a href="doc/INSTALL.md">Getting started &#8594;</a></p>
