@@ -61,41 +61,39 @@ class MetricsAnalyzer(Analyzer):
 
                 # If target and aggregator values exist
                 if target_value is not None and aggregator_sentences is not None:
-                    metric, observations = self.calculate_metric(self.model_settings["metric"], target_value)
-
-                    if metric is not None:  # explicitly check for none, since "0" can be OK as a metric!
+                    eval_metrics, metric_added = self._compute_eval_metrics_for_one_doc(doc, eval_metrics, target_value,
+                                                                                        aggregator_sentences)
+                    if metric_added:
                         total_metrics_added += 1
-                        for aggregator_sentence in aggregator_sentences:
-                            flattened_aggregator_sentence = helpers.utils.flatten_sentence(aggregator_sentence)
-                            eval_metrics = self.add_metric_to_batch(eval_metrics, flattened_aggregator_sentence,
-                                                                    target_value, metric, observations, doc)
 
-                # Evaluate batch of events against the model
-                is_last_batch = (logging.current_step == self.total_events)  # Check if it is the last batch
-                # Run if it is the last batch OR if the batch size is large enough
-                if is_last_batch or total_metrics_added >= settings.config.getint("metrics", "metrics_batch_eval_size"):
-                    remaining_metrics = self._process_batch(eval_metrics, total_metrics_added, is_last_batch)
+                    # Evaluate batch of events against the model
+                    is_last_batch = (logging.current_step == self.total_events)  # Check if it is the last batch
+                    # Run if it is the last batch OR if the batch size is large enough
+                    if is_last_batch or total_metrics_added >= settings.config.getint("metrics",
+                                                                                      "metrics_batch_eval_size"):
 
-                    # Reset data structures for next batch
-                    eval_metrics = remaining_metrics
-                    total_metrics_added = 0
+                        logging.logger.info("evaluating batch of " + "{:,}".format(total_metrics_added) + " metrics [" +
+                                            "{:,}".format(logging.current_step) + " events processed]")
+                        remaining_metrics = self._evaluate_batch_save_outliers_and_display_logs(eval_metrics,
+                                                                                                is_last_batch)
+
+                        # Reset data structures for next batch
+                        eval_metrics = remaining_metrics
+                        total_metrics_added = 0
 
         self.print_analysis_summary()
 
-    def _process_batch(self, eval_metrics, total_metrics_added, is_last_batch):
-        logging.logger.info("evaluating batch of " + "{:,}".format(total_metrics_added) + " metrics [" +
-                            "{:,}".format(logging.current_step) + " events processed]")
+    def _compute_eval_metrics_for_one_doc(self, doc, eval_metrics, target_value, aggregator_sentences):
+        metrics_added = False
+        metric, observations = self.calculate_metric(self.model_settings["metric"], target_value)
 
-        first_run = True  # Force to run the loop one time
-        remaining_metrics = {}
-        documents_need_to_be_compute = eval_metrics.copy()
-        while first_run or len(documents_need_to_be_compute) > 0:
-            first_run = False
-            not_enough_value, documents_need_to_be_compute = \
-                self._evaluate_batch_save_outliers_and_display_logs(documents_need_to_be_compute,
-                                                                    is_last_batch)
-            remaining_metrics.update(not_enough_value)
-        return remaining_metrics
+        if metric is not None:  # explicitly check for none, since "0" can be OK as a metric!
+            metrics_added = True
+            for aggregator_sentence in aggregator_sentences:
+                flattened_aggregator_sentence = helpers.utils.flatten_sentence(aggregator_sentence)
+                eval_metrics = self.add_metric_to_batch(eval_metrics, flattened_aggregator_sentence,
+                                                        target_value, metric, observations, doc)
+        return eval_metrics, metrics_added
 
     def _compute_aggregator_and_target_value(self, doc):
         '''
@@ -120,8 +118,8 @@ class MetricsAnalyzer(Analyzer):
         return target_value, aggregator_sentences
 
     def _evaluate_batch_save_outliers_and_display_logs(self, eval_metrics, is_last_batch):
-        outliers, not_enough_value, document_need_to_be_recompute = self._evaluate_batch_for_outliers(
-            metrics=eval_metrics, is_last_batch=is_last_batch)
+        outliers, remaining_metrics = self._evaluate_batch_for_outliers(metrics=eval_metrics,
+                                                                        is_last_batch=is_last_batch)
 
         # For each result, save it in batch and in ES
         for outlier in outliers:
@@ -135,68 +133,91 @@ class MetricsAnalyzer(Analyzer):
         else:
             logging.logger.info("no outliers detected in batch")
 
-        return not_enough_value, document_need_to_be_recompute
+        return remaining_metrics
 
     def _evaluate_batch_for_outliers(self, metrics=None, is_last_batch=False):
         # Initialize
         outliers = list()  # List of all detected outliers
-        not_enough_value = dict()  # List of aggregator value that doesn't contain enough data
-        # List of metrics that need to be recompute (because the number of element have change)
-        document_need_to_be_recompute = dict()
+        remaining_metrics = dict()  # List of aggregator value that doesn't contain enough data
 
         for _, aggregator_value in enumerate(metrics):
-            # Check if we have sufficient data, meaning at least 100 metrics. if not, continue. Else,
-            # evaluate for outliers.
-            if len(metrics[aggregator_value]["metrics"]) < MetricsAnalyzer.MIN_EVALUATE_BATCH and \
+            # Compute for each aggregator
+            new_outliers, enough_value, metrics_aggregator_value = self._evaluate_aggregator_for_outliers(
+                metrics[aggregator_value], aggregator_value, is_last_batch)
+
+            # If the process was stop because they aren't enough value
+            if not enough_value:
+                remaining_metrics[aggregator_value] = metrics_aggregator_value
+
+            # Save new outliers detected
+            outliers += new_outliers
+
+        return outliers, remaining_metrics
+
+    def _evaluate_aggregator_for_outliers(self, metrics_aggregator_value, aggregator_value, is_last_batch):
+        enough_value = True
+        outliers = []
+        first_run = True  # Force to run one time the loop
+        list_documents_need_to_be_removed = []
+
+        # Treat this aggregator a first time ("first_run") and continue if there are enough value
+        # and that we have remove some documents from the metrics_aggregator_value
+        while first_run or (enough_value and len(list_documents_need_to_be_removed) > 0):
+            first_run = False
+
+            if not first_run:
+                logging.logger.debug("run again computation for " + str(aggregator_value) + " because " +
+                                     str(len(list_documents_need_to_be_removed)) + " documents have been removed")
+
+            # Check if we have sufficient data, meaning at least MIN_EVALUATE_BATCH metrics. If not, stop the loop.
+            # Else, evaluate for outliers.
+            if len(metrics_aggregator_value["metrics"]) < MetricsAnalyzer.MIN_EVALUATE_BATCH and \
                     is_last_batch is False:
-                not_enough_value[aggregator_value] = metrics[aggregator_value]
+                enough_value = False
                 continue
 
             # Calculate the decision frontier
             decision_frontier = helpers.utils.get_decision_frontier(self.model_settings["trigger_method"],
-                                                                    metrics[aggregator_value]["metrics"],
+                                                                    metrics_aggregator_value["metrics"],
                                                                     self.model_settings["trigger_sensitivity"],
                                                                     self.model_settings["trigger_on"])
             logging.logger.debug("using decision frontier " + str(decision_frontier) + " for aggregator " +
                                  str(aggregator_value) + " - " + self.model_settings["metric"])
             logging.logger.debug("example metric from batch for " +
-                                 metrics[aggregator_value]["observations"][0]["target"] + ": " +
-                                 str(metrics[aggregator_value]["metrics"][0]))
+                                 metrics_aggregator_value["observations"][0]["target"] + ": " +
+                                 str(metrics_aggregator_value["metrics"][0]))
 
             # For this aggregator, compute outliers and document that have been detected like outliers
             # but are whitelisted
-            list_outliers, list_documents_need_to_be_removed = self._evaluate_aggregator_for_batch(metrics,
-                                                                                                   aggregator_value,
-                                                                                                   decision_frontier)
+            list_outliers, list_documents_need_to_be_removed = self._evaluate_each_aggregator_value_for_outliers(
+                metrics_aggregator_value, decision_frontier)
+
             # If some document need to be removed
             if len(list_documents_need_to_be_removed) > 0:
-                # Add all value from this aggregator to the list of document that need to be recompute
-                document_need_to_be_recompute[aggregator_value] = metrics[aggregator_value]
-
-                # Remove whitelist document from this "recompute" list
+                # Remove whitelist document from the list that we need to compute
                 # Note: Browse the list of documents that need to be removed in reverse order
                 # To remove first the biggest index and avoid a shift (if we remove index 0, all values must be
                 # decrease by one)
                 for index in list_documents_need_to_be_removed[::-1]:
-                    MetricsAnalyzer.remove_metric_from_batch(document_need_to_be_recompute, aggregator_value, index)
+                    MetricsAnalyzer.remove_metric_from_batch(metrics_aggregator_value, index)
 
             # If this aggregator value don't need to be recompute, save outliers
             else:
                 outliers += list_outliers
 
-        return outliers, not_enough_value, document_need_to_be_recompute
+        return outliers, enough_value, metrics_aggregator_value
 
-    def _evaluate_aggregator_for_batch(self, metrics, aggregator_value, decision_frontier):
+    def _evaluate_each_aggregator_value_for_outliers(self, metrics_aggregator_value, decision_frontier):
         list_outliers = []
         list_documents_need_to_be_removed = []
 
         # Calculate all outliers in array
-        for ii, metric_value in enumerate(metrics[aggregator_value]["metrics"]):
+        for ii, metric_value in enumerate(metrics_aggregator_value["metrics"]):
             is_outlier = helpers.utils.is_outlier(metric_value, decision_frontier,
                                                   self.model_settings["trigger_on"])
 
             if is_outlier:
-                outlier = self._compute_fields_observation_and_create_outlier(metrics, aggregator_value, ii,
+                outlier = self._compute_fields_observation_and_create_outlier(metrics_aggregator_value, ii,
                                                                               decision_frontier, metric_value)
                 if not outlier.is_whitelisted():
                     list_outliers.append(outlier)
@@ -205,21 +226,21 @@ class MetricsAnalyzer(Analyzer):
                     
         return list_outliers, list_documents_need_to_be_removed
 
-    def _compute_fields_observation_and_create_outlier(self, metrics, aggregator_value, ii, decision_frontier,
+    def _compute_fields_observation_and_create_outlier(self, metrics_aggregator_value, ii, decision_frontier,
                                                        metric_value):
         confidence = np.abs(decision_frontier - metric_value)
 
         # Extract fields from raw document
         fields = es.extract_fields_from_document(
-            metrics[aggregator_value]["raw_docs"][ii],
+            metrics_aggregator_value["raw_docs"][ii],
             extract_derived_fields=self.model_settings["use_derived_fields"])
 
-        observations = metrics[aggregator_value]["observations"][ii]
+        observations = metrics_aggregator_value["observations"][ii]
         observations["metric"] = metric_value
         observations["decision_frontier"] = decision_frontier
         observations["confidence"] = confidence
 
-        outlier = self.create_outlier(fields, metrics[aggregator_value]["raw_docs"][ii],
+        outlier = self.create_outlier(fields, metrics_aggregator_value["raw_docs"][ii],
                                       extra_outlier_information=observations, es_process_outlier=False)
         return outlier
 
@@ -238,12 +259,12 @@ class MetricsAnalyzer(Analyzer):
         return eval_metrics_array
 
     @staticmethod
-    def remove_metric_from_batch(eval_metrics_array, aggregator_value, index):
-        eval_metrics_array[aggregator_value]["metrics"].pop(index)
-        eval_metrics_array[aggregator_value]["observations"].pop(index)
-        eval_metrics_array[aggregator_value]["raw_docs"].pop(index)
+    def remove_metric_from_batch(eval_metrics_aggregator_value, index):
+        eval_metrics_aggregator_value["metrics"].pop(index)
+        eval_metrics_aggregator_value["observations"].pop(index)
+        eval_metrics_aggregator_value["raw_docs"].pop(index)
 
-        return eval_metrics_array
+        return eval_metrics_aggregator_value
 
     @staticmethod
     def calculate_metric(metric, value):
