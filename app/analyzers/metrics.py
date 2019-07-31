@@ -61,28 +61,39 @@ class MetricsAnalyzer(Analyzer):
 
                 # If target and aggregator values exist
                 if target_value is not None and aggregator_sentences is not None:
-                    metric, observations = self.calculate_metric(self.model_settings["metric"], target_value)
-
-                    if metric is not None:  # explicitly check for none, since "0" can be OK as a metric!
+                    eval_metrics, metric_added = self._compute_eval_metrics_for_one_doc(doc, eval_metrics, target_value,
+                                                                                        aggregator_sentences)
+                    if metric_added:
                         total_metrics_added += 1
-                        for aggregator_sentence in aggregator_sentences:
-                            flattened_aggregator_sentence = helpers.utils.flatten_sentence(aggregator_sentence)
-                            eval_metrics = self.add_metric_to_batch(eval_metrics, flattened_aggregator_sentence,
-                                                                    target_value, metric, observations, doc)
 
-                # Evaluate batch of events against the model
-                is_last_batch = (logging.current_step == self.total_events)  # Check if it is the last batch
-                # Run if it is the last batch OR if the batch size is large enough
-                if is_last_batch or total_metrics_added >= settings.config.getint("metrics", "metrics_batch_eval_size"):
-                    logging.logger.info("evaluating batch of " + "{:,}".format(total_metrics_added) + " metrics [" +
-                                        "{:,}".format(logging.current_step) + " events processed]")
-                    remaining_metrics = self._evaluate_batch_save_outliers_and_display_logs(eval_metrics, is_last_batch)
+                    # Evaluate batch of events against the model
+                    is_last_batch = (logging.current_step == self.total_events)  # Check if it is the last batch
+                    # Run if it is the last batch OR if the batch size is large enough
+                    if is_last_batch or total_metrics_added >= settings.config.getint("metrics",
+                                                                                      "metrics_batch_eval_size"):
 
-                    # Reset data structures for next batch
-                    eval_metrics = remaining_metrics
-                    total_metrics_added = 0
+                        logging.logger.info("evaluating batch of " + "{:,}".format(total_metrics_added) + " metrics [" +
+                                            "{:,}".format(logging.current_step) + " events processed]")
+                        remaining_metrics = self._evaluate_batch_save_outliers_and_display_logs(eval_metrics,
+                                                                                                is_last_batch)
+
+                        # Reset data structures for next batch
+                        eval_metrics = remaining_metrics
+                        total_metrics_added = 0
 
         self.print_analysis_summary()
+
+    def _compute_eval_metrics_for_one_doc(self, doc, eval_metrics, target_value, aggregator_sentences):
+        metrics_added = False
+        metric, observations = self.calculate_metric(self.model_settings["metric"], target_value)
+
+        if metric is not None:  # explicitly check for none, since "0" can be OK as a metric!
+            metrics_added = True
+            for aggregator_sentence in aggregator_sentences:
+                flattened_aggregator_sentence = helpers.utils.flatten_sentence(aggregator_sentence)
+                eval_metrics = self.add_metric_to_batch(eval_metrics, flattened_aggregator_sentence,
+                                                        target_value, metric, observations, doc)
+        return eval_metrics, metrics_added
 
     def _compute_aggregator_and_target_value(self, doc):
         '''
