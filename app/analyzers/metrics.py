@@ -164,11 +164,10 @@ class MetricsAnalyzer(Analyzer):
         # and that we have remove some documents from the metrics_aggregator_value
         while (first_run or (enough_value and len(list_documents_need_to_be_removed) > 0)) and \
                 len(metrics_aggregator_value["metrics"]) > 0:
-            first_run = False
-
             if not first_run:
                 logging.logger.debug("run again computation for " + str(aggregator_value) + " because " +
                                      str(len(list_documents_need_to_be_removed)) + " documents have been removed")
+            first_run = False
 
             # Check if we have sufficient data, meaning at least MIN_EVALUATE_BATCH metrics. If not, stop the loop.
             # Else, evaluate for outliers.
