@@ -184,7 +184,7 @@ class Analyzer(abc.ABC):
         logging.logger.info("===== " + event_type + " [" + self.model_type + " model] ===")
         logging.logger.info("analyzing " + "{:,}".format(total_events) + " events")
         logging.logger.info(self.get_time_window_info(history_days=self.model_settings["history_window_days"],
-                                                      history_hours=self.model_settings["history_window_days"]))
+                                                      history_hours=self.model_settings["history_window_hours"]))
 
         if total_events == 0:
             logging.logger.warning("no events to analyze!")
