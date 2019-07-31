@@ -165,8 +165,8 @@ class TermsAnalyzer(Analyzer):
 
         if len(outliers) > 0:
             unique_summaries = len(set(o.outlier_dict["summary"] for o in outliers))
-            logging.logger.info("total outliers in batch processed: " + str(len(outliers)) + " [" +
-                                str(unique_summaries) + " unique summaries]")
+            logging.logger.info("total outliers in batch processed: " + "{:,}".format(len(outliers)) + " [" +
+                                "{:,}".format(unique_summaries) + " unique summaries]")
             outlier_batches_trend += 1
         else:
             logging.logger.info("no outliers detected in batch")
