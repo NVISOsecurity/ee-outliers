@@ -96,51 +96,46 @@ class TermsAnalyzer(Analyzer):
                 target_sentences, aggregator_sentences = self._compute_aggregator_and_target_value(doc, target)
 
                 if target_sentences is not None and aggregator_sentences is not None:
-                    observations = dict()
-
-                    if brute_force:
-                        observations["brute_forced_field"] = self.model_settings["brute_forced_field"]
-
-                    for target_sentence in target_sentences:
-                        flattened_target_sentence = helpers.utils.flatten_sentence(target_sentence)
-
-                        for aggregator_sentence in aggregator_sentences:
-                            flattened_aggregator_sentence = helpers.utils.flatten_sentence(aggregator_sentence)
-                            eval_terms_array = TermsAnalyzer.add_term_to_batch(eval_terms_array,
-                                                                               flattened_aggregator_sentence,
-                                                                               flattened_target_sentence, observations,
-                                                                               doc)
+                    # Add current document to eval_terms_array
+                    eval_terms_array = self._compute_eval_terms_for_one_doc(brute_force, target_sentences,
+                                                                            eval_terms_array, aggregator_sentences, doc)
                     total_terms_added += len(target_sentences)
 
-                # Evaluate batch of events against the model
-                is_last_batch = (logging.current_step == self.total_events)
-                if is_last_batch or total_terms_added >= settings.config.getint("terms", "terms_batch_eval_size"):
-                    logging.logger.info("evaluating batch of " + "{:,}".format(total_terms_added) + " terms")
+                    # Evaluate batch of events against the model
+                    is_last_batch = (logging.current_step == self.total_events)  # Check if it is the last batch
+                    # Run if it is the last batch OR if the batch size is large enough
+                    if is_last_batch or total_terms_added >= settings.config.getint("terms", "terms_batch_eval_size"):
+                        logging.logger.info("evaluating batch of " + "{:,}".format(total_terms_added) + " terms")
 
-                    first_run = True
-                    remaining_terms = []
-                    while first_run or (is_last_batch and len(remaining_terms) > 0):
-                        first_run = False
-                        outlier_batches_trend, remaining_terms = self._run_evaluate_documents(
-                            eval_terms_array=eval_terms_array, is_last_batch=is_last_batch)
+                        # evaluate the current batch. Check if we continue brut force and get the remaining terms
+                        remaining_terms, stop_brut_force, outlier_batches_trend = \
+                            self._evaluate_batch_and_test_brut_force(eval_terms_array, is_last_batch, brute_force,
+                                                                     outlier_batches_trend)
+                        if stop_brut_force:
+                            break
 
                         # Reset data structures for next batch
-                        eval_terms_array = remaining_terms.copy()
-
-                    if brute_force:
-                        if outlier_batches_trend == -3:
-                            logging.logger.info("too many batches without outliers, we are not going to continue " +
-                                                "brute forcing")
-                            break
-
-                        elif outlier_batches_trend == 3:
-                            logging.logger.info("too many batches with outliers, we are not going to continue brute " +
-                                                "forcing")
-                            break
-
-                    total_terms_added = 0
+                        eval_terms_array = remaining_terms
+                        total_terms_added = 0
 
         self.print_analysis_summary()
+
+    def _compute_eval_terms_for_one_doc(self, brute_force, target_sentences, eval_terms_array, aggregator_sentences,
+                                        doc):
+        observations = dict()
+        if brute_force:
+            observations["brute_forced_field"] = self.model_settings["brute_forced_field"]
+
+        for target_sentence in target_sentences:
+            flattened_target_sentence = helpers.utils.flatten_sentence(target_sentence)
+
+            for aggregator_sentence in aggregator_sentences:
+                flattened_aggregator_sentence = helpers.utils.flatten_sentence(aggregator_sentence)
+                eval_terms_array = TermsAnalyzer.add_term_to_batch(eval_terms_array,
+                                                                   flattened_aggregator_sentence,
+                                                                   flattened_target_sentence, observations,
+                                                                   doc)
+        return eval_terms_array
 
     def _compute_aggregator_and_target_value(self, doc, target):
         fields = es.extract_fields_from_document(doc, extract_derived_fields=self.model_settings["use_derived_fields"])
@@ -154,10 +149,28 @@ class TermsAnalyzer(Analyzer):
             return None, None
         return target_sentences, aggregator_sentences
 
-    def _run_evaluate_documents(self, eval_terms_array, is_last_batch):
-        outlier_batches_trend = 0
+    def _evaluate_batch_and_test_brut_force(self, eval_terms_array, is_last_batch, brute_force, outlier_batches_trend):
+        stop_brut_force = False
+        new_outlier_batches_trend, remaining_terms = self._run_evaluate_documents(eval_terms_array=eval_terms_array,
+                                                                                  is_last_batch=is_last_batch)
+        outlier_batches_trend += new_outlier_batches_trend
 
-        outliers, remaining_terms = self.evaluate_batch_for_outliers(terms=eval_terms_array, is_last_batch=is_last_batch)
+        if brute_force:
+            if outlier_batches_trend == -3:
+                logging.logger.info("too many batches without outliers, we are not going to continue " +
+                                    "brute forcing")
+                stop_brut_force = True
+
+            elif outlier_batches_trend == 3:
+                logging.logger.info("too many batches with outliers, we are not going to continue " +
+                                    "brute forcing")
+                stop_brut_force = True
+
+        return remaining_terms, stop_brut_force, outlier_batches_trend
+
+    def _run_evaluate_documents(self, eval_terms_array, is_last_batch):
+        outliers, remaining_terms = self.evaluate_batch_for_outliers(terms=eval_terms_array,
+                                                                     is_last_batch=is_last_batch)
 
         # For each result, save it in batch and in ES
         for outlier in outliers:
@@ -167,10 +180,10 @@ class TermsAnalyzer(Analyzer):
             unique_summaries = len(set(o.outlier_dict["summary"] for o in outliers))
             logging.logger.info("total outliers in batch processed: " + str(len(outliers)) + " [" +
                                 str(unique_summaries) + " unique summaries]")
-            outlier_batches_trend += 1
+            outlier_batches_trend = 1
         else:
             logging.logger.info("no outliers detected in batch")
-            outlier_batches_trend -= 1
+            outlier_batches_trend = -1
 
         return outlier_batches_trend, remaining_terms
 
@@ -239,11 +252,46 @@ class TermsAnalyzer(Analyzer):
         return list(), list()
 
     def _evaluate_batch_for_outliers_across_aggregators(self, terms):
-        # Initialize
-        outliers = defaultdict(list)
-        remaining_terms = terms.copy()
-        documents_need_to_be_removed = defaultdict(list)
+        # List of document (per aggregator) that aren't outlier (to help user to see non match results)
+        non_outlier_values = defaultdict(list)
+        outliers = defaultdict(list)  # List outliers (per aggregator
+        first_run = True
+        at_least_one_whitelisted_element_detected = False
 
+        while first_run or at_least_one_whitelisted_element_detected:
+            at_least_one_whitelisted_element_detected = False
+            first_run = False
+
+            unique_target_counts_across_aggregators, decision_frontier = \
+                self._compute_count_across_aggregators_and_decision_frontier(terms)
+
+            logging.logger.debug("using " + self.model_settings["trigger_method"] + " decision frontier " +
+                                 str(decision_frontier) + " across all aggregators")
+
+            # loop 0: {i=0, aggregator_value = "smsc.exe"}, loop 1: {i=1, aggregator_value = "abc.exe"},
+            for i, aggregator_value in enumerate(terms):
+                unique_target_count_across_aggregators = unique_target_counts_across_aggregators[i]
+                list_outliers, list_documents_need_to_be_removed = self._evaluate_aggregator_for_outliers(
+                    terms, aggregator_value, unique_target_count_across_aggregators, decision_frontier,
+                    non_outlier_values[aggregator_value])
+
+                # If some documents need to be removed
+                if len(list_documents_need_to_be_removed) > 0:
+                    at_least_one_whitelisted_element_detected = True
+                    logging.logger.info(
+                        "removing " + "{:,}".format((len(list_documents_need_to_be_removed))) +
+                        " whitelisted documents from the batch for aggregator " + str(aggregator_value))
+
+                    # browse the list in reverse order (to remove first biggest index)
+                    for index in list_documents_need_to_be_removed[::-1]:
+                        TermsAnalyzer.remove_term_from_batch(terms, aggregator_value, index)
+                else:
+                    outliers[aggregator_value] += list_outliers
+
+        # All outliers and no remaining terms
+        return [outlier for list_outliers in outliers.values() for outlier in list_outliers], {}
+
+    def _compute_count_across_aggregators_and_decision_frontier(self, terms):
         unique_target_counts_across_aggregators = list()
 
         # loop 0: {i=0, aggregator_value = "smsc.exe"}, loop 1: {i=1, aggregator_value = "abc.exe"},
@@ -259,46 +307,44 @@ class TermsAnalyzer(Analyzer):
                                                                 unique_target_counts_across_aggregators,
                                                                 self.model_settings["trigger_sensitivity"],
                                                                 self.model_settings["trigger_on"])
-        logging.logger.debug("using " + self.model_settings["trigger_method"] + " decision frontier " +
-                             str(decision_frontier) + " across all aggregators")
+        return unique_target_counts_across_aggregators, decision_frontier
 
-        non_outlier_values = set()
+    def _mark_across_aggregator_document_as_outliers(self, terms, aggregator_value,
+                                                     unique_target_count_across_aggregators, decision_frontier,
+                                                     non_outlier_values):
+        list_outliers = list()
+        list_documents_need_to_be_removed = list()
 
-        # loop 0: {i=0, aggregator_value = "smsc.exe"}, loop 1: {i=1, aggregator_value = "abc.exe"},
-        for i, aggregator_value in enumerate(terms):
-            unique_target_count_across_aggregators = unique_target_counts_across_aggregators[i]
-            logging.logger.debug("unique target count for aggregator " + str(aggregator_value) + ": " +
-                                 str(unique_target_count_across_aggregators) + " - decision frontier " +
-                                 str(decision_frontier))
-            is_outlier = helpers.utils.is_outlier(unique_target_count_across_aggregators, decision_frontier,
-                                                  self.model_settings["trigger_on"])
-
-            if is_outlier:
-                for ii, term_value in enumerate(terms[aggregator_value]["targets"]):
-                    outlier = self._create_outlier(non_outlier_values, unique_target_count_across_aggregators,
-                                                   aggregator_value, term_value, decision_frontier, terms, ii)
-                    if not outlier.is_whitelisted():
-                        outliers[aggregator_value].append(outlier)
-                    else:
-                        documents_need_to_be_removed[aggregator_value].append(ii)
+        for ii, term_value in enumerate(terms[aggregator_value]["targets"]):
+            outlier = self._create_outlier(non_outlier_values, unique_target_count_across_aggregators,
+                                           aggregator_value, term_value, decision_frontier, terms, ii)
+            if not outlier.is_whitelisted():
+                list_outliers.append(outlier)
             else:
-                for _, term_value in enumerate(terms[aggregator_value]["targets"]):
-                    non_outlier_values.add(term_value)
+                list_documents_need_to_be_removed.append(ii)
 
-            # If no document should be deleted, so there is no need to process it anymore:
-            if aggregator_value not in documents_need_to_be_removed:
-                del remaining_terms[aggregator_value]
-            else:
-                logging.logger.info("removing " + "{:,}".format((len(documents_need_to_be_removed[aggregator_value]))) +
-                                    " whitelisted documents from the batch for aggregator " + str(aggregator_value))
+        return list_outliers, list_documents_need_to_be_removed
 
-                # browse the list in reverse order (to remove first biggest index)
-                for index in documents_need_to_be_removed[aggregator_value][::-1]:
-                    TermsAnalyzer.remove_term_from_batch(remaining_terms, aggregator_value, index)
-                if aggregator_value in outliers:
-                    del outliers[aggregator_value]
+    def _evaluate_aggregator_for_outliers(self, terms, aggregator_value, unique_target_count_across_aggregators,
+                                          decision_frontier, non_outlier_values):
+        # Init
+        list_outliers = []
+        list_documents_need_to_be_removed = []
 
-        return [outlier for list_outliers in outliers.values() for outlier in list_outliers], remaining_terms
+        logging.logger.debug("unique target count for aggregator " + str(aggregator_value) + ": " +
+                             str(unique_target_count_across_aggregators) + " - decision frontier " +
+                             str(decision_frontier))
+        # Check if current aggregator is outlier
+        is_outlier = helpers.utils.is_outlier(unique_target_count_across_aggregators, decision_frontier,
+                                              self.model_settings["trigger_on"])
+
+        if is_outlier:
+            list_outliers, list_documents_need_to_be_removed = self._mark_across_aggregator_document_as_outliers(
+                terms, aggregator_value, unique_target_count_across_aggregators, decision_frontier, non_outlier_values)
+        else:
+            non_outlier_values += terms[aggregator_value]["targets"]
+
+        return list_outliers, list_documents_need_to_be_removed
 
     def _evaluate_batch_for_outliers_within_aggregator(self, terms, is_last_batch):
         # Initialize
