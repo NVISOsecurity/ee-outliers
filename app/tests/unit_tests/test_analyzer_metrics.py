@@ -434,7 +434,7 @@ class TestMetricsAnalyzer(unittest.TestCase):
 
         result = analyzer._evaluate_batch_for_outliers(metrics, False)
         # outliers, not_enough_value, document_need_to_be_recompute
-        self.assertEqual(result, ([], metrics, {}))
+        self.assertEqual(result, ([], metrics))
 
     def test_evaluate_batch_for_outliers_add_outlier(self):
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/metrics_test_02.conf")
@@ -446,7 +446,7 @@ class TestMetricsAnalyzer(unittest.TestCase):
         metrics = MetricsAnalyzer.add_metric_to_batch(eval_metrics_array, aggregator_value, target_value, metrics_value,
                                                       observations, doc_without_outlier)
 
-        outliers, not_enough_value, document_need_to_be_recompute = analyzer._evaluate_batch_for_outliers(metrics, True)
+        outliers, remaining_metrics = analyzer._evaluate_batch_for_outliers(metrics, True)
         analyzer.save_outlier_to_es(outliers[0])
         result = [elem for elem in es.scan()][0]
         doc_with_outlier = copy.deepcopy(doc_with_outlier_test_file)
