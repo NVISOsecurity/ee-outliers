@@ -279,6 +279,7 @@ class TermsAnalyzer(Analyzer):
                                                    aggregator_value, term_value, decision_frontier, terms, ii)
                     if not outlier.is_whitelisted():
                         outliers[aggregator_value].append(outlier)
+                        self.nbr_whitelisted_elements += 1
                     else:
                         documents_need_to_be_removed[aggregator_value].append(ii)
             else:
@@ -346,6 +347,7 @@ class TermsAnalyzer(Analyzer):
                                                        term_value, decision_frontier, terms, ii)
                         if not outlier.is_whitelisted():
                             new_outliers.append(outlier)
+                            self.nbr_whitelisted_elements += 1
                         else:
                             documents_need_to_be_removed[aggregator_value].append(ii)
 
@@ -365,6 +367,7 @@ class TermsAnalyzer(Analyzer):
                                                        term_value, decision_frontier, terms, ii)
                         if not outlier.is_whitelisted():
                             outliers[aggregator_value].append(outlier)
+                            self.nbr_whitelisted_elements += 1
                         else:
                             documents_need_to_be_removed[aggregator_value].append(ii)
 

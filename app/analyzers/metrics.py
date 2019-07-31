@@ -221,6 +221,7 @@ class MetricsAnalyzer(Analyzer):
                                                                               decision_frontier, metric_value)
                 if not outlier.is_whitelisted():
                     list_outliers.append(outlier)
+                    self.nbr_whitelisted_elements += 1
                 else:
                     list_documents_need_to_be_removed.append(ii)
                     
