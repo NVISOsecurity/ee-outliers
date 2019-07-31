@@ -131,8 +131,8 @@ class Analyzer(abc.ABC):
         if len(self.outliers) > 0:
             unique_summaries = len(set(o.outlier_dict["summary"] for o in self.outliers))
             message = "total outliers processed for use case: " + str(len(self.outliers)) + " [" + \
-                      str(unique_summaries)+ " unique summaries]"
-            if self.nbr_whitelisted_elements:
+                      str(unique_summaries) + " unique summaries]"
+            if self.nbr_whitelisted_elements > 0:
                 message += " - ignored " + str(self.nbr_whitelisted_elements) + " whitelisted outliers"
             logging.logger.info(message)
         else:
