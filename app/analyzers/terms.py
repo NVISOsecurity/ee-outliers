@@ -165,8 +165,8 @@ class TermsAnalyzer(Analyzer):
 
         if len(outliers) > 0:
             unique_summaries = len(set(o.outlier_dict["summary"] for o in outliers))
-            logging.logger.info("total outliers in batch processed: " + str(len(outliers)) + " [" +
-                                str(unique_summaries) + " unique summaries]")
+            logging.logger.info("total outliers in batch processed: " + "{:,}".format(len(outliers)) + " [" +
+                                "{:,}".format(unique_summaries) + " unique summaries]")
             outlier_batches_trend += 1
         else:
             logging.logger.info("no outliers detected in batch")
@@ -280,6 +280,7 @@ class TermsAnalyzer(Analyzer):
                     if not outlier.is_whitelisted():
                         outliers[aggregator_value].append(outlier)
                     else:
+                        self.nr_whitelisted_elements += 1
                         documents_need_to_be_removed[aggregator_value].append(ii)
             else:
                 for _, term_value in enumerate(terms[aggregator_value]["targets"]):
@@ -347,6 +348,7 @@ class TermsAnalyzer(Analyzer):
                         if not outlier.is_whitelisted():
                             new_outliers.append(outlier)
                         else:
+                            self.nr_whitelisted_elements += 1
                             documents_need_to_be_removed[aggregator_value].append(ii)
 
                     # If all document aren't whitelist
@@ -366,6 +368,7 @@ class TermsAnalyzer(Analyzer):
                         if not outlier.is_whitelisted():
                             outliers[aggregator_value].append(outlier)
                         else:
+                            self.nr_whitelisted_elements += 1
                             documents_need_to_be_removed[aggregator_value].append(ii)
 
                     else:
@@ -375,9 +378,9 @@ class TermsAnalyzer(Analyzer):
                 del remaining_terms[aggregator_value]
             else:
                 if documents_need_to_be_removed[aggregator_value]:
-                    logging.logger.info("removing " +
-                                        "{:,}".format((len(documents_need_to_be_removed[aggregator_value]))) +
-                                        " whitelisted documents from the batch for aggregator " + str(aggregator_value))
+                    logging.logger.debug("removing {:,}".format((len(documents_need_to_be_removed[aggregator_value]))) +
+                                         " whitelisted documents from the batch for aggregator " +
+                                         str(aggregator_value))
 
                 # browse the list in reverse order (to remove first biggest index)
                 for index in documents_need_to_be_removed[aggregator_value][::-1]:
