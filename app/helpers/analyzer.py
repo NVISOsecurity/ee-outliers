@@ -28,7 +28,7 @@ class Analyzer(abc.ABC):
         self.unknown_error_analysis = False
 
         self.outliers = list()
-        self.nb_whitelisted_elements = 0
+        self.nr_whitelisted_elements = 0
 
         # extract all settings for this use case
         self.configuration_parsing_error = False
@@ -132,8 +132,8 @@ class Analyzer(abc.ABC):
             unique_summaries = len(set(o.outlier_dict["summary"] for o in self.outliers))
             message = "total outliers processed for use case: " + str(len(self.outliers)) + " [" + \
                       str(unique_summaries) + " unique summaries]"
-            if self.nb_whitelisted_elements > 0:
-                message += " - ignored " + str(self.nb_whitelisted_elements) + " whitelisted outliers"
+            if self.nr_whitelisted_elements > 0:
+                message += " - ignored " + str(self.nr_whitelisted_elements) + " whitelisted outliers"
             logging.logger.info(message)
         else:
             logging.logger.info("no outliers detected for use case")

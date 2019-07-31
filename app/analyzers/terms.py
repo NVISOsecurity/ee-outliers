@@ -280,7 +280,7 @@ class TermsAnalyzer(Analyzer):
                     if not outlier.is_whitelisted():
                         outliers[aggregator_value].append(outlier)
                     else:
-                        self.nb_whitelisted_elements += 1
+                        self.nr_whitelisted_elements += 1
                         documents_need_to_be_removed[aggregator_value].append(ii)
             else:
                 for _, term_value in enumerate(terms[aggregator_value]["targets"]):
@@ -348,7 +348,7 @@ class TermsAnalyzer(Analyzer):
                         if not outlier.is_whitelisted():
                             new_outliers.append(outlier)
                         else:
-                            self.nb_whitelisted_elements += 1
+                            self.nr_whitelisted_elements += 1
                             documents_need_to_be_removed[aggregator_value].append(ii)
 
                     # If all document aren't whitelist
@@ -368,7 +368,7 @@ class TermsAnalyzer(Analyzer):
                         if not outlier.is_whitelisted():
                             outliers[aggregator_value].append(outlier)
                         else:
-                            self.nb_whitelisted_elements += 1
+                            self.nr_whitelisted_elements += 1
                             documents_need_to_be_removed[aggregator_value].append(ii)
 
                     else:
