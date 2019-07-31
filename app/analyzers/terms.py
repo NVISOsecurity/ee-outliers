@@ -16,6 +16,55 @@ from typing import DefaultDict, Optional, Dict
 
 class TermsAnalyzer(Analyzer):
 
+    def _extract_additional_model_settings(self):
+        """
+        Override method from Analyzer
+        """
+        try:
+            self.model_settings["process_documents_chronologically"] = settings.config.getboolean(
+                self.config_section_name, "process_documents_chronologically")
+        except NoOptionError:
+            self.model_settings["process_documents_chronologically"] = True
+
+        # remove unnecessary whitespace, split fields
+        self.model_settings["target"] = settings.config.get(self.config_section_name,
+                                                            "target").replace(' ', '').split(",")
+
+        self.model_settings["brute_force_target"] = "*" in self.model_settings["target"]
+
+        # remove unnecessary whitespace, split fields
+        self.model_settings["aggregator"] = settings.config.get(self.config_section_name,
+                                                                "aggregator").replace(' ', '').split(",")
+
+        self.model_settings["trigger_on"] = settings.config.get(self.config_section_name, "trigger_on")
+        self.model_settings["trigger_method"] = settings.config.get(self.config_section_name, "trigger_method")
+        self.model_settings["trigger_sensitivity"] = settings.config.getfloat(self.config_section_name,
+                                                                              "trigger_sensitivity")
+
+        self.model_settings["target_count_method"] = settings.config.get(self.config_section_name,
+                                                                         "target_count_method")
+
+        try:
+            self.model_settings["min_target_buckets"] = settings.config.getint(self.config_section_name,
+                                                                               "min_target_buckets")
+            if self.model_settings["target_count_method"] != "within_aggregator":
+                logging.logger.warning("'min_target_buckets' is only useful when 'target_count_method' is set " +
+                                       "to 'within_aggregator'")
+        except NoOptionError:
+            self.model_settings["min_target_buckets"] = None
+
+        # Validate model settings
+        if self.model_settings["target_count_method"] not in {"within_aggregator", "across_aggregators"}:
+            raise ValueError("target count method " + self.model_settings["target_count_method"] + " not supported")
+
+        if self.model_settings["trigger_on"] not in {"high", "low"}:
+            raise ValueError("Unexpected outlier trigger condition " + str(self.model_settings["trigger_on"]))
+
+        if self.model_settings["trigger_method"] not in {"percentile", "pct_of_max_value", "pct_of_median_value",
+                                                         "pct_of_avg_value", "mad", "madpos", "stdev", "float",
+                                                         "coeff_of_variation"}:
+            raise ValueError("Unexpected outlier trigger method " + str(self.model_settings["trigger_method"]))
+
     def evaluate_model(self) -> None:
         if self.model_settings["brute_force_target"]:
             logging.logger.warning("running terms model in brute force mode, could take a long time!")
@@ -49,22 +98,9 @@ class TermsAnalyzer(Analyzer):
             outlier_batches_trend: int = 0
             for doc in es.scan(index=self.es_index, search_query=search_query, model_settings=self.model_settings):
                 logging.tick()
-                fields: Dict = es.extract_fields_from_document(
-                    doc, extract_derived_fields=self.model_settings["use_derived_fields"])
+                target_sentences, aggregator_sentences = self._compute_aggregator_and_target_value(doc, target)
 
-                will_process_doc: bool
-                try:
-                    target_sentences: List[List] = helpers.utils.flatten_fields_into_sentences(fields=fields,
-                                                                                               sentence_format=target)
-                    aggregator_sentences: List[List] = helpers.utils.flatten_fields_into_sentences(
-                        fields=fields, sentence_format=self.model_settings["aggregator"])
-                    will_process_doc = True
-                except (KeyError, TypeError):
-                    logging.logger.debug("Skipping event which does not contain the target and aggregator " +
-                                         "fields we are processing. - [" + self.model_name + "]")
-                    will_process_doc = False
-
-                if will_process_doc:
+                if target_sentences is not None and aggregator_sentences is not None:
                     observations: Dict[str, Any] = dict()
 
                     if brute_force:
@@ -88,7 +124,7 @@ class TermsAnalyzer(Analyzer):
                     logging.logger.info("evaluating batch of " + "{:,}".format(total_terms_added) + " terms")
 
                     first_run = True
-                    remaining_terms = []
+                    remaining_terms: DefaultDict = defaultdict()
                     while first_run or (is_last_batch and len(remaining_terms) > 0):
                         first_run = False
                         outlier_batches_trend, remaining_terms = self._run_evaluate_documents(
@@ -112,10 +148,23 @@ class TermsAnalyzer(Analyzer):
 
         self.print_analysis_summary()
 
-    def _run_evaluate_documents(self, eval_terms_array, is_last_batch) -> Tuple[int]:
+    def _compute_aggregator_and_target_value(self, doc: Dict[str, Any], target: List) -> Tuple:
+        fields = es.extract_fields_from_document(doc, extract_derived_fields=self.model_settings["use_derived_fields"])
+        try:
+            target_sentences = helpers.utils.flatten_fields_into_sentences(fields=fields, sentence_format=target)
+            aggregator_sentences = helpers.utils.flatten_fields_into_sentences(
+                fields=fields, sentence_format=self.model_settings["aggregator"])
+        except (KeyError, TypeError):
+            logging.logger.debug("Skipping event which does not contain the target and aggregator " +
+                                 "fields we are processing. - [" + self.model_name + "]")
+            return None, None
+        return target_sentences, aggregator_sentences
+
+    def _run_evaluate_documents(self, eval_terms_array: DefaultDict, is_last_batch: bool) -> Tuple[int, DefaultDict]:
         outlier_batches_trend: int = 0
 
-        outliers, remaining_terms = self.evaluate_batch_for_outliers(terms=eval_terms_array, is_last_batch=is_last_batch)
+        outliers, remaining_terms = self.evaluate_batch_for_outliers(terms=eval_terms_array,
+                                                                     is_last_batch=is_last_batch)
 
         # For each result, save it in batch and in ES
         for outlier in outliers:
@@ -170,56 +219,8 @@ class TermsAnalyzer(Analyzer):
         logging.logger.info("going to brute force " + str(len(field_names_to_brute_force)) + " fields")
         return field_names_to_brute_force
 
-    def _extract_additional_model_settings(self) -> None:
-        """
-        Override method from Analyzer
-        """
-        try:
-            self.model_settings["process_documents_chronologically"] = settings.config.getboolean(
-                self.config_section_name, "process_documents_chronologically")
-        except NoOptionError:
-            self.model_settings["process_documents_chronologically"] = True
-
-        # remove unnecessary whitespace, split fields
-        self.model_settings["target"] = settings.config.get(self.config_section_name,
-                                                            "target").replace(' ', '').split(",")
-
-        self.model_settings["brute_force_target"] = "*" in self.model_settings["target"]
-
-        # remove unnecessary whitespace, split fields
-        self.model_settings["aggregator"] = settings.config.get(self.config_section_name,
-                                                                "aggregator").replace(' ', '').split(",")
-
-        self.model_settings["trigger_on"] = settings.config.get(self.config_section_name, "trigger_on")
-        self.model_settings["trigger_method"] = settings.config.get(self.config_section_name, "trigger_method")
-        self.model_settings["trigger_sensitivity"] = settings.config.getfloat(self.config_section_name,
-                                                                              "trigger_sensitivity")
-
-        self.model_settings["target_count_method"] = settings.config.get(self.config_section_name,
-                                                                         "target_count_method")
-
-        try:
-            self.model_settings["min_target_buckets"] = settings.config.getint(self.config_section_name,
-                                                                               "min_target_buckets")
-            if self.model_settings["target_count_method"] != "within_aggregator":
-                logging.logger.warning("'min_target_buckets' is only useful when 'target_count_method' is set " +
-                                       "to 'within_aggregator'")
-        except NoOptionError:
-            self.model_settings["min_target_buckets"] = None
-
-        # Validate model settings
-        if self.model_settings["target_count_method"] not in {"within_aggregator", "across_aggregators"}:
-            raise ValueError("target count method " + self.model_settings["target_count_method"] + " not supported")
-
-        if self.model_settings["trigger_on"] not in {"high", "low"}:
-            raise ValueError("Unexpected outlier trigger condition " + str(self.model_settings["trigger_on"]))
-
-        if self.model_settings["trigger_method"] not in {"percentile", "pct_of_max_value", "pct_of_median_value",
-                                                         "pct_of_avg_value", "mad", "madpos", "stdev", "float",
-                                                         "coeff_of_variation"}:
-            raise ValueError("Unexpected outlier trigger method " + str(self.model_settings["trigger_method"]))
-
-    def evaluate_batch_for_outliers(self, is_last_batch: bool, terms: DefaultDict = None) -> Tuple[List[Outlier], Dict]:
+    def evaluate_batch_for_outliers(self, is_last_batch: bool,
+                                    terms: DefaultDict = None) -> Tuple[List[Outlier], DefaultDict]:
         # In case we want to count terms across different aggregators, we need to first iterate over all aggregators
         # and calculate the total number of unique terms for each aggregated value.
         # For example:
@@ -243,12 +244,12 @@ class TermsAnalyzer(Analyzer):
         elif self.model_settings["target_count_method"] == "within_aggregator":
             return self._evaluate_batch_for_outliers_within_aggregator(terms, is_last_batch)
 
-        return list(), dict()
+        return list(), defaultdict()
 
-    def _evaluate_batch_for_outliers_across_aggregators(self, terms: DefaultDict) -> Tuple[List[Outlier], Dict]:
+    def _evaluate_batch_for_outliers_across_aggregators(self, terms: DefaultDict) -> Tuple[List[Outlier], DefaultDict]:
         # Initialize
         outliers: DefaultDict[str, List[Outlier]] = defaultdict(list)
-        remaining_terms: Dict = terms.copy()
+        remaining_terms: DefaultDict = terms.copy()
         documents_need_to_be_removed: DefaultDict[str, List[int]] = defaultdict(list)
 
         unique_target_counts_across_aggregators: List[int] = list()
@@ -295,7 +296,8 @@ class TermsAnalyzer(Analyzer):
             if aggregator_value not in documents_need_to_be_removed:
                 del remaining_terms[aggregator_value]
             else:
-                logging.logger.info("removing " + "{:,}".format((len(documents_need_to_be_removed[aggregator_value]))) + " whitelisted documents from the batch for aggregator " + str(aggregator_value))
+                logging.logger.info("removing " + "{:,}".format((len(documents_need_to_be_removed[aggregator_value]))) +
+                                    " whitelisted documents from the batch for aggregator " + str(aggregator_value))
 
                 # browse the list in reverse order (to remove first biggest index)
                 for index in documents_need_to_be_removed[aggregator_value][::-1]:
@@ -305,11 +307,11 @@ class TermsAnalyzer(Analyzer):
 
         return [outlier for list_outliers in outliers.values() for outlier in list_outliers], remaining_terms
 
-    def _evaluate_batch_for_outliers_within_aggregator(self, terms, is_last_batch) -> Tuple[List[Outlier], Dict]:
+    def _evaluate_batch_for_outliers_within_aggregator(self, terms, is_last_batch) -> Tuple[List[Outlier], DefaultDict]:
         # Initialize
-        outliers = defaultdict(list)
-        remaining_terms = terms.copy()
-        documents_need_to_be_removed = defaultdict(list)
+        outliers: DefaultDict = defaultdict(list)
+        remaining_terms: DefaultDict = terms.copy()
+        documents_need_to_be_removed: DefaultDict = defaultdict(list)
 
         for i, aggregator_value in enumerate(terms):
             # Count percentage of each target value occurring
@@ -379,7 +381,9 @@ class TermsAnalyzer(Analyzer):
                 del remaining_terms[aggregator_value]
             else:
                 if documents_need_to_be_removed[aggregator_value]:
-                    logging.logger.info("removing " + "{:,}".format((len(documents_need_to_be_removed[aggregator_value]))) + " whitelisted documents from the batch for aggregator " + str(aggregator_value))
+                    logging.logger.info("removing " +
+                                        "{:,}".format((len(documents_need_to_be_removed[aggregator_value]))) +
+                                        " whitelisted documents from the batch for aggregator " + str(aggregator_value))
 
                 # browse the list in reverse order (to remove first biggest index)
                 for index in documents_need_to_be_removed[aggregator_value][::-1]:
@@ -412,8 +416,8 @@ class TermsAnalyzer(Analyzer):
                                    es_process_outlier=False)
 
     @staticmethod
-    def add_term_to_batch(eval_terms_array: DefaultDict[str, Any], aggregator_value: Optional[str], target_value: Optional[str],
-                          observations: Dict, doc: Dict) -> DefaultDict:
+    def add_term_to_batch(eval_terms_array: DefaultDict[str, Any], aggregator_value: Optional[str],
+                          target_value: Optional[str], observations: Dict, doc: Dict) -> DefaultDict:
         if aggregator_value not in eval_terms_array.keys():
             eval_terms_array[aggregator_value] = defaultdict(list)
 
