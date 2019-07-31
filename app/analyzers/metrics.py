@@ -69,6 +69,7 @@ class MetricsAnalyzer(Analyzer):
                     remaining_metrics: DefaultDict = defaultdict()
                     while first_run or (is_last_batch and len(remaining_metrics) > 0):
                         first_run = False
+
                         remaining_metrics = self._run_evaluate_documents(eval_metrics, is_last_batch)
 
                         # Reset data structures for next batch
@@ -175,11 +176,15 @@ class MetricsAnalyzer(Analyzer):
                     else:
                         documents_need_to_be_removed[aggregator_value].append(ii)
 
+            if documents_need_to_be_removed[aggregator_value]:
+                logging.logger.info("removing " + str(len(documents_need_to_be_removed[aggregator_value])) + " whitelisted documents from the batch for aggregator " + str(aggregator_value))
+
             # If no document should be deleted, so there is no need to process it anymore:
             if aggregator_value not in documents_need_to_be_removed:
                 del remaining_metrics[aggregator_value]
             else:
-                for index in documents_need_to_be_removed[aggregator_value]:
+                # browse the list in reverse order (to remove first biggest index)
+                for index in documents_need_to_be_removed[aggregator_value][::-1]:
                     MetricsAnalyzer.remove_metric_from_batch(remaining_metrics, aggregator_value, index)
                 if aggregator_value in outliers:
                     del outliers[aggregator_value]

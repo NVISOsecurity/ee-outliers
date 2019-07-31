@@ -153,10 +153,10 @@ class ES:
 
         idx: str = self.settings.config.get("general", "es_index_pattern")
         total_nr_outliers: int = self.count_documents(index=idx, bool_clause=outliers_filter_query)
-        self.logging.logger.info("going to analyze %s outliers and remove all whitelisted items", "{:,}"
-                                 .format(total_nr_outliers))
 
         if total_nr_outliers > 0:
+            self.logging.logger.info("going to analyze %s outliers and remove all whitelisted items", "{:,}"
+                                     .format(total_nr_outliers))
             start_time = dt.datetime.today().timestamp()
 
             for doc in self.scan(index=idx, bool_clause=outliers_filter_query):
