@@ -278,9 +278,8 @@ class TermsAnalyzer(Analyzer):
                 # If some documents need to be removed
                 if len(list_documents_need_to_be_removed) > 0:
                     at_least_one_whitelisted_element_detected = True
-                    logging.logger.info(
-                        "removing " + "{:,}".format((len(list_documents_need_to_be_removed))) +
-                        " whitelisted documents from the batch for aggregator " + str(aggregator_value))
+                    logging.logger.debug("removing " + "{:,}".format((len(list_documents_need_to_be_removed))) +
+                                         " whitelisted documents from the batch for aggregator " + str(aggregator_value))
 
                     # browse the list in reverse order (to remove first biggest index)
                     for index in list_documents_need_to_be_removed[::-1]:
@@ -319,6 +318,7 @@ class TermsAnalyzer(Analyzer):
             outlier = self._create_outlier(non_outlier_values, unique_target_count_across_aggregators,
                                            aggregator_value, term_value, decision_frontier, terms, ii)
             if not outlier.is_whitelisted():
+                self.nbr_whitelisted_element += 1
                 list_outliers.append(outlier)
             else:
                 list_documents_need_to_be_removed.append(ii)
@@ -391,6 +391,7 @@ class TermsAnalyzer(Analyzer):
                         outlier = self._create_outlier(non_outlier_values, term_value_count, aggregator_value,
                                                        term_value, decision_frontier, terms, ii)
                         if not outlier.is_whitelisted():
+                            self.nbr_whitelisted_element += 1
                             new_outliers.append(outlier)
                         else:
                             documents_need_to_be_removed[aggregator_value].append(ii)
@@ -410,6 +411,7 @@ class TermsAnalyzer(Analyzer):
                         outlier = self._create_outlier(non_outlier_values, term_value_count, aggregator_value,
                                                        term_value, decision_frontier, terms, ii)
                         if not outlier.is_whitelisted():
+                            self.nbr_whitelisted_element += 1
                             outliers[aggregator_value].append(outlier)
                         else:
                             documents_need_to_be_removed[aggregator_value].append(ii)
