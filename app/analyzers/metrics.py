@@ -162,7 +162,8 @@ class MetricsAnalyzer(Analyzer):
 
         # Treat this aggregator a first time ("first_run") and continue if there are enough value
         # and that we have remove some documents from the metrics_aggregator_value
-        while first_run or (enough_value and len(list_documents_need_to_be_removed) > 0):
+        while (first_run or (enough_value and len(list_documents_need_to_be_removed) > 0)) and \
+                len(metrics_aggregator_value["metrics"]) > 0:
             first_run = False
 
             if not first_run:
