@@ -61,12 +61,13 @@ class MetricsAnalyzer(Analyzer):
 
                 # If target and aggregator values exist
                 if target_value is not None and aggregator_sentences is not None:
+                    # Add current document to eval_metrics
                     eval_metrics, metric_added = self._compute_eval_metrics_for_one_doc(doc, eval_metrics, target_value,
                                                                                         aggregator_sentences)
+                    # If the current document have been added to the metric
                     if metric_added:
                         total_metrics_added += 1
 
-                    # Evaluate batch of events against the model
                     is_last_batch = (logging.current_step == self.total_events)  # Check if it is the last batch
                     # Run if it is the last batch OR if the batch size is large enough
                     if is_last_batch or total_metrics_added >= settings.config.getint("metrics",
