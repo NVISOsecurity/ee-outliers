@@ -318,7 +318,7 @@ class TermsAnalyzer(Analyzer):
             outlier = self._create_outlier(non_outlier_values, unique_target_count_across_aggregators,
                                            aggregator_value, term_value, decision_frontier, terms, ii)
             if not outlier.is_whitelisted():
-                self.nbr_whitelisted_element += 1
+                self.nbr_whitelisted_elements += 1
                 list_outliers.append(outlier)
             else:
                 list_documents_need_to_be_removed.append(ii)
@@ -393,6 +393,7 @@ class TermsAnalyzer(Analyzer):
                         if not outlier.is_whitelisted():
                             self.nbr_whitelisted_element += 1
                             new_outliers.append(outlier)
+                            self.nbr_whitelisted_elements += 1
                         else:
                             documents_need_to_be_removed[aggregator_value].append(ii)
 
@@ -413,6 +414,7 @@ class TermsAnalyzer(Analyzer):
                         if not outlier.is_whitelisted():
                             self.nbr_whitelisted_element += 1
                             outliers[aggregator_value].append(outlier)
+                            self.nbr_whitelisted_elements += 1
                         else:
                             documents_need_to_be_removed[aggregator_value].append(ii)
 
@@ -423,9 +425,9 @@ class TermsAnalyzer(Analyzer):
                 del remaining_terms[aggregator_value]
             else:
                 if documents_need_to_be_removed[aggregator_value]:
-                    logging.logger.info("removing " +
-                                        "{:,}".format((len(documents_need_to_be_removed[aggregator_value]))) +
-                                        " whitelisted documents from the batch for aggregator " + str(aggregator_value))
+                    logging.logger.debug("removing {:,}".format((len(documents_need_to_be_removed[aggregator_value]))) +
+                                         " whitelisted documents from the batch for aggregator " +
+                                         str(aggregator_value))
 
                 # browse the list in reverse order (to remove first biggest index)
                 for index in documents_need_to_be_removed[aggregator_value][::-1]:
