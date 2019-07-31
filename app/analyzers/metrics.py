@@ -2,6 +2,7 @@ from configparser import NoOptionError
 
 import numpy as np
 from helpers.singletons import settings, es, logging
+from helpers.outlier import Outlier
 from collections import defaultdict
 import re
 import helpers.utils
