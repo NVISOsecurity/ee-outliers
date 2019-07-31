@@ -130,10 +130,10 @@ class Analyzer(abc.ABC):
     def print_analysis_summary(self):
         if len(self.outliers) > 0:
             unique_summaries = len(set(o.outlier_dict["summary"] for o in self.outliers))
-            message = "total outliers processed for use case: " + str(len(self.outliers)) + " [" + \
-                      str(unique_summaries) + " unique summaries]"
+            message = "total outliers processed for use case: " + "{:,}".format(len(self.outliers)) + " [" + \
+                      "{:,}".format(unique_summaries) + " unique summaries]"
             if self.nr_whitelisted_elements > 0:
-                message += " - ignored " + str(self.nr_whitelisted_elements) + " whitelisted outliers"
+                message += " - ignored " + "{:,}".format(self.nr_whitelisted_elements) + " whitelisted outliers"
             logging.logger.info(message)
         else:
             logging.logger.info("no outliers detected for use case")
