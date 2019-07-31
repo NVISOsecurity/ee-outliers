@@ -14,7 +14,7 @@ class Analyzer(abc.ABC):
         # the configuration file section for the use case, for example [simplequery_test_model]
         self.config_section_name = config_section_name
 
-        # split the configuration section into the model type ("simplequery") and the model nalem ("test_model")
+        # split the configuration section into the model type ("simplequery") and the model name ("test_model")
         self.model_type = self.config_section_name.split("_")[0]
         self.model_name = "_".join((self.config_section_name.split("_")[1:]))
 
