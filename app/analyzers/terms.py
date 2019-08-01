@@ -383,10 +383,11 @@ class TermsAnalyzer(Analyzer):
         list_outliers = list()
         remaining_terms = dict()
 
-        for i, aggregator_value in enumerate(terms):
+        process_need_to_be_computed = terms.copy()
+        for aggregator_value in process_need_to_be_computed.keys():
             outliers, enough_value = self._evaluate_aggregator_for_outliers_within(terms, is_last_batch,
                                                                                    aggregator_value)
-            if not enough_value:
+            if not enough_value and not is_last_batch:
                 remaining_terms[aggregator_value] = terms[aggregator_value]
             list_outliers += outliers
 
