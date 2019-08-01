@@ -183,7 +183,7 @@ class Analyzer(abc.ABC):
     def save_outlier_to_es(self, outlier):
         self.total_outliers += 1
         self.outlier_summaries.add(outlier.outlier_dict["summary"])
-        
+
         es.process_outlier(outlier=outlier, should_notify=self.model_settings["should_notify"])
 
     def print_analysis_intro(self, event_type, total_events):
