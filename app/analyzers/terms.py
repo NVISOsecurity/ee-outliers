@@ -42,9 +42,6 @@ class TermsAnalyzer(Analyzer):
                     # evaluate the current batch
                     outliers_in_batch, targets_for_next_batch = self._evaluate_batch_for_outliers(batch=current_batch)
 
-                    if self.nr_whitelisted_elements > 0:
-                        logging.logger.info("ignoring " + "{:,}".format(self.nr_whitelisted_elements) + " whitelisted "
-                                                                                                        "outliers in batch")
                     if outliers_in_batch:
                         unique_summaries_in_batch = len(set(o.outlier_dict["summary"] for o in outliers_in_batch))
                         logging.logger.info(
