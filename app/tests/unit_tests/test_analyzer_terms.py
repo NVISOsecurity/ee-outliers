@@ -190,7 +190,7 @@ class TestTermsAnalyzer(unittest.TestCase):
         doc = copy.deepcopy(random.choice(LIST_DOC))
         eval_terms_array = analyzer.add_term_to_batch(defaultdict(), aggregator_value, target_value, observations, doc)
 
-        result, remaining_terms = analyzer.evaluate_batch_for_outliers(True, terms=eval_terms_array)
+        result, remaining_terms = analyzer._evaluate_batch_for_outliers(True, terms=eval_terms_array)
         self.assertEqual(result, [])
 
     def test_evaluate_batch_for_outliers_limit_target_buckets_two_doc_max_two(self):
@@ -212,7 +212,7 @@ class TestTermsAnalyzer(unittest.TestCase):
                                                       doc2)
 
         # Expect to get nothing due to "min_target_buckets" set to 2
-        result, remaining_terms = analyzer.evaluate_batch_for_outliers(is_last_batch=True, terms=eval_terms_array)
+        result, remaining_terms = analyzer._evaluate_batch_for_outliers(is_last_batch=True, terms=eval_terms_array)
         self.assertEqual(result, [])
 
     # coeff_of_variation
