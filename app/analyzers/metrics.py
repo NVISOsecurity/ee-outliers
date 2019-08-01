@@ -129,8 +129,8 @@ class MetricsAnalyzer(Analyzer):
         # Print message
         if len(outliers) > 0:
             unique_summaries = len(set(o.outlier_dict["summary"] for o in outliers))
-            logging.logger.info("total outliers in batch processed: " + str(len(outliers)) + " [" +
-                                str(unique_summaries) + " unique summaries]")
+            logging.logger.info("total outliers in batch processed: " + "{:,}".format(len(outliers)) + " [" +
+                                "{:,}".format(unique_summaries) + " unique summaries]")
         else:
             logging.logger.info("no outliers detected in batch")
 
@@ -222,8 +222,8 @@ class MetricsAnalyzer(Analyzer):
                                                                               decision_frontier, metric_value)
                 if not outlier.is_whitelisted():
                     list_outliers.append(outlier)
-                    self.nbr_whitelisted_elements += 1
                 else:
+                    self.nr_whitelisted_elements += 1
                     list_documents_need_to_be_removed.append(ii)
                     
         return list_outliers, list_documents_need_to_be_removed

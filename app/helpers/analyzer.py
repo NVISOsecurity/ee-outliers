@@ -14,7 +14,7 @@ class Analyzer(abc.ABC):
         # the configuration file section for the use case, for example [simplequery_test_model]
         self.config_section_name = config_section_name
 
-        # split the configuration section into the model type ("simplequery") and the model nalem ("test_model")
+        # split the configuration section into the model type ("simplequery") and the model name ("test_model")
         self.model_type = self.config_section_name.split("_")[0]
         self.model_name = "_".join((self.config_section_name.split("_")[1:]))
 
@@ -28,7 +28,7 @@ class Analyzer(abc.ABC):
         self.unknown_error_analysis = False
 
         self.outliers = list()
-        self.nbr_whitelisted_elements = 0
+        self.nr_whitelisted_elements = 0
 
         # extract all settings for this use case
         self.configuration_parsing_error = False
@@ -130,10 +130,10 @@ class Analyzer(abc.ABC):
     def print_analysis_summary(self):
         if len(self.outliers) > 0:
             unique_summaries = len(set(o.outlier_dict["summary"] for o in self.outliers))
-            message = "total outliers processed for use case: " + str(len(self.outliers)) + " [" + \
-                      str(unique_summaries) + " unique summaries]"
-            if self.nbr_whitelisted_elements > 0:
-                message += " - ignored " + str(self.nbr_whitelisted_elements) + " whitelisted outliers"
+            message = "total outliers processed for use case: " + "{:,}".format(len(self.outliers)) + " [" + \
+                      "{:,}".format(unique_summaries) + " unique summaries]"
+            if self.nr_whitelisted_elements > 0:
+                message += " - ignored " + "{:,}".format(self.nr_whitelisted_elements) + " whitelisted outliers"
             logging.logger.info(message)
         else:
             logging.logger.info("no outliers detected for use case")
