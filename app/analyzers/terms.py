@@ -41,17 +41,20 @@ class TermsAnalyzer(Analyzer):
                     # evaluate the current batch
                     outliers_in_batch, targets_for_next_batch = self._evaluate_batch_for_outliers(batch=current_batch)
 
+                    if self.nr_whitelisted_elements > 0:
+                        logging.logger.info("ignoring " + "{:,}".format(self.nr_whitelisted_elements) + "whitelisted "
+                                                                                                        "outliers in batch")
                     if outliers_in_batch:
-                        logging.logger.info("processing outliers in batch")
+                        unique_summaries_in_batch = len(set(o.outlier_dict["summary"] for o in outliers_in_batch))
+                        logging.logger.info(
+                            "processing " + "{:,}".format(len(outliers_in_batch)) + " outliers in batch [" +
+                                                    "{:,}".format(unique_summaries_in_batch) + " unique summaries]")
+
                         for outlier in outliers_in_batch:
                             self.process_outlier(outlier)
 
-                        unique_summaries_in_batch = len(set(o.outlier_dict["summary"] for o in outliers_in_batch))
-                        logging.logger.info(
-                            "total outliers in batch being processed: " + "{:,}".format(len(outliers_in_batch)) + " [" +
-                            "{:,}".format(unique_summaries_in_batch) + " unique summaries]")
                     else:
-                        logging.logger.info("no outliers detected in batch")
+                        logging.logger.info("no outliers processed in batch")
 
                     # Reset data structures for next batch
                     current_batch = targets_for_next_batch
