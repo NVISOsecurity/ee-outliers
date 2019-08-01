@@ -146,8 +146,8 @@ class TermsAnalyzer(Analyzer):
         elif self.model_settings["target_count_method"] == "within_aggregator":
             outliers = list()
             targets_for_next_batch = dict()
-
             batch_copy = batch.copy()
+
             for aggregator_value in batch_copy.keys():
                 outliers_in_aggregator, has_min_target_buckets = self._evaluate_aggregator_for_outliers_within(batch,
                                                                                                      aggregator_value)
@@ -301,10 +301,6 @@ class TermsAnalyzer(Analyzer):
                 # browse the list in reverse order (to remove first biggest index)
                 for index in list_documents_need_to_be_removed[::-1]:
                     batch = TermsAnalyzer.remove_term_from_batch(batch, aggregator_value, index)
-
-                logging.logger.info("new batch size after removing whitelisted items: " + "{:,}".format(len(batch[ \
-                                                                                              aggregator_value][ \
-                                                                                              "targets"])))
             else:
                 list_outliers += new_list_outliers
 
