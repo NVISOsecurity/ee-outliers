@@ -1,0 +1,85 @@
+@startuml
+'no shadow
+skinparam shadowing false
+ 
+'size of picture
+skinparam dpi 100
+ 
+'color
+skinparam component {
+  BackgroundColor AliceBlue
+  ArrowColor CornflowerBlue
+  BorderColor CornflowerBlue
+}
+
+skinparam activity {
+  BackgroundColor AliceBlue
+  ArrowColor CornflowerBlue
+  BorderColor CornflowerBlue
+}
+
+skinparam activitydiamond {
+  BackgroundColor AliceBlue
+  ArrowColor CornflowerBlue
+  BorderColor CornflowerBlue
+}
+
+skinparam note {
+  BackgroundColor AliceBlue
+  BorderColor CornflowerBlue
+}
+
+skinparam sequence {
+  LifeLineBorderColor CornflowerBlue
+  LifeLineBackgroundColor AliceBlue
+}
+
+skinparam stereotypeCBackgroundColor OldLace
+
+title ee-outliers - Activity - Metrics
+
+|eval_model|
+    start
+    while (doc) is (yes)
+        :_compute_aggregator_and_target_value;
+        :_compute_eval_metrics_for_one_doc;
+        if (is_last_batch or batch_size) then (yes)
+            :<b>_evaluate_batch_save_outliers_and_display_logs</b>;
+            |_evaluate_batch_save_\noutliers_and_display_logs|
+                :<b>_evaluate_batch_for_outliers</b>;
+                |_evaluate_batch_for_outliers|
+                    while (aggregator) is (yes)
+                        :<b>_evaluate_aggregator_for_outliers</b>;
+                        |_evaluate_aggregator_for_outliers|
+                            while (first_run or (enough_value and\ndocument_removed)) is (yes)
+                                :check enough_value;
+                                :get_decision_frontier;
+                                :<b>_evaluate_each_aggregator</b>\n<b>_value_for_outliers</b>;
+                                |_evaluate_each_aggregator_value_for_outliers|
+                                    while (doc in aggregator) is (yes)
+                                        if (is_outlier) then (yes)
+                                            if (is_whitelist) then (yes)
+                                                :add to recompute list;
+                                            else
+                                                :add to outlier list;
+                                            endif
+                                        endif
+                                    endwhile
+                                |_evaluate_aggregator_for_outliers|
+                                :remove whitelist outlier from metrics;
+                            endwhile
+                        |_evaluate_batch_for_outliers|
+                        if (not enough_value) then (yes)
+                            :add remaining_metrics;
+                        endif
+                        :outlier += new_outlier;
+                    endwhile
+            |_evaluate_batch_save_\noutliers_and_display_logs|
+                :save_outlier;
+        endif
+    endwhile
+|eval_model|
+    :print_analysis_summary;
+end
+
+@enduml
