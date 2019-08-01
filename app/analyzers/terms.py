@@ -70,13 +70,13 @@ class TermsAnalyzer(Analyzer):
                 self.model_settings["brute_forced_field"] = target_field
                 search_query = es.filter_by_query_string(self.model_settings["es_query_filter"] + " AND _exists_:" +
                                                          self.model_settings["brute_forced_field"])
-                self.evaluate_target(target=[self.model_settings["brute_forced_field"]], search_query=search_query,
-                                     brute_force=True)
+                self._evaluate_target(target=[self.model_settings["brute_forced_field"]], search_query=search_query,
+                                      brute_force=True)
         else:
-            self.evaluate_target(target=self.model_settings["target"], search_query=self.search_query,
-                                 brute_force=False)
+            self._evaluate_target(target=self.model_settings["target"], search_query=self.search_query,
+                                  brute_force=False)
 
-    def evaluate_target(self, target, search_query, brute_force=False):
+    def _evaluate_target(self, target, search_query, brute_force=False):
         self.total_events = es.count_documents(index=self.es_index, search_query=search_query,
                                                model_settings=self.model_settings)
 
@@ -252,13 +252,18 @@ class TermsAnalyzer(Analyzer):
         return list(), list()
 
     def _evaluate_batch_for_outliers_across_aggregators(self, terms):
-        # List of document (per aggregator) that aren't outlier (to help user to see non match results)
-        non_outlier_values = defaultdict(list)
+        # Init
         outliers = defaultdict(list)  # List outliers (per aggregator
-        first_run = True
-        at_least_one_whitelisted_element_detected = False
+        # List of document (per aggregator) that aren't outlier (to help user to see non match results)
+        # Notice that this dictionary will only be used if there is a loop (first loop fill the dict. Second loop take
+        # the result if outlier is detected).
+        non_outlier_values = defaultdict(list)
+        first_run = True  # Force to run one time the loop
+        at_least_one_whitelisted_element_detected = False  # Check if an element have been removed (due to whitelist)
 
+        # Run the loop the first time and still elements are removed (due to whitelist)
         while first_run or at_least_one_whitelisted_element_detected:
+            # Per default loop is stop
             at_least_one_whitelisted_element_detected = False
             first_run = False
 
@@ -271,17 +276,20 @@ class TermsAnalyzer(Analyzer):
             # loop 0: {i=0, aggregator_value = "smsc.exe"}, loop 1: {i=1, aggregator_value = "abc.exe"},
             for i, aggregator_value in enumerate(terms):
                 unique_target_count_across_aggregators = unique_target_counts_across_aggregators[i]
-                list_outliers, list_documents_need_to_be_removed = self._evaluate_aggregator_for_outliers(
+                list_outliers, list_documents_need_to_be_removed = self._evaluate_across_aggregator_for_outliers(
                     terms, aggregator_value, unique_target_count_across_aggregators, decision_frontier,
                     non_outlier_values[aggregator_value])
 
                 # If some documents need to be removed
                 if len(list_documents_need_to_be_removed) > 0:
-                    at_least_one_whitelisted_element_detected = True
+                    at_least_one_whitelisted_element_detected = True  # Save that the list have been modified
                     logging.logger.debug("removing " + "{:,}".format((len(list_documents_need_to_be_removed))) +
                                          " whitelisted documents from the batch for aggregator " + str(aggregator_value))
 
-                    # browse the list in reverse order (to remove first biggest index)
+                    # Remove whitelist document from the list that we need to compute
+                    # Note: Browse the list of documents that need to be removed in reverse order
+                    # To remove first the biggest index and avoid a shift (if we remove index 0, all values must be
+                    # decrease by one)
                     for index in list_documents_need_to_be_removed[::-1]:
                         TermsAnalyzer.remove_term_from_batch(terms, aggregator_value, index)
                 else:
@@ -308,28 +316,11 @@ class TermsAnalyzer(Analyzer):
                                                                 self.model_settings["trigger_on"])
         return unique_target_counts_across_aggregators, decision_frontier
 
-    def _mark_across_aggregator_document_as_outliers(self, terms, aggregator_value,
-                                                     unique_target_count_across_aggregators, decision_frontier,
-                                                     non_outlier_values):
+    def _evaluate_across_aggregator_for_outliers(self, terms, aggregator_value, unique_target_count_across_aggregators,
+                                                 decision_frontier, non_outlier_values):
+        # Initialise with default value (that will be return if nothing is found)
         list_outliers = list()
         list_documents_need_to_be_removed = list()
-
-        for ii, term_value in enumerate(terms[aggregator_value]["targets"]):
-            outlier = self._create_outlier(non_outlier_values, unique_target_count_across_aggregators,
-                                           aggregator_value, term_value, decision_frontier, terms, ii)
-            if not outlier.is_whitelisted():
-                self.nbr_whitelisted_elements += 1
-                list_outliers.append(outlier)
-            else:
-                list_documents_need_to_be_removed.append(ii)
-
-        return list_outliers, list_documents_need_to_be_removed
-
-    def _evaluate_aggregator_for_outliers(self, terms, aggregator_value, unique_target_count_across_aggregators,
-                                          decision_frontier, non_outlier_values):
-        # Init
-        list_outliers = []
-        list_documents_need_to_be_removed = []
 
         logging.logger.debug("unique target count for aggregator " + str(aggregator_value) + ": " +
                              str(unique_target_count_across_aggregators) + " - decision frontier " +
@@ -342,7 +333,26 @@ class TermsAnalyzer(Analyzer):
             list_outliers, list_documents_need_to_be_removed = self._mark_across_aggregator_document_as_outliers(
                 terms, aggregator_value, unique_target_count_across_aggregators, decision_frontier, non_outlier_values)
         else:
+            # Save non outliers list (do not be return because it is a dictionary)
             non_outlier_values += terms[aggregator_value]["targets"]
+
+        return list_outliers, list_documents_need_to_be_removed
+
+    def _mark_across_aggregator_document_as_outliers(self, terms, aggregator_value,
+                                                     unique_target_count_across_aggregators, decision_frontier,
+                                                     non_outlier_values):
+        # Initialise
+        list_outliers = list()
+        list_documents_need_to_be_removed = list()
+
+        for ii, term_value in enumerate(terms[aggregator_value]["targets"]):
+            outlier = self._create_outlier(non_outlier_values, unique_target_count_across_aggregators,
+                                           aggregator_value, term_value, decision_frontier, terms, ii)
+            if not outlier.is_whitelisted():
+                self.nbr_whitelisted_elements += 1
+                list_outliers.append(outlier)
+            else:
+                list_documents_need_to_be_removed.append(ii)
 
         return list_outliers, list_documents_need_to_be_removed
 
