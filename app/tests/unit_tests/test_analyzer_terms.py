@@ -139,7 +139,7 @@ class TestTermsAnalyzer(unittest.TestCase):
         analyzer = TermsAnalyzer("terms_dummy_test_float")
         analyzer.evaluate_model()
 
-        self.assertEqual(len(analyzer.outliers), 5)
+        self.assertEqual(analyzer.total_outliers, 5)
 
     def test_terms_small_batch_treat_all(self):
         dummy_doc_generate = DummyDocumentsGenerate()
@@ -159,7 +159,7 @@ class TestTermsAnalyzer(unittest.TestCase):
         analyzer = TermsAnalyzer("terms_dummy_test_float")
         analyzer.evaluate_model()
 
-        self.assertEqual(len(analyzer.outliers), nbr_doc_per_hours*nbr_hours)
+        self.assertEqual(analyzer.total_outliers, nbr_doc_per_hours*nbr_hours)
 
     def test_terms_small_batch_last_outlier(self):
         dummy_doc_generate = DummyDocumentsGenerate()
@@ -178,7 +178,7 @@ class TestTermsAnalyzer(unittest.TestCase):
         analyzer = TermsAnalyzer("terms_dummy_test_float")
         analyzer.evaluate_model()
 
-        self.assertEqual(len(analyzer.outliers), 4)
+        self.assertEqual(analyzer.total_outliers, 4)
 
     def test_evaluate_batch_for_outliers_not_enough_target_buckets_one_doc_max_two(self):
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_01.conf")
@@ -466,8 +466,10 @@ class TestTermsAnalyzer(unittest.TestCase):
         analyzer.evaluate_model()
 
         list_outliers = []
-        for outlier in analyzer.outliers:
-            list_outliers.append((outlier.outlier_dict["aggregator"], outlier.outlier_dict["term"]))
+        for doc in es.scan():
+            if "outliers" in doc["_source"]:
+                list_outliers.append((doc["_source"]["outliers"]["aggregator"][0],
+                                      doc["_source"]["outliers"]["term"][0]))
 
         self.assertEqual(list_outliers, [("agg2", "2") for _ in range(6)])
 
@@ -516,7 +518,7 @@ class TestTermsAnalyzer(unittest.TestCase):
             self.test_es.add_doc(doc_generated)
 
         analyzer.evaluate_model()
-        self.assertEqual(len(analyzer.outliers), 0)
+        self.assertEqual(analyzer.total_outliers, 0)
 
     def test_batch_whitelist_work_with_min_target_bucket(self):
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_whitelist_batch.conf")
@@ -585,8 +587,10 @@ class TestTermsAnalyzer(unittest.TestCase):
         analyzer.evaluate_model()
 
         list_outliers = []
-        for outlier in analyzer.outliers:
-            list_outliers.append((outlier.outlier_dict["aggregator"], outlier.outlier_dict["term"]))
+        for doc in es.scan():
+            if "outliers" in doc["_source"]:
+                list_outliers.append((doc["_source"]["outliers"]["aggregator"][0],
+                                      doc["_source"]["outliers"]["term"][0]))
 
         self.assertEqual(list_outliers, [("agg1", "4") for _ in range(6)])
 
@@ -620,8 +624,10 @@ class TestTermsAnalyzer(unittest.TestCase):
         analyzer.evaluate_model()
 
         list_outliers = []
-        for outlier in analyzer.outliers:
-            list_outliers.append((outlier.outlier_dict["aggregator"], outlier.outlier_dict["term"]))
+        for doc in es.scan():
+            if "outliers" in doc["_source"]:
+                list_outliers.append((doc["_source"]["outliers"]["aggregator"][0],
+                                      doc["_source"]["outliers"]["term"][0]))
 
         # We detect agg2 but not agg1
         self.assertEqual(list_outliers, [("agg2", "0"), ("agg2", "0"), ("agg2", "3"), ("agg2", "4")])
