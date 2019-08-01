@@ -260,28 +260,32 @@ class TermsAnalyzer(Analyzer):
         # the result if outlier is detected).
         non_outlier_values = defaultdict(list)
         first_run = True  # Force to run one time the loop
-        at_least_one_whitelisted_element_detected = False  # Check if an element have been removed (due to whitelist)
+        nr_whitelisted_element_detected = 0  # Number of elements that have been removed (due to whitelist)
 
         # Run the loop the first time and still elements are removed (due to whitelist)
-        while first_run or at_least_one_whitelisted_element_detected:
+        while first_run or nr_whitelisted_element_detected > 0:
+            if not first_run:
+                logging.logger.debug("run again computation of batch because " + str(nr_whitelisted_element_detected) +
+                                     " documents have been removed")
             first_run = False
 
             # Compute decision frontier and loop on all aggregator
             # For each of them, evaluate if it is an outlier and remove terms that are whitelisted (no return because
             # it is a dictionary)
-            at_least_one_whitelisted_element_detected = self._evaluate_aggregator_for_outlier_accross(
-                terms, non_outlier_values, outliers)
+            nr_whitelisted_element_detected, outliers = self._evaluate_aggregator_for_outlier_accross(
+                terms, non_outlier_values)
 
         # All outliers and no remaining terms
         return [outlier for list_outliers in outliers.values() for outlier in list_outliers], {}
 
-    def _evaluate_aggregator_for_outlier_accross(self, terms, non_outlier_values, outliers):
-        at_least_one_whitelisted_element_detected = False
+    def _evaluate_aggregator_for_outlier_accross(self, terms, non_outlier_values):
+        nr_whitelisted_element_detected = 0
         unique_target_counts_across_aggregators, decision_frontier = \
             self._compute_count_across_aggregators_and_decision_frontier(terms)
 
         logging.logger.debug("using " + self.model_settings["trigger_method"] + " decision frontier " +
                              str(decision_frontier) + " across all aggregators")
+        outliers = defaultdict(list)
 
         # loop 0: {i=0, aggregator_value = "smsc.exe"}, loop 1: {i=1, aggregator_value = "abc.exe"},
         for i, aggregator_value in enumerate(terms):
@@ -294,7 +298,8 @@ class TermsAnalyzer(Analyzer):
 
             # If some documents need to be removed
             if len(list_documents_need_to_be_removed) > 0:
-                at_least_one_whitelisted_element_detected = True  # Save that the list have been modified
+                # Save the number of element that need to be removed
+                nr_whitelisted_element_detected = len(list_documents_need_to_be_removed)
                 logging.logger.debug("removing " + "{:,}".format((len(list_documents_need_to_be_removed))) +
                                      " whitelisted documents from the batch for aggregator " + str(aggregator_value))
 
@@ -306,7 +311,12 @@ class TermsAnalyzer(Analyzer):
                     TermsAnalyzer.remove_term_from_batch(terms, aggregator_value, index)
             else:
                 outliers[aggregator_value] += list_outliers
-        return at_least_one_whitelisted_element_detected
+
+        # If at least one element need to be computed again
+        if nr_whitelisted_element_detected > 0:
+            outliers = dict()  # Ignore detected outliers
+
+        return nr_whitelisted_element_detected, outliers
 
     def _compute_count_across_aggregators_and_decision_frontier(self, terms):
         unique_target_counts_across_aggregators = list()
@@ -408,6 +418,7 @@ class TermsAnalyzer(Analyzer):
                 if is_last_batch:
                     logging.logger.debug("less than " + str(self.model_settings["min_target_buckets"]) +
                                          " time buckets, skipping analysis")
+                    del terms[aggregator_value]
                 break
 
             decision_frontier = helpers.utils.get_decision_frontier(self.model_settings["trigger_method"],
