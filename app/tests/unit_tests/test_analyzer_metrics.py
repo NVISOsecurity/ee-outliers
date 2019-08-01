@@ -99,7 +99,7 @@ class TestMetricsAnalyzer(unittest.TestCase):
         analyzer = MetricsAnalyzer("metrics_numerical_value_dummy_test")
         analyzer.evaluate_model()
 
-        self.assertEqual(len(analyzer.outliers), 1)
+        self.assertEqual(analyzer.total_outliers, 1)
 
     def test_metrics_small_batch_treat_all(self):
         dummy_doc_generate = DummyDocumentsGenerate()
@@ -118,7 +118,7 @@ class TestMetricsAnalyzer(unittest.TestCase):
         analyzer = MetricsAnalyzer("metrics_numerical_value_dummy_test")
         analyzer.evaluate_model()
 
-        self.assertEqual(len(analyzer.outliers), number_of_user)
+        self.assertEqual(analyzer.total_outliers, number_of_user)
 
     def test_metrics_small_batch_last_outlier(self):
         dummy_doc_generate = DummyDocumentsGenerate()
@@ -139,7 +139,7 @@ class TestMetricsAnalyzer(unittest.TestCase):
         analyzer = MetricsAnalyzer("metrics_numerical_value_dummy_test")
         analyzer.evaluate_model()
 
-        self.assertEqual(len(analyzer.outliers), 1)
+        self.assertEqual(analyzer.total_outliers, 1)
 
     def test_metrics_use_derived_fields_in_doc(self):
         dummy_doc_generate = DummyDocumentsGenerate()
@@ -202,7 +202,7 @@ class TestMetricsAnalyzer(unittest.TestCase):
 
         analyzer.evaluate_model()
 
-        self.assertEqual(len(analyzer.outliers), 2)
+        self.assertEqual(analyzer.total_outliers, 2)
 
     def _generate_metrics_doc_with_whitelist(self, doc_to_generate):
         # Use list of tuple (and not dict) to keep order
@@ -247,8 +247,10 @@ class TestMetricsAnalyzer(unittest.TestCase):
 
         analyzer.evaluate_model()
         list_outliers = []
-        for outlier in analyzer.outliers:
-            list_outliers.append((outlier.outlier_dict["aggregator"], outlier.outlier_dict["target"]))
+        for doc in es.scan():
+            if "outliers" in doc["_source"]:
+                list_outliers.append((doc["_source"]["outliers"]["aggregator"][0],
+                                      doc["_source"]["outliers"]["target"][0]))
 
         self.assertEqual(list_outliers, [("agg1", "7"), ("agg2", "6")])
         MetricsAnalyzer.MIN_EVALUATE_BATCH = backup_min_eval_batch
@@ -274,8 +276,10 @@ class TestMetricsAnalyzer(unittest.TestCase):
 
         analyzer.evaluate_model()
         list_outliers = []
-        for outlier in analyzer.outliers:
-            list_outliers.append((outlier.outlier_dict["aggregator"], outlier.outlier_dict["target"]))
+        for doc in es.scan():
+            if "outliers" in doc["_source"]:
+                list_outliers.append((doc["_source"]["outliers"]["aggregator"][0],
+                                      doc["_source"]["outliers"]["target"][0]))
 
         # Without the batch whitelist, the only outlier will be ("agg1", 6) (the ("agg1", 7) is whitelist).
         # But with batch whitelist, the avg is update and all value of "agg1" (except 3) are detected outlier
@@ -434,7 +438,7 @@ class TestMetricsAnalyzer(unittest.TestCase):
 
         result = analyzer._evaluate_batch_for_outliers(metrics, False)
         # outliers, not_enough_value, document_need_to_be_recompute
-        self.assertEqual(result, ([], metrics, {}))
+        self.assertEqual(result, ([], metrics))
 
     def test_evaluate_batch_for_outliers_add_outlier(self):
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/metrics_test_02.conf")
@@ -446,7 +450,7 @@ class TestMetricsAnalyzer(unittest.TestCase):
         metrics = MetricsAnalyzer.add_metric_to_batch(eval_metrics_array, aggregator_value, target_value, metrics_value,
                                                       observations, doc_without_outlier)
 
-        outliers, not_enough_value, document_need_to_be_recompute = analyzer._evaluate_batch_for_outliers(metrics, True)
+        outliers, remaining_metrics = analyzer._evaluate_batch_for_outliers(metrics, True)
         analyzer.save_outlier_to_es(outliers[0])
         result = [elem for elem in es.scan()][0]
         doc_with_outlier = copy.deepcopy(doc_with_outlier_test_file)

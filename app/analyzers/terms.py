@@ -12,157 +12,6 @@ from typing import DefaultDict, Optional, Dict
 
 class TermsAnalyzer(Analyzer):
 
-    def evaluate_model(self):
-        if self.model_settings["brute_force_target"]:
-            logging.logger.warning("running terms model in brute force mode, could take a long time!")
-            target_fields_to_brute_force = self._calculate_target_fields_to_brute_force()
-
-            for target_field in target_fields_to_brute_force:
-                self.model_settings["brute_forced_field"] = target_field
-                search_query = es.filter_by_query_string(self.model_settings["es_query_filter"] + " AND _exists_:" +
-                                                         self.model_settings["brute_forced_field"])
-                self.evaluate_target(target=[self.model_settings["brute_forced_field"]], search_query=search_query,
-                                     brute_force=True)
-        else:
-            self.evaluate_target(target=self.model_settings["target"], search_query=self.search_query,
-                                 brute_force=False)
-
-    def evaluate_target(self, target, search_query, brute_force=False):
-        self.total_events = es.count_documents(index=self.es_index, search_query=search_query,
-                                               model_settings=self.model_settings)
-
-        self.print_analysis_intro(event_type="evaluating " + self.model_name, total_events=self.total_events)
-        logging.init_ticker(total_steps=self.total_events, desc=self.model_name + " - evaluating terms model")
-
-        if brute_force:
-            logging.logger.info("brute forcing field %s", str(target[0]))
-
-        if self.total_events > 0:
-            eval_terms_array = defaultdict()
-            total_terms_added = 0
-
-            outlier_batches_trend = 0
-            for doc in es.scan(index=self.es_index, search_query=search_query, model_settings=self.model_settings):
-                logging.tick()
-                fields = es.extract_fields_from_document(
-                                                doc, extract_derived_fields=self.model_settings["use_derived_fields"])
-
-                try:
-                    target_sentences = helpers.utils.flatten_fields_into_sentences(fields=fields,
-                                                                                   sentence_format=target)
-                    aggregator_sentences = helpers.utils.flatten_fields_into_sentences(
-                                                fields=fields, sentence_format=self.model_settings["aggregator"])
-                    will_process_doc = True
-                except (KeyError, TypeError):
-                    logging.logger.debug("Skipping event which does not contain the target and aggregator " +
-                                         "fields we are processing. - [" + self.model_name + "]")
-                    will_process_doc = False
-
-                if will_process_doc:
-                    observations = dict()
-
-                    if brute_force:
-                        observations["brute_forced_field"] = self.model_settings["brute_forced_field"]
-
-                    for target_sentence in target_sentences:
-                        flattened_target_sentence = helpers.utils.flatten_sentence(target_sentence)
-
-                        for aggregator_sentence in aggregator_sentences:
-                            flattened_aggregator_sentence = helpers.utils.flatten_sentence(aggregator_sentence)
-                            eval_terms_array = TermsAnalyzer.add_term_to_batch(eval_terms_array,
-                                                                               flattened_aggregator_sentence,
-                                                                               flattened_target_sentence, observations,
-                                                                               doc)
-                    total_terms_added += len(target_sentences)
-
-                # Evaluate batch of events against the model
-                is_last_batch = (logging.current_step == self.total_events)
-                if is_last_batch or total_terms_added >= settings.config.getint("terms", "terms_batch_eval_size"):
-                    logging.logger.info("evaluating batch of " + "{:,}".format(total_terms_added) + " terms")
-
-                    first_run = True
-                    remaining_terms = []
-                    while first_run or (is_last_batch and len(remaining_terms) > 0):
-                        first_run = False
-                        outlier_batches_trend, remaining_terms = self._run_evaluate_documents(
-                            eval_terms_array=eval_terms_array, is_last_batch=is_last_batch)
-
-                        # Reset data structures for next batch
-                        eval_terms_array = remaining_terms.copy()
-
-                    if brute_force:
-                        if outlier_batches_trend == -3:
-                            logging.logger.info("too many batches without outliers, we are not going to continue " +
-                                                "brute forcing")
-                            break
-
-                        elif outlier_batches_trend == 3:
-                            logging.logger.info("too many batches with outliers, we are not going to continue brute " +
-                                                "forcing")
-                            break
-
-                    total_terms_added = 0
-
-        self.print_analysis_summary()
-
-    def _run_evaluate_documents(self, eval_terms_array, is_last_batch):
-        outlier_batches_trend = 0
-
-        outliers, remaining_terms = self.evaluate_batch_for_outliers(terms=eval_terms_array, is_last_batch=is_last_batch)
-
-        # For each result, save it in batch and in ES
-        for outlier in outliers:
-            self.save_outlier_to_es(outlier)
-
-        if len(outliers) > 0:
-            unique_summaries = len(set(o.outlier_dict["summary"] for o in outliers))
-            logging.logger.info("total outliers in batch processed: " + str(len(outliers)) + " [" +
-                                str(unique_summaries) + " unique summaries]")
-            outlier_batches_trend += 1
-        else:
-            logging.logger.info("no outliers detected in batch")
-            outlier_batches_trend -= 1
-
-        return outlier_batches_trend, remaining_terms
-
-    def _calculate_target_fields_to_brute_force(self):
-        batch_size = settings.config.getint("terms", "terms_batch_eval_size")
-
-        self.total_events = es.count_documents(index=self.es_index, search_query=self.search_query,
-                                               model_settings=self.model_settings)
-        logging.init_ticker(total_steps=min(self.total_events, batch_size),
-                            desc=self.model_name + " - extracting brute force fields")
-
-        field_names_to_brute_force = set()
-        if self.total_events > 0:
-            num_docs_processed = 0
-            for doc in es.scan(index=self.es_index, search_query=self.search_query, model_settings=self.model_settings):
-                logging.tick()
-                fields = es.extract_fields_from_document(
-                            doc, extract_derived_fields=self.model_settings["use_derived_fields"])
-                fields = helpers.utils.flatten_dict(fields)
-
-                # create list instead of iterator so we can mutate the dictionary when iterating
-                for field_name in list(fields.keys()):
-                    # skip all fields that are related to outliers, we don't want to brute force them
-                    if field_name.startswith('outliers.'):
-                        logging.logger.debug("not brute forcing outliers field " + str(field_name))
-                        continue
-
-                    # only brute force nested fields, so not the top level fields such as timestamp,
-                    # deployment name, etc.
-                    if "." in field_name:
-                        field_names_to_brute_force.add(field_name)
-
-                # only process a single batch of events in order to decide which fields to brute force
-                if num_docs_processed == batch_size:
-                    break
-                else:
-                    num_docs_processed += 1
-
-        logging.logger.info("going to brute force " + str(len(field_names_to_brute_force)) + " fields")
-        return field_names_to_brute_force
-
     def _extract_additional_model_settings(self):
         """
         Override method from Analyzer
@@ -211,6 +60,157 @@ class TermsAnalyzer(Analyzer):
                                                          "pct_of_avg_value", "mad", "madpos", "stdev", "float",
                                                          "coeff_of_variation"}:
             raise ValueError("Unexpected outlier trigger method " + str(self.model_settings["trigger_method"]))
+
+    def evaluate_model(self):
+        if self.model_settings["brute_force_target"]:
+            logging.logger.warning("running terms model in brute force mode, could take a long time!")
+            target_fields_to_brute_force = self._calculate_target_fields_to_brute_force()
+
+            for target_field in target_fields_to_brute_force:
+                self.model_settings["brute_forced_field"] = target_field
+                search_query = es.filter_by_query_string(self.model_settings["es_query_filter"] + " AND _exists_:" +
+                                                         self.model_settings["brute_forced_field"])
+                self.evaluate_target(target=[self.model_settings["brute_forced_field"]], search_query=search_query,
+                                     brute_force=True)
+        else:
+            self.evaluate_target(target=self.model_settings["target"], search_query=self.search_query,
+                                 brute_force=False)
+
+    def evaluate_target(self, target, search_query, brute_force=False):
+        self.total_events = es.count_documents(index=self.es_index, search_query=search_query,
+                                               model_settings=self.model_settings)
+
+        self.print_analysis_intro(event_type="evaluating " + self.model_name, total_events=self.total_events)
+        logging.init_ticker(total_steps=self.total_events, desc=self.model_name + " - evaluating terms model")
+
+        if brute_force:
+            logging.logger.info("brute forcing field %s", str(target[0]))
+
+        if self.total_events > 0:
+            eval_terms_array = defaultdict()
+            total_terms_added = 0
+
+            outlier_batches_trend = 0
+            for doc in es.scan(index=self.es_index, search_query=search_query, model_settings=self.model_settings):
+                logging.tick()
+                target_sentences, aggregator_sentences = self._compute_aggregator_and_target_value(doc, target)
+
+                if target_sentences is not None and aggregator_sentences is not None:
+                    observations = dict()
+
+                    if brute_force:
+                        observations["brute_forced_field"] = self.model_settings["brute_forced_field"]
+
+                    for target_sentence in target_sentences:
+                        flattened_target_sentence = helpers.utils.flatten_sentence(target_sentence)
+
+                        for aggregator_sentence in aggregator_sentences:
+                            flattened_aggregator_sentence = helpers.utils.flatten_sentence(aggregator_sentence)
+                            eval_terms_array = TermsAnalyzer.add_term_to_batch(eval_terms_array,
+                                                                               flattened_aggregator_sentence,
+                                                                               flattened_target_sentence, observations,
+                                                                               doc)
+                    total_terms_added += len(target_sentences)
+
+                # Evaluate batch of events against the model
+                is_last_batch = (logging.current_step == self.total_events)
+                if is_last_batch or total_terms_added >= settings.config.getint("terms", "terms_batch_eval_size"):
+                    logging.logger.info("evaluating batch of " + "{:,}".format(total_terms_added) + " terms")
+
+                    first_run = True
+                    remaining_terms = []
+                    while first_run or (is_last_batch and len(remaining_terms) > 0):
+                        first_run = False
+                        outlier_batches_trend, remaining_terms = self._run_evaluate_documents(
+                            eval_terms_array=eval_terms_array, is_last_batch=is_last_batch)
+
+                        # Reset data structures for next batch
+                        eval_terms_array = remaining_terms.copy()
+
+                    if brute_force:
+                        if outlier_batches_trend == -3:
+                            logging.logger.info("too many batches without outliers, we are not going to continue " +
+                                                "brute forcing")
+                            break
+
+                        elif outlier_batches_trend == 3:
+                            logging.logger.info("too many batches with outliers, we are not going to continue brute " +
+                                                "forcing")
+                            break
+
+                    total_terms_added = 0
+
+        self.print_analysis_summary()
+
+    def _compute_aggregator_and_target_value(self, doc, target):
+        fields = es.extract_fields_from_document(doc, extract_derived_fields=self.model_settings["use_derived_fields"])
+        try:
+            target_sentences = helpers.utils.flatten_fields_into_sentences(fields=fields, sentence_format=target)
+            aggregator_sentences = helpers.utils.flatten_fields_into_sentences(
+                fields=fields, sentence_format=self.model_settings["aggregator"])
+        except (KeyError, TypeError):
+            logging.logger.debug("Skipping event which does not contain the target and aggregator " +
+                                 "fields we are processing. - [" + self.model_name + "]")
+            return None, None
+        return target_sentences, aggregator_sentences
+
+    def _run_evaluate_documents(self, eval_terms_array, is_last_batch):
+        outlier_batches_trend = 0
+
+        outliers, remaining_terms = self.evaluate_batch_for_outliers(terms=eval_terms_array, is_last_batch=is_last_batch)
+
+        # For each result, save it in batch and in ES
+        for outlier in outliers:
+            self.save_outlier_to_es(outlier)
+
+        if len(outliers) > 0:
+            unique_summaries = len(set(o.outlier_dict["summary"] for o in outliers))
+            logging.logger.info("total outliers in batch processed: " + "{:,}".format(len(outliers)) + " [" +
+                                "{:,}".format(unique_summaries) + " unique summaries]")
+            outlier_batches_trend += 1
+        else:
+            logging.logger.info("no outliers detected in batch")
+            outlier_batches_trend -= 1
+
+        return outlier_batches_trend, remaining_terms
+
+    def _calculate_target_fields_to_brute_force(self):
+        batch_size = settings.config.getint("terms", "terms_batch_eval_size")
+
+        self.total_events = es.count_documents(index=self.es_index, search_query=self.search_query,
+                                               model_settings=self.model_settings)
+        logging.init_ticker(total_steps=min(self.total_events, batch_size),
+                            desc=self.model_name + " - extracting brute force fields")
+
+        field_names_to_brute_force = set()
+        if self.total_events > 0:
+            num_docs_processed = 0
+            for doc in es.scan(index=self.es_index, search_query=self.search_query, model_settings=self.model_settings):
+                logging.tick()
+                fields = es.extract_fields_from_document(
+                            doc, extract_derived_fields=self.model_settings["use_derived_fields"])
+                fields = helpers.utils.flatten_dict(fields)
+
+                # create list instead of iterator so we can mutate the dictionary when iterating
+                for field_name in list(fields.keys()):
+                    # skip all fields that are related to outliers, we don't want to brute force them
+                    if field_name.startswith('outliers.'):
+                        logging.logger.debug("not brute forcing outliers field " + str(field_name))
+                        continue
+
+                    # only brute force nested fields, so not the top level fields such as timestamp,
+                    # deployment name, etc.
+                    if "." in field_name:
+                        field_names_to_brute_force.add(field_name)
+
+                # only process a single batch of events in order to decide which fields to brute force
+                if num_docs_processed == batch_size:
+                    break
+                else:
+                    num_docs_processed += 1
+
+        logging.logger.info("going to brute force " + str(len(field_names_to_brute_force)) + " fields")
+        return field_names_to_brute_force
 
     def evaluate_batch_for_outliers(self, is_last_batch, terms=None):
         # In case we want to count terms across different aggregators, we need to first iterate over all aggregators
@@ -280,6 +280,7 @@ class TermsAnalyzer(Analyzer):
                     if not outlier.is_whitelisted():
                         outliers[aggregator_value].append(outlier)
                     else:
+                        self.nr_whitelisted_elements += 1
                         documents_need_to_be_removed[aggregator_value].append(ii)
             else:
                 for _, term_value in enumerate(terms[aggregator_value]["targets"]):
@@ -289,7 +290,8 @@ class TermsAnalyzer(Analyzer):
             if aggregator_value not in documents_need_to_be_removed:
                 del remaining_terms[aggregator_value]
             else:
-                logging.logger.info("removing " + "{:,}".format((len(documents_need_to_be_removed[aggregator_value]))) + " whitelisted documents from the batch for aggregator " + str(aggregator_value))
+                logging.logger.info("removing " + "{:,}".format((len(documents_need_to_be_removed[aggregator_value]))) +
+                                    " whitelisted documents from the batch for aggregator " + str(aggregator_value))
 
                 # browse the list in reverse order (to remove first biggest index)
                 for index in documents_need_to_be_removed[aggregator_value][::-1]:
@@ -346,6 +348,7 @@ class TermsAnalyzer(Analyzer):
                         if not outlier.is_whitelisted():
                             new_outliers.append(outlier)
                         else:
+                            self.nr_whitelisted_elements += 1
                             documents_need_to_be_removed[aggregator_value].append(ii)
 
                     # If all document aren't whitelist
@@ -365,6 +368,7 @@ class TermsAnalyzer(Analyzer):
                         if not outlier.is_whitelisted():
                             outliers[aggregator_value].append(outlier)
                         else:
+                            self.nr_whitelisted_elements += 1
                             documents_need_to_be_removed[aggregator_value].append(ii)
 
                     else:
@@ -374,7 +378,9 @@ class TermsAnalyzer(Analyzer):
                 del remaining_terms[aggregator_value]
             else:
                 if documents_need_to_be_removed[aggregator_value]:
-                    logging.logger.info("removing " + "{:,}".format((len(documents_need_to_be_removed[aggregator_value]))) + " whitelisted documents from the batch for aggregator " + str(aggregator_value))
+                    logging.logger.debug("removing {:,}".format((len(documents_need_to_be_removed[aggregator_value]))) +
+                                         " whitelisted documents from the batch for aggregator " +
+                                         str(aggregator_value))
 
                 # browse the list in reverse order (to remove first biggest index)
                 for index in documents_need_to_be_removed[aggregator_value][::-1]:
