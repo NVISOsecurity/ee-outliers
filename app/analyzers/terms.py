@@ -169,8 +169,8 @@ class TermsAnalyzer(Analyzer):
         return remaining_terms, stop_brut_force, outlier_batches_trend
 
     def _run_evaluate_documents(self, eval_terms_array, is_last_batch):
-        outliers, remaining_terms = self.evaluate_batch_for_outliers(terms=eval_terms_array,
-                                                                     is_last_batch=is_last_batch)
+        outliers, remaining_terms = self._evaluate_batch_for_outliers(terms=eval_terms_array,
+                                                                      is_last_batch=is_last_batch)
 
         # For each result, save it in batch and in ES
         for outlier in outliers:
@@ -225,7 +225,7 @@ class TermsAnalyzer(Analyzer):
         logging.logger.info("going to brute force " + str(len(field_names_to_brute_force)) + " fields")
         return field_names_to_brute_force
 
-    def evaluate_batch_for_outliers(self, is_last_batch, terms=None):
+    def _evaluate_batch_for_outliers(self, is_last_batch, terms=None):
         # In case we want to count terms across different aggregators, we need to first iterate over all aggregators
         # and calculate the total number of unique terms for each aggregated value.
         # For example:
@@ -254,7 +254,7 @@ class TermsAnalyzer(Analyzer):
     # ===== Across ===== #
     def _evaluate_batch_for_outliers_across_aggregators(self, terms):
         # Init
-        outliers = defaultdict(list)  # List outliers (per aggregator
+        list_outliers = list()  # List outliers
         # List of document (per aggregator) that aren't outlier (to help user to see non match results)
         # Notice that this dictionary will only be used if there is a loop (first loop fill the dict. Second loop take
         # the result if outlier is detected).
@@ -272,11 +272,11 @@ class TermsAnalyzer(Analyzer):
             # Compute decision frontier and loop on all aggregator
             # For each of them, evaluate if it is an outlier and remove terms that are whitelisted (no return because
             # it is a dictionary)
-            nr_whitelisted_element_detected, outliers = self._evaluate_aggregator_for_outlier_accross(
+            nr_whitelisted_element_detected, list_outliers = self._evaluate_aggregator_for_outlier_accross(
                 terms, non_outlier_values)
 
         # All outliers and no remaining terms
-        return [outlier for list_outliers in outliers.values() for outlier in list_outliers], {}
+        return list_outliers, {}
 
     def _evaluate_aggregator_for_outlier_accross(self, terms, non_outlier_values):
         nr_whitelisted_element_detected = 0
@@ -285,12 +285,12 @@ class TermsAnalyzer(Analyzer):
 
         logging.logger.debug("using " + self.model_settings["trigger_method"] + " decision frontier " +
                              str(decision_frontier) + " across all aggregators")
-        outliers = defaultdict(list)
+        list_outliers = list()
 
         # loop 0: {i=0, aggregator_value = "smsc.exe"}, loop 1: {i=1, aggregator_value = "abc.exe"},
         for i, aggregator_value in enumerate(terms):
             unique_target_count_across_aggregators = unique_target_counts_across_aggregators[i]
-            list_outliers, list_documents_need_to_be_removed = \
+            new_list_outliers, list_documents_need_to_be_removed = \
                 self._evaluate_each_aggregator_is_outliers_and_mark_across(terms, aggregator_value,
                                                                            unique_target_count_across_aggregators,
                                                                            decision_frontier,
@@ -310,13 +310,13 @@ class TermsAnalyzer(Analyzer):
                 for index in list_documents_need_to_be_removed[::-1]:
                     TermsAnalyzer.remove_term_from_batch(terms, aggregator_value, index)
             else:
-                outliers[aggregator_value] += list_outliers
+                list_outliers += new_list_outliers
 
         # If at least one element need to be computed again
         if nr_whitelisted_element_detected > 0:
-            outliers = dict()  # Ignore detected outliers
+            list_outliers = list()  # Ignore detected outliers
 
-        return nr_whitelisted_element_detected, outliers
+        return nr_whitelisted_element_detected, list_outliers
 
     def _compute_count_across_aggregators_and_decision_frontier(self, terms):
         unique_target_counts_across_aggregators = list()
