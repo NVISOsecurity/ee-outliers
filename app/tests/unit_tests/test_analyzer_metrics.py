@@ -451,7 +451,7 @@ class TestMetricsAnalyzer(unittest.TestCase):
                                                       observations, doc_without_outlier)
 
         outliers, remaining_metrics = analyzer._evaluate_batch_for_outliers(metrics, True)
-        analyzer.save_outlier_to_es(outliers[0])
+        analyzer.process_outlier(outliers[0])
         result = [elem for elem in es.scan()][0]
         doc_with_outlier = copy.deepcopy(doc_with_outlier_test_file)
 
