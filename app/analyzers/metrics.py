@@ -225,7 +225,7 @@ class MetricsAnalyzer(Analyzer):
                 else:
                     self.nr_whitelisted_elements += 1
                     list_documents_need_to_be_removed.append(ii)
-                    
+
         return list_outliers, list_documents_need_to_be_removed
 
     def _compute_fields_observation_and_create_outlier(self, metrics_aggregator_value, ii, decision_frontier,
