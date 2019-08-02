@@ -12,18 +12,18 @@ class Outlier:
         # hard-wrap the length of a summary line to 150 characters to make it easier to visualize
         self.outlier_dict["summary"] = textwrap.fill(outlier_summary, width=150)
         self.doc = doc
-        self.cache_is_whitelist = None
+        self.is_whitelisted = None
 
     # Each whitelist item can contain multiple values to match across fields, separated with ",". So we need to
     # support this too.
     # Example: "dns_tunneling_fp = rule_updates.et.com, intel_server" -> should match both values across the entire
     # event (rule_updates.et.com and intel_server);
     def is_whitelisted(self):
-        if self.cache_is_whitelist is None:
+        if self.is_whitelisted is None:
             # Create dictionary that contain all stuff
-            self.cache_is_whitelist = Outlier.is_whitelisted_doc({'outlier_dict': self.outlier_dict,
+            self.is_whitelisted = Outlier.is_whitelisted_doc({'outlier_dict': self.outlier_dict,
                                                                   'additional_dict_to_check': self.doc})
-        return self.cache_is_whitelist
+        return self.is_whitelisted
 
     def get_outlier_dict_of_arrays(self):
         outlier_dict_of_arrays = dict()
