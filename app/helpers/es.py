@@ -233,6 +233,7 @@ class ES:
         if outlier.is_whitelisted():
             if self.settings.config.getboolean("general", "print_outliers_to_console"):
                 self.logging.logger.info(outlier.outlier_dict["summary"] + " [whitelisted outlier]")
+            return False
         else:
             if self.settings.config.getboolean("general", "es_save_results"):
                 self.save_outlier(outlier=outlier)
@@ -242,6 +243,7 @@ class ES:
 
             if self.settings.config.getboolean("general", "print_outliers_to_console"):
                 self.logging.logger.info("outlier - " + outlier.outlier_dict["summary"])
+            return True
 
     def add_bulk_action(self, action):
         self.bulk_actions.append(action)

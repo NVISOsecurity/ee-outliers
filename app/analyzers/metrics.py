@@ -68,19 +68,19 @@ class MetricsAnalyzer(Analyzer):
                     if metric_added:
                         total_metrics_added += 1
 
-                    is_last_batch = (logging.current_step == self.total_events)  # Check if it is the last batch
-                    # Run if it is the last batch OR if the batch size is large enough
-                    if is_last_batch or total_metrics_added >= settings.config.getint("metrics",
-                                                                                      "metrics_batch_eval_size"):
+                is_last_batch = (logging.current_step == self.total_events)  # Check if it is the last batch
+                # Run if it is the last batch OR if the batch size is large enough
+                if is_last_batch or total_metrics_added >= settings.config.getint("metrics",
+                                                                                  "metrics_batch_eval_size"):
 
-                        logging.logger.info("evaluating batch of " + "{:,}".format(total_metrics_added) + " metrics [" +
-                                            "{:,}".format(logging.current_step) + " events processed]")
-                        remaining_metrics = self._evaluate_batch_save_outliers_and_display_logs(eval_metrics,
-                                                                                                is_last_batch)
+                    logging.logger.info("evaluating batch of " + "{:,}".format(total_metrics_added) + " metrics [" +
+                                        "{:,}".format(logging.current_step) + " events processed]")
+                    remaining_metrics = self._evaluate_batch_save_outliers_and_display_logs(eval_metrics,
+                                                                                            is_last_batch)
 
-                        # Reset data structures for next batch
-                        eval_metrics = remaining_metrics
-                        total_metrics_added = 0
+                    # Reset data structures for next batch
+                    eval_metrics = remaining_metrics
+                    total_metrics_added = 0
 
         self.print_analysis_summary()
 
@@ -124,7 +124,7 @@ class MetricsAnalyzer(Analyzer):
 
         # For each result, save it in batch and in ES
         for outlier in outliers:
-            self.save_outlier_to_es(outlier)
+            self.process_outlier(outlier)
 
         # Print message
         if len(outliers) > 0:
@@ -243,7 +243,7 @@ class MetricsAnalyzer(Analyzer):
         observations["confidence"] = confidence
 
         outlier = self.create_outlier(fields, metrics_aggregator_value["raw_docs"][ii],
-                                      extra_outlier_information=observations, es_process_outlier=False)
+                                      extra_outlier_information=observations)
         return outlier
 
     @staticmethod
