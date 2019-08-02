@@ -2,6 +2,7 @@ import helpers.singletons
 import re
 import helpers.utils
 import textwrap
+from helpers.singletons import logging
 
 
 class Outlier:
@@ -87,7 +88,13 @@ class Outlier:
             total_whitelisted_fields_matched = 0
 
             for whitelist_val_to_check in whitelist_values_to_check:
-                p = re.compile(whitelist_val_to_check.strip(), re.IGNORECASE)
+
+                try:
+                    p = re.compile(whitelist_val_to_check.strip(), re.IGNORECASE)
+                except Exception:
+                    logging.logger.warning("Something went wrong compiling a regular expression, so we ingore it -  " + str(whitelist_val_to_check.strip()))
+                    continue
+
                 if Outlier.dictionary_matches_specific_whitelist_item_regexp(p, dict_values_to_check):
                     total_whitelisted_fields_matched += 1
 
