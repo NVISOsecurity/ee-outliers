@@ -14,6 +14,10 @@ SUPPORTED_TRIGGERS = ["high", "low"]
 
 class MetricsAnalyzer(Analyzer):
 
+    # The miminum amount of documents that should be part of a single aggregator in order to process is.
+    # This prevents outliers being flagged in cases where there is too little data to work with to make a useful conclusion.
+    # However, in the very last batch of the use case, all the remaining aggregators are processed, even the ones for which
+    # the number of documents is less than MIN_EVALUATE_BATCH.
     MIN_EVALUATE_BATCH = 100
 
     def evaluate_model(self):
@@ -52,24 +56,24 @@ class MetricsAnalyzer(Analyzer):
                     logging.logger.info("evaluating batch of " + "{:,}".format(total_metrics_in_batch) + " metrics [" +
                                         "{:,}".format(logging.current_step) + " events processed]")
 
-                    outliers, remaining_metrics = self._evaluate_batch_for_outliers(batch=batch,
+                    outliers_in_batch, remaining_metrics = self._evaluate_batch_for_outliers(batch=batch,
                                                                                     is_last_batch=is_last_batch)
 
                     # For each result, save it in batch and in ES
-                    for outlier in outliers:
-                        self.process_outlier(outlier)
+                    if outliers_in_batch:
+                        unique_summaries_in_batch = len(set(o.outlier_dict["summary"] for o in outliers_in_batch))
+                        logging.logger.info("processing " + "{:,}".format(len(outliers_in_batch)) +
+                                            " outliers in batch [" + "{:,}".format(unique_summaries_in_batch) +
+                                            " unique summaries]")
 
-                    # Print message
-                    if len(outliers) > 0:
-                        unique_summaries = len(set(o.outlier_dict["summary"] for o in outliers))
-                        logging.logger.info("total outliers in batch processed: " + "{:,}".format(len(outliers)) + " [" +
-                                            "{:,}".format(unique_summaries) + " unique summaries]")
+                        for outlier in outliers_in_batch:
+                            self.process_outlier(outlier)
                     else:
                         logging.logger.info("no outliers detected in batch")
 
                     # Reset data structures for next batch
                     batch = remaining_metrics
-                    total_metrics_added = 0
+                    total_metrics_in_batch = 0
 
         self.print_analysis_summary()
 
@@ -110,43 +114,46 @@ class MetricsAnalyzer(Analyzer):
     def _evaluate_batch_for_outliers(self, batch=None, is_last_batch=False):
         # Initialize
         outliers = list()  # List of all detected outliers
-        remaining_metrics = dict()  # List of aggregator value that doesn't contain enough data
+        unprocessed_batch_elements = dict()  # List of aggregator value that doesn't contain enough data
 
         for _, aggregator_value in enumerate(batch):
             # Compute for each aggregator
-            new_outliers, enough_value, metrics_aggregator_value = self._evaluate_aggregator_for_outliers(
+            new_outliers, has_sufficient_data, metrics_aggregator_value = self._evaluate_aggregator_for_outliers(
                 batch[aggregator_value], aggregator_value, is_last_batch)
 
-            # If the process was stop because they aren't enough value
-            if not enough_value:
-                remaining_metrics[aggregator_value] = metrics_aggregator_value
+            # If the process was stopped because of insufficient data for this aggregator (based on MIN_EVALUATE_BATCH)
+            if not has_sufficient_data:
+                unprocessed_batch_elements[aggregator_value] = metrics_aggregator_value
 
             # Save new outliers detected
             outliers += new_outliers
 
-        return outliers, remaining_metrics
+        return outliers, unprocessed_batch_elements
 
     def _evaluate_aggregator_for_outliers(self, metrics_aggregator_value, aggregator_value, is_last_batch):
-        enough_value = True
-        outliers = []
+        has_sufficient_data = True
         first_run = True  # Force to run one time the loop
+        nr_whitelisted_element_detected = 0
+
+        outliers = []
         list_documents_need_to_be_removed = []
 
         # Treat this aggregator a first time ("first_run") and continue if there are enough value
         # and that we have remove some documents from the metrics_aggregator_value
-        while (first_run or (enough_value and len(list_documents_need_to_be_removed) > 0)) and \
+        while (first_run or (has_sufficient_data and list_documents_need_to_be_removed)) and \
                 len(metrics_aggregator_value["metrics"]) > 0:
             if not first_run:
-                logging.logger.debug("run again computation for " + str(aggregator_value) + " because " +
-                                     str(len(list_documents_need_to_be_removed)) + " documents have been removed")
+                logging.logger.info("evaluating the batch again after removing " + str(
+                    nr_whitelisted_element_detected) + " whitelisted elements")
+
             first_run = False
 
             # Check if we have sufficient data, meaning at least MIN_EVALUATE_BATCH metrics. If not, stop the loop.
             # Else, evaluate for outliers.
             if len(metrics_aggregator_value["metrics"]) < MetricsAnalyzer.MIN_EVALUATE_BATCH and \
                     is_last_batch is False:
-                enough_value = False
-                continue
+                has_sufficient_data = False
+                break
 
             # Calculate the decision frontier
             decision_frontier = helpers.utils.get_decision_frontier(self.model_settings["trigger_method"],
@@ -165,7 +172,12 @@ class MetricsAnalyzer(Analyzer):
                 metrics_aggregator_value, decision_frontier)
 
             # If some document need to be removed
-            if len(list_documents_need_to_be_removed) > 0:
+            if list_documents_need_to_be_removed:
+                # Save the number of element that need to be removed
+                nr_whitelisted_element_detected += len(list_documents_need_to_be_removed)
+                logging.logger.debug("removing " + "{:,}".format((len(list_documents_need_to_be_removed))) +
+                                     " whitelisted documents from the batch for aggregator " + str(aggregator_value))
+
                 # Remove whitelist document from the list that we need to compute
                 # Note: Browse the list of documents that need to be removed in reverse order
                 # To remove first the biggest index and avoid a shift (if we remove index 0, all values must be
@@ -177,7 +189,7 @@ class MetricsAnalyzer(Analyzer):
             else:
                 outliers += list_outliers
 
-        return outliers, enough_value, metrics_aggregator_value
+        return outliers, has_sufficient_data, metrics_aggregator_value
 
     def _evaluate_each_aggregator_value_for_outliers(self, metrics_aggregator_value, decision_frontier):
         list_outliers = []
