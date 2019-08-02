@@ -23,7 +23,8 @@ class TermsAnalyzer(Analyzer):
 
             for doc in es.scan(index=self.es_index, search_query=self.search_query, model_settings=self.model_settings):
                 logging.tick()
-                target_sentences, aggregator_sentences = self._compute_aggregator_and_target_value(doc, self.model_settings["target"])
+                target_sentences, aggregator_sentences = self._compute_aggregator_and_target_value(
+                    doc, self.model_settings["target"])
 
                 if target_sentences is not None and aggregator_sentences is not None:
                     # Add current document to current_batch
@@ -44,9 +45,9 @@ class TermsAnalyzer(Analyzer):
 
                     if outliers_in_batch:
                         unique_summaries_in_batch = len(set(o.outlier_dict["summary"] for o in outliers_in_batch))
-                        logging.logger.info(
-                            "processing " + "{:,}".format(len(outliers_in_batch)) + " outliers in batch [" +
-                                                    "{:,}".format(unique_summaries_in_batch) + " unique summaries]")
+                        logging.logger.info("processing " + "{:,}".format(len(outliers_in_batch)) +
+                                            " outliers in batch [" + "{:,}".format(unique_summaries_in_batch) +
+                                            " unique summaries]")
 
                         for outlier in outliers_in_batch:
                             self.process_outlier(outlier)
@@ -113,8 +114,8 @@ class TermsAnalyzer(Analyzer):
             outliers = list()  # List outliers
 
             # List of document (per aggregator) that aren't outlier (to help user to see non match results)
-            # Notice that this dictionary will only be used if there is a loop (first loop fill the dict. Second loop take
-            # the result if outlier is detected).
+            # Notice that this dictionary will only be used if there is a loop (first loop fill the dict. Second loop
+            # take the result if outlier is detected).
             non_outlier_values = defaultdict(list)
             first_run = True  # Force to run one time the loop
             nr_whitelisted_element_detected = 0  # Number of elements that have been removed (due to whitelist)
@@ -127,8 +128,8 @@ class TermsAnalyzer(Analyzer):
                 first_run = False
 
                 # Compute decision frontier and loop on all aggregator
-                # For each of them, evaluate if it is an outlier and remove terms that are whitelisted (no return because
-                # it is a dictionary)
+                # For each of them, evaluate if it is an outlier and remove terms that are whitelisted (no return
+                # because it is a dictionary)
                 nr_whitelisted_element_detected, outliers = self._evaluate_aggregator_for_outlier_accross(
                     batch, non_outlier_values)
 
@@ -150,8 +151,8 @@ class TermsAnalyzer(Analyzer):
             batch_copy = batch.copy()
 
             for aggregator_value in batch_copy.keys():
-                outliers_in_aggregator, has_min_target_buckets = self._evaluate_aggregator_for_outliers_within(batch,
-                                                                                                     aggregator_value)
+                outliers_in_aggregator, has_min_target_buckets = self._evaluate_aggregator_for_outliers_within(
+                    batch, aggregator_value)
                 if not has_min_target_buckets:
                     targets_for_next_batch[aggregator_value] = batch[aggregator_value]
                 outliers += outliers_in_aggregator
@@ -291,8 +292,7 @@ class TermsAnalyzer(Analyzer):
                                  str(decision_frontier) + " for aggregator " + str(aggregator_value))
 
             new_list_outliers, list_documents_need_to_be_removed = \
-                self._evaluate_each_aggregator_for_outliers(decision_frontier, batch, aggregator_value,
-                                                                   counted_targets)
+                self._evaluate_each_aggregator_for_outliers(decision_frontier, batch, aggregator_value, counted_targets)
 
             # Remove document detected like outliers and whitelisted
             if list_documents_need_to_be_removed:
@@ -307,15 +307,14 @@ class TermsAnalyzer(Analyzer):
 
         return list_outliers, has_min_target_buckets
 
-    def _evaluate_each_aggregator_for_outliers(self, decision_frontier, terms, aggregator_value,
-                                                      counted_targets):
+    def _evaluate_each_aggregator_for_outliers(self, decision_frontier, terms, aggregator_value, counted_targets):
         list_documents_need_to_be_removed = list()
         list_outliers = list()
         non_outlier_values = set()
 
         if self.model_settings["trigger_method"] == "coeff_of_variation":
             is_outlier = helpers.utils.is_outlier(decision_frontier, self.model_settings["trigger_sensitivity"],
-                                        self.model_settings["trigger_on"])
+                                                  self.model_settings["trigger_on"])
             if is_outlier:
                 for ii, term_value in enumerate(terms[aggregator_value]["targets"]):
                     term_value_count = counted_targets[term_value]
