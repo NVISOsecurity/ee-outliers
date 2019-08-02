@@ -2,7 +2,6 @@ import helpers.singletons
 import re
 import helpers.utils
 import textwrap
-from helpers.singletons import logging
 
 
 class Outlier:
