@@ -92,7 +92,8 @@ class Outlier:
                 try:
                     p = re.compile(whitelist_val_to_check.strip(), re.IGNORECASE)
                 except Exception:
-                    logging.logger.warning("Something went wrong compiling a regular expression, so we ingore it -  " + str(whitelist_val_to_check.strip()))
+                    # something went wrong compiling the regular expression, probably because of a user error such as unbalanced escape characters.
+                    # we should just ignore the regular expression and continue (and let the user know in the beginning that some could not be compiled)
                     continue
 
                 if Outlier.dictionary_matches_specific_whitelist_item_regexp(p, dict_values_to_check):
