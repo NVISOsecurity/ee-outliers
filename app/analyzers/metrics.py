@@ -16,35 +16,9 @@ class MetricsAnalyzer(Analyzer):
 
     MIN_EVALUATE_BATCH = 100
 
-    def _extract_additional_model_settings(self):
-        """
-        Override method from Analyzer
-        """
-        try:
-            self.model_settings["process_documents_chronologically"] = settings.config.getboolean(
-                self.config_section_name, "process_documents_chronologically")
-        except NoOptionError:
-            self.model_settings["process_documents_chronologically"] = False
-
-        self.model_settings["target"] = settings.config.get(self.config_section_name, "target")
-        self.model_settings["aggregator"] = settings.config.get(self.config_section_name, "aggregator")\
-            .replace(' ', '').split(",")
-
-        self.model_settings["metric"] = settings.config.get(self.config_section_name, "metric")
-        self.model_settings["trigger_on"] = settings.config.get(self.config_section_name, "trigger_on")
-        self.model_settings["trigger_method"] = settings.config.get(self.config_section_name, "trigger_method")
-        self.model_settings["trigger_sensitivity"] = settings.config.getint(self.config_section_name,
-                                                                            "trigger_sensitivity")
-
-        if self.model_settings["metric"] not in SUPPORTED_METRICS:
-            raise ValueError("Unsupported metric " + self.model_settings["metric"])
-
-        if self.model_settings["trigger_on"] not in SUPPORTED_TRIGGERS:
-            raise ValueError("Unexpected outlier trigger condition " + self.model_settings["trigger_on"])
-
     def evaluate_model(self):
-        eval_metrics = defaultdict()  # Contain the current batch information
-        total_metrics_added = 0
+        batch = defaultdict()  # Contain the current batch information
+        total_metrics_in_batch = 0
 
         self.total_events = es.count_documents(index=self.es_index, search_query=self.search_query,
                                                model_settings=self.model_settings)
@@ -62,29 +36,44 @@ class MetricsAnalyzer(Analyzer):
                 # If target and aggregator values exist
                 if target_value is not None and aggregator_sentences is not None:
                     # Add current document to eval_metrics
-                    eval_metrics, metric_added = self._compute_eval_metrics_for_one_doc(doc, eval_metrics, target_value,
-                                                                                        aggregator_sentences)
-                    # If the current document have been added to the metric
+                    batch, metric_added = self._add_document_to_batch(doc, batch, target_value,
+                                                                      aggregator_sentences)
+
+                    # We can only have 1 target field for metrics (as opposed to terms), so the total number of targets added
+                    # is the same as the total number of aggregator sentences that were processed for this document
                     if metric_added:
-                        total_metrics_added += 1
+                        total_metrics_in_batch += len(aggregator_sentences)
 
                 is_last_batch = (logging.current_step == self.total_events)  # Check if it is the last batch
                 # Run if it is the last batch OR if the batch size is large enough
-                if is_last_batch or total_metrics_added >= settings.config.getint("metrics",
+                if is_last_batch or total_metrics_in_batch >= settings.config.getint("metrics",
                                                                                   "metrics_batch_eval_size"):
 
-                    logging.logger.info("evaluating batch of " + "{:,}".format(total_metrics_added) + " metrics [" +
+                    logging.logger.info("evaluating batch of " + "{:,}".format(total_metrics_in_batch) + " metrics [" +
                                         "{:,}".format(logging.current_step) + " events processed]")
-                    remaining_metrics = self._evaluate_batch_save_outliers_and_display_logs(eval_metrics,
-                                                                                            is_last_batch)
+
+                    outliers, remaining_metrics = self._evaluate_batch_for_outliers(batch=batch,
+                                                                                    is_last_batch=is_last_batch)
+
+                    # For each result, save it in batch and in ES
+                    for outlier in outliers:
+                        self.process_outlier(outlier)
+
+                    # Print message
+                    if len(outliers) > 0:
+                        unique_summaries = len(set(o.outlier_dict["summary"] for o in outliers))
+                        logging.logger.info("total outliers in batch processed: " + "{:,}".format(len(outliers)) + " [" +
+                                            "{:,}".format(unique_summaries) + " unique summaries]")
+                    else:
+                        logging.logger.info("no outliers detected in batch")
 
                     # Reset data structures for next batch
-                    eval_metrics = remaining_metrics
+                    batch = remaining_metrics
                     total_metrics_added = 0
 
         self.print_analysis_summary()
 
-    def _compute_eval_metrics_for_one_doc(self, doc, eval_metrics, target_value, aggregator_sentences):
+    def _add_document_to_batch(self, doc, batch, target_value, aggregator_sentences):
         metrics_added = False
         metric, observations = self.calculate_metric(self.model_settings["metric"], target_value)
 
@@ -92,9 +81,9 @@ class MetricsAnalyzer(Analyzer):
             metrics_added = True
             for aggregator_sentence in aggregator_sentences:
                 flattened_aggregator_sentence = helpers.utils.flatten_sentence(aggregator_sentence)
-                eval_metrics = self.add_metric_to_batch(eval_metrics, flattened_aggregator_sentence,
+                batch = self.add_metric_to_batch(batch, flattened_aggregator_sentence,
                                                         target_value, metric, observations, doc)
-        return eval_metrics, metrics_added
+        return batch, metrics_added
 
     def _compute_aggregator_and_target_value(self, doc):
         '''
@@ -118,33 +107,15 @@ class MetricsAnalyzer(Analyzer):
 
         return target_value, aggregator_sentences
 
-    def _evaluate_batch_save_outliers_and_display_logs(self, eval_metrics, is_last_batch):
-        outliers, remaining_metrics = self._evaluate_batch_for_outliers(metrics=eval_metrics,
-                                                                        is_last_batch=is_last_batch)
-
-        # For each result, save it in batch and in ES
-        for outlier in outliers:
-            self.process_outlier(outlier)
-
-        # Print message
-        if len(outliers) > 0:
-            unique_summaries = len(set(o.outlier_dict["summary"] for o in outliers))
-            logging.logger.info("total outliers in batch processed: " + "{:,}".format(len(outliers)) + " [" +
-                                "{:,}".format(unique_summaries) + " unique summaries]")
-        else:
-            logging.logger.info("no outliers detected in batch")
-
-        return remaining_metrics
-
-    def _evaluate_batch_for_outliers(self, metrics=None, is_last_batch=False):
+    def _evaluate_batch_for_outliers(self, batch=None, is_last_batch=False):
         # Initialize
         outliers = list()  # List of all detected outliers
         remaining_metrics = dict()  # List of aggregator value that doesn't contain enough data
 
-        for _, aggregator_value in enumerate(metrics):
+        for _, aggregator_value in enumerate(batch):
             # Compute for each aggregator
             new_outliers, enough_value, metrics_aggregator_value = self._evaluate_aggregator_for_outliers(
-                metrics[aggregator_value], aggregator_value, is_last_batch)
+                batch[aggregator_value], aggregator_value, is_last_batch)
 
             # If the process was stop because they aren't enough value
             if not enough_value:
@@ -245,6 +216,32 @@ class MetricsAnalyzer(Analyzer):
         outlier = self.create_outlier(fields, metrics_aggregator_value["raw_docs"][ii],
                                       extra_outlier_information=observations)
         return outlier
+
+    def _extract_additional_model_settings(self):
+        """
+        Override method from Analyzer
+        """
+        try:
+            self.model_settings["process_documents_chronologically"] = settings.config.getboolean(
+                self.config_section_name, "process_documents_chronologically")
+        except NoOptionError:
+            self.model_settings["process_documents_chronologically"] = False
+
+        self.model_settings["target"] = settings.config.get(self.config_section_name, "target")
+        self.model_settings["aggregator"] = settings.config.get(self.config_section_name, "aggregator")\
+            .replace(' ', '').split(",")
+
+        self.model_settings["metric"] = settings.config.get(self.config_section_name, "metric")
+        self.model_settings["trigger_on"] = settings.config.get(self.config_section_name, "trigger_on")
+        self.model_settings["trigger_method"] = settings.config.get(self.config_section_name, "trigger_method")
+        self.model_settings["trigger_sensitivity"] = settings.config.getint(self.config_section_name,
+                                                                            "trigger_sensitivity")
+
+        if self.model_settings["metric"] not in SUPPORTED_METRICS:
+            raise ValueError("Unsupported metric " + self.model_settings["metric"])
+
+        if self.model_settings["trigger_on"] not in SUPPORTED_TRIGGERS:
+            raise ValueError("Unexpected outlier trigger condition " + self.model_settings["trigger_on"])
 
     @staticmethod
     def add_metric_to_batch(eval_metrics_array, aggregator_value, target_value, metrics_value, observations, doc):
