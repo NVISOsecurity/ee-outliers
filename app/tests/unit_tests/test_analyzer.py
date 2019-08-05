@@ -52,5 +52,5 @@ class TestAnalyzer(unittest.TestCase):
         outlier = analyzer.create_outlier(doc_fields, doc_without_outlier)
         es.save_outlier(outlier)
 
-        result = [elem for elem in es.scan()][0]
+        result = [elem for elem in es._scan()][0]
         self.assertEqual(result, doc_with_outlier)

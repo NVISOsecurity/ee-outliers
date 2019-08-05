@@ -24,14 +24,15 @@ class MetricsAnalyzer(Analyzer):
         batch = defaultdict()  # Contain the current batch information
         total_metrics_in_batch = 0
 
-        self.total_events = es.count_documents(index=self.es_index, search_query=self.search_query,
-                                               model_settings=self.model_settings)
+        self.total_events, documents = es.count_and_scan_documents(index=self.es_index, search_query=self.search_query,
+                                                                   model_settings=self.model_settings)
+
         self.print_analysis_intro(event_type="evaluating " + self.config_section_name, total_events=self.total_events)
 
         logging.init_ticker(total_steps=self.total_events,
                             desc=self.model_name + " - evaluating " + self.model_type + " model")
         if self.total_events > 0:
-            for doc in es.scan(index=self.es_index, search_query=self.search_query, model_settings=self.model_settings):
+            for doc in documents:
                 logging.tick()
 
                 # Extract target and aggregator values

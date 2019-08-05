@@ -182,7 +182,7 @@ class TestOutlierOperations(unittest.TestCase):
         self.test_es.add_doc(doc_with_outlier)
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/whitelist_tests_01_with_general.conf")
         es.remove_all_whitelisted_outliers()
-        result = [elem for elem in es.scan()][0]
+        result = [elem for elem in es._scan()][0]
         self.assertEqual(result, doc_without_outlier)
 
     def test_whitelist_config_change_single_literal_not_to_match_in_doc_with_outlier(self):
@@ -190,5 +190,5 @@ class TestOutlierOperations(unittest.TestCase):
         self.test_es.add_doc(doc_with_outlier)
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/whitelist_tests_03_with_general.conf")
         es.remove_all_whitelisted_outliers()
-        result = [elem for elem in es.scan()][0]
+        result = [elem for elem in es._scan()][0]
         self.assertEqual(result, doc_with_outlier)
