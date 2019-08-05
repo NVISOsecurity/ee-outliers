@@ -34,8 +34,7 @@ The best way of testing if the query is valid is by copy-pasting it from a worki
 **trigger_on**
 
 possible values: ``low``, ``high``.
-This parameter defines if the outliers model should trigger whenever the calculated model value of the event is lower or higher than the decision boundary. For example, a model that should trigger on users that log int
-o a statistically high number of workstations should trigger on ``high`` values, whereas a model that should detect processes that rarely communicate on the network should trigger on ``low`` values.
+This parameter defines if the outliers model should trigger whenever the calculated model value of the event is lower or higher than the decision boundary. For example, a model that should trigger on users that log into a statistically high number of workstations should trigger on ``high`` values, whereas a model that should detect processes that rarely communicate on the network should trigger on ``low`` values.
 
 **trigger_method** and **trigger_sensitivity**
 
