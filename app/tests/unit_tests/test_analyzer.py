@@ -49,7 +49,8 @@ class TestAnalyzer(unittest.TestCase):
         doc_with_outlier = copy.deepcopy(doc_with_outlier_test_file)
 
         doc_fields = doc_without_outlier["_source"]
-        analyzer.create_outlier(doc_fields, doc_without_outlier)
+        outlier = analyzer.create_outlier(doc_fields, doc_without_outlier)
+        es.save_outlier(outlier)
 
         result = [elem for elem in es.scan()][0]
         self.assertEqual(result, doc_with_outlier)
