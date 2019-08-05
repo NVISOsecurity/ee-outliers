@@ -17,7 +17,7 @@
 
 ee-outliers makes use of a single configuration file, in which both technical parameters (such as connectivity with your Elasticsearch cluster, logging, etc.) are defined as well as the detection use cases.
 
-An example configuration file with all required configuration sections and parameters, along with an explanation, can be found in ``defaults/outliers.conf``. We recommend starting from this file when running ee-outlie$
+An example configuration file with all required configuration sections and parameters, along with an explanation, can be found in [`defaults/outliers.conf`](../defaults/outliers.conf). We recommend starting from this file when running ee-outliers yourself.
 Continue reading for all the details on how to define your own outlier detection use cases.
 
 ## Running in interactive mode

@@ -42,7 +42,7 @@ The possibilities of the type of anomalies you can spot using ee-outliers is vir
 -	…
 
 Checkout the screenshots at the end of this readme for a few examples.
-Continue reading if you would like to get started with outlier detection in Elasticsearch yourself!
+Visit the page [Getting started](documentation/INSTALL.md) to get started with outlier detection in Elasticsearch yourself!
 
 #### Core features
 - Create your own custom outlier detection use cases specifically for your own needs
