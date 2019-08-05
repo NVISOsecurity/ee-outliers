@@ -58,7 +58,7 @@ class TestMetricsAnalyzer(unittest.TestCase):
         analyzer.evaluate_model()
 
         nbr_outliers = 0
-        for elem in es.scan():
+        for elem in es._scan():
             if "outliers" in elem["_source"]:
                 nbr_outliers += 1
         self.assertEqual(nbr_outliers, nbr_generated_documents)
@@ -79,7 +79,7 @@ class TestMetricsAnalyzer(unittest.TestCase):
         analyzer.evaluate_model()
 
         nbr_outliers = 0
-        for elem in es.scan():
+        for elem in es._scan():
             if "outliers" in elem["_source"]:
                 nbr_outliers += 1
         self.assertEqual(nbr_outliers, 1)
@@ -149,7 +149,7 @@ class TestMetricsAnalyzer(unittest.TestCase):
         analyzer = MetricsAnalyzer("metrics_dummy_test_derived")
         analyzer.evaluate_model()
 
-        result = [elem for elem in es.scan()][0]
+        result = [elem for elem in es._scan()][0]
         self.assertTrue("timestamp_year" in result['_source'])
 
     def test_metrics_use_derived_fields_in_outlier(self):
@@ -160,7 +160,7 @@ class TestMetricsAnalyzer(unittest.TestCase):
         analyzer = MetricsAnalyzer("metrics_dummy_test_derived")
         analyzer.evaluate_model()
 
-        result = [elem for elem in es.scan()][0]
+        result = [elem for elem in es._scan()][0]
         self.assertTrue("derived_timestamp_year" in result['_source']['outliers'])
 
     def test_metrics_not_use_derived_fields_in_doc(self):
@@ -171,7 +171,7 @@ class TestMetricsAnalyzer(unittest.TestCase):
         analyzer = MetricsAnalyzer("metrics_dummy_test_not_derived")
         analyzer.evaluate_model()
 
-        result = [elem for elem in es.scan()][0]
+        result = [elem for elem in es._scan()][0]
         self.assertFalse("timestamp_year" in result['_source'])
 
     def test_metrics_not_use_derived_fields_but_present_in_outlier(self):
@@ -182,7 +182,7 @@ class TestMetricsAnalyzer(unittest.TestCase):
         analyzer = MetricsAnalyzer("metrics_dummy_test_not_derived")
         analyzer.evaluate_model()
 
-        result = [elem for elem in es.scan()][0]
+        result = [elem for elem in es._scan()][0]
         # The parameter use_derived_fields haven't any impact on outliers keys
         self.assertTrue("derived_timestamp_year" in result['_source']['outliers'])
 
@@ -247,7 +247,7 @@ class TestMetricsAnalyzer(unittest.TestCase):
 
         analyzer.evaluate_model()
         list_outliers = []
-        for doc in es.scan():
+        for doc in es._scan():
             if "outliers" in doc["_source"]:
                 list_outliers.append((doc["_source"]["outliers"]["aggregator"][0],
                                       doc["_source"]["outliers"]["target"][0]))
@@ -276,7 +276,7 @@ class TestMetricsAnalyzer(unittest.TestCase):
 
         analyzer.evaluate_model()
         list_outliers = []
-        for doc in es.scan():
+        for doc in es._scan():
             if "outliers" in doc["_source"]:
                 list_outliers.append((doc["_source"]["outliers"]["aggregator"][0],
                                       doc["_source"]["outliers"]["target"][0]))
@@ -297,7 +297,7 @@ class TestMetricsAnalyzer(unittest.TestCase):
         analyzer = MetricsAnalyzer("metrics_dummy_test_no_derived")
         analyzer.evaluate_model()
 
-        result = [elem for elem in es.scan()][0]
+        result = [elem for elem in es._scan()][0]
         all_fields_exists = [elem in result['_source']['outliers'] for elem in DEFAULT_OUTLIERS_KEY_FIELDS]
         self.assertTrue(all(all_fields_exists))
 
@@ -312,7 +312,7 @@ class TestMetricsAnalyzer(unittest.TestCase):
         analyzer = MetricsAnalyzer("metrics_dummy_test_no_derived")
         analyzer.evaluate_model()
 
-        result = [elem for elem in es.scan()][0]
+        result = [elem for elem in es._scan()][0]
         all_fields_exists = [elem in result['_source']['outliers'] for elem in EXTRA_OUTLIERS_KEY_FIELDS]
         self.assertTrue(all(all_fields_exists))
 
@@ -327,7 +327,7 @@ class TestMetricsAnalyzer(unittest.TestCase):
         analyzer = MetricsAnalyzer("metrics_dummy_test_no_derived")
         analyzer.evaluate_model()
 
-        result = [elem for elem in es.scan()][0]
+        result = [elem for elem in es._scan()][0]
         all_fields_exists = [elem in EXTRA_OUTLIERS_KEY_FIELDS + DEFAULT_OUTLIERS_KEY_FIELDS
                              for elem in result['_source']['outliers']]
         self.assertTrue(all(all_fields_exists))
@@ -452,7 +452,7 @@ class TestMetricsAnalyzer(unittest.TestCase):
 
         outliers, remaining_metrics = analyzer._evaluate_batch_for_outliers(metrics, True)
         analyzer.process_outlier(outliers[0])
-        result = [elem for elem in es.scan()][0]
+        result = [elem for elem in es._scan()][0]
         doc_with_outlier = copy.deepcopy(doc_with_outlier_test_file)
 
         self.assertEqual(result, doc_with_outlier)

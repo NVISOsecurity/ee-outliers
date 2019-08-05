@@ -47,7 +47,7 @@ class TestHousekeeping(unittest.TestCase):
         housekeeping.execute_housekeeping()
 
         # Fetch result
-        result = [elem for elem in self.test_es.scan()][0]
+        result = [elem for elem in self.test_es._scan()][0]
 
         # Compute expected result:
         doc_without_outlier = copy.deepcopy(doc_without_outlier_test_file)
@@ -71,6 +71,6 @@ class TestHousekeeping(unittest.TestCase):
         housekeeping.execute_housekeeping()
 
         # Fetch result
-        result = [elem for elem in self.test_es.scan()][0]
+        result = [elem for elem in self.test_es._scan()][0]
 
         self.assertEqual(result, doc_with_outlier)

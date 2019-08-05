@@ -44,6 +44,11 @@ class Analyzer(abc.ABC):
 
     @property
     def analysis_time_seconds(self):
+        """
+        Get time to execute this model
+
+        :return: float value that represent the time in seconds
+        """
         if self.completed_analysis:
             return float(self.analysis_end_time - self.analysis_start_time)
         else:
@@ -100,12 +105,6 @@ class Analyzer(abc.ABC):
             model_settings["use_derived_fields"] = False
 
         try:
-            model_settings["should_notify"] = settings.config.getboolean("notifier", "email_notifier") and \
-                                              settings.config.getboolean(self.config_section_name, "should_notify")
-        except NoOptionError:
-            model_settings["should_notify"] = False
-
-        try:
             self.es_index = settings.config.get(self.config_section_name, "es_index")
         except NoOptionError:
             self.es_index = settings.config.get("general", "es_index_pattern")
@@ -129,6 +128,9 @@ class Analyzer(abc.ABC):
         pass
 
     def print_analysis_summary(self):
+        """
+        Print information about the analyzer. Must be call at the end of processing
+        """
         if self.total_outliers > 0:
             unique_summaries = len(self.outlier_summaries)
             message = "total outliers processed for use case: " + "{:,}".format(self.total_outliers) + " [" + \
@@ -140,6 +142,13 @@ class Analyzer(abc.ABC):
             logging.logger.info("no outliers detected for use case")
 
     def _prepare_outlier_parameters(self, extra_outlier_information, fields):
+        """
+        Compute different parameters to create outlier
+
+        :param extra_outlier_information: information about outlier
+        :param fields: fields information
+        :return: outlier type, outlier reason, outlier summary, outlier assets
+        """
         extra_outlier_information["model_name"] = self.model_name
         extra_outlier_information["model_type"] = self.model_type
 
@@ -165,6 +174,14 @@ class Analyzer(abc.ABC):
         return outlier_type, outlier_reason, outlier_summary, outlier_assets
 
     def create_outlier(self, fields, doc, extra_outlier_information=dict()):
+        """
+        Create an outlier
+
+        :param fields: extracted fields
+        :param doc: document linked to this outlier
+        :param extra_outlier_information: other information that need to be taking into account
+        :return: created outlier
+        """
         outlier_type, outlier_reason, outlier_summary, outlier_assets = \
             self._prepare_outlier_parameters(extra_outlier_information, fields)
         outlier = Outlier(outlier_type=outlier_type, outlier_reason=outlier_reason, outlier_summary=outlier_summary,
@@ -179,6 +196,12 @@ class Analyzer(abc.ABC):
         return outlier
 
     def process_outlier(self, outlier):
+        """
+        Save outlier (in statistique and) in ES database if not whitelisted (and if settings is configured to save in
+        ES)
+
+        :param outlier: outlier to save 
+        """
         self.total_outliers += 1
         self.outlier_summaries.add(outlier.outlier_dict["summary"])
 
