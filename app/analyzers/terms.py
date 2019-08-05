@@ -63,8 +63,7 @@ class TermsAnalyzer(Analyzer):
         self.print_analysis_summary()
 
     @staticmethod
-    def _add_document_to_batch(current_batch, target_sentences, aggregator_sentences,
-                               doc):
+    def _add_document_to_batch(current_batch, target_sentences, aggregator_sentences, doc):
         """
 
         :param current_batch:
