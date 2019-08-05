@@ -15,23 +15,24 @@ SUPPORTED_TRIGGERS = ["high", "low"]
 class MetricsAnalyzer(Analyzer):
 
     # The miminum amount of documents that should be part of a single aggregator in order to process is.
-    # This prevents outliers being flagged in cases where there is too little data to work with to make a useful conclusion.
-    # However, in the very last batch of the use case, all the remaining aggregators are processed, even the ones for which
-    # the number of documents is less than MIN_EVALUATE_BATCH.
+    # This prevents outliers being flagged in cases where there is too little data to work with to make a useful
+    # conclusion. However, in the very last batch of the use case, all the remaining aggregators are processed,
+    # even the ones for which the number of documents is less than MIN_EVALUATE_BATCH.
     MIN_EVALUATE_BATCH = 100
 
     def evaluate_model(self):
         batch = defaultdict()  # Contain the current batch information
         total_metrics_in_batch = 0
 
-        self.total_events = es.count_documents(index=self.es_index, search_query=self.search_query,
-                                               model_settings=self.model_settings)
+        self.total_events, documents = es.count_and_scan_documents(index=self.es_index, search_query=self.search_query,
+                                                                   model_settings=self.model_settings)
+
         self.print_analysis_intro(event_type="evaluating " + self.config_section_name, total_events=self.total_events)
 
         logging.init_ticker(total_steps=self.total_events,
                             desc=self.model_name + " - evaluating " + self.model_type + " model")
         if self.total_events > 0:
-            for doc in es.scan(index=self.es_index, search_query=self.search_query, model_settings=self.model_settings):
+            for doc in documents:
                 logging.tick()
 
                 # Extract target and aggregator values
@@ -43,21 +44,22 @@ class MetricsAnalyzer(Analyzer):
                     batch, metric_added = self._add_document_to_batch(doc, batch, target_value,
                                                                       aggregator_sentences)
 
-                    # We can only have 1 target field for metrics (as opposed to terms), so the total number of targets added
-                    # is the same as the total number of aggregator sentences that were processed for this document
+                    # We can only have 1 target field for metrics (as opposed to terms), so the total number of targets
+                    # added is the same as the total number of aggregator sentences that were processed for this
+                    # document
                     if metric_added:
                         total_metrics_in_batch += len(aggregator_sentences)
 
                 is_last_batch = (logging.current_step == self.total_events)  # Check if it is the last batch
                 # Run if it is the last batch OR if the batch size is large enough
                 if is_last_batch or total_metrics_in_batch >= settings.config.getint("metrics",
-                                                                                  "metrics_batch_eval_size"):
+                                                                                     "metrics_batch_eval_size"):
 
                     logging.logger.info("evaluating batch of " + "{:,}".format(total_metrics_in_batch) + " metrics [" +
                                         "{:,}".format(logging.current_step) + " events processed]")
 
-                    outliers_in_batch, remaining_metrics = self._evaluate_batch_for_outliers(batch=batch,
-                                                                                    is_last_batch=is_last_batch)
+                    outliers_in_batch, remaining_metrics = self._evaluate_batch_for_outliers(
+                        batch=batch, is_last_batch=is_last_batch)
 
                     # For each result, save it in batch and in ES
                     if outliers_in_batch:
@@ -85,8 +87,8 @@ class MetricsAnalyzer(Analyzer):
             metrics_added = True
             for aggregator_sentence in aggregator_sentences:
                 flattened_aggregator_sentence = helpers.utils.flatten_sentence(aggregator_sentence)
-                batch = self.add_metric_to_batch(batch, flattened_aggregator_sentence,
-                                                        target_value, metric, observations, doc)
+                batch = self.add_metric_to_batch(batch, flattened_aggregator_sentence, target_value, metric,
+                                                 observations, doc)
         return batch, metrics_added
 
     def _compute_aggregator_and_target_value(self, doc):

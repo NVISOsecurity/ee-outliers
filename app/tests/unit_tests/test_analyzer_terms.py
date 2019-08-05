@@ -98,7 +98,7 @@ class TestTermsAnalyzer(unittest.TestCase):
         analyzer.evaluate_model()
 
         nbr_outliers = 0
-        for elem in es.scan():
+        for elem in es._scan():
             if "outliers" in elem["_source"]:
                 nbr_outliers += 1
         self.assertEqual(nbr_outliers, nbr_generated_documents)
@@ -119,7 +119,7 @@ class TestTermsAnalyzer(unittest.TestCase):
         analyzer.evaluate_model()
 
         nbr_outliers = 0
-        for elem in es.scan():
+        for elem in es._scan():
             if "outliers" in elem["_source"]:
                 nbr_outliers += 1
         self.assertEqual(nbr_outliers, 5)
@@ -228,7 +228,7 @@ class TestTermsAnalyzer(unittest.TestCase):
         # Make test (suppose that all doc match with the query)
         analyzer.evaluate_model()
 
-        result = [elem for elem in es.scan()][0]
+        result = [elem for elem in es._scan()][0]
         self.assertEqual(result, expected_doc)
 
     def test_terms_generated_document_coeff_of_variation_not_respect_min(self):
@@ -246,7 +246,7 @@ class TestTermsAnalyzer(unittest.TestCase):
         analyzer.evaluate_model()
 
         nbr_outliers = 0
-        for doc in es.scan():
+        for doc in es._scan():
             if "outliers" in doc['_source']:
                 nbr_outliers += 1
         self.assertEqual(nbr_outliers, 0)
@@ -266,7 +266,7 @@ class TestTermsAnalyzer(unittest.TestCase):
         analyzer.evaluate_model()
 
         nbr_outliers = 0
-        for doc in es.scan():
+        for doc in es._scan():
             if "outliers" in doc['_source']:
                 nbr_outliers += 1
 
@@ -280,7 +280,7 @@ class TestTermsAnalyzer(unittest.TestCase):
         analyzer = TermsAnalyzer("terms_dummy_test_derived")
         analyzer.evaluate_model()
 
-        result = [elem for elem in es.scan()][0]
+        result = [elem for elem in es._scan()][0]
         self.assertTrue("timestamp_year" in result['_source'])
 
     def test_terms_use_derived_fields_in_outlier(self):
@@ -291,7 +291,7 @@ class TestTermsAnalyzer(unittest.TestCase):
         analyzer = TermsAnalyzer("terms_dummy_test_derived")
         analyzer.evaluate_model()
 
-        result = [elem for elem in es.scan()][0]
+        result = [elem for elem in es._scan()][0]
         self.assertTrue("derived_timestamp_year" in result['_source']['outliers'])
 
     def test_terms_not_use_derived_fields_in_doc(self):
@@ -302,7 +302,7 @@ class TestTermsAnalyzer(unittest.TestCase):
         analyzer = TermsAnalyzer("terms_dummy_test_not_derived")
         analyzer.evaluate_model()
 
-        result = [elem for elem in es.scan()][0]
+        result = [elem for elem in es._scan()][0]
         self.assertFalse("timestamp_year" in result['_source'])
 
     def test_terms_not_use_derived_fields_but_present_in_outlier(self):
@@ -313,7 +313,7 @@ class TestTermsAnalyzer(unittest.TestCase):
         analyzer = TermsAnalyzer("terms_dummy_test_not_derived")
         analyzer.evaluate_model()
 
-        result = [elem for elem in es.scan()][0]
+        result = [elem for elem in es._scan()][0]
         # The parameter use_derived_fields haven't any impact on outliers keys
         self.assertTrue("derived_timestamp_year" in result['_source']['outliers'])
 
@@ -328,7 +328,7 @@ class TestTermsAnalyzer(unittest.TestCase):
         analyzer = TermsAnalyzer("terms_dummy_test_float_low")
         analyzer.evaluate_model()
 
-        result = [elem for elem in es.scan()][0]
+        result = [elem for elem in es._scan()][0]
         all_fields_exists = [elem in result['_source']['outliers'] for elem in DEFAULT_OUTLIERS_KEY_FIELDS]
         self.assertTrue(all(all_fields_exists))
 
@@ -343,7 +343,7 @@ class TestTermsAnalyzer(unittest.TestCase):
         analyzer = TermsAnalyzer("terms_dummy_test_float_low")
         analyzer.evaluate_model()
 
-        result = [elem for elem in es.scan()][0]
+        result = [elem for elem in es._scan()][0]
         all_fields_exists = [elem in result['_source']['outliers'] for elem in EXTRA_OUTLIERS_KEY_FIELDS]
         self.assertTrue(all(all_fields_exists))
 
@@ -358,7 +358,7 @@ class TestTermsAnalyzer(unittest.TestCase):
         analyzer = TermsAnalyzer("terms_dummy_test_float_low")
         analyzer.evaluate_model()
 
-        result = [elem for elem in es.scan()][0]
+        result = [elem for elem in es._scan()][0]
         all_fields_exists = [elem in EXTRA_OUTLIERS_KEY_FIELDS + DEFAULT_OUTLIERS_KEY_FIELDS
                              for elem in result['_source']['outliers']]
         self.assertTrue(all(all_fields_exists))
@@ -466,7 +466,7 @@ class TestTermsAnalyzer(unittest.TestCase):
         analyzer.evaluate_model()
 
         list_outliers = []
-        for doc in es.scan():
+        for doc in es._scan():
             if "outliers" in doc["_source"]:
                 list_outliers.append((doc["_source"]["outliers"]["aggregator"][0],
                                       doc["_source"]["outliers"]["term"][0]))
@@ -587,7 +587,7 @@ class TestTermsAnalyzer(unittest.TestCase):
         analyzer.evaluate_model()
 
         list_outliers = []
-        for doc in es.scan():
+        for doc in es._scan():
             if "outliers" in doc["_source"]:
                 list_outliers.append((doc["_source"]["outliers"]["aggregator"][0],
                                       doc["_source"]["outliers"]["term"][0]))
@@ -624,7 +624,7 @@ class TestTermsAnalyzer(unittest.TestCase):
         analyzer.evaluate_model()
 
         list_outliers = []
-        for doc in es.scan():
+        for doc in es._scan():
             if "outliers" in doc["_source"]:
                 list_outliers.append((doc["_source"]["outliers"]["aggregator"][0],
                                       doc["_source"]["outliers"]["term"][0]))

@@ -11,8 +11,8 @@ from helpers.analyzer import Analyzer
 class TermsAnalyzer(Analyzer):
 
     def evaluate_model(self):
-        self.total_events = es.count_documents(index=self.es_index, search_query=self.search_query,
-                                               model_settings=self.model_settings)
+        self.total_events, documents = es.count_and_scan_documents(index=self.es_index, search_query=self.search_query,
+                                                                   model_settings=self.model_settings)
 
         self.print_analysis_intro(event_type="evaluating " + self.model_name, total_events=self.total_events)
         logging.init_ticker(total_steps=self.total_events, desc=self.model_name + " - evaluating terms model")
@@ -21,7 +21,7 @@ class TermsAnalyzer(Analyzer):
             current_batch = defaultdict()
             total_targets_in_batch = 0
 
-            for doc in es.scan(index=self.es_index, search_query=self.search_query, model_settings=self.model_settings):
+            for doc in documents:
                 logging.tick()
                 target_sentences, aggregator_sentences = self._compute_aggregator_and_target_value(
                     doc, self.model_settings["target"])
