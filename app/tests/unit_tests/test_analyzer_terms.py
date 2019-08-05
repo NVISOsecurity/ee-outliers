@@ -186,11 +186,10 @@ class TestTermsAnalyzer(unittest.TestCase):
 
         aggregator_value = LIST_AGGREGATOR_VALUE[0]
         target_value = random.choice(LIST_TARGET_VALUE)
-        observations = {}
         doc = copy.deepcopy(random.choice(LIST_DOC))
-        eval_terms_array = analyzer.add_term_to_batch(defaultdict(), aggregator_value, target_value, observations, doc)
+        current_batch = analyzer._add_document_to_batch(defaultdict(), [target_value], [aggregator_value], doc)
 
-        result, remaining_terms = analyzer._evaluate_batch_for_outliers(True, terms=eval_terms_array)
+        result, remaining_terms = analyzer._evaluate_batch_for_outliers(batch=current_batch)
         self.assertEqual(result, [])
 
     def test_evaluate_batch_for_outliers_limit_target_buckets_two_doc_max_two(self):
@@ -200,19 +199,16 @@ class TestTermsAnalyzer(unittest.TestCase):
         # Create one document with one aggregator
         aggregator_value = LIST_AGGREGATOR_VALUE[0]
         target_value = random.choice(LIST_TARGET_VALUE)
-        observations = {}
         doc = copy.deepcopy(random.choice(LIST_DOC))
-        eval_terms_array = analyzer.add_term_to_batch(defaultdict(), aggregator_value, target_value, observations, doc)
+        current_batch = analyzer._add_document_to_batch(defaultdict(), [target_value], [aggregator_value], doc)
         # Create a second document with another aggregator
         aggregator_value2 = LIST_AGGREGATOR_VALUE[1]
         target_value2 = random.choice(LIST_TARGET_VALUE)
-        observations2 = {}
         doc2 = copy.deepcopy(random.choice(LIST_DOC))
-        eval_terms_array = analyzer.add_term_to_batch(eval_terms_array, aggregator_value2, target_value2, observations2,
-                                                      doc2)
+        current_batch = analyzer._add_document_to_batch(current_batch, [target_value2], [aggregator_value2], doc2)
 
         # Expect to get nothing due to "min_target_buckets" set to 2
-        result, remaining_terms = analyzer._evaluate_batch_for_outliers(is_last_batch=True, terms=eval_terms_array)
+        result, remaining_terms = analyzer._evaluate_batch_for_outliers(batch=current_batch)
         self.assertEqual(result, [])
 
     # coeff_of_variation
@@ -363,54 +359,38 @@ class TestTermsAnalyzer(unittest.TestCase):
                              for elem in result['_source']['outliers']]
         self.assertTrue(all(all_fields_exists))
 
-    def test_add_term_to_batch_empty(self):
-        eval_terms_array = defaultdict()
-        aggregator_value = ""
-        target_value = ""
-        observations = {}
-        doc = {}
-        # Create expected result
-        expected_eval_terms = defaultdict()
-        expected_eval_terms[aggregator_value] = defaultdict(list)
-        expected_eval_terms[aggregator_value]["targets"] = [target_value]
-        expected_eval_terms[aggregator_value]["observations"] = [{}]
-        expected_eval_terms[aggregator_value]["raw_docs"] = [{}]
+    def test_add_document_to_batch_empty_target(self):
+        dummy_doc_generate = DummyDocumentsGenerate()
+        dummy_doc = dummy_doc_generate.generate_document()
 
-        self.assertEqual(TermsAnalyzer.add_term_to_batch(eval_terms_array, aggregator_value, target_value, observations,
-                                                         doc), expected_eval_terms)
+        current_batch = {"dummy_key": "dummy_value"}
+        result = TermsAnalyzer._add_document_to_batch(current_batch, list(), ["dummy_aggregator"], dummy_doc)
+        self.assertEqual(result, current_batch)
 
-    def test_add_term_to_batch_no_modification(self):
-        eval_terms_array, aggregator_value, target_value, observations, doc = self._prepare_data_terms()
-        # Create expected result
-        expected_eval_terms = defaultdict()
-        expected_eval_terms[aggregator_value] = defaultdict(list)
-        expected_eval_terms[aggregator_value]["targets"] = [target_value]
-        expected_eval_terms[aggregator_value]["observations"] = [observations]
-        expected_eval_terms[aggregator_value]["raw_docs"] = [doc]
+    def test_add_document_to_batch_empty_aggergator(self):
+        dummy_doc_generate = DummyDocumentsGenerate()
+        dummy_doc = dummy_doc_generate.generate_document()
 
-        self.assertEqual(TermsAnalyzer.add_term_to_batch(eval_terms_array, aggregator_value, target_value, observations,
-                                                         doc), expected_eval_terms)
+        current_batch = {"dummy_key": "dummy_value"}
+        result = TermsAnalyzer._add_document_to_batch(current_batch, ["dummy_target"], list(), dummy_doc)
+        self.assertEqual(result, current_batch)
 
-    def test_add_term_to_batch_concerv_extra_value(self):
-        eval_terms_array, aggregator_value, target_value, observations, doc = self._prepare_data_terms()
-        # Add extra value:
-        eval_terms_array["newKey"] = defaultdict(list)
-        eval_terms_array["newKey2"] = "empty"
-        eval_terms_array[aggregator_value] = defaultdict(list)
-        eval_terms_array[aggregator_value]["targets"] = [target_value]
-        eval_terms_array[aggregator_value]["test"] = 12
-        # Create expected result
-        expected_eval_terms = defaultdict()
-        expected_eval_terms["newKey"] = defaultdict(list)
-        expected_eval_terms["newKey2"] = "empty"
-        expected_eval_terms[aggregator_value] = defaultdict(list)
-        expected_eval_terms[aggregator_value]["targets"] = [target_value, target_value]
-        expected_eval_terms[aggregator_value]["observations"] = [observations]
-        expected_eval_terms[aggregator_value]["raw_docs"] = [doc]
-        expected_eval_terms[aggregator_value]["test"] = 12
+    def test_add_document_to_batch_one_aggregator_and_one_target(self):
+        dummy_doc_generate = DummyDocumentsGenerate()
+        dummy_doc = dummy_doc_generate.generate_document()
+        target_value = "dummy_target"
+        aggregator_value = "dummy_aggregator"
 
-        self.assertEqual(TermsAnalyzer.add_term_to_batch(eval_terms_array, aggregator_value, target_value, observations,
-                                                         doc), expected_eval_terms)
+        current_batch = {"dummy_key": "dummy_value"}
+        result = TermsAnalyzer._add_document_to_batch(current_batch, [target_value], [aggregator_value], dummy_doc)
+
+        expected_batch = current_batch.copy()
+        expected_batch[aggregator_value] = defaultdict(list)
+        expected_batch[aggregator_value]["targets"].append(target_value)
+        expected_batch[aggregator_value]["observations"].append(dict())
+        expected_batch[aggregator_value]["raw_docs"].append(dummy_doc)
+
+        self.assertEqual(result, expected_batch)
 
     def test_min_target_buckets_detect_outlier(self):
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_whitelist_batch.conf")
