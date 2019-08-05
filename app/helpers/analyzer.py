@@ -105,12 +105,6 @@ class Analyzer(abc.ABC):
             model_settings["use_derived_fields"] = False
 
         try:
-            model_settings["should_notify"] = settings.config.getboolean("notifier", "email_notifier") and \
-                                              settings.config.getboolean(self.config_section_name, "should_notify")
-        except NoOptionError:
-            model_settings["should_notify"] = False
-
-        try:
             self.es_index = settings.config.get(self.config_section_name, "es_index")
         except NoOptionError:
             self.es_index = settings.config.get("general", "es_index_pattern")
