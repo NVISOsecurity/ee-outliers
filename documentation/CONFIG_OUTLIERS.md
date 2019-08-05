@@ -31,24 +31,33 @@ The different types of detection models that can be configured are listed below.
 Each model starts with an Elasticsearch query which selects which events the model should consider for analysis.
 The best way of testing if the query is valid is by copy-pasting it from a working Kibana query.
 
-**trigger_on**
+**es_dsl_filter**
 
-possible values: ``low``, ``high``.
-This parameter defines if the outliers model should trigger whenever the calculated model value of the event is lower or higher than the decision boundary. For example, a model that should trigger on users that log into a statistically high number of workstations should trigger on ``high`` values, whereas a model that should detect processes that rarely communicate on the network should trigger on ``low`` values.
+Specify an DSL filter on each Elasticsearch query
 
-**trigger_method** and **trigger_sensitivity**
+**timestamp_field**
 
-Possible ``trigger_method`` values:
+Override the general settings "timestamp_field" that allow to specified the field name representing the event timestamp in Elasticsearch
 
- - ``percentile``: percentile. ``trigger_sensitivity`` ranges from ``0-100``.
- - ``pct_of_max_value``: percentage of maximum value. ``trigger_sensitivity`` ranges from ``0-100``.
- - ``pct_of_median_value``: percentage of median value. ``trigger_sensitivity`` ranges from ``0-100``.
- - ``pct_of_avg_value``: percentage of average value. ``trigger_sensitivity`` ranges from ``0-100``.
- - ``mad``: Median Average Deviation. ``trigger_sensitivity`` defines the total number of deviations and ranges from``0-Inf.``.
- - ``madpos``: same as ``mad`` but the trigger value will always be positive. In case mad is negative, it will result 0.
- - ``stdev``: Standard Deviation. ``trigger_sensitivity`` defines the total number of deviations and ranges from``0-Inf.``.
- - ``float``: fixed value to trigger on. ``trigger_sensitivity`` defines the trigger value.
- - ``coeff_of_variation``: Coefficient of variation. ``trigger_sensitivity`` defines the comparison value (the value of each document is not taking into account). Value with a range from ``0-Inf.``.
+**history_window_days**
+
+Specify how many days back in time to process events and search for outliers. This value is combine with "history_window_hours" which specified the number of hours.
+
+**history_window_hours**
+
+See description "history_window_days".
+
+**should_notify**
+
+Switch to enable / disable notifications for the model
+
+**use_derived_fields**
+
+Enable or not the utilisation of derived field
+
+**es_index**
+
+Possibility of override the `es_index_pattern` parameter
 
 **outlier_type**
 
@@ -73,9 +82,25 @@ Switch to enable / disable running of the model
 
 Switch to enable / disable testing of the model
 
-**should_notify**
+### Usual model parameters
+**trigger_on**
 
-Switch to enable / disable notifications for the model
+possible values: ``low``, ``high``.
+This parameter defines if the outliers model should trigger whenever the calculated model value of the event is lower or higher than the decision boundary. For example, a model that should trigger on users that log into a statistically high number of workstations should trigger on ``high`` values, whereas a model that should detect processes that rarely communicate on the network should trigger on ``low`` values.
+
+**trigger_method** and **trigger_sensitivity**
+
+Possible ``trigger_method`` values:
+
+ - ``percentile``: percentile. ``trigger_sensitivity`` ranges from ``0-100``.
+ - ``pct_of_max_value``: percentage of maximum value. ``trigger_sensitivity`` ranges from ``0-100``.
+ - ``pct_of_median_value``: percentage of median value. ``trigger_sensitivity`` ranges from ``0-100``.
+ - ``pct_of_avg_value``: percentage of average value. ``trigger_sensitivity`` ranges from ``0-100``.
+ - ``mad``: Median Average Deviation. ``trigger_sensitivity`` defines the total number of deviations and ranges from``0-Inf.``.
+ - ``madpos``: same as ``mad`` but the trigger value will always be positive. In case mad is negative, it will result 0.
+ - ``stdev``: Standard Deviation. ``trigger_sensitivity`` defines the total number of deviations and ranges from``0-Inf.``.
+ - ``float``: fixed value to trigger on. ``trigger_sensitivity`` defines the trigger value.
+ - ``coeff_of_variation``: Coefficient of variation. ``trigger_sensitivity`` defines the comparison value (the value of each document is not taking into account). Value with a range from ``0-Inf.``.
 
 --------------------
 
