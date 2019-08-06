@@ -65,17 +65,10 @@ class Outlier:
         # Check if value is whitelisted as literal
         for (_, each_whitelist_configuration_file_value) in \
                 helpers.singletons.settings.whitelist_literals_config:
-            whitelist_values_to_check = each_whitelist_configuration_file_value.split(",")
+            whitelist_values_to_check = set(map(str.strip, each_whitelist_configuration_file_value.split(',')))
 
-            total_whitelisted_fields_to_match = len(whitelist_values_to_check)
-            total_whitelisted_fields_matched = 0
-
-            for whitelist_val_to_check in whitelist_values_to_check:
-                if Outlier.dictionary_matches_specific_whitelist_item_literally(str(whitelist_val_to_check).strip(),
-                                                                                dict_values_to_check):
-                    total_whitelisted_fields_matched += 1
-
-            if total_whitelisted_fields_to_match == total_whitelisted_fields_matched:
+            # If all whitelisted value are in the dict to check
+            if whitelist_values_to_check.issubset(dict_values_to_check):
                 return True
 
         # Check if value is whitelisted as regexps
@@ -86,7 +79,7 @@ class Outlier:
             total_whitelisted_fields_to_match = len(whitelist_values_to_check)
             total_whitelisted_fields_matched = 0
 
-            for whitelist_val_to_check in whitelist_values_to_check:
+            for whitelist_val_to_check in whitelist_values_to_check:  # For each regex value
 
                 try:
                     p = re.compile(whitelist_val_to_check.strip(), re.IGNORECASE)
@@ -97,10 +90,14 @@ class Outlier:
                     # in the beginning of running outliers, we might still run into issues when the configuration
                     # changes during running of ee-outlies. So this should catch any remaining errors in the
                     # whitelist that could occur with regexps.
-                    continue
+                    break
 
-                if Outlier.dictionary_matches_specific_whitelist_item_regexp(p, dict_values_to_check):
-                    total_whitelisted_fields_matched += 1
+                # In one regex doesn't match the outlier
+                if not Outlier.dictionary_matches_specific_whitelist_item_regexp(p, dict_values_to_check):
+                    # Break the loop
+                    break
+                # Else, count the number of whitelisted elements
+                total_whitelisted_fields_matched += 1
 
             if total_whitelisted_fields_to_match == total_whitelisted_fields_matched:
                 return True
@@ -109,9 +106,5 @@ class Outlier:
         return False
 
     @staticmethod
-    def dictionary_matches_specific_whitelist_item_literally(whitelist_value, set_of_values_to_check):
-        return whitelist_value in set_of_values_to_check
-
-    @staticmethod
     def dictionary_matches_specific_whitelist_item_regexp(regex, set_of_values_to_check):
-        return len(list(filter(regex.match, set_of_values_to_check))) > 0
+        return any(regex.match(value_to_check) for value_to_check in set_of_values_to_check)

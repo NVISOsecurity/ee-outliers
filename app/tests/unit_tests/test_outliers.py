@@ -114,18 +114,6 @@ class TestOutlierOperations(unittest.TestCase):
         if "outlier" in doc["_source"]["tags"]:
             raise AssertionError("Tag still present in document, even after removal!")
 
-    def test_whitelist_literal_match(self):
-        whitelist_item = r"C:\Windows\system32\msfeedssync.exe sync"
-        result = Outlier.dictionary_matches_specific_whitelist_item_literally(whitelist_item,
-                                                                              nested_doc_for_whitelist_test)
-        self.assertTrue(result)
-
-    def test_whitelist_literal_mismatch(self):
-        whitelist_item = r"C:\Windows\system32\msfeedssync.exe syncWRONG"
-        result = Outlier.dictionary_matches_specific_whitelist_item_literally(whitelist_item,
-                                                                              nested_doc_for_whitelist_test)
-        self.assertFalse(result)
-
     def test_whitelist_regexp_match(self):
         whitelist_item = r"^.*.exe sync$"
         p = re.compile(whitelist_item.strip(), re.IGNORECASE)
