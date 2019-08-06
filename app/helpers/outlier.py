@@ -22,7 +22,7 @@ class Outlier:
         if self._is_whitelisted is None:
             # Create dictionary that contain all stuff
             self._is_whitelisted = Outlier.is_whitelisted_doc({'outlier_dict': self.outlier_dict,
-                                                                  'additional_dict_to_check': self.doc})
+                                                               'additional_dict_to_check': self.doc})
         return self._is_whitelisted
 
     def get_outlier_dict_of_arrays(self):
@@ -91,8 +91,12 @@ class Outlier:
                 try:
                     p = re.compile(whitelist_val_to_check.strip(), re.IGNORECASE)
                 except Exception:
-                    # something went wrong compiling the regular expression, probably because of a user error such as unbalanced escape characters.
-                    # we should just ignore the regular expression and continue (and let the user know in the beginning that some could not be compiled)
+                    # something went wrong compiling the regular expression, probably because of a user error such as
+                    # unbalanced escape characters. We should just ignore the regular expression and continue (and let
+                    # the user know in the beginning that some could not be compiled).  Even if we check for errors
+                    # in the beginning of running outliers, we might still run into issues when the configuration
+                    # changes during running of ee-outlies. So this should catch any remaining errors in the
+                    # whitelist that could occur with regexps.
                     continue
 
                 if Outlier.dictionary_matches_specific_whitelist_item_regexp(p, dict_values_to_check):

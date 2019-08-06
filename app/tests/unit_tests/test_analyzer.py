@@ -2,10 +2,8 @@ import json
 import unittest
 
 import copy
-from collections import defaultdict
 
 from helpers.singletons import es
-from helpers.analyzer import Analyzer
 from tests.unit_tests.test_stubs.test_stub_analyzer import TestStubAnalyzer
 from tests.unit_tests.test_stubs.test_stub_es import TestStubEs
 from tests.unit_tests.utils.test_settings import TestSettings
