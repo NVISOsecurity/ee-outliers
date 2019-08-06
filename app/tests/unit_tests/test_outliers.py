@@ -11,6 +11,8 @@ from tests.unit_tests.test_stubs.test_stub_es import TestStubEs
 from tests.unit_tests.utils.test_settings import TestSettings
 
 doc_without_outlier_test_file = json.load(open("/app/tests/unit_tests/files/doc_without_outlier.json"))
+doc_without_outlier_without_score_test_file = json.load(open(
+    "/app/tests/unit_tests/files/doc_without_outlier_without_score.json"))
 doc_with_outlier_test_file = json.load(open("/app/tests/unit_tests/files/doc_with_outlier.json"))
 doc_with_two_outliers_test_file = json.load(open("/app/tests/unit_tests/files/doc_with_two_outliers.json"))
 doc_with_three_outliers_test_file = json.load(open("/app/tests/unit_tests/files/doc_with_three_outliers.json"))
@@ -178,17 +180,18 @@ class TestOutlierOperations(unittest.TestCase):
 
     def test_whitelist_config_change_remove_multi_item_literal(self):
         doc_with_outlier = copy.deepcopy(doc_with_outlier_test_file)
-        doc_without_outlier = copy.deepcopy(doc_without_outlier_test_file)
+        # Without score because "remove whitelisted outlier" use "bulk" operation which doesn't take into account score
+        doc_without_outlier_without_score = copy.deepcopy(doc_without_outlier_without_score_test_file)
         self.test_es.add_doc(doc_with_outlier)
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/whitelist_tests_01_with_general.conf")
         es.remove_all_whitelisted_outliers()
-        result = [elem for elem in es.scan()][0]
-        self.assertEqual(result, doc_without_outlier)
+        result = [elem for elem in es._scan()][0]
+        self.assertEqual(result, doc_without_outlier_without_score)
 
     def test_whitelist_config_change_single_literal_not_to_match_in_doc_with_outlier(self):
         doc_with_outlier = copy.deepcopy(doc_with_outlier_test_file)
         self.test_es.add_doc(doc_with_outlier)
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/whitelist_tests_03_with_general.conf")
         es.remove_all_whitelisted_outliers()
-        result = [elem for elem in es.scan()][0]
+        result = [elem for elem in es._scan()][0]
         self.assertEqual(result, doc_with_outlier)

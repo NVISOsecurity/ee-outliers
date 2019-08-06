@@ -15,23 +15,24 @@ SUPPORTED_TRIGGERS = ["high", "low"]
 class MetricsAnalyzer(Analyzer):
 
     # The miminum amount of documents that should be part of a single aggregator in order to process is.
-    # This prevents outliers being flagged in cases where there is too little data to work with to make a useful conclusion.
-    # However, in the very last batch of the use case, all the remaining aggregators are processed, even the ones for which
-    # the number of documents is less than MIN_EVALUATE_BATCH.
+    # This prevents outliers being flagged in cases where there is too little data to work with to make a useful
+    # conclusion. However, in the very last batch of the use case, all the remaining aggregators are processed,
+    # even the ones for which the number of documents is less than MIN_EVALUATE_BATCH.
     MIN_EVALUATE_BATCH = 100
 
     def evaluate_model(self):
         batch = defaultdict()  # Contain the current batch information
         total_metrics_in_batch = 0
 
-        self.total_events = es.count_documents(index=self.es_index, search_query=self.search_query,
-                                               model_settings=self.model_settings)
+        self.total_events, documents = es.count_and_scan_documents(index=self.es_index, search_query=self.search_query,
+                                                                   model_settings=self.model_settings)
+
         self.print_analysis_intro(event_type="evaluating " + self.config_section_name, total_events=self.total_events)
 
         logging.init_ticker(total_steps=self.total_events,
                             desc=self.model_name + " - evaluating " + self.model_type + " model")
         if self.total_events > 0:
-            for doc in es.scan(index=self.es_index, search_query=self.search_query, model_settings=self.model_settings):
+            for doc in documents:
                 logging.tick()
 
                 # Extract target and aggregator values
@@ -43,21 +44,22 @@ class MetricsAnalyzer(Analyzer):
                     batch, metric_added = self._add_document_to_batch(doc, batch, target_value,
                                                                       aggregator_sentences)
 
-                    # We can only have 1 target field for metrics (as opposed to terms), so the total number of targets added
-                    # is the same as the total number of aggregator sentences that were processed for this document
+                    # We can only have 1 target field for metrics (as opposed to terms), so the total number of targets
+                    # added is the same as the total number of aggregator sentences that were processed for this
+                    # document
                     if metric_added:
                         total_metrics_in_batch += len(aggregator_sentences)
 
                 is_last_batch = (logging.current_step == self.total_events)  # Check if it is the last batch
                 # Run if it is the last batch OR if the batch size is large enough
                 if is_last_batch or total_metrics_in_batch >= settings.config.getint("metrics",
-                                                                                  "metrics_batch_eval_size"):
+                                                                                     "metrics_batch_eval_size"):
 
                     logging.logger.info("evaluating batch of " + "{:,}".format(total_metrics_in_batch) + " metrics [" +
                                         "{:,}".format(logging.current_step) + " events processed]")
 
-                    outliers_in_batch, remaining_metrics = self._evaluate_batch_for_outliers(batch=batch,
-                                                                                    is_last_batch=is_last_batch)
+                    outliers_in_batch, remaining_metrics = self._evaluate_batch_for_outliers(
+                        batch=batch, is_last_batch=is_last_batch)
 
                     # For each result, save it in batch and in ES
                     if outliers_in_batch:
@@ -78,6 +80,15 @@ class MetricsAnalyzer(Analyzer):
         self.print_analysis_summary()
 
     def _add_document_to_batch(self, doc, batch, target_value, aggregator_sentences):
+        """
+        Compute different metrics and observation to add them to the batch
+
+        :param doc: document where fields need to be extracted
+        :param batch: batch where values need to be added
+        :param target_value: target value used to extract data
+        :param aggregator_sentences: aggregator value (used to group data)
+        :return: the new batch and the metrics added
+        """
         metrics_added = False
         metric, observations = self.calculate_metric(self.model_settings["metric"], target_value)
 
@@ -85,18 +96,18 @@ class MetricsAnalyzer(Analyzer):
             metrics_added = True
             for aggregator_sentence in aggregator_sentences:
                 flattened_aggregator_sentence = helpers.utils.flatten_sentence(aggregator_sentence)
-                batch = self.add_metric_to_batch(batch, flattened_aggregator_sentence,
-                                                        target_value, metric, observations, doc)
+                batch = self.add_metric_to_batch(batch, flattened_aggregator_sentence, target_value, metric,
+                                                 observations, doc)
         return batch, metrics_added
 
     def _compute_aggregator_and_target_value(self, doc):
-        '''
+        """
         Compute the target value and the aggregator sentence. Return the two value or two None if one of the two could
         not be computed
 
         :param doc: the document for which the calculations must be made
         :return: target_value (could be None), aggregator_sentences (could be None)
-        '''
+        """
         fields = es.extract_fields_from_document(
             doc, extract_derived_fields=self.model_settings["use_derived_fields"])
         try:
@@ -112,6 +123,13 @@ class MetricsAnalyzer(Analyzer):
         return target_value, aggregator_sentences
 
     def _evaluate_batch_for_outliers(self, batch=None, is_last_batch=False):
+        """
+        Evaluate one batch to detect outliers
+
+        :param batch: the batch to analyze
+        :param is_last_batch: boolean to say if it is the last batch
+        :return: The list of outliers and the list of batch that need to be process again (due to not enough values)
+        """
         # Initialize
         outliers = list()  # List of all detected outliers
         unprocessed_batch_elements = dict()  # List of aggregator value that doesn't contain enough data
@@ -131,6 +149,15 @@ class MetricsAnalyzer(Analyzer):
         return outliers, unprocessed_batch_elements
 
     def _evaluate_aggregator_for_outliers(self, metrics_aggregator_value, aggregator_value, is_last_batch):
+        """
+        Evaluate all documents for a specific aggregator value
+
+        :param metrics_aggregator_value: metrics linked to this aggregator
+        :param aggregator_value: aggregator value that is evaluate
+        :param is_last_batch: boolean to know if it is the last batch
+        :return: List of outliers, boolean to know if there are enough data (False if not), new
+        "metrics_aggregator_value" (update if some document are detected like outlier and whitelisted)
+        """
         has_sufficient_data = True
         first_run = True  # Force to run one time the loop
         nr_whitelisted_element_detected = 0
@@ -192,6 +219,14 @@ class MetricsAnalyzer(Analyzer):
         return outliers, has_sufficient_data, metrics_aggregator_value
 
     def _evaluate_each_aggregator_value_for_outliers(self, metrics_aggregator_value, decision_frontier):
+        """
+        Evaluate all value in an aggregator to detect if it is outlier
+
+        :param metrics_aggregator_value: list of metrics linked to this aggregator
+        :param decision_frontier: the decision frontier
+        :return: list of outliers and list of document that need to be remove (because they have been detected like
+        outliers and are whitelisted)
+        """
         list_outliers = []
         list_documents_need_to_be_removed = []
 
@@ -213,6 +248,15 @@ class MetricsAnalyzer(Analyzer):
 
     def _compute_fields_observation_and_create_outlier(self, metrics_aggregator_value, ii, decision_frontier,
                                                        metric_value):
+        """
+        Extract field from document and compute different element that will be placed in the observation
+
+        :param metrics_aggregator_value: value of the metrics aggregator
+        :param ii: index of the document that have been detected like outlier
+        :param decision_frontier: the value of the decision frontier
+        :param metric_value: the metric value
+        :return: the created outlier
+        """
         confidence = np.abs(decision_frontier - metric_value)
 
         # Extract fields from raw document
@@ -257,6 +301,17 @@ class MetricsAnalyzer(Analyzer):
 
     @staticmethod
     def add_metric_to_batch(eval_metrics_array, aggregator_value, target_value, metrics_value, observations, doc):
+        """
+        Add a document to the batch. This method will extract data and save it in batch
+
+        :param eval_metrics_array: existing batch values
+        :param aggregator_value: aggregator value of this document
+        :param target_value: target value of the document
+        :param metrics_value: metric value
+        :param observations: observations
+        :param doc: document that need to be added
+        :return: new batch value
+        """
         observations["target"] = target_value
         observations["aggregator"] = aggregator_value
 
@@ -271,6 +326,13 @@ class MetricsAnalyzer(Analyzer):
 
     @staticmethod
     def remove_metric_from_batch(eval_metrics_aggregator_value, index):
+        """
+        Remove value from batch (does the opposite of add_metric_to_batch)
+
+        :param eval_metrics_aggregator_value: batch value that need to be update
+        :param index: index of document that need to be removed
+        :return: new batch
+        """
         eval_metrics_aggregator_value["metrics"].pop(index)
         eval_metrics_aggregator_value["observations"].pop(index)
         eval_metrics_aggregator_value["raw_docs"].pop(index)
