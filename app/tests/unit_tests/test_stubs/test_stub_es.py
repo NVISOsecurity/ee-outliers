@@ -19,7 +19,6 @@ class TestStubEs:
                 "default_init_connection": es.init_connection,
                 "default_scan": es._scan,
                 "default_count_documents": es._count_documents,
-                "default_update_es": es._update_es,
                 "default_remove_all_outliers": es.remove_all_outliers,
                 "default_flush_bulk_actions": es.flush_bulk_actions
             }
@@ -30,7 +29,6 @@ class TestStubEs:
         es.init_connection = self.init_connection
         es._scan = self._scan
         es._count_documents = self._count_documents
-        es._update_es = self._update_es
         es.remove_all_outliers = self.remove_all_outliers
         es.flush_bulk_actions = self.flush_bulk_actions
 
@@ -40,7 +38,6 @@ class TestStubEs:
         es.init_connection = self.default_es_methods["default_init_connection"]
         es._scan = self.default_es_methods["default_scan"]
         es._count_documents = self.default_es_methods["default_count_documents"]
-        es._update_es = self.default_es_methods["default_update_es"]
         es.remove_all_outliers = self.default_es_methods["default_remove_all_outliers"]
         es.flush_bulk_actions = self.default_es_methods["default_flush_bulk_actions"]
         es.bulk_actions = list()
@@ -58,11 +55,6 @@ class TestStubEs:
 
     def _count_documents(self, index="", bool_clause=None, query_fields=None, search_query=None, model_settings=None):
         return len(self.list_data)
-
-    def _update_es(self, doc):
-        doc_id = doc['_id']
-        if doc_id in self.list_data:
-            self.list_data[doc_id] = doc
 
     def remove_all_outliers(self):
         self.list_data = dict()
