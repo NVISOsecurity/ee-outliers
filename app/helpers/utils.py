@@ -127,15 +127,17 @@ def flatten_fields_into_sentences(fields=None, sentence_format=None):
 
     for i, field_name in enumerate(sentence_format):
         new_sentences = []
-        if type(get_dotkey_value(fields, field_name, case_sensitive=False)) is list:
-            for field_value in get_dotkey_value(fields, field_name, case_sensitive=False):
+        dict_value = get_dotkey_value(fields, field_name, case_sensitive=False)
+
+        if type(dict_value) is list:
+            for field_value in dict_value:
                 for sentence in sentences:
                     sentence_copy = sentence.copy()
                     sentence_copy.append(flatten_sentence(field_value))
                     new_sentences.append(sentence_copy)
         else:
             for sentence in sentences:
-                sentence.append(flatten_sentence(get_dotkey_value(fields, field_name, case_sensitive=False)))
+                sentence.append(flatten_sentence(dict_value))
                 new_sentences.append(sentence)
 
         sentences = new_sentences.copy()
@@ -153,17 +155,20 @@ def replace_placeholder_fields_with_values(placeholder, fields):
     field_name_list = regex.findall(placeholder)  # ['source_ip','destination_ip'] for example
 
     for field_name in field_name_list:
-        if dict_contains_dotkey(fields, field_name, case_sensitive=False):
-            if type(get_dotkey_value(fields, field_name, case_sensitive=False)) is list:
+        try:
+            dict_value = get_dotkey_value(fields, field_name, case_sensitive=False)
+
+            if type(dict_value) is list:
                 try:
-                    field_value = ", ".join(get_dotkey_value(fields, field_name, case_sensitive=False))
+                    field_value = ", ".join(dict_value)
                 except TypeError:
                     field_value = "complex field " + field_name
             else:
-                field_value = str(get_dotkey_value(fields, field_name, case_sensitive=False))
+                field_value = str(dict_value)
 
             placeholder = placeholder.replace('{' + field_name + '}', field_value)
-        else:
+
+        except KeyError:
             placeholder = placeholder.replace('{' + field_name + '}', "{field " + field_name + " not found in event}")
 
     return placeholder

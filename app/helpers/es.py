@@ -271,18 +271,24 @@ class ES:
     def extract_derived_fields(self, doc_fields):
         derived_fields = dict()
         for field_name, grok_pattern in self.settings.config.items("derivedfields"):
-            if helpers.utils.dict_contains_dotkey(doc_fields, field_name, case_sensitive=False):
+            try:
+                # If key doesn't exist, an exception is raise
+                doc_value = helpers.utils.get_dotkey_value(doc_fields, field_name, case_sensitive=False)
+
                 if grok_pattern in self.grok_filters.keys():
                     grok = self.grok_filters[grok_pattern]
                 else:
                     grok = Grok(grok_pattern)
                     self.grok_filters[grok_pattern] = grok
 
-                match_dict = grok.match(helpers.utils.get_dotkey_value(doc_fields, field_name, case_sensitive=False))
+                match_dict = grok.match(doc_value)
 
                 if match_dict:
                     for match_dict_k, match_dict_v in match_dict.items():
                         derived_fields[match_dict_k] = match_dict_v
+
+            except KeyError:
+                pass  # Ignore, value not found...
 
         return derived_fields
 
