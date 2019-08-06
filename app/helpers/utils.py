@@ -80,16 +80,22 @@ def extract_outlier_asset_information(fields, settings):
     """
     outlier_assets = list()
     for (asset_field_name, asset_field_type) in settings.config.items("assets"):
-        if dict_contains_dotkey(fields, asset_field_name, case_sensitive=False):
+        try:
+            # Could raise an error if key does't exist
+            dict_value = get_dotkey_value(fields, asset_field_name, case_sensitive=False)
 
-            asset_field_values_including_empty = flatten_fields_into_sentences(fields,
-                                                                               sentence_format=[asset_field_name])
+            sentences = _flatten_one_field_into_sentences(dict_value)
+            asset_field_values_including_empty = [sentence for sentence in sentences if None not in sentence]
+
             # also remove all empty asset strings
             asset_field_values = [sentence[0] for sentence in asset_field_values_including_empty if "" not in sentence]
 
             # make sure we don't process empty process information, for example an empty user field
             for asset_field_value in asset_field_values:
                 outlier_assets.append(asset_field_type + ": " + asset_field_value)
+
+        except KeyError:
+            pass  # If error, do nothing
 
     return outlier_assets
 
@@ -137,7 +143,7 @@ def flatten_fields_into_sentences(fields=None, sentence_format=None):
     return sentences
 
 
-def _flatten_one_field_into_sentences(dict_value, sentences):
+def _flatten_one_field_into_sentences(dict_value, sentences=list(list())):
     new_sentences = []
     if type(dict_value) is list:
         for field_value in dict_value:
