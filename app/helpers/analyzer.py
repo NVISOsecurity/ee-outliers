@@ -197,10 +197,9 @@ class Analyzer(abc.ABC):
 
     def process_outlier(self, outlier):
         """
-        Save outlier (in statistique and) in ES database if not whitelisted (and if settings is configured to save in
-        ES)
+        Save outlier (in statistic and) in ES database if not whitelisted (and if settings is configured to save in ES)
 
-        :param outlier: outlier to save 
+        :param outlier: outlier to save
         """
         self.total_outliers += 1
         self.outlier_summaries.add(outlier.outlier_dict["summary"])
