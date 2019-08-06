@@ -126,20 +126,8 @@ def flatten_fields_into_sentences(fields=None, sentence_format=None):
     sentences = [[]]
 
     for i, field_name in enumerate(sentence_format):
-        new_sentences = []
         dict_value = get_dotkey_value(fields, field_name, case_sensitive=False)
-
-        if type(dict_value) is list:
-            for field_value in dict_value:
-                for sentence in sentences:
-                    sentence_copy = sentence.copy()
-                    sentence_copy.append(flatten_sentence(field_value))
-                    new_sentences.append(sentence_copy)
-        else:
-            for sentence in sentences:
-                sentence.append(flatten_sentence(dict_value))
-                new_sentences.append(sentence)
-
+        new_sentences = _flatten_one_field_into_sentences(sentences=sentences, dict_value=dict_value)
         sentences = new_sentences.copy()
 
     # Remove all sentences that contain fields that could not be parsed, and that have been flattened to "None".
@@ -147,6 +135,22 @@ def flatten_fields_into_sentences(fields=None, sentence_format=None):
     sentences = [sentence for sentence in sentences if None not in sentence]
 
     return sentences
+
+
+def _flatten_one_field_into_sentences(dict_value, sentences):
+    new_sentences = []
+    if type(dict_value) is list:
+        for field_value in dict_value:
+            for sentence in sentences:
+                sentence_copy = sentence.copy()
+                sentence_copy.append(flatten_sentence(field_value))
+                new_sentences.append(sentence_copy)
+    else:
+        for sentence in sentences:
+            sentence.append(flatten_sentence(dict_value))
+            new_sentences.append(sentence)
+
+    return new_sentences
 
 
 def replace_placeholder_fields_with_values(placeholder, fields):
