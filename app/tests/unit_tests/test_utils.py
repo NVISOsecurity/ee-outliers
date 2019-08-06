@@ -518,7 +518,7 @@ class TestUtils(unittest.TestCase):
 
     def test_extract_outlier_asset_information_case_insensitive_value(self):
         from helpers.singletons import settings, es
-
+        
         # test case for case insensitive asset matching
         orig_doc = copy.deepcopy(doc_with_outlier_test_file)
         fields = es.extract_fields_from_document(orig_doc, extract_derived_fields=False)
