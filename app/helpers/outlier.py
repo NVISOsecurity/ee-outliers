@@ -58,9 +58,9 @@ class Outlier:
             if isinstance(dict_val, list):
                 for dict_val_item in dict_val:
                     # force to be a string in case the nested element is a dictionary
-                    dict_values_to_check.add(str(dict_val_item))
+                    dict_values_to_check.add(str(dict_val_item).strip())
             else:
-                dict_values_to_check.add(dict_val)
+                dict_values_to_check.add(str(dict_val).strip())
 
         # Check if value is whitelisted as literal
         for (_, each_whitelist_configuration_file_value) in \
@@ -71,7 +71,7 @@ class Outlier:
             total_whitelisted_fields_matched = 0
 
             for whitelist_val_to_check in whitelist_values_to_check:
-                if Outlier.dictionary_matches_specific_whitelist_item_literally(whitelist_val_to_check,
+                if Outlier.dictionary_matches_specific_whitelist_item_literally(str(whitelist_val_to_check).strip(),
                                                                                 dict_values_to_check):
                     total_whitelisted_fields_matched += 1
 
@@ -106,16 +106,8 @@ class Outlier:
 
     @staticmethod
     def dictionary_matches_specific_whitelist_item_literally(whitelist_value, set_of_values_to_check):
-        for value_to_check in set_of_values_to_check:
-            if str(value_to_check).strip() == whitelist_value.strip():
-                return True
-
-        return False
+        return whitelist_value in set_of_values_to_check
 
     @staticmethod
     def dictionary_matches_specific_whitelist_item_regexp(regex, set_of_values_to_check):
-        for value_to_check in set_of_values_to_check:
-            if regex.match(str(value_to_check).strip()):
-                return True
-
-        return False
+        return len(list(filter(regex.match, set_of_values_to_check))) > 0

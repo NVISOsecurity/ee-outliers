@@ -17,13 +17,13 @@ doc_with_outlier_test_file = json.load(open("/app/tests/unit_tests/files/doc_wit
 doc_with_two_outliers_test_file = json.load(open("/app/tests/unit_tests/files/doc_with_two_outliers.json"))
 doc_with_three_outliers_test_file = json.load(open("/app/tests/unit_tests/files/doc_with_three_outliers.json"))
 
-nested_doc_for_whitelist_test = {'169.254.184.188', 'fe80::491a:881a:b1bf:b539', 2, 1, '1535026336',
+nested_doc_for_whitelist_test = {'169.254.184.188', 'fe80::491a:881a:b1bf:b539', str(2), str(1), '1535026336',
                                  '1535017696_osquery_get_all_scheduled_tasks.log',
-                                 'User_Feed_Synchronization-{9CD0CFAD-350E-46BA-8338-932284EF7332}', None,
+                                 'User_Feed_Synchronization-{9CD0CFAD-350E-46BA-8338-932284EF7332}', str(None),
                                  'OsqueryFilter', 'get_all_scheduled_tasks', 'Dummy Workstations',
                                  'osquery_get_all_scheduled_tasks.log', "['user:jvanderzweep', 'host:DUMMY-WIN10-JVZ']",
-                                 ' C:\\Windows\\system32\\msfeedssync.exe sync',
-                                 '\\User_Feed_Synchronization-{9CD0CFAD-350E-46BA-8338-932284EF7332}'}
+                                 r'C:\Windows\system32\msfeedssync.exe sync',
+                                 r'\User_Feed_Synchronization-{9CD0CFAD-350E-46BA-8338-932284EF7332}'}
 
 
 class TestOutlierOperations(unittest.TestCase):
