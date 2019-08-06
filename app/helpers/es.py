@@ -188,7 +188,7 @@ class ES:
                     self.logging.logger.info("whitelisting historical outliers " + " [" + ticks_per_second + " eps." +
                                              " - " + '{:.2f}'.format(round(float(total_outliers_processed) /
                                                                            float(total_nr_outliers) * 100, 2)) +
-                                             "% done" + " - " + str(total_outliers_whitelisted) +
+                                             "% done" + " - " + "{:,}".format(total_outliers_whitelisted) +
                                              " outliers whitelisted]")
 
             self.flush_bulk_actions()
