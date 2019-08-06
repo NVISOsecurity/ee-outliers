@@ -22,14 +22,6 @@ def flatten_dict(d, parent_key='', sep='.'):
     return dict(items)
 
 
-def dict_contains_dotkey(dict_value, key_name, case_sensitive=True):
-    try:
-        get_dotkey_value(dict_value, key_name, case_sensitive)
-        return True
-    except KeyError:
-        return False
-
-
 def get_dotkey_value(dict_value, key_name, case_sensitive=True):
     """
     Get value by dot key in dictionary
