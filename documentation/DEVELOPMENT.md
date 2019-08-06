@@ -1,6 +1,6 @@
 <p align="left"><a href="WHITELIST.md">&#8592; Whitelisting outliser</a></p>
 
-# Information fo developers
+# Information for developers
 
 **Table of contents:**
 - [Running in test mode](#running-in-test-mode)
