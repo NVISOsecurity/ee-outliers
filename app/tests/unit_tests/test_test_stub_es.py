@@ -94,15 +94,6 @@ class TestTestStubEs(unittest.TestCase):
         es.remove_all_outliers()
         self.assertEqual(es._count_documents(), 0)
 
-    def test_update_es_correctly_work(self):
-        dictionary_value = self._get_example_dictionary_key_value_and_expected()[0]
-        self.test_es.add_data(dictionary_value)
-        result = [elem for elem in es._scan()][0]
-        result["_source"]["key"]["test"] = "update_value"
-        es._update_es(result)
-        new_result = [elem for elem in es._scan()][0]
-        self.assertEqual(new_result, result)
-
     def test_add_doc_same_id_raise_error(self):
         data = self._get_example_doc()
         self.test_es.add_doc(data)
