@@ -9,6 +9,7 @@ from helpers.outlier import Outlier
 from helpers.singletons import es
 from tests.unit_tests.test_stubs.test_stub_es import TestStubEs
 from tests.unit_tests.utils.test_settings import TestSettings
+from tests.unit_tests.utils.dummy_documents_generate import DummyDocumentsGenerate
 
 doc_without_outlier_test_file = json.load(open("/app/tests/unit_tests/files/doc_without_outlier.json"))
 doc_without_outlier_without_score_test_file = json.load(open(
@@ -16,6 +17,8 @@ doc_without_outlier_without_score_test_file = json.load(open(
 doc_with_outlier_test_file = json.load(open("/app/tests/unit_tests/files/doc_with_outlier.json"))
 doc_with_two_outliers_test_file = json.load(open("/app/tests/unit_tests/files/doc_with_two_outliers.json"))
 doc_with_three_outliers_test_file = json.load(open("/app/tests/unit_tests/files/doc_with_three_outliers.json"))
+
+test_file_outliers_path_config = "/app/tests/unit_tests/files/whitelist_tests_outliers.conf"
 
 nested_doc_for_whitelist_test = {'169.254.184.188', 'fe80::491a:881a:b1bf:b539', str(2), str(1), '1535026336',
                                  '1535017696_osquery_get_all_scheduled_tasks.log',
@@ -113,6 +116,25 @@ class TestOutlierOperations(unittest.TestCase):
 
         if "outlier" in doc["_source"]["tags"]:
             raise AssertionError("Tag still present in document, even after removal!")
+
+    def test_whitelist_literal_match(self):
+        self.test_settings.change_configuration_path(test_file_outliers_path_config)
+        # Contain: "C:\Windows\system32\msfeedssync.exe sync"
+
+        dummy_doc_gen = DummyDocumentsGenerate()
+        doc = dummy_doc_gen.generate_document(command_query=r'C:\Windows\system32\msfeedssync.exe sync')
+
+        result = Outlier.is_whitelisted_doc(doc)
+        self.assertTrue(result)
+
+    def test_whitelist_literal_mismatch(self):
+        self.test_settings.change_configuration_path(test_file_outliers_path_config)
+        # Contain: "C:\Windows\system32\msfeedssync.exe sync"
+        dummy_doc_gen = DummyDocumentsGenerate()
+        doc = dummy_doc_gen.generate_document(command_query=r'C:\Windows\system32\msfeedssync.exe syncOther')
+
+        result = Outlier.is_whitelisted_doc(doc)
+        self.assertFalse(result)
 
     def test_whitelist_regexp_match(self):
         whitelist_item = r"^.*.exe sync$"
