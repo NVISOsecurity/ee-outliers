@@ -28,7 +28,7 @@ class TemplateAnalyzer(Analyzer):
         self.print_analysis_intro(event_type="training " + self.model_name, total_events=self.total_events)
         total_training_events = int(min(training_data_size, self.total_events))
 
-        logging.init_ticker(total_steps=total_training_events, desc=self.model_name + " - preparing SVM training set")
+        logging.init_ticker(total_steps=total_training_events, desc=self.model_name + " - preparing training set")
         if self.total_events > 0:
             for doc in documents:
                 if len(train_data) < total_training_events:

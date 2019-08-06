@@ -78,10 +78,16 @@ def print_intro():
     logging.logger.info("loaded " + str(len(settings.loaded_config_paths)) + " configuration files")
 
     if settings.failed_config_paths:
-        logging.logger.warning("failed to load " + str(len(settings.failed_config_paths)) + " configuration files")
+        logging.logger.error("failed to load " + str(len(settings.failed_config_paths)) + " configuration files that will be ignored")
 
         for failed_config_path in settings.failed_config_paths:
-            logging.logger.warning("failed to load " + str(failed_config_path))
+            logging.logger.error("\t+ failed to load configuration file " + str(failed_config_path))
+
+    if settings.failing_regular_expressions:
+        logging.logger.error("failed to parse " + str(len(settings.failing_regular_expressions)) + " regular expressions in whitelist that will be ignored")
+
+        for failed_regular_expression in settings.failing_regular_expressions:
+            logging.logger.error("\t+ failed to parse regular expression " + str(failed_regular_expression))
 
 
 def run_daemon_mode():
