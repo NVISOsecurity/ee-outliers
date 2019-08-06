@@ -92,12 +92,13 @@ class Outlier:
                     # whitelist that could occur with regexps.
                     break
 
-                # In one regex doesn't match the outlier
-                if not Outlier.dictionary_matches_specific_whitelist_item_regexp(p, dict_values_to_check):
+                # If regex match with the outlier
+                if Outlier.dictionary_matches_specific_whitelist_item_regexp(p, dict_values_to_check):
+                    # Increment the number of match
+                    total_whitelisted_fields_matched += 1
+                else:
                     # Break the loop
                     break
-                # Else, count the number of whitelisted elements
-                total_whitelisted_fields_matched += 1
 
             if total_whitelisted_fields_to_match == total_whitelisted_fields_matched:
                 return True
