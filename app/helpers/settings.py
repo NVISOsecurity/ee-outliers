@@ -1,5 +1,6 @@
 import configparser
 import argparse
+import re
 
 from helpers.singleton import singleton
 
@@ -32,9 +33,11 @@ class Settings:
 
         self.whitelist_literals_config = None
         self.whitelist_regexps_config = None
+        self.failing_regular_expressions = set()
 
         self.args = parser.parse_args()
         self.process_configuration_files()
+
 
     def process_configuration_files(self):
         config_paths = self.args.config
@@ -50,3 +53,14 @@ class Settings:
 
         self.whitelist_literals_config = self.config.items("whitelist_literals")
         self.whitelist_regexps_config = self.config.items("whitelist_regexps")
+
+        # Verify that all regular expressions in the whitelist are valid.
+        # If this is not the case, log an error to the user, as these will be ignored.
+        for (_, each_whitelist_configuration_file_value) in self.whitelist_regexps_config:
+            whitelist_values_to_check = each_whitelist_configuration_file_value.split(",")
+
+            for whitelist_val_to_check in whitelist_values_to_check:
+                try:
+                    re.compile(whitelist_val_to_check.strip(), re.IGNORECASE)
+                except Exception:
+                    self.failing_regular_expressions.add(whitelist_val_to_check)
