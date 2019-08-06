@@ -12,18 +12,18 @@ class Outlier:
         # hard-wrap the length of a summary line to 150 characters to make it easier to visualize
         self.outlier_dict["summary"] = textwrap.fill(outlier_summary, width=150)
         self.doc = doc
-        self.cache_is_whitelist = None
+        self._is_whitelisted = None
 
     # Each whitelist item can contain multiple values to match across fields, separated with ",". So we need to
     # support this too.
     # Example: "dns_tunneling_fp = rule_updates.et.com, intel_server" -> should match both values across the entire
     # event (rule_updates.et.com and intel_server);
     def is_whitelisted(self):
-        if self.cache_is_whitelist is None:
+        if self._is_whitelisted is None:
             # Create dictionary that contain all stuff
-            self.cache_is_whitelist = Outlier.is_whitelisted_doc({'outlier_dict': self.outlier_dict,
+            self._is_whitelisted = Outlier.is_whitelisted_doc({'outlier_dict': self.outlier_dict,
                                                                   'additional_dict_to_check': self.doc})
-        return self.cache_is_whitelist
+        return self._is_whitelisted
 
     def get_outlier_dict_of_arrays(self):
         outlier_dict_of_arrays = dict()
@@ -87,7 +87,16 @@ class Outlier:
             total_whitelisted_fields_matched = 0
 
             for whitelist_val_to_check in whitelist_values_to_check:
-                p = re.compile(whitelist_val_to_check.strip(), re.IGNORECASE)
+
+                try:
+                    p = re.compile(whitelist_val_to_check.strip(), re.IGNORECASE)
+                except Exception:
+                    # something went wrong compiling the regular expression, probably because of a user error such as unbalanced escape characters.
+                    # we should just ignore the regular expression and continue (and let the user know in the beginning that some could not be compiled).
+                    # Even if we check for errors in the beginning of running outliers, we might still run into issues when the configuration changes
+                    # during running of ee-outlies. So this should catch any remaining errors in the whitelist that could occur with regexps.
+                    continue
+
                 if Outlier.dictionary_matches_specific_whitelist_item_regexp(p, dict_values_to_check):
                     total_whitelisted_fields_matched += 1
 

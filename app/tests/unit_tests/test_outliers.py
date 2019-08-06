@@ -14,7 +14,6 @@ doc_without_outlier_test_file = json.load(open("/app/tests/unit_tests/files/doc_
 doc_with_outlier_test_file = json.load(open("/app/tests/unit_tests/files/doc_with_outlier.json"))
 doc_with_two_outliers_test_file = json.load(open("/app/tests/unit_tests/files/doc_with_two_outliers.json"))
 doc_with_three_outliers_test_file = json.load(open("/app/tests/unit_tests/files/doc_with_three_outliers.json"))
-doc_for_whitelist_testing_file = json.load(open("/app/tests/unit_tests/files/doc_for_whitelist_testing.json"))
 
 nested_doc_for_whitelist_test = {'169.254.184.188', 'fe80::491a:881a:b1bf:b539', 2, 1, '1535026336',
                                  '1535017696_osquery_get_all_scheduled_tasks.log',
@@ -41,7 +40,7 @@ class TestOutlierOperations(unittest.TestCase):
                                outlier_summary="dummy summary", doc=doc)
         test_outlier.outlier_dict["observation"] = "dummy observation"
 
-        doc_with_outlier = helpers.es.add_outlier_to_document(doc, test_outlier)
+        doc_with_outlier = helpers.es.add_outlier_to_document(test_outlier)
         self.assertDictEqual(doc_with_outlier_test_file, doc_with_outlier)
 
     def test_remove_outlier_from_doc(self):
@@ -50,7 +49,7 @@ class TestOutlierOperations(unittest.TestCase):
                                outlier_summary="dummy summary", doc=doc)
         test_outlier.outlier_dict["observation"] = "dummy observation"
 
-        doc_with_outlier = helpers.es.add_outlier_to_document(doc, test_outlier)
+        doc_with_outlier = helpers.es.add_outlier_to_document(test_outlier)
 
         doc_without_outlier = helpers.es.remove_outliers_from_document(doc_with_outlier)
         self.assertDictEqual(doc_without_outlier, doc_without_outlier_test_file)
@@ -60,8 +59,8 @@ class TestOutlierOperations(unittest.TestCase):
         test_outlier = Outlier(outlier_type="dummy type", outlier_reason="dummy reason",
                                outlier_summary="dummy summary", doc=doc)
 
-        doc_with_outlier = helpers.es.add_outlier_to_document(doc, test_outlier)
-        doc_with_outlier = helpers.es.add_outlier_to_document(doc_with_outlier, test_outlier)
+        doc_with_outlier = helpers.es.add_outlier_to_document(test_outlier)
+        doc_with_outlier = helpers.es.add_outlier_to_document(test_outlier)
 
         self.assertDictEqual(doc, doc_with_outlier)
 
@@ -75,8 +74,8 @@ class TestOutlierOperations(unittest.TestCase):
                                  outlier_summary="dummy summary 2", doc=doc)
         test_outlier_2.outlier_dict["observation_2"] = "dummy observation 2"
 
-        doc_with_outlier = helpers.es.add_outlier_to_document(doc, test_outlier)
-        doc_with_two_outliers = helpers.es.add_outlier_to_document(doc_with_outlier, test_outlier_2)
+        helpers.es.add_outlier_to_document(test_outlier)
+        doc_with_two_outliers = helpers.es.add_outlier_to_document(test_outlier_2)
 
         self.assertDictEqual(doc_with_two_outliers, doc_with_two_outliers_test_file)
 
@@ -94,9 +93,9 @@ class TestOutlierOperations(unittest.TestCase):
                                  outlier_summary="dummy summary 3", doc=doc)
         test_outlier_3.outlier_dict["observation_3"] = "dummy observation 3"
 
-        doc_with_outlier = helpers.es.add_outlier_to_document(doc, test_outlier)
-        doc_with_two_outliers = helpers.es.add_outlier_to_document(doc_with_outlier, test_outlier_2)
-        doc_with_three_outliers = helpers.es.add_outlier_to_document(doc_with_two_outliers, test_outlier_3)
+        helpers.es.add_outlier_to_document(test_outlier)
+        helpers.es.add_outlier_to_document(test_outlier_2)
+        doc_with_three_outliers = helpers.es.add_outlier_to_document(test_outlier_3)
 
         self.assertDictEqual(doc_with_three_outliers, doc_with_three_outliers_test_file)
 
@@ -183,7 +182,7 @@ class TestOutlierOperations(unittest.TestCase):
         self.test_es.add_doc(doc_with_outlier)
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/whitelist_tests_01_with_general.conf")
         es.remove_all_whitelisted_outliers()
-        result = [elem for elem in es.scan()][0]
+        result = [elem for elem in es._scan()][0]
         self.assertEqual(result, doc_without_outlier)
 
     def test_whitelist_config_change_single_literal_not_to_match_in_doc_with_outlier(self):
@@ -191,5 +190,5 @@ class TestOutlierOperations(unittest.TestCase):
         self.test_es.add_doc(doc_with_outlier)
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/whitelist_tests_03_with_general.conf")
         es.remove_all_whitelisted_outliers()
-        result = [elem for elem in es.scan()][0]
+        result = [elem for elem in es._scan()][0]
         self.assertEqual(result, doc_with_outlier)

@@ -7,7 +7,6 @@ import re
 from statistics import mean, median
 import validators
 from string import Formatter
-from datetime import timedelta
 
 import helpers.singletons
 
@@ -233,8 +232,8 @@ def get_decision_frontier(trigger_method, values_array, trigger_sensitivity, tri
 
     if decision_frontier < 0:
         # Could not do "from helpers.singletons import logging" due to circle import
-        helpers.singletons.logging.logger.warning("negative decision frontier %.2f, this will not generate any "
-                                                  "outliers", decision_frontier)
+        helpers.singletons.logging.logger.debug("negative decision frontier %.2f, this will not generate any outliers",
+                                                decision_frontier)
 
     return decision_frontier
 

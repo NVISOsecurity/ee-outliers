@@ -28,8 +28,8 @@ class Word2VecAnalyzer(Analyzer):
 
         sentences = list()
 
-        self.total_events = es.count_documents(index=self.es_index, search_query=self.search_query,
-                                               model_settings=self.model_settings)
+        self.total_events, documents = es.count_and_scan_documents(index=self.es_index, search_query=self.search_query,
+                                                                   model_settings=self.model_settings)
         training_data_size_pct = settings.config.getint("machine_learning", "training_data_size_pct")
         training_data_size = self.total_events / 100 * training_data_size_pct
 
@@ -39,7 +39,7 @@ class Word2VecAnalyzer(Analyzer):
         logging.init_ticker(total_steps=total_training_events,
                             desc=self.model_name + " - preparing word2vec training set")
         if self.total_events > 0:
-            for doc in es.scan(index=self.es_index, search_query=self.search_query, model_settings=self.model_settings):
+            for doc in documents:
                 if len(sentences) < total_training_events:
                     logging.tick()
                     fields = es.extract_fields_from_document(
@@ -81,8 +81,8 @@ class Word2VecAnalyzer(Analyzer):
                 self.evaluate_test_sentences(w2v_model=w2v_model)
                 return
 
-            self.total_events = es.count_documents(index=self.es_index, search_query=search_query,
-                                                   model_settings=self.model_settings)
+            self.total_events, documents = es.count_and_scan_documents(index=self.es_index, search_query=search_query,
+                                                                       model_settings=self.model_settings)
             self.print_analysis_intro(event_type="evaluating " + self.model_name, total_events=self.total_events)
 
             logging.init_ticker(total_steps=self.total_events, desc=self.model_name + " - evaluating word2vec model")
@@ -91,7 +91,7 @@ class Word2VecAnalyzer(Analyzer):
                 raw_docs = list()
                 eval_sentences = list()
 
-                for doc in es.scan(index=self.es_index, search_query=search_query, model_settings=self.model_settings):
+                for doc in documents:
                     logging.tick()
                     fields = es.extract_fields_from_document(
                                             doc, extract_derived_fields=self.model_settings["use_derived_fields"])
@@ -118,8 +118,8 @@ class Word2VecAnalyzer(Analyzer):
 
                         if len(outliers) > 0:
                             unique_summaries = len(set(o.outlier_dict["summary"] for o in outliers))
-                            logging.logger.info("total outliers in batch processed: " + str(len(outliers)) + " [" +
-                                                str(unique_summaries) + " unique summaries]")
+                            logging.logger.info("total outliers in batch processed: " + "{:,}".format(len(outliers)) +
+                                                " [" + "{:,}".format(unique_summaries) + " unique summaries]")
 
                         # Reset data structures for next batch
                         raw_docs = list()
@@ -152,7 +152,7 @@ class Word2VecAnalyzer(Analyzer):
             if is_outlier:
                 fields = es.extract_fields_from_document(
                                         raw_docs[i], extract_derived_fields=self.model_settings["use_derived_fields"])
-                outliers.append(self.process_outlier(fields, raw_docs[i], extra_outlier_information=None))
+                outliers.append(self.create_outlier(fields, raw_docs[i], extra_outlier_information=None))
             else:
                 if w2v_model.use_test_data:
                     logging.logger.info("Not an outlier: " + str(eval_sentences[i]) + " - " + str(single_sentence_prob))

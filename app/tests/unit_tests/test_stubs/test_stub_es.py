@@ -1,13 +1,4 @@
-import time
-import random
-from datetime import datetime
-
 from helpers.singletons import es
-
-
-POSSIBLE_SLAVE_NAME = ["ee-slave-lab", "random-name"]
-POSSIBLE_META_CMD_NAME = ["get_all_processes_with_listening_conns", "get_all_scheduled_tasks"]
-POSSIBLE_TAGS = [["unknown_hashes", "endpoint"], ["endpoint"], ["test", "unknown_hashes"]]
 
 
 class TestStubEs:
@@ -26,8 +17,8 @@ class TestStubEs:
                 "default_bulk_flush_size": es.BULK_FLUSH_SIZE,
                 "default_init": es.__init__,
                 "default_init_connection": es.init_connection,
-                "default_scan": es.scan,
-                "default_count_documents": es.count_documents,
+                "default_scan": es._scan,
+                "default_count_documents": es._count_documents,
                 "default_update_es": es._update_es,
                 "default_remove_all_outliers": es.remove_all_outliers,
                 "default_flush_bulk_actions": es.flush_bulk_actions
@@ -37,8 +28,8 @@ class TestStubEs:
         es.BULK_FLUSH_SIZE = 0
         es.__init__ = self.new_init
         es.init_connection = self.init_connection
-        es.scan = self.scan
-        es.count_documents = self.count_documents
+        es._scan = self._scan
+        es._count_documents = self._count_documents
         es._update_es = self._update_es
         es.remove_all_outliers = self.remove_all_outliers
         es.flush_bulk_actions = self.flush_bulk_actions
@@ -47,8 +38,8 @@ class TestStubEs:
         es.BULK_FLUSH_SIZE = self.default_es_methods["default_bulk_flush_size"]
         es.__init__ = self.default_es_methods["default_init"]
         es.init_connection = self.default_es_methods["default_init_connection"]
-        es.scan = self.default_es_methods["default_scan"]
-        es.count_documents = self.default_es_methods["default_count_documents"]
+        es._scan = self.default_es_methods["default_scan"]
+        es._count_documents = self.default_es_methods["default_count_documents"]
         es._update_es = self.default_es_methods["default_update_es"]
         es.remove_all_outliers = self.default_es_methods["default_remove_all_outliers"]
         es.flush_bulk_actions = self.default_es_methods["default_flush_bulk_actions"]
@@ -60,12 +51,12 @@ class TestStubEs:
     def init_connection(self):
         return None
 
-    def scan(self, index="", bool_clause=None, sort_clause=None, query_fields=None, search_query=None,
-             model_settings=None):
+    def _scan(self, index="", search_range=None, bool_clause=None, sort_clause=None, query_fields=None,
+              search_query=None, model_settings=None):
         for element in self.list_data.values():
             yield element
 
-    def count_documents(self, index="", bool_clause=None, query_fields=None, search_query=None, model_settings=None):
+    def _count_documents(self, index="", bool_clause=None, query_fields=None, search_query=None, model_settings=None):
         return len(self.list_data)
 
     def _update_es(self, doc):
@@ -142,8 +133,3 @@ class TestStubEs:
             else:
                 doc[first_key] = dict()
                 self._create_dict_based_on_key(doc[first_key], ".".join(self.list_key[1:]), data)
-
-
-def get_random_timestamp(max_delay=604800):  # == one week
-    random_timestamp = random.randint(0, max_delay)
-    return datetime.fromtimestamp(int(time.time()) - random_timestamp).isoformat()

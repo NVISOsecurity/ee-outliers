@@ -1,7 +1,6 @@
 {
     "_id": "d8_9WWQBFCEzBdQxDtu-",
     "_index": "logstash-eagleeye-osqueryfilter-2018.07.02",
-    "_score": null,
     "_source": {
         "@timestamp": "2018-07-02T07:54:30.549Z",
         "@version": "1",
@@ -80,24 +79,17 @@
             "toolname": "osquery"
         },
         "outliers": {
-            "reason": ["dummy reason"],
-            "model_type": ["terms"],
-            "term": ["WIN-EVB-draman"], 
-            "confidence": [0.6666666666666667],
-            "type": ["dummy type"],
-            "term_count": [1], 
-            "decision_frontier": [0.0],
-            "aggregator": ["DUMMY-PC - 02"],
-            "model_name": ["dummy_test"], 
-            "total_outliers": 1,
+            "confidence": [11.0], 
+            "model_type": ["metrics"], 
+            "metric": [12], 
             "summary": ["dummy summary"],
-            "derived_timestamp_year": ["2018"],
-            "derived_timestamp_month": ["07"],
-            "derived_timestamp_day": ["02"],
-            "derived_timestamp_hour": ["07"],
-            "derived_timestamp_minute": ["54"],
-            "derived_timestamp_second": ["30.549523"],
-            "derived_timestamp_timezone": ["+00:00"]
+            "type": ["dummy type"],
+            "reason": ["dummy reason"],
+            "target": ["test"], 
+            "aggregator": ["key"], 
+            "total_outliers": 1,
+            "model_name": ["dummy_test"], 
+            "decision_frontier": [1.0]
         },
         "slave_name": "ee-slave-lab",
         "smoky_filter_name": "OsqueryFilter",
@@ -107,17 +99,7 @@
             "outlier"
         ],
         "timestamp": "2018-07-02T07:54:30.549523+00:00",
-        "type": "eagleeye",
-        "timestamp_year": "2018",
-        "timestamp_month": "07",
-        "timestamp_day": "02",
-        "timestamp_hour": "07",
-        "timestamp_minute": "54",
-        "timestamp_second": "30.549523",
-        "timestamp_timezone": "+00:00"
+        "type": "eagleeye"
     },
-    "_type": "doc",
-    "sort": [
-        42153
-    ]
+    "_type": "doc"
 }

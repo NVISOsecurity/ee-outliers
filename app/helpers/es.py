@@ -49,11 +49,7 @@ class ES:
 
         return self.conn
 
-    def scan(self, index, bool_clause=None, sort_clause=None, query_fields=None, search_query=None,
-             model_settings=None):
-
-        preserve_order = False
-
+    def _get_history_window(self, model_settings=None):
         if model_settings is None:
             timestamp_field = self.settings.config.get("general", "timestamp_field", fallback="timestamp")
             history_window_days = self.settings.config.getint("general", "history_window_days")
@@ -62,13 +58,17 @@ class ES:
             timestamp_field = model_settings["timestamp_field"]
             history_window_days = model_settings["history_window_days"]
             history_window_hours = model_settings["history_window_hours"]
+        return timestamp_field, history_window_days, history_window_hours
 
-            if model_settings["process_documents_chronologically"]:
-                sort_clause = {"sort": [{model_settings["timestamp_field"]: "desc"}]}
-                preserve_order = True
+    def _scan(self, index, search_range, bool_clause=None, sort_clause=None, query_fields=None, search_query=None,
+              model_settings=None):
 
-        search_range = self.get_time_filter(days=history_window_days, hours=history_window_hours,
-                                            timestamp_field=timestamp_field)
+        preserve_order = False
+
+        if model_settings is not None and model_settings["process_documents_chronologically"]:
+            sort_clause = {"sort": [{model_settings["timestamp_field"]: "desc"}]}
+            preserve_order = True
+
         return eshelpers.scan(self.conn, request_timeout=self.settings.config.getint("general", "es_timeout"),
                               index=index, query=build_search_query(bool_clause=bool_clause,
                                                                     sort_clause=sort_clause,
@@ -79,19 +79,7 @@ class ES:
                               scroll=self.settings.config.get("general", "es_scroll_time"),
                               preserve_order=preserve_order, raise_on_error=False)
 
-    def count_documents(self, index, bool_clause=None, query_fields=None, search_query=None, model_settings=None):
-        if model_settings is None:
-            timestamp_field = self.settings.config.get("general", "timestamp_field", fallback="timestamp")
-            history_window_days = self.settings.config.getint("general", "history_window_days")
-            history_window_hours = self.settings.config.getint("general", "history_window_hours")
-        else:
-            timestamp_field = model_settings["timestamp_field"]
-            history_window_days = model_settings["history_window_days"]
-            history_window_hours = model_settings["history_window_hours"]
-
-        search_range = self.get_time_filter(days=history_window_days, hours=history_window_hours,
-                                            timestamp_field=timestamp_field)
-
+    def _count_documents(self, index, search_range, bool_clause=None, query_fields=None, search_query=None):
         res = self.conn.search(index=index, body=build_search_query(bool_clause=bool_clause, search_range=search_range,
                                                                     query_fields=query_fields,
                                                                     search_query=search_query),
@@ -104,6 +92,17 @@ class ES:
             return result["value"]
         else:
             return result
+
+    def count_and_scan_documents(self, index, bool_clause=None, sort_clause=None, query_fields=None, search_query=None,
+                                 model_settings=None):
+        timestamp_field, history_window_days, history_window_hours = self._get_history_window(model_settings)
+        search_range = self.get_time_filter(days=history_window_days, hours=history_window_hours,
+                                            timestamp_field=timestamp_field)
+        total_events = self._count_documents(index, search_range, bool_clause, query_fields, search_query)
+        if total_events > 0:
+            return total_events, self._scan(index, search_range, bool_clause, sort_clause, query_fields, search_query,
+                                            model_settings)
+        return total_events, []
 
     def _update_es(self, doc):
         self.conn.delete(index=doc["_index"], doc_type=doc["_type"], id=doc["_id"], refresh=True)
@@ -140,14 +139,14 @@ class ES:
         total_outliers_processed = 0
 
         idx = self.settings.config.get("general", "es_index_pattern")
-        total_nr_outliers = self.count_documents(index=idx, bool_clause=outliers_filter_query)
-        self.logging.logger.info("going to analyze %s outliers and remove all whitelisted items", "{:,}"
-                                 .format(total_nr_outliers))
+        total_nr_outliers, documents = self.count_and_scan_documents(index=idx, bool_clause=outliers_filter_query)
 
         if total_nr_outliers > 0:
+            self.logging.logger.info("going to analyze %s outliers and remove all whitelisted items", "{:,}"
+                                     .format(total_nr_outliers))
             start_time = dt.datetime.today().timestamp()
 
-            for doc in self.scan(index=idx, bool_clause=outliers_filter_query):
+            for doc in documents:
                 total_outliers_processed = total_outliers_processed + 1
                 total_outliers_in_doc = int(doc["_source"]["outliers"]["total_outliers"])
                 # generate all outlier objects for this document
@@ -182,7 +181,7 @@ class ES:
                     should_log = True
                 else:
                     should_log = total_outliers_processed % max(1,
-                                                                int(math.pow(10, (5 - self.logging.verbosity)))) == 0 \
+                                                                int(math.pow(10, (6 - self.logging.verbosity)))) == 0 \
                                  or total_outliers_processed == total_nr_outliers
 
                 if should_log:
@@ -202,17 +201,12 @@ class ES:
         idx = self.settings.config.get("general", "es_index_pattern")
 
         must_clause = {"filter": [{"term": {"tags": "outlier"}}]}
-        total_outliers = self.count_documents(index=idx, bool_clause=must_clause)
+        timestamp_field, history_window_days, history_window_hours = self._get_history_window()
+        search_range = self.get_time_filter(days=history_window_days, hours=history_window_hours,
+                                            timestamp_field=timestamp_field)
+        total_outliers = self._count_documents(index=idx, search_range=search_range, bool_clause=must_clause)
 
         if total_outliers > 0:
-
-            timestamp_field = self.settings.config.get("general", "timestamp_field", fallback="timestamp")
-            history_window_days = self.settings.config.getint("general", "history_window_days")
-            history_window_hours = self.settings.config.getint("general", "history_window_hours")
-
-            search_range = self.get_time_filter(days=history_window_days, hours=history_window_hours,
-                                                timestamp_field=timestamp_field)
-
             query = build_search_query(bool_clause=must_clause, search_range=search_range)
 
             script = {
@@ -229,20 +223,21 @@ class ES:
         else:
             self.logging.logger.info("no existing outliers were found, so nothing was wiped")
 
-    def process_outliers(self, doc=None, outliers=None, should_notify=False):
-        for outlier in outliers:
-            if outlier.is_whitelisted():
-                if self.settings.config.getboolean("general", "print_outliers_to_console"):
-                    self.logging.logger.info(outlier.outlier_dict["summary"] + " [whitelisted outlier]")
-            else:
-                if self.settings.config.getboolean("general", "es_save_results"):
-                    self.save_outlier(doc=doc, outlier=outlier)
+    def process_outlier(self, outlier=None, should_notify=False):
+        if outlier.is_whitelisted():
+            if self.settings.config.getboolean("general", "print_outliers_to_console"):
+                self.logging.logger.info(outlier.outlier_dict["summary"] + " [whitelisted outlier]")
+            return False
+        else:
+            if self.settings.config.getboolean("general", "es_save_results"):
+                self.save_outlier(outlier=outlier)
 
-                if should_notify:
-                    self.notifier.notify_on_outlier(doc=doc, outlier=outlier)
+            if should_notify:
+                self.notifier.notify_on_outlier(outlier=outlier)
 
-                if self.settings.config.getboolean("general", "print_outliers_to_console"):
-                    self.logging.logger.info("outlier - " + outlier.outlier_dict["summary"])
+            if self.settings.config.getboolean("general", "print_outliers_to_console"):
+                self.logging.logger.info("outlier - " + outlier.outlier_dict["summary"])
+            return True
 
     def add_bulk_action(self, action):
         self.bulk_actions.append(action)
@@ -255,13 +250,13 @@ class ES:
         eshelpers.bulk(self.conn, self.bulk_actions, stats_only=True, refresh=refresh)
         self.bulk_actions = []
 
-    def save_outlier(self, doc=None, outlier=None):
+    def save_outlier(self, outlier=None):
         # add the derived fields as outlier observations
-        derived_fields = self.extract_derived_fields(doc["_source"])
+        derived_fields = self.extract_derived_fields(outlier.doc["_source"])
         for derived_field, derived_value in derived_fields.items():
             outlier.outlier_dict["derived_" + derived_field] = derived_value
 
-        doc = add_outlier_to_document(doc, outlier)
+        doc = add_outlier_to_document(outlier)
 
         action = {
             '_op_type': 'update',
@@ -319,8 +314,8 @@ class ES:
         return time_filter
 
 
-def add_outlier_to_document(doc, outlier):
-    doc = add_tag_to_document(doc, "outlier")
+def add_outlier_to_document(outlier):
+    doc = add_tag_to_document(outlier.doc, "outlier")
 
     if "outliers" in doc["_source"]:
         if outlier.outlier_dict["summary"] not in doc["_source"]["outliers"]["summary"]:

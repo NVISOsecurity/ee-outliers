@@ -1,5 +1,4 @@
 import threading
-import traceback
 
 from helpers.singletons import logging, settings, es
 from helpers.watchers import FileModificationWatcher
@@ -65,6 +64,6 @@ class HousekeepingJob(threading.Thread):
                     logging.logger.info("housekeeping - whitelist did not remove any outliers")
 
             except Exception:
-                logging.logger.error("housekeeping - something went removing whitelisted outliers", exc_info=True)
+                logging.logger.error("housekeeping - something went wrong removing whitelisted outliers", exc_info=True)
 
             logging.logger.info("housekeeping - finished round of cleaning whitelisted items")

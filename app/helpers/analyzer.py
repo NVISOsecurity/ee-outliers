@@ -1,10 +1,7 @@
 import abc
-from collections import defaultdict
 from configparser import NoOptionError
-from typing import DefaultDict, Optional, Dict
 
 import dateutil
-import copy
 
 from helpers.singletons import settings, es, logging
 import helpers.utils
@@ -17,11 +14,13 @@ class Analyzer(abc.ABC):
         # the configuration file section for the use case, for example [simplequery_test_model]
         self.config_section_name = config_section_name
 
-        # split the configuration section into the model type ("simplequery") and the model nalem ("test_model")
+        # split the configuration section into the model type ("simplequery") and the model name ("test_model")
         self.model_type = self.config_section_name.split("_")[0]
         self.model_name = "_".join((self.config_section_name.split("_")[1:]))
 
         self.total_events = 0
+        self.total_outliers = 0
+        self.outlier_summaries = set()
 
         self.analysis_start_time = None
         self.analysis_end_time = None
@@ -30,7 +29,7 @@ class Analyzer(abc.ABC):
         self.index_not_found_analysis = False
         self.unknown_error_analysis = False
 
-        self.outliers = list()
+        self.nr_whitelisted_elements = 0
 
         # extract all settings for this use case
         self.configuration_parsing_error = False
@@ -45,6 +44,11 @@ class Analyzer(abc.ABC):
 
     @property
     def analysis_time_seconds(self):
+        """
+        Get time to execute this model
+
+        :return: float value that represent the time in seconds
+        """
         if self.completed_analysis:
             return float(self.analysis_end_time - self.analysis_start_time)
         else:
@@ -101,12 +105,6 @@ class Analyzer(abc.ABC):
             model_settings["use_derived_fields"] = False
 
         try:
-            model_settings["should_notify"] = settings.config.getboolean("notifier", "email_notifier") and \
-                                              settings.config.getboolean(self.config_section_name, "should_notify")
-        except NoOptionError:
-            model_settings["should_notify"] = False
-
-        try:
             self.es_index = settings.config.get(self.config_section_name, "es_index")
         except NoOptionError:
             self.es_index = settings.config.get("general", "es_index_pattern")
@@ -130,14 +128,27 @@ class Analyzer(abc.ABC):
         pass
 
     def print_analysis_summary(self):
-        if len(self.outliers) > 0:
-            unique_summaries = len(set(o.outlier_dict["summary"] for o in self.outliers))
-            logging.logger.info("total outliers processed for use case: " + str(len(self.outliers)) + " [" +
-                                str(unique_summaries) + " unique summaries]")
+        """
+        Print information about the analyzer. Must be call at the end of processing
+        """
+        if self.total_outliers > 0:
+            unique_summaries = len(self.outlier_summaries)
+            message = "total outliers processed for use case: " + "{:,}".format(self.total_outliers) + " [" + \
+                      "{:,}".format(unique_summaries) + " unique summaries]"
+            if self.nr_whitelisted_elements > 0:
+                message += " - ignored " + "{:,}".format(self.nr_whitelisted_elements) + " whitelisted outliers"
+            logging.logger.info(message)
         else:
             logging.logger.info("no outliers detected for use case")
 
     def _prepare_outlier_parameters(self, extra_outlier_information, fields):
+        """
+        Compute different parameters to create outlier
+
+        :param extra_outlier_information: information about outlier
+        :param fields: fields information
+        :return: outlier type, outlier reason, outlier summary, outlier assets
+        """
         extra_outlier_information["model_name"] = self.model_name
         extra_outlier_information["model_type"] = self.model_type
 
@@ -162,43 +173,49 @@ class Analyzer(abc.ABC):
         outlier_assets = helpers.utils.extract_outlier_asset_information(fields, settings)
         return outlier_type, outlier_reason, outlier_summary, outlier_assets
 
-    def process_outlier(self, fields, doc, extra_outlier_information=dict()):
+    def create_outlier(self, fields, doc, extra_outlier_information=dict()):
+        """
+        Create an outlier
+
+        :param fields: extracted fields
+        :param doc: document linked to this outlier
+        :param extra_outlier_information: other information that need to be taking into account
+        :return: created outlier
+        """
         outlier_type, outlier_reason, outlier_summary, outlier_assets = \
             self._prepare_outlier_parameters(extra_outlier_information, fields)
         outlier = Outlier(outlier_type=outlier_type, outlier_reason=outlier_reason, outlier_summary=outlier_summary,
                           doc=doc)
 
-        if len(outlier_assets) > 0:
+        if outlier_assets:
             outlier.outlier_dict["assets"] = outlier_assets
 
         for k, v in extra_outlier_information.items():
             outlier.outlier_dict[k] = v
 
-        self.outliers.append(outlier)
-        es.process_outliers(doc=doc, outliers=[outlier], should_notify=self.model_settings["should_notify"])
-
         return outlier
+
+    def process_outlier(self, outlier):
+        """
+        Save outlier (in statistique and) in ES database if not whitelisted (and if settings is configured to save in
+        ES)
+
+        :param outlier: outlier to save 
+        """
+        self.total_outliers += 1
+        self.outlier_summaries.add(outlier.outlier_dict["summary"])
+
+        es.process_outlier(outlier=outlier, should_notify=self.model_settings["should_notify"])
 
     def print_analysis_intro(self, event_type, total_events):
         logging.logger.info("")
         logging.logger.info("===== " + event_type + " [" + self.model_type + " model] ===")
         logging.logger.info("analyzing " + "{:,}".format(total_events) + " events")
         logging.logger.info(self.get_time_window_info(history_days=self.model_settings["history_window_days"],
-                                                      history_hours=self.model_settings["history_window_days"]))
+                                                      history_hours=self.model_settings["history_window_hours"]))
 
         if total_events == 0:
             logging.logger.warning("no events to analyze!")
-
-    def is_document_whitelisted(self, document, extract_field=True):
-        document_to_check = copy.deepcopy(document)
-        if extract_field:
-            fields = es.extract_fields_from_document(document_to_check,
-                                                     extract_derived_fields=self.model_settings["use_derived_fields"])
-        else:
-            fields = document
-        outlier_param = self._prepare_outlier_parameters(dict(), fields)
-        document_to_check['__whitelist_extra'] = outlier_param
-        return Outlier.is_whitelisted_doc(document_to_check)
 
     @staticmethod
     def get_time_window_info(history_days=None, history_hours=None):
@@ -218,15 +235,3 @@ class Analyzer(abc.ABC):
     @abc.abstractmethod
     def evaluate_model(self):
         raise NotImplementedError()
-
-    @staticmethod
-    def add_term_to_batch(eval_terms_array: DefaultDict, aggregator_value: Optional[str], target_value: Optional[str],
-                          observations: Dict, doc: Dict) -> DefaultDict:
-        if aggregator_value not in eval_terms_array.keys():
-            eval_terms_array[aggregator_value] = defaultdict(list)
-
-        eval_terms_array[aggregator_value]["targets"].append(target_value)
-        eval_terms_array[aggregator_value]["observations"].append(observations)
-        eval_terms_array[aggregator_value]["raw_docs"].append(doc)
-
-        return eval_terms_array
