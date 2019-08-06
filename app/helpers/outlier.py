@@ -107,4 +107,6 @@ class Outlier:
 
     @staticmethod
     def dictionary_matches_specific_whitelist_item_regexp(regex, set_of_values_to_check):
+        # "any" operator will not create all the list to made the computation. The current code allow to "stop" the
+        # "loop" when one element match
         return any(regex.match(value_to_check) for value_to_check in set_of_values_to_check)
