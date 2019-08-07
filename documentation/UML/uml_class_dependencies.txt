@@ -106,7 +106,10 @@ package "app/analyzers" {
 
 note as N1 
     <b>Legend:</b>
-    //Arrow:// . . .import. . .
+    An arrow indicates that 
+    the starting class 
+    imports the destination 
+    class
 end note
 
 @enduml
