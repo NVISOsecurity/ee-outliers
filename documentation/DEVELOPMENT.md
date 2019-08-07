@@ -60,3 +60,5 @@ To check the code for signs of dead code, we can use vulture:
 docker run -v "$PWD/defaults:/mappedvolumes/config" -i  outliers-dev:latest python3 -m vulture /app
 ```
 
+
+<p align="right"><a href="UML.md">UML &#8594;</a></p>
