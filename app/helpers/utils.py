@@ -72,14 +72,14 @@ def shannon_entropy(data):
     return entropy
 
 
-def extract_outlier_asset_information(fields, settings):
+def extract_outlier_asset_information(fields):
     """
     :param fields: the dictionary containing all the event information
-    :param settings: the settings object which also includes the configuration file that is used
     :return:
     """
     outlier_assets = list()
-    for (asset_field_name, asset_field_type) in settings.config.items("assets"):
+    # Could not directly import settings because it will generate a loop of import
+    for (asset_field_name, asset_field_type) in helpers.singletons.settings.list_assets:
         if dict_contains_dotkey(fields, asset_field_name, case_sensitive=False):
 
             asset_field_values_including_empty = flatten_fields_into_sentences(fields,

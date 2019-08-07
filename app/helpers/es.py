@@ -223,17 +223,17 @@ class ES:
 
     def process_outlier(self, outlier=None, should_notify=False):
         if outlier.is_whitelisted():
-            if self.settings.config.getboolean("general", "print_outliers_to_console"):
+            if self.settings.print_outliers_to_console:
                 self.logging.logger.info(outlier.outlier_dict["summary"] + " [whitelisted outlier]")
             return False
         else:
-            if self.settings.config.getboolean("general", "es_save_results"):
+            if self.settings.es_save_results:
                 self.save_outlier(outlier=outlier)
 
             if should_notify:
                 self.notifier.notify_on_outlier(outlier=outlier)
 
-            if self.settings.config.getboolean("general", "print_outliers_to_console"):
+            if self.settings.print_outliers_to_console:
                 self.logging.logger.info("outlier - " + outlier.outlier_dict["summary"])
             return True
 
@@ -270,7 +270,8 @@ class ES:
 
     def extract_derived_fields(self, doc_fields):
         derived_fields = dict()
-        for field_name, grok_pattern in self.settings.config.items("derivedfields"):
+
+        for field_name, grok_pattern in self.settings.list_derived_fields:
             if helpers.utils.dict_contains_dotkey(doc_fields, field_name, case_sensitive=False):
                 if grok_pattern in self.grok_filters.keys():
                     grok = self.grok_filters[grok_pattern]
