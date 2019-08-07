@@ -5,6 +5,7 @@ import re
 from configparser import NoOptionError, NoSectionError
 
 from helpers.singleton import singleton
+import helpers.singletons
 
 parser = argparse.ArgumentParser()
 
@@ -85,3 +86,10 @@ class Settings:
             self.list_assets = self.config.items("assets")
         except NoSectionError:
             self.list_assets = dict()
+
+        try:
+            config.getint("terms", "terms_batch_eval_size")
+        except NoOptionError:
+            helpers.singletons.logging.logger.warning("No value has been defined for the parameter " +
+                                                      "terms_batch_eval_size")
+            self.terms_batch_eval_size = 100000
