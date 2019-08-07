@@ -33,10 +33,14 @@ def get_dotkey_value(dict_value, key_name, case_sensitive=True):
     """
     keys = key_name.split(".")
 
+    dict_keys = list()
+    lowercase_keys = list()
+    if not case_sensitive:
+        dict_keys = list(dict_value.keys())
+        lowercase_keys = list(map(str.lower, dict_keys))
+
     for k in keys:
         if not case_sensitive:
-            dict_keys = list(dict_value.keys())
-            lowercase_keys = list(map(str.lower, dict_keys))
             lowercase_key_to_match = k.lower()
             if lowercase_key_to_match in lowercase_keys:
                 matched_index = lowercase_keys.index(lowercase_key_to_match)
