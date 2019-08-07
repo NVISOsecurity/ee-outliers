@@ -43,43 +43,73 @@ participant Analyzer
 participant ES 
 database ElasticSearch
 
-Metrics -> Metrics : evalute_model
+Metrics -> Metrics : evaluate_model
 activate Metrics
 
-Metrics -> Metrics : evaluate_batch_for_outliers
-activate Metrics
+    Metrics -> Metrics : _compute_aggregator_and_target_value
+    Metrics -> Metrics : _add_document_to_batch
 
-note left of Metrics
-    Condition to detect outlier
-end note
+    Metrics -> Metrics : _evaluate_batch_for_outliers
+    activate Metrics
 
-Metrics -> Analyzer : process_outier
-activate Analyzer
+        Metrics -> Metrics : _evaluate_aggregator_for_outliers
+        activate Metrics
 
-note right of Analyzer
-    Create Outlier(...)
-end note
+            Metrics -> Metrics : _evaluate_each_aggregator_value_for_outliers
+            activate Metrics
 
-note right of Analyzer
-    Save batch outliers
-end note
+                note right of Metrics
+                    Condition to detect outlier
+                end note
+                Metrics -> Metrics : _compute_fields_observation_and_create_outlier
+                Metrics -> Analyzer : process_outlier
+                activate Analyzer
 
-Analyzer -> ES : process_outliers
-activate ES
-note right of ES
-    is_whitelist
-end note
+                    note right of Analyzer
+                        Create Outlier(...)
+                    end note
 
-ES -> ES : save_outlier
-activate ES
-ES -> ElasticSearch
-deactivate ES
-return 
+                ' END process_outlier
+                return outlier
 
-return outliers
+                note right of Metrics
+                    is_whitelist
+                end note
 
-' back to evalute_model
+            ' END _evaluate_each_aggregator_value_for_outliers
+            return
+
+        ' END _evaluate_aggregator_for_outliers
+        return
+
+    ' END _evaluate_batch_for_outliers
+    return
+
+    Metrics -> Analyzer : process_outlier
+    activate Analyzer
+
+        Analyzer -> ES : process_outlier
+        activate ES
+
+            note right of ES
+                is_whitelist
+            end note
+
+            ES -> ES : save_outlier
+            activate ES
+
+                ES -> ElasticSearch
+
+            ' END save_outlier
+            return
+
+        ' END process_outlier
+        return
+
+    ' END process_outlier
+    return
+
+' END evaluate_model
 deactivate Metrics
-' end of evalute_model
-deactivate Metrics
+
 @enduml
