@@ -153,7 +153,7 @@ class TestOutlierOperations(unittest.TestCase):
         test_outlier = Outlier(outlier_type="dummy type", outlier_reason="dummy reason",
                                outlier_summary="dummy summary", doc=orig_doc)
 
-        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/whitelist_tests_01.conf")
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/whitelist_tests_01_with_general.conf")
         self.assertTrue(test_outlier.is_whitelisted())
 
     def test_single_literal_to_match_in_doc_with_outlier(self):
@@ -161,7 +161,7 @@ class TestOutlierOperations(unittest.TestCase):
         test_outlier = Outlier(outlier_type="dummy type", outlier_reason="dummy reason",
                                outlier_summary="dummy summary", doc=orig_doc)
 
-        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/whitelist_tests_02.conf")
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/whitelist_tests_02_with_general.conf")
         self.assertTrue(test_outlier.is_whitelisted())
 
     def test_single_literal_not_to_match_in_doc_with_outlier(self):
@@ -169,7 +169,7 @@ class TestOutlierOperations(unittest.TestCase):
         test_outlier = Outlier(outlier_type="dummy type", outlier_reason="dummy reason",
                                outlier_summary="dummy summary", doc=orig_doc)
 
-        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/whitelist_tests_03.conf")
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/whitelist_tests_03_with_general.conf")
         self.assertFalse(test_outlier.is_whitelisted())
 
     def test_whitelist_config_file_multi_item_match_with_three_fields_and_whitespace(self):
@@ -177,7 +177,7 @@ class TestOutlierOperations(unittest.TestCase):
         test_outlier = Outlier(outlier_type="dummy type", outlier_reason="dummy reason",
                                outlier_summary="dummy summary", doc=orig_doc)
 
-        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/whitelist_tests_04.conf")
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/whitelist_tests_04_with_general.conf")
         self.assertTrue(test_outlier.is_whitelisted())
 
     def test_whitelist_config_file_multi_item_mismatch_with_three_fields_and_whitespace(self):
@@ -185,7 +185,7 @@ class TestOutlierOperations(unittest.TestCase):
         test_outlier = Outlier(outlier_type="dummy type", outlier_reason="dummy reason",
                                outlier_summary="dummy summary", doc=orig_doc)
 
-        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/whitelist_tests_05.conf")
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/whitelist_tests_05_with_general.conf")
         self.assertFalse(test_outlier.is_whitelisted())
 
     def test_whitelist_config_change_remove_multi_item_literal(self):
