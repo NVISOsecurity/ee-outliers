@@ -30,7 +30,7 @@ The previous schema is a simplification. In the following schema, all class are 
 
 ## Whitelist process
 
-Visit the [WHITELIST.md](whitelist page) to understand what is the role of the whitelist. Concretely, whitelist is used when an outliers is detected. If the outlier is whitelisted, it is removed and the current batch is recompute.
+Visit the [whitelist page](WHITELIST.md) to understand what is the role of the whitelist. Concretely, whitelist is used when an outliers is detected. If the outlier is whitelisted, it is removed and the current batch is recompute.
 
 Concretely, for metrics, the process is the following:
 <p align="center">
