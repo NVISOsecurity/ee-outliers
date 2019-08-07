@@ -137,7 +137,7 @@ test_model=0
 
 **Parameters**
 
-All required options are visible in the example. All possible options are listed (here)[CONFIG_PARAMETERS.md#common-analyzers-parameters].
+All required options are visible in the example. All possible options are listed [here](CONFIG_PARAMETERS.md#common-analyzers-parameters).
 
 ## metrics models
 
@@ -172,7 +172,7 @@ should_notify=0
 
 **Parameters**
 
-All required options are visible in the example. All possible options are listed (here)[CONFIG_PARAMETERS.md#analyzers-parameters].
+All required options are visible in the example. All possible options are listed [here](CONFIG_PARAMETERS.md#analyzers-parameters).
 
 **How it works**
 
@@ -224,7 +224,7 @@ test_model=0
 
 **Parameters**
 
-All required options are visible in the example. All possible options are listed (here)[CONFIG_PARAMETERS.md#analyzers-parameters].
+All required options are visible in the example. All possible options are listed [here](CONFIG_PARAMETERS.md#analyzers-parameters).
 
 **How it works**
 
