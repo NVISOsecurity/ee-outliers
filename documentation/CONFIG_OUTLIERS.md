@@ -8,7 +8,7 @@
 - [simplequery models](#simplequery-models)
 - [metrics models](#metrics-models)
 - [terms models](#terms-models)
-- [beaconing models](#beaconing-models)
+- [Derived fields](#derived-fields)
 
 
 ## Existing detection models
@@ -102,6 +102,15 @@ Possible ``trigger_method`` values:
  - ``float``: fixed value to trigger on. ``trigger_sensitivity`` defines the trigger value.
  - ``coeff_of_variation``: Coefficient of variation. ``trigger_sensitivity`` defines the comparison value (the value of each document is not taking into account). Value with a range from ``0-Inf.``.
 
+**process_documents_chronologically**
+Force ElasticSearch to give result in chronological order or not.
+
+**target**
+The document field that will be used to do the computation (based on the `trigger_method` selected).
+
+**aggregator**
+One or multiple document fields that will be used to group documents.
+
 --------------------
 
 ## simplequery models
@@ -128,7 +137,7 @@ test_model=0
 
 **Parameters**
 
-All required options are visible in the example, and are required.
+All required options are visible in the example. All possible options are listed (here)[CONFIG_PARAMETERS.md#common-analyzers-parameters].
 
 ## metrics models
 
@@ -163,7 +172,7 @@ should_notify=0
 
 **Parameters**
 
-All required options are visible in the example, and are required.
+All required options are visible in the example. All possible options are listed (here)[CONFIG_PARAMETERS.md#analyzers-parameters].
 
 **How it works**
 
@@ -215,7 +224,7 @@ test_model=0
 
 **Parameters**
 
-All required options are visible in the example, and are required.
+All required options are visible in the example. All possible options are listed (here)[CONFIG_PARAMETERS.md#analyzers-parameters].
 
 **How it works**
 
@@ -229,10 +238,11 @@ The terms model looks for outliers by calculting rare combinations of a certain 
 
 The ``target_count_method`` parameter can be used to define if the analysis should be performed across all values of the aggregator at the same time, or for each value of the aggregator separately. 
 
-## beaconing models
+**Special case**
 
-the beaconing model can be used to look for events that occur repeatedly with a fixed time interval. Example use case: look for signs of a piece of malware sending out beacons to a Command & Control server at fixed time intervals each minute, hour or day. 
-Each metrics model section in the configuration file should be prefixed by ``beaconing_``.
+If `trigger_method` is set on `coeff_of_variation`, the process is not completely the same. Indeed, the coefficient of variation is compute like other metrics, based on the number of document for a specific `target` and `aggregator`. But this coefficient of variation is then compare to the `trigger_sensitivity`. Based on `trigger_on`, all the group is mark as outlier or not.
+
+This method could be used for detecting an occurance in events. Example use case: look for signs of a piece of malware sending out beacons to a Command & Control server at fixed time intervals each minute, hour or day.
 
 **Example model**
 
@@ -247,60 +257,31 @@ Each metrics model section in the configuration file should be prefixed by ``bea
 timestamp=%{YEAR:timestamp_year}-%{MONTHNUM:timestamp_month}-%{MONTHDAY:timestamp_day}[T ]%{HOUR:timestamp_hour}:?%{MINUTE:timestamp_minute}(?::?%{SECOND:timestamp_second})?%{ISO8601_TIMEZONE:timestamp_timezone}?
 
 ##############################
-# BEACONING - DETECT OUTBOUND SSL BEACONING - TLS
+# TERMS - DETECT OUTBOUND SSL TERMS - TLS
 ##############################
-[beaconing_ssl_outbound]
+[terms_ssl_outbound]
 es_query_filter=BroFilter.event_type:"ssl.log" AND _exists_:BroFilter.server_name
 
 aggregator=BroFilter.server_name,BroFilter.id_orig_h,timestamp_day
 target=timestamp_hour
-trigger_sensitivity=1
+target_count_method=within_aggregator
+trigger_on=low
+trigger_method=coeff_of_variation
+trigger_sensitivity=0.1
 
 outlier_type=suspicious connection
-outlier_reason=beaconing TLS connection
-outlier_summary=beaconing TLS connection to {BroFilter.server_name}
+outlier_reason=terms TLS connection
+outlier_summary=terms TLS connection to {BroFilter.server_name}
 
 run_model=1
 test_model=0
 ```
 
-**Parameters**
+## Derived fields
 
-All required options are visible in the example, and are required.
+Some fields contains multiple information, like timestamp that could be split between year, month... Data extracted with this method could be used into models parameters.
 
-**How it works**
-
-The beaconing model works as following:
-
-The model starts by taking into account all the events defined in the ``es_query_filter`` parameter.
-This should be a valid Elasticsearch query. The best way of testing if the query is valid is by copy-pasting it from a working Kibana query.
- 
-The model will then count all unique instances of the target field, for each individual aggregator field.
-In this specific case, this means that ee-outliers will create “buckets” for each hour of the day (timestamp_hour – one of the derived fields we created earlier) and fill these buckets for each unique combination of the aggregator.
-
-As an example: let’s say that there are events for TLS connections in the cluster to the domain “sneaky.com” that appear about 5 each hour, for a specific source IP (192.168.0.2) for a specific day (19/12).
-ee-outliers will then create the following buckets in order to spot outliers:
-
-```
-Aggregator: "sneaky.com - 192.168.0.2 - 19/12"
-Target: 00 (midnight)
-Total count: 5
-
-Aggregator: "sneaky.com - 192.168.0.2 - 19/12"
-Target: 01 (01:00 AM)
-Total count: 4
-
-Aggregator: "sneaky.com - 192.168.0.2 - 19/12"
-Target: 02 (02:00 AM)
-Total count: 5
-...
-```
-
-These buckets will be created for ALL combinations possible for the aggregator.
-In this case, for all combinations of unique server names, source IPs and days in the range of the events processed by ee-outliers.
-
-In order to give the model access to these timestamp fields, we need to calculate some derived fields, based on the timestamp.
-For this example, this can be done as following:
+For this example, the following configuration allow to extract timestamp information:
 
 ```
 ##############################
@@ -312,22 +293,6 @@ For this example, this can be done as following:
 # The format to use is GROK. These fields are extracted BEFORE the analysis happens, which means that these fields can also be used as for example aggregators or targets in use cases.
 timestamp=%{YEAR:timestamp_year}-%{MONTHNUM:timestamp_month}-%{MONTHDAY:timestamp_day}[T ]%{HOUR:timestamp_hour}:?%{MINUTE:timestamp_minute}(?::?%{SECOND:timestamp_second})?%{ISO8601_TIMEZONE:timestamp_timezone}?
 ```
-
-The trigger sensitivity finally defines how many “standard deviations” tolerance we allow in order to still consider something beaconing.
-In our example above, our bucket for 01:00 AM only has 4 requests instead of 5.
-Without some tolerance, these would thus not be spotted as being outliers!
-By defining the trigger sensitivity and setting it to 1 (or higher for more tolerance), we allow for small changes in the bucket counts to still be considered outliers.
-For example, the following 24 count values (1 for each hour of the day) would still be flagged as beaconing with a trigger_sensitivity set to 1:
-
-```
-5 5 5 4 4 5 5 5 5 3 5 5 5 2 5 5 5 5 4 5 5 5 5 5
-```
-
-In the above example, the standard deviation is 0.74; as it’s smaller than 1, all the events beloning to these 24 buckets will be flagged as outliers.
-The “beaconing” model has a built-in requirement where at least 10 buckets should be available; otherwise, no beaconing will be detected
-(in other words: if the series above only had 9 values instead of 24 or the minimum of 10, it would not be flagged as outliers).
-
-Beaconing events are tagged with a range of new fields, all prefixed with ``outliers.<outlier_field_name>``. 
 
 
 <p align="right"><a href="WHITELIST.md">Whitelist system &#8594;</a></p>

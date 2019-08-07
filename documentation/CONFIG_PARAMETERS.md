@@ -3,6 +3,7 @@
 **Table of contents**
 - [General configuration](#general-configuration)
 - [Notifier configuration](#notifier-configuration)
+- [Derived fields](CONFIG_OUTLIERS.md#derived-fields)
 - [Analyzers parameters](#analyzers-parameters)
   - [Common analyzers parameters](#common-analyzers-parameters)
   - [Usual model parameters](#usual-model-parameters)
@@ -119,6 +120,9 @@ TODO: write about notifier
 
 ## Analyzers parameters
 
+To have more information about the configuration of one analyzer, visit the page [Building detection use cases
+](CONFIG_OUTLIERS.md).
+
 ### Common analyzers parameters
 <table>
   <tr>
@@ -217,7 +221,7 @@ The following parameters could be used for analyzers `terms` and `metrics`.
   <tr>
     <td class="tg-0pky">trigger_method</td>
     <td class="tg-0pky"><code>percentile</code>, <code>pct_of_max_value</code>, <code>pct_of_median_value</code>, <code>pct_of_avg_value</code>, <code>mad</code>, <code>madpos</code>, <code>stdev</code>, <code>float</code>, <code>coeff_of_variation</code></td>
-    <td class="tg-0pky"></td>
+    <td class="tg-0pky"><code>coeff_of_variation</code> is only adapt for <code>Terms</code> with <code>target_count_method</code> set on <code>within_aggregator</code></td>
   </tr>
   <tr>
     <td class="tg-0pky">trigger_sensitivity</td>
