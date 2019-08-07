@@ -17,6 +17,7 @@ Developed by NVISO Labs (https://blog.nviso.be - https://twitter.com/NVISO_Labs)
 - [Building detection use cases](documentation/CONFIG_OUTLIERS.md)
 - [Whitelisting outliers](documentation/WHITELIST.md)
 - [Information for developers](documentation/DEVELOPMENT.md)
+    - [UML](documentation/UML.md)
 - [Screenshots](#screenshots)
 - [License](LICENSE)
 - [Contact](#contact)
@@ -42,7 +43,7 @@ The possibilities of the type of anomalies you can spot using ee-outliers is vir
 -	…
 
 Checkout the screenshots at the end of this readme for a few examples.
-Continue reading if you would like to get started with outlier detection in Elasticsearch yourself!
+Visit the page [Getting started](documentation/INSTALL.md) to get started with outlier detection in Elasticsearch yourself!
 
 #### Core features
 - Create your own custom outlier detection use cases specifically for your own needs
