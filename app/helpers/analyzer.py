@@ -62,6 +62,20 @@ class Analyzer(abc.ABC):
         model_settings["process_documents_chronologically"] = True
 
         try:
+            model_settings["es_query_filter"] = settings.config.get(self.config_section_name, "es_query_filter")
+            self.search_query = es.filter_by_query_string(model_settings["es_query_filter"])
+
+        except NoOptionError:
+            model_settings["es_query_filter"] = None
+
+        try:
+            model_settings["es_dsl_filter"] = settings.config.get(self.config_section_name, "es_dsl_filter")
+            self.search_query = es.filter_by_dsl_query(model_settings["es_dsl_filter"])
+
+        except NoOptionError:
+            model_settings["es_dsl_filter"] = None
+
+        try:
             model_settings["timestamp_field"] = settings.config.get(self.config_section_name, "timestamp_field")
         except NoOptionError:
             model_settings["timestamp_field"] = settings.config.get("general", "timestamp_field", fallback="timestamp")
@@ -77,20 +91,6 @@ class Analyzer(abc.ABC):
                                                                             "history_window_hours")
         except NoOptionError:
             model_settings["history_window_hours"] = settings.config.getint("general", "history_window_hours")
-
-        try:
-            model_settings["es_query_filter"] = settings.config.get(self.config_section_name, "es_query_filter")
-            self.search_query = es.filter_by_query_string(model_settings["es_query_filter"])
-
-        except NoOptionError:
-            model_settings["es_query_filter"] = None
-
-        try:
-            model_settings["es_dsl_filter"] = settings.config.get(self.config_section_name, "es_dsl_filter")
-            self.search_query = es.filter_by_dsl_query(model_settings["es_dsl_filter"])
-
-        except NoOptionError:
-            model_settings["es_dsl_filter"] = None
 
         try:
             model_settings["should_notify"] = settings.config.getboolean("notifier", "email_notifier") and \
