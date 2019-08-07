@@ -38,7 +38,6 @@ class Settings:
         self.args = parser.parse_args()
         self.process_configuration_files()
 
-
     def process_configuration_files(self):
         config_paths = self.args.config
 
