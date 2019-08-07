@@ -175,8 +175,8 @@ class MetricsAnalyzer(Analyzer):
         while (first_run or (has_sufficient_data and list_documents_need_to_be_removed)) and \
                 len(metrics_aggregator_value["metrics"]) > 0:
             if not first_run:
-                logging.logger.info("evaluating the batch again after removing " + str(
-                    nr_whitelisted_element_detected) + " whitelisted elements")
+                logging.logger.info("evaluating the batch again after removing " +
+                                    "{:,}".format(nr_whitelisted_element_detected) + " whitelisted elements")
 
             first_run = False
 

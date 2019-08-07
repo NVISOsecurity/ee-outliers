@@ -144,8 +144,8 @@ class TermsAnalyzer(Analyzer):
             # Run the loop the first time and still elements are removed (due to whitelist)
             while first_run or nr_whitelisted_element_detected > 0:
                 if not first_run:
-                    logging.logger.info("evaluating the batch again after removing " + str(
-                        nr_whitelisted_element_detected) + " whitelisted elements")
+                    logging.logger.info("evaluating the batch again after removing " +
+                                        "{:,}".format(nr_whitelisted_element_detected) + " whitelisted elements")
                 first_run = False
 
                 # Compute decision frontier and loop on all aggregator
@@ -334,7 +334,7 @@ class TermsAnalyzer(Analyzer):
         while first_run or (list_documents_need_to_be_removed and batch[aggregator_value]["targets"]):
             if not first_run:
                 logging.logger.info("evaluating the batch again after removing " +
-                                    str(len(list_documents_need_to_be_removed)) + " whitelisted elements")
+                                    "{:,}".format(len(list_documents_need_to_be_removed)) + " whitelisted elements")
             first_run = False
 
             # Count percentage of each target value occurring
