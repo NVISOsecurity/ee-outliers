@@ -2,6 +2,8 @@ import configparser
 import argparse
 import re
 
+from configparser import NoOptionError, NoSectionError
+
 from helpers.singleton import singleton
 
 parser = argparse.ArgumentParser()
@@ -64,7 +66,22 @@ class Settings:
                 except Exception:
                     self.failing_regular_expressions.add(whitelist_val_to_check)
 
-        self.print_outliers_to_console = self.config.getboolean("general", "print_outliers_to_console")
-        self.es_save_results = self.config.getboolean("general", "es_save_results")
-        self.list_derived_fields = self.config.items("derivedfields")
-        self.list_assets = self.config.items("assets")
+        try:
+            self.print_outliers_to_console = self.config.getboolean("general", "print_outliers_to_console")
+        except NoOptionError:
+            self.print_outliers_to_console = 0
+
+        try:
+            self.es_save_results = self.config.getboolean("general", "es_save_results")
+        except NoOptionError:
+            self.es_save_results = 0
+
+        try:
+            self.list_derived_fields = self.config.items("derivedfields")
+        except NoSectionError:
+            self.list_derived_fields = dict()
+
+        try:
+            self.list_assets = self.config.items("assets")
+        except NoSectionError:
+            self.list_assets = dict()
