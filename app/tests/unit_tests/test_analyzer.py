@@ -2,10 +2,8 @@ import json
 import unittest
 
 import copy
-from collections import defaultdict
 
 from helpers.singletons import es
-from helpers.analyzer import Analyzer
 from tests.unit_tests.test_stubs.test_stub_analyzer import TestStubAnalyzer
 from tests.unit_tests.test_stubs.test_stub_es import TestStubEs
 from tests.unit_tests.utils.test_settings import TestSettings
@@ -49,7 +47,8 @@ class TestAnalyzer(unittest.TestCase):
         doc_with_outlier = copy.deepcopy(doc_with_outlier_test_file)
 
         doc_fields = doc_without_outlier["_source"]
-        analyzer.create_outlier(doc_fields, doc_without_outlier)
+        outlier = analyzer.create_outlier(doc_fields, doc_without_outlier)
+        es.save_outlier(outlier)
 
-        result = [elem for elem in es.scan()][0]
+        result = [elem for elem in es._scan()][0]
         self.assertEqual(result, doc_with_outlier)

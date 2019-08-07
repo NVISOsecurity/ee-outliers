@@ -22,7 +22,7 @@ class Outlier:
         if self._is_whitelisted is None:
             # Create dictionary that contain all stuff
             self._is_whitelisted = Outlier.is_whitelisted_doc({'outlier_dict': self.outlier_dict,
-                                                                  'additional_dict_to_check': self.doc})
+                                                               'additional_dict_to_check': self.doc})
         return self._is_whitelisted
 
     def get_outlier_dict_of_arrays(self):
@@ -58,24 +58,17 @@ class Outlier:
             if isinstance(dict_val, list):
                 for dict_val_item in dict_val:
                     # force to be a string in case the nested element is a dictionary
-                    dict_values_to_check.add(str(dict_val_item))
+                    dict_values_to_check.add(str(dict_val_item).strip())
             else:
-                dict_values_to_check.add(dict_val)
+                dict_values_to_check.add(str(dict_val).strip())
 
         # Check if value is whitelisted as literal
         for (_, each_whitelist_configuration_file_value) in \
                 helpers.singletons.settings.whitelist_literals_config:
-            whitelist_values_to_check = each_whitelist_configuration_file_value.split(",")
+            whitelist_values_to_check = set(map(str.strip, each_whitelist_configuration_file_value.split(',')))
 
-            total_whitelisted_fields_to_match = len(whitelist_values_to_check)
-            total_whitelisted_fields_matched = 0
-
-            for whitelist_val_to_check in whitelist_values_to_check:
-                if Outlier.dictionary_matches_specific_whitelist_item_literally(whitelist_val_to_check,
-                                                                                dict_values_to_check):
-                    total_whitelisted_fields_matched += 1
-
-            if total_whitelisted_fields_to_match == total_whitelisted_fields_matched:
+            # If all whitelisted value are in the dict to check
+            if whitelist_values_to_check.issubset(dict_values_to_check):
                 return True
 
         # Check if value is whitelisted as regexps
@@ -86,17 +79,26 @@ class Outlier:
             total_whitelisted_fields_to_match = len(whitelist_values_to_check)
             total_whitelisted_fields_matched = 0
 
-            for whitelist_val_to_check in whitelist_values_to_check:
+            for whitelist_val_to_check in whitelist_values_to_check:  # For each regex value
 
                 try:
                     p = re.compile(whitelist_val_to_check.strip(), re.IGNORECASE)
                 except Exception:
-                    # something went wrong compiling the regular expression, probably because of a user error such as unbalanced escape characters.
-                    # we should just ignore the regular expression and continue (and let the user know in the beginning that some could not be compiled)
-                    continue
+                    # something went wrong compiling the regular expression, probably because of a user error such as
+                    # unbalanced escape characters. We should just ignore the regular expression and continue (and let
+                    # the user know in the beginning that some could not be compiled).  Even if we check for errors
+                    # in the beginning of running outliers, we might still run into issues when the configuration
+                    # changes during running of ee-outlies. So this should catch any remaining errors in the
+                    # whitelist that could occur with regexps.
+                    break
 
+                # If regex match with the outlier
                 if Outlier.dictionary_matches_specific_whitelist_item_regexp(p, dict_values_to_check):
+                    # Increment the number of match
                     total_whitelisted_fields_matched += 1
+                else:
+                    # Break the loop
+                    break
 
             if total_whitelisted_fields_to_match == total_whitelisted_fields_matched:
                 return True
@@ -105,17 +107,7 @@ class Outlier:
         return False
 
     @staticmethod
-    def dictionary_matches_specific_whitelist_item_literally(whitelist_value, set_of_values_to_check):
-        for value_to_check in set_of_values_to_check:
-            if str(value_to_check).strip() == whitelist_value.strip():
-                return True
-
-        return False
-
-    @staticmethod
     def dictionary_matches_specific_whitelist_item_regexp(regex, set_of_values_to_check):
-        for value_to_check in set_of_values_to_check:
-            if regex.match(str(value_to_check).strip()):
-                return True
-
-        return False
+        # "any" operator will not create all the list to made the computation. The current code allow to "stop" the
+        # "loop" when one element match
+        return any(regex.match(value_to_check) for value_to_check in set_of_values_to_check)
