@@ -8,7 +8,7 @@
     <tr>
       <th class="tg-0pky">Key parameter</th>
       <th class="tg-0pky">Possible values</th>
-      <th class="tg-0pky">Mandatory</th>
+      <th class="tg-0pky">Note</th>
     </tr>
     <tr>
       <td class="tg-0pky">log_verbosity</td>
@@ -108,12 +108,12 @@
     <tr>
       <th class="tg-0pky">Key parameter</th>
       <th class="tg-0pky">Possible values</th>
-      <th class="tg-0pky">Mandatory</th>
+      <th class="tg-0pky">Note</th>
     </tr>
     <tr>
       <td class="tg-0pky">es_query_filter</td>
       <td class="tg-0pky">Any valid ElasticSearch query</td>
-      <td class="tg-c3ow">Yes</td>
+      <td class="tg-c3ow">Mandatory</td>
     </tr>
     <tr>
       <td class="tg-0pky">es_dsl_filter</td>
@@ -153,30 +153,30 @@
     <tr>
       <td class="tg-0pky">outlier_type</td>
       <td class="tg-0pky">Any string</td>
-      <td class="tg-0pky">Yes</td>
+      <td class="tg-0pky">Mandatory</td>
     </tr>
     <tr>
       <td class="tg-0pky">outlier_reason</td>
       <td class="tg-0pky">Any string</td>
-      <td class="tg-0pky">Yes</td>
+      <td class="tg-0pky">Mandatory</td>
     </tr>
     <tr>
       <td class="tg-0pky">outlier_summary</td>
       <td class="tg-0pky">Any string</td>
-      <td class="tg-0pky">Yes</td>
+      <td class="tg-0pky">Mandatory</td>
     </tr>
     <tr>
       <td class="tg-0pky">run_model</td>
       <td class="tg-0pky"><code>0</code>, <code>1</code></td>
-      <td class="tg-0pky">Yes</td>
+      <td class="tg-0pky">Mandatory</td>
     </tr>
     <tr>
       <td class="tg-0pky">test_model</td>
       <td class="tg-0pky"><code>0</code>, <code>1</code></td>
-      <td class="tg-0pky">Yes</td>
+      <td class="tg-0pky">Mandatory</td>
     </tr>
   </table>
-
+  <br />
   <table>
     <tr>
       <th colspan="3">Usual model parameters (Terms, Metrics...)</th>
@@ -184,7 +184,7 @@
     <tr>
       <th class="tg-0pky">Key parameter</th>
       <th class="tg-0pky">Possible values</th>
-      <th class="tg-0pky">Mandatory</th>
+      <th class="tg-0pky">Note</th>
     </tr>
     <tr>
       <td class="tg-0pky">trigger_on</td>
@@ -202,7 +202,7 @@
       <td class="tg-0pky"></td>
     </tr>
   </table>
-
+  <br />
   <table>
     <tr>
       <th colspan="3">Metrics</th>
@@ -210,13 +210,13 @@
     <tr>
       <th class="tg-0pky">Key parameter</th>
       <th class="tg-0pky">Possible values</th>
-      <th class="tg-0pky">Mandatory</th>
+      <th class="tg-0pky">Note</th>
     </tr>
     <tr>
       <td colspan="3">TODO</td>
     </tr>
   </table>
-
+  <br />
   <table>
     <tr>
       <th colspan="3">Terms</th>
@@ -224,7 +224,7 @@
     <tr>
       <th class="tg-0pky">Key parameter</th>
       <th class="tg-0pky">Possible values</th>
-      <th class="tg-0pky">Mandatory</th>
+      <th class="tg-0pky">Note</th>
     </tr>
     <tr>
       <td colspan="3">TODO</td>
