@@ -326,6 +326,9 @@ class TermsAnalyzer(Analyzer):
         has_min_target_buckets = True
 
         while first_run or (list_documents_need_to_be_removed and batch[aggregator_value]["targets"]):
+            if not first_run:
+                logging.logger.info("evaluating the batch again after removing " +
+                                    str(len(list_documents_need_to_be_removed)) + " whitelisted elements")
             first_run = False
 
             # Count percentage of each target value occurring
