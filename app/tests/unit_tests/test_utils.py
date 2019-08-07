@@ -525,53 +525,45 @@ class TestUtils(unittest.TestCase):
         outlier_assets = helpers.utils.extract_outlier_asset_information(fields)
         self.assertIn("ip: 192.168.67.175", outlier_assets)
 
-    def test_get_dotkey_value_case_sensitive_matches_full_dictionary_match(self):
+    def test_dict_contains_dotkey_case_sensitive_matches_full_dictionary_match(self):
         # case sensitive key matching - match
         test_key = "_source.OsqueryFilter.total_size"
-        result = helpers.utils.get_dotkey_value(doc_with_asset_edgecases, test_key, case_sensitive=True)
-        self.assertIsNotNone(result)
+        self.assertTrue(helpers.utils.dict_contains_dotkey(doc_with_asset_edgecases, test_key, case_sensitive=True))
 
-    def test_get_dotkey_value_case_sensitive_matches_partial_dictionary_match(self):
+    def test_dict_contains_dotkey_case_sensitive_matches_partial_dictionary_match(self):
         # case sensitive key matching - match
         test_key = "_source.OsqueryFilter"
-        result = helpers.utils.get_dotkey_value(doc_with_asset_edgecases, test_key, case_sensitive=True)
-        self.assertIsNotNone(result)
+        self.assertTrue(helpers.utils.dict_contains_dotkey(doc_with_asset_edgecases, test_key, case_sensitive=True))
 
-    def test_get_dotkey_value_case_sensitive_mismatches(self):
+    def test_dict_contains_dotkey_case_sensitive_mismatches(self):
         # case sensitive key matching - mismatch
         test_key = "_source.Osqueryfilter.total_size"
-        with self.assertRaises(KeyError):
-            helpers.utils.get_dotkey_value(doc_with_asset_edgecases, test_key, case_sensitive=True)
+        self.assertFalse(helpers.utils.dict_contains_dotkey(doc_with_asset_edgecases, test_key, case_sensitive=True))
 
-    def test_get_dotkey_value_case_insensitive_matches_full_match(self):
+    def test_dict_contains_dotkey_case_insensitive_matches_full_match(self):
         # case insensitive key matching - match
         test_key = "_source.OsqueryFilter.total_size"
-        result = helpers.utils.get_dotkey_value(doc_with_asset_edgecases, test_key, case_sensitive=False)
-        self.assertIsNotNone(result)
+        self.assertTrue(helpers.utils.dict_contains_dotkey(doc_with_asset_edgecases, test_key, case_sensitive=False))
 
-    def test_get_dotkey_value_case_insensitive_matches_lots_of_case_changes_match(self):
+    def test_dict_contains_dotkey_case_insensitive_matches_lots_of_case_changes_match(self):
         # case insensitive key matching - match
         test_key = "_sOurCe.OsqueryfIltEr.TotAl_Size"
-        result = helpers.utils.get_dotkey_value(doc_with_asset_edgecases, test_key, case_sensitive=False)
-        self.assertIsNotNone(result)
+        self.assertTrue(helpers.utils.dict_contains_dotkey(doc_with_asset_edgecases, test_key, case_sensitive=False))
 
-    def test_get_dotkey_value_case_insensitive_mismatches_first_element(self):
+    def test_dict_contains_dotkey_case_insensitive_mismatches_first_element(self):
         # case insensitive key matching - mismatch
         test_key = "_sourceS.OsqueryFilter.total_size"
-        with self.assertRaises(KeyError):
-            helpers.utils.get_dotkey_value(doc_with_asset_edgecases, test_key, case_sensitive=False)
+        self.assertFalse(helpers.utils.dict_contains_dotkey(doc_with_asset_edgecases, test_key, case_sensitive=False))
 
-    def test_get_dotkey_value_case_insensitive_mismatches_second_element(self):
+    def test_dict_contains_dotkey_case_insensitive_mismatches_second_element(self):
         # case insensitive key matching - mismatch
         test_key = "_source.OsqueryFilterZ.total_size"
-        with self.assertRaises(KeyError):
-            helpers.utils.get_dotkey_value(doc_with_asset_edgecases, test_key, case_sensitive=False)
+        self.assertFalse(helpers.utils.dict_contains_dotkey(doc_with_asset_edgecases, test_key, case_sensitive=False))
 
-    def test_get_dotkey_value_case_insensitive_mismatches_first_and_only_element(self):
+    def test_dict_contains_dotkey_case_insensitive_mismatches_first_and_only_element(self):
         # case insensitive key matching - mismatch
         test_key = "_sOurCez"
-        with self.assertRaises(KeyError):
-            helpers.utils.get_dotkey_value(doc_with_asset_edgecases, test_key, case_sensitive=False)
+        self.assertFalse(helpers.utils.dict_contains_dotkey(doc_with_asset_edgecases, test_key, case_sensitive=False))
 
     def test_file_modification_not_modified(self):
         file_mod_watcher = helpers.watchers.FileModificationWatcher()
@@ -619,5 +611,5 @@ class TestUtils(unittest.TestCase):
 
     def test_nested_dict_values_empty_dict(self):
         test_dict = {}
-        for _ in helpers.utils.nested_dict_values(test_dict):
+        for elem in helpers.utils.nested_dict_values(test_dict):
             raise AssertionError("Detect nested value which does not exist")
