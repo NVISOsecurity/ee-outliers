@@ -22,6 +22,7 @@ class MetricsAnalyzer(Analyzer):
 
     def evaluate_model(self):
         batch = defaultdict()  # Contain the current batch information
+        remaining_metrics = defaultdict()
         total_metrics_in_batch = 0
 
         self.total_events, documents = es.count_and_scan_documents(index=self.es_index, search_query=self.search_query,
@@ -55,8 +56,12 @@ class MetricsAnalyzer(Analyzer):
                 if is_last_batch or total_metrics_in_batch >= settings.config.getint("metrics",
                                                                                      "metrics_batch_eval_size"):
 
-                    logging.logger.info("evaluating batch of " + "{:,}".format(total_metrics_in_batch) + " metrics [" +
-                                        "{:,}".format(logging.current_step) + " events processed]")
+                    # Display log message
+                    log_message = "evaluating batch of " + "{:,}".format(total_metrics_in_batch) + " metrics "
+                    if len(remaining_metrics) > 0:
+                        log_message += "(+ " + "{:,}".format(len(remaining_metrics)) + " metrics from last batch) "
+                    log_message += "[" + "{:,}".format(logging.current_step) + " events processed]"
+                    logging.logger.info(log_message)
 
                     outliers_in_batch, remaining_metrics = self._evaluate_batch_for_outliers(
                         batch=batch, is_last_batch=is_last_batch)
@@ -170,8 +175,8 @@ class MetricsAnalyzer(Analyzer):
         while (first_run or (has_sufficient_data and list_documents_need_to_be_removed)) and \
                 len(metrics_aggregator_value["metrics"]) > 0:
             if not first_run:
-                logging.logger.info("evaluating the batch again after removing " + str(
-                    nr_whitelisted_element_detected) + " whitelisted elements")
+                logging.logger.info("evaluating the batch again after removing " +
+                                    "{:,}".format(nr_whitelisted_element_detected) + " whitelisted elements")
 
             first_run = False
 

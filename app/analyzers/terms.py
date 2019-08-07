@@ -19,6 +19,7 @@ class TermsAnalyzer(Analyzer):
 
         if self.total_events > 0:
             current_batch = defaultdict()
+            targets_for_next_batch = defaultdict()
             total_targets_in_batch = 0
 
             for doc in documents:
@@ -38,8 +39,13 @@ class TermsAnalyzer(Analyzer):
                 # Run if it is the last batch OR if the batch size is large enough
 
                 if is_last_batch or total_targets_in_batch >= settings.config.getint("terms", "terms_batch_eval_size"):
-                    logging.logger.info("evaluating batch of " + "{:,}".format(total_targets_in_batch) + " terms [" +
-                                        "{:,}".format(logging.current_step) + " events processed]")
+
+                    # Display log message
+                    log_message = "evaluating batch of " + "{:,}".format(total_targets_in_batch) + " terms "
+                    if len(targets_for_next_batch) > 0:
+                        log_message += "(+ " + "{:,}".format(len(targets_for_next_batch)) + " terms from last batch) "
+                    log_message += "[" + "{:,}".format(logging.current_step) + " events processed]"
+                    logging.logger.info(log_message)
 
                     # evaluate the current batch
                     outliers_in_batch, targets_for_next_batch = self._evaluate_batch_for_outliers(batch=current_batch)
@@ -138,8 +144,8 @@ class TermsAnalyzer(Analyzer):
             # Run the loop the first time and still elements are removed (due to whitelist)
             while first_run or nr_whitelisted_element_detected > 0:
                 if not first_run:
-                    logging.logger.info("evaluating the batch again after removing " + str(
-                        nr_whitelisted_element_detected) + " whitelisted elements")
+                    logging.logger.info("evaluating the batch again after removing " +
+                                        "{:,}".format(nr_whitelisted_element_detected) + " whitelisted elements")
                 first_run = False
 
                 # Compute decision frontier and loop on all aggregator
@@ -326,6 +332,9 @@ class TermsAnalyzer(Analyzer):
         has_min_target_buckets = True
 
         while first_run or (list_documents_need_to_be_removed and batch[aggregator_value]["targets"]):
+            if not first_run:
+                logging.logger.info("evaluating the batch again after removing " +
+                                    "{:,}".format(len(list_documents_need_to_be_removed)) + " whitelisted elements")
             first_run = False
 
             # Count percentage of each target value occurring
