@@ -275,7 +275,11 @@ def print_analysis_summary(analyzed_models):
                                           if analyzer.configuration_parsing_error]
 
     total_models_processed = len(completed_models) + len(no_index_models) + len(unknown_error_models)
+    total_outliers_detected = sum([analyzer.total_outliers for analyzer in analyzed_models])
+    total_outliers_whitelisted = sum([analyzer.nr_whitelisted_elements for analyzer in analyzed_models])
     logging.logger.info("total use cases processed: %i", total_models_processed)
+    logging.logger.info("total outliers detected: " + "{:,}".format(total_outliers_detected))
+    logging.logger.info("total whitelisted outliers: " + "{:,}".format(total_outliers_whitelisted))
     logging.logger.info("")
     logging.logger.info("succesfully analyzed use cases: %i", len(completed_models))
     logging.logger.info("succesfully analyzed use cases without events: %i",
@@ -303,8 +307,10 @@ def print_analysis_summary(analyzed_models):
         completed_models_with_events_taking_most_time = completed_models_with_events[:10]
 
         for model in completed_models_with_events_taking_most_time:
-            logging.logger.info("\t+ " + model.config_section_name + " - " + "{:,}".format(model.total_events) +
-                                " events - " + helpers.utils.seconds_to_pretty_str(round(model.analysis_time_seconds)))
+            logging.logger.info("\t+ " + model.config_section_name + " - " +
+                                "{:,}".format(model.total_events) + " events - " +
+                                "{:,}".format(model.total_outliers) + " outliers - " +
+                                helpers.utils.seconds_to_pretty_str(round(model.analysis_time_seconds)))
 
     if configuration_parsing_error_models:
         logging.logger.info("")
