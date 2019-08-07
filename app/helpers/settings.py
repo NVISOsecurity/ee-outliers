@@ -89,7 +89,7 @@ class Settings:
 
         try:
             config.getint("terms", "terms_batch_eval_size")
-        except NoOptionError:
+        except (NoOptionError, NoSectionError):
             helpers.singletons.logging.logger.warning("No value has been defined for the parameter " +
                                                       "terms_batch_eval_size")
             self.terms_batch_eval_size = 100000
