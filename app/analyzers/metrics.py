@@ -4,6 +4,7 @@ import numpy as np
 from helpers.singletons import settings, es, logging
 from collections import defaultdict
 import re
+import random
 import helpers.utils
 from helpers.analyzer import Analyzer
 
@@ -234,6 +235,7 @@ class MetricsAnalyzer(Analyzer):
         """
         list_outliers = []
         list_documents_need_to_be_removed = []
+        non_outlier_values = set()
 
         # Calculate all outliers in array
         for ii, metric_value in enumerate(metrics_aggregator_value["metrics"]):
@@ -241,18 +243,21 @@ class MetricsAnalyzer(Analyzer):
                                                   self.model_settings["trigger_on"])
 
             if is_outlier:
-                outlier = self._compute_fields_observation_and_create_outlier(metrics_aggregator_value, ii,
+                outlier = self._compute_fields_observation_and_create_outlier(non_outlier_values,
+                                                                              metrics_aggregator_value, ii,
                                                                               decision_frontier, metric_value)
                 if not outlier.is_whitelisted():
                     list_outliers.append(outlier)
                 else:
                     self.nr_whitelisted_elements += 1
                     list_documents_need_to_be_removed.append(ii)
+            else:
+                non_outlier_values.add(metric_value)
 
         return list_outliers, list_documents_need_to_be_removed
 
-    def _compute_fields_observation_and_create_outlier(self, metrics_aggregator_value, ii, decision_frontier,
-                                                       metric_value):
+    def _compute_fields_observation_and_create_outlier(self, non_outlier_values, metrics_aggregator_value, ii,
+                                                       decision_frontier, metric_value):
         """
         Extract field from document and compute different element that will be placed in the observation
 
@@ -263,6 +268,7 @@ class MetricsAnalyzer(Analyzer):
         :return: the created outlier
         """
         confidence = np.abs(decision_frontier - metric_value)
+        non_outlier_values_sample = ",".join(random.sample(non_outlier_values, min(3, len(non_outlier_values))))
 
         # Extract fields from raw document
         fields = es.extract_fields_from_document(
@@ -273,6 +279,7 @@ class MetricsAnalyzer(Analyzer):
         observations["metric"] = metric_value
         observations["decision_frontier"] = decision_frontier
         observations["confidence"] = confidence
+        observations["non_outlier_values_sample"] = non_outlier_values_sample
 
         outlier = self.create_outlier(fields, metrics_aggregator_value["raw_docs"][ii],
                                       extra_outlier_information=observations)
