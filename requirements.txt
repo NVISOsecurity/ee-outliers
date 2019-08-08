@@ -37,3 +37,4 @@ flake8==3.7.5
 coverage==4.5.3
 vulture==1.0
 sentry-sdk==0.10.2
+mypy==0.720
