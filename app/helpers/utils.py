@@ -137,13 +137,16 @@ def _flatten_one_field_into_sentences(dict_value, sentences=list(list())):
     new_sentences = []
     if type(dict_value) is list:
         for field_value in dict_value:
+            flatten_field_value = flatten_sentence(field_value)
+
             for sentence in sentences:
                 sentence_copy = sentence.copy()
-                sentence_copy.append(flatten_sentence(field_value))
+                sentence_copy.append(flatten_field_value)
                 new_sentences.append(sentence_copy)
     else:
+        flatten_dict_value = flatten_sentence(dict_value)
         for sentence in sentences:
-            sentence.append(flatten_sentence(dict_value))
+            sentence.append(flatten_dict_value)
             new_sentences.append(sentence)
 
     return new_sentences
