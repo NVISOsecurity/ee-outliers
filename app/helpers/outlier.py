@@ -79,12 +79,12 @@ class Outlier:
         # Check if value is whitelisted as regexps
         for (_, each_whitelist_configuration_file_value) in \
                 cast(List[Tuple[str, str]], helpers.singletons.settings.whitelist_regexps_config):
-            whitelist_values_to_check = each_whitelist_configuration_file_value.split(",")
+            whitelist_list_values_to_check: List[str] = each_whitelist_configuration_file_value.split(",")
 
-            total_whitelisted_fields_to_match = len(whitelist_values_to_check)
+            total_whitelisted_fields_to_match = len(whitelist_list_values_to_check)
             total_whitelisted_fields_matched = 0
 
-            for whitelist_val_to_check in whitelist_values_to_check:  # For each regex value
+            for whitelist_val_to_check in whitelist_list_values_to_check:  # For each regex value
 
                 try:
                     p = re.compile(whitelist_val_to_check.strip(), re.IGNORECASE)

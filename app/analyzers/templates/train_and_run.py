@@ -1,7 +1,7 @@
 from helpers.singletons import settings, es, logging
 from helpers.analyzer import Analyzer
 
-from typing import List, Dict
+from typing import List, Dict, Any
 
 
 class TemplateAnalyzer(Analyzer):

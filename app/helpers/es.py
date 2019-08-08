@@ -76,7 +76,8 @@ class ES:
             sort_clause = {"sort": [{model_settings["timestamp_field"]: "desc"}]}
             preserve_order = True
 
-        return eshelpers.scan(self.conn, request_timeout=self.settings.config.getint("general", "es_timeout"),
+        return eshelpers.scan(self.conn,  # type: ignore
+                              request_timeout=self.settings.config.getint("general", "es_timeout"),
                               index=index, query=build_search_query(bool_clause=bool_clause,
                                                                     sort_clause=sort_clause,
                                                                     search_range=search_range,

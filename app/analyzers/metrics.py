@@ -30,7 +30,7 @@ class MetricsAnalyzer(Analyzer):
         total_metrics_in_batch: int = 0
 
         self.total_events: int
-        documents: Dict
+        documents: List[Dict[str, Any]]
         self.total_events, documents = es.count_and_scan_documents(index=self.es_index, search_query=self.search_query,
                                                                    model_settings=self.model_settings)
 
@@ -42,6 +42,8 @@ class MetricsAnalyzer(Analyzer):
             for doc in documents:
                 logging.tick()
                 # Extract target and aggregator values
+                target_value: Optional[str]
+                aggregator_sentences: Optional[List[List]]
                 target_value, aggregator_sentences = self._compute_aggregator_and_target_value(doc)
 
                 # If target and aggregator values exist
@@ -90,8 +92,8 @@ class MetricsAnalyzer(Analyzer):
 
         self.print_analysis_summary()
 
-    def _add_document_to_batch(self, doc: Dict, batch: DefaultDict, target_value: Optional[str],
-                               aggregator_sentences: List[List]):
+    def _add_document_to_batch(self, doc: Dict, batch: DefaultDict, target_value: str,
+                               aggregator_sentences: List[List]) -> Tuple[DefaultDict, bool]:
         """
         Compute different metrics and observation to add them to the batch
 
@@ -114,7 +116,7 @@ class MetricsAnalyzer(Analyzer):
                                                  observations, doc)
         return batch, metrics_added
 
-    def _compute_aggregator_and_target_value(self, doc):
+    def _compute_aggregator_and_target_value(self, doc: Dict) -> Tuple[Optional[str], Optional[List[List]]]:
         """
         Compute the target value and the aggregator sentence. Return the two value or two None if one of the two could
         not be computed
@@ -136,8 +138,8 @@ class MetricsAnalyzer(Analyzer):
 
         return target_value, aggregator_sentences
 
-    def _evaluate_batch_for_outliers(self, batch: DefaultDict = None,
-                                     is_last_batch: bool = False) -> Tuple[List, DefaultDict]:
+    def _evaluate_batch_for_outliers(self, batch: DefaultDict,
+                                     is_last_batch: bool = False) -> Tuple[List[Outlier], DefaultDict]:
         """
         Evaluate one batch to detect outliers
 
@@ -147,7 +149,8 @@ class MetricsAnalyzer(Analyzer):
         """
         # Initialize
         outliers: List[Outlier] = list()  # List of all detected outliers
-        unprocessed_batch_elements: Dict = dict()  # List of aggregator value that doesn't contain enough data
+        # List of aggregator value that doesn't contain enough data
+        unprocessed_batch_elements: DefaultDict = defaultdict()
 
         for _, aggregator_value in enumerate(batch):
             # Compute for each aggregator
@@ -179,7 +182,7 @@ class MetricsAnalyzer(Analyzer):
         nr_whitelisted_element_detected: int = 0
 
         outliers: List[Outlier] = []
-        list_documents_need_to_be_removed = []
+        list_documents_need_to_be_removed: List[int] = []
 
         # Treat this aggregator a first time ("first_run") and continue if there are enough value
         # and that we have remove some documents from the metrics_aggregator_value
@@ -233,7 +236,9 @@ class MetricsAnalyzer(Analyzer):
 
         return outliers, has_sufficient_data, metrics_aggregator_value
 
-    def _evaluate_each_aggregator_value_for_outliers(self, metrics_aggregator_value, decision_frontier):
+    def _evaluate_each_aggregator_value_for_outliers(
+            self, metrics_aggregator_value: Dict[str, Any],
+            decision_frontier: Union[int, float, float64]) -> Tuple[List[Outlier], List[int]]:
         """
         Evaluate all value in an aggregator to detect if it is outlier
 
@@ -242,17 +247,17 @@ class MetricsAnalyzer(Analyzer):
         :return: list of outliers and list of document that need to be remove (because they have been detected like
         outliers and are whitelisted)
         """
-        list_outliers = []
-        list_documents_need_to_be_removed = []
+        list_outliers: List[Outlier] = []
+        list_documents_need_to_be_removed: List[int] = []
 
         # Calculate all outliers in array
         for ii, metric_value in enumerate(metrics_aggregator_value["metrics"]):
-            is_outlier = helpers.utils.is_outlier(metric_value, decision_frontier,
-                                                  self.model_settings["trigger_on"])
+            is_outlier: bool = helpers.utils.is_outlier(metric_value, decision_frontier,
+                                                        self.model_settings["trigger_on"])
 
             if is_outlier:
-                outlier = self._compute_fields_observation_and_create_outlier(metrics_aggregator_value, ii,
-                                                                              decision_frontier, metric_value)
+                outlier: Outlier = self._compute_fields_observation_and_create_outlier(metrics_aggregator_value, ii,
+                                                                                       decision_frontier, metric_value)
                 if not outlier.is_whitelisted():
                     list_outliers.append(outlier)
                 else:
@@ -261,8 +266,9 @@ class MetricsAnalyzer(Analyzer):
 
         return list_outliers, list_documents_need_to_be_removed
 
-    def _compute_fields_observation_and_create_outlier(self, metrics_aggregator_value, ii, decision_frontier,
-                                                       metric_value):
+    def _compute_fields_observation_and_create_outlier(self, metrics_aggregator_value: Dict[str, Any], ii: int,
+                                                       decision_frontier: Union[int, float, float64],
+                                                       metric_value: Union[float, int]) -> Outlier:
         """
         Extract field from document and compute different element that will be placed in the observation
 
@@ -272,7 +278,7 @@ class MetricsAnalyzer(Analyzer):
         :param metric_value: the metric value
         :return: the created outlier
         """
-        confidence = np.abs(decision_frontier - metric_value)
+        confidence: int = np.abs(decision_frontier - metric_value)
 
         # Extract fields from raw document
         fields: Dict = es.extract_fields_from_document(
@@ -284,8 +290,8 @@ class MetricsAnalyzer(Analyzer):
         observations["decision_frontier"] = decision_frontier
         observations["confidence"] = confidence
 
-        outlier = self.create_outlier(fields, metrics_aggregator_value["raw_docs"][ii],
-                                      extra_outlier_information=observations)
+        outlier: Outlier = self.create_outlier(fields, metrics_aggregator_value["raw_docs"][ii],
+                                               extra_outlier_information=observations)
         return outlier
 
     def _extract_additional_model_settings(self) -> None:

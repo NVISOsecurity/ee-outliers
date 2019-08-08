@@ -56,7 +56,7 @@ def run_outliers() -> None:
 def setup_logging() -> None:
     if os.environ.get("SENTRY_SDK_URL"):
         import sentry_sdk
-        sentry_sdk.init(os.environ.get("SENTRY_SDK_URL"))
+        sentry_sdk.init(os.environ.get("SENTRY_SDK_URL"))  # type: ignore
 
     # Configuration for which we need access to both settings and logging singletons should happen here
     logging.verbosity = settings.config.getint("general", "log_verbosity")
@@ -313,7 +313,7 @@ def print_analysis_summary(analyzed_models: List[Analyzer]) -> None:
             logging.logger.info("\t+ " + model.config_section_name + " - " +
                                 "{:,}".format(model.total_events) + " events - " +
                                 "{:,}".format(model.total_outliers) + " outliers - " +
-                                helpers.utils.seconds_to_pretty_str(round(model.analysis_time_seconds)))
+                                helpers.utils.seconds_to_pretty_str(round(cast(float, model.analysis_time_seconds))))
 
     if configuration_parsing_error_models:
         logging.logger.info("")
