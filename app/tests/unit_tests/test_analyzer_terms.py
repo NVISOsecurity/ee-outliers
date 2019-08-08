@@ -11,8 +11,6 @@ from helpers.singletons import logging, es
 from tests.unit_tests.utils.test_settings import TestSettings
 from tests.unit_tests.utils.dummy_documents_generate import DummyDocumentsGenerate
 
-doc_without_outliers_test_whitelist_01_test_file = json.load(
-    open("/app/tests/unit_tests/files/doc_without_outliers_test_whitelist_01.json"))
 doc_without_outliers_test_whitelist_02_test_file = json.load(
     open("/app/tests/unit_tests/files/doc_without_outliers_test_whitelist_02.json"))
 doc_without_outliers_test_whitelist_03_test_file = json.load(
