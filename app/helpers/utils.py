@@ -244,8 +244,8 @@ def get_decision_frontier(trigger_method: str, values_array: List, trigger_sensi
 
     if decision_frontier < 0:
         # Could not do "from helpers.singletons import logging" due to circle import
-        helpers.singletons.logging.logger.warning("negative decision frontier %.2f, this will not generate any "
-                                                  "outliers", decision_frontier)
+        helpers.singletons.logging.logger.debug("negative decision frontier %.2f, this will not generate any outliers",
+                                                decision_frontier)
 
     return decision_frontier
 

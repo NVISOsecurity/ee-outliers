@@ -74,17 +74,25 @@ def setup_logging() -> None:
 
 
 def print_intro() -> None:
-    logging.logger.info("outliers.py started - contact: research@nviso.be")
+    logging.logger.info("outliers.py - version 0.2.0 - contact: research@nviso.be")
     logging.logger.info("run mode: " + settings.args.run_mode)
 
     logging.print_generic_intro("initializing")
     logging.logger.info("loaded " + str(len(settings.loaded_config_paths)) + " configuration files")
 
     if settings.failed_config_paths:
-        logging.logger.warning("failed to load " + str(len(settings.failed_config_paths)) + " configuration files")
+        logging.logger.error("failed to load " + str(len(settings.failed_config_paths)) + " configuration files that " +
+                             "will be ignored")
 
         for failed_config_path in settings.failed_config_paths:
-            logging.logger.warning("failed to load " + str(failed_config_path))
+            logging.logger.error("\t+ failed to load configuration file " + str(failed_config_path))
+
+    if settings.failing_regular_expressions:
+        logging.logger.error("failed to parse " + str(len(settings.failing_regular_expressions)) + " regular " +
+                             "expressions in whitelist that will be ignored")
+
+        for failed_regular_expression in settings.failing_regular_expressions:
+            logging.logger.error("\t+ failed to parse regular expression " + str(failed_regular_expression))
 
 
 def run_daemon_mode() -> None:
@@ -270,7 +278,11 @@ def print_analysis_summary(analyzed_models: List[Analyzer]) -> None:
                                           if analyzer.configuration_parsing_error]
 
     total_models_processed = len(completed_models) + len(no_index_models) + len(unknown_error_models)
+    total_outliers_detected = sum([analyzer.total_outliers for analyzer in analyzed_models])
+    total_outliers_whitelisted = sum([analyzer.nr_whitelisted_elements for analyzer in analyzed_models])
     logging.logger.info("total use cases processed: %i", total_models_processed)
+    logging.logger.info("total outliers detected: " + "{:,}".format(total_outliers_detected))
+    logging.logger.info("total whitelisted outliers: " + "{:,}".format(total_outliers_whitelisted))
     logging.logger.info("")
     logging.logger.info("succesfully analyzed use cases: %i", len(completed_models))
     logging.logger.info("succesfully analyzed use cases without events: %i",
@@ -298,9 +310,10 @@ def print_analysis_summary(analyzed_models: List[Analyzer]) -> None:
         completed_models_with_events_taking_most_time = completed_models_with_events[:10]
 
         for model in completed_models_with_events_taking_most_time:
-            logging.logger.info("\t+ " + model.config_section_name + " - " + "{:,}".format(model.total_events) +
-                                " events - " +
-                                helpers.utils.seconds_to_pretty_str(round(cast(float, model.analysis_time_seconds))))
+            logging.logger.info("\t+ " + model.config_section_name + " - " +
+                                "{:,}".format(model.total_events) + " events - " +
+                                "{:,}".format(model.total_outliers) + " outliers - " +
+                                helpers.utils.seconds_to_pretty_str(round(model.analysis_time_seconds)))
 
     if configuration_parsing_error_models:
         logging.logger.info("")

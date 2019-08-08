@@ -98,7 +98,7 @@ class TestTermsAnalyzer(unittest.TestCase):
         analyzer.evaluate_model()
 
         nbr_outliers = 0
-        for elem in es.scan():
+        for elem in es._scan():
             if "outliers" in elem["_source"]:
                 nbr_outliers += 1
         self.assertEqual(nbr_outliers, nbr_generated_documents)
@@ -119,7 +119,7 @@ class TestTermsAnalyzer(unittest.TestCase):
         analyzer.evaluate_model()
 
         nbr_outliers = 0
-        for elem in es.scan():
+        for elem in es._scan():
             if "outliers" in elem["_source"]:
                 nbr_outliers += 1
         self.assertEqual(nbr_outliers, 5)
@@ -139,7 +139,7 @@ class TestTermsAnalyzer(unittest.TestCase):
         analyzer = TermsAnalyzer("terms_dummy_test_float")
         analyzer.evaluate_model()
 
-        self.assertEqual(len(analyzer.outliers), 5)
+        self.assertEqual(analyzer.total_outliers, 5)
 
     def test_terms_small_batch_treat_all(self):
         dummy_doc_generate = DummyDocumentsGenerate()
@@ -159,7 +159,7 @@ class TestTermsAnalyzer(unittest.TestCase):
         analyzer = TermsAnalyzer("terms_dummy_test_float")
         analyzer.evaluate_model()
 
-        self.assertEqual(len(analyzer.outliers), nbr_doc_per_hours*nbr_hours)
+        self.assertEqual(analyzer.total_outliers, nbr_doc_per_hours*nbr_hours)
 
     def test_terms_small_batch_last_outlier(self):
         dummy_doc_generate = DummyDocumentsGenerate()
@@ -178,7 +178,7 @@ class TestTermsAnalyzer(unittest.TestCase):
         analyzer = TermsAnalyzer("terms_dummy_test_float")
         analyzer.evaluate_model()
 
-        self.assertEqual(len(analyzer.outliers), 4)
+        self.assertEqual(analyzer.total_outliers, 4)
 
     def test_evaluate_batch_for_outliers_not_enough_target_buckets_one_doc_max_two(self):
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_01.conf")
@@ -186,11 +186,10 @@ class TestTermsAnalyzer(unittest.TestCase):
 
         aggregator_value = LIST_AGGREGATOR_VALUE[0]
         target_value = random.choice(LIST_TARGET_VALUE)
-        observations = {}
         doc = copy.deepcopy(random.choice(LIST_DOC))
-        eval_terms_array = analyzer.add_term_to_batch(defaultdict(), aggregator_value, target_value, observations, doc)
+        current_batch = analyzer._add_document_to_batch(defaultdict(), [target_value], [aggregator_value], doc)
 
-        result, remaining_terms = analyzer.evaluate_batch_for_outliers(True, terms=eval_terms_array)
+        result, remaining_terms = analyzer._evaluate_batch_for_outliers(batch=current_batch)
         self.assertEqual(result, [])
 
     def test_evaluate_batch_for_outliers_limit_target_buckets_two_doc_max_two(self):
@@ -200,19 +199,16 @@ class TestTermsAnalyzer(unittest.TestCase):
         # Create one document with one aggregator
         aggregator_value = LIST_AGGREGATOR_VALUE[0]
         target_value = random.choice(LIST_TARGET_VALUE)
-        observations = {}
         doc = copy.deepcopy(random.choice(LIST_DOC))
-        eval_terms_array = analyzer.add_term_to_batch(defaultdict(), aggregator_value, target_value, observations, doc)
+        current_batch = analyzer._add_document_to_batch(defaultdict(), [target_value], [aggregator_value], doc)
         # Create a second document with another aggregator
         aggregator_value2 = LIST_AGGREGATOR_VALUE[1]
         target_value2 = random.choice(LIST_TARGET_VALUE)
-        observations2 = {}
         doc2 = copy.deepcopy(random.choice(LIST_DOC))
-        eval_terms_array = analyzer.add_term_to_batch(eval_terms_array, aggregator_value2, target_value2, observations2,
-                                                      doc2)
+        current_batch = analyzer._add_document_to_batch(current_batch, [target_value2], [aggregator_value2], doc2)
 
         # Expect to get nothing due to "min_target_buckets" set to 2
-        result, remaining_terms = analyzer.evaluate_batch_for_outliers(is_last_batch=True, terms=eval_terms_array)
+        result, remaining_terms = analyzer._evaluate_batch_for_outliers(batch=current_batch)
         self.assertEqual(result, [])
 
     # coeff_of_variation
@@ -228,7 +224,7 @@ class TestTermsAnalyzer(unittest.TestCase):
         # Make test (suppose that all doc match with the query)
         analyzer.evaluate_model()
 
-        result = [elem for elem in es.scan()][0]
+        result = [elem for elem in es._scan()][0]
         self.assertEqual(result, expected_doc)
 
     def test_terms_generated_document_coeff_of_variation_not_respect_min(self):
@@ -246,7 +242,7 @@ class TestTermsAnalyzer(unittest.TestCase):
         analyzer.evaluate_model()
 
         nbr_outliers = 0
-        for doc in es.scan():
+        for doc in es._scan():
             if "outliers" in doc['_source']:
                 nbr_outliers += 1
         self.assertEqual(nbr_outliers, 0)
@@ -266,7 +262,7 @@ class TestTermsAnalyzer(unittest.TestCase):
         analyzer.evaluate_model()
 
         nbr_outliers = 0
-        for doc in es.scan():
+        for doc in es._scan():
             if "outliers" in doc['_source']:
                 nbr_outliers += 1
 
@@ -280,7 +276,7 @@ class TestTermsAnalyzer(unittest.TestCase):
         analyzer = TermsAnalyzer("terms_dummy_test_derived")
         analyzer.evaluate_model()
 
-        result = [elem for elem in es.scan()][0]
+        result = [elem for elem in es._scan()][0]
         self.assertTrue("timestamp_year" in result['_source'])
 
     def test_terms_use_derived_fields_in_outlier(self):
@@ -291,7 +287,7 @@ class TestTermsAnalyzer(unittest.TestCase):
         analyzer = TermsAnalyzer("terms_dummy_test_derived")
         analyzer.evaluate_model()
 
-        result = [elem for elem in es.scan()][0]
+        result = [elem for elem in es._scan()][0]
         self.assertTrue("derived_timestamp_year" in result['_source']['outliers'])
 
     def test_terms_not_use_derived_fields_in_doc(self):
@@ -302,7 +298,7 @@ class TestTermsAnalyzer(unittest.TestCase):
         analyzer = TermsAnalyzer("terms_dummy_test_not_derived")
         analyzer.evaluate_model()
 
-        result = [elem for elem in es.scan()][0]
+        result = [elem for elem in es._scan()][0]
         self.assertFalse("timestamp_year" in result['_source'])
 
     def test_terms_not_use_derived_fields_but_present_in_outlier(self):
@@ -313,7 +309,7 @@ class TestTermsAnalyzer(unittest.TestCase):
         analyzer = TermsAnalyzer("terms_dummy_test_not_derived")
         analyzer.evaluate_model()
 
-        result = [elem for elem in es.scan()][0]
+        result = [elem for elem in es._scan()][0]
         # The parameter use_derived_fields haven't any impact on outliers keys
         self.assertTrue("derived_timestamp_year" in result['_source']['outliers'])
 
@@ -328,7 +324,7 @@ class TestTermsAnalyzer(unittest.TestCase):
         analyzer = TermsAnalyzer("terms_dummy_test_float_low")
         analyzer.evaluate_model()
 
-        result = [elem for elem in es.scan()][0]
+        result = [elem for elem in es._scan()][0]
         all_fields_exists = [elem in result['_source']['outliers'] for elem in DEFAULT_OUTLIERS_KEY_FIELDS]
         self.assertTrue(all(all_fields_exists))
 
@@ -343,7 +339,7 @@ class TestTermsAnalyzer(unittest.TestCase):
         analyzer = TermsAnalyzer("terms_dummy_test_float_low")
         analyzer.evaluate_model()
 
-        result = [elem for elem in es.scan()][0]
+        result = [elem for elem in es._scan()][0]
         all_fields_exists = [elem in result['_source']['outliers'] for elem in EXTRA_OUTLIERS_KEY_FIELDS]
         self.assertTrue(all(all_fields_exists))
 
@@ -358,59 +354,43 @@ class TestTermsAnalyzer(unittest.TestCase):
         analyzer = TermsAnalyzer("terms_dummy_test_float_low")
         analyzer.evaluate_model()
 
-        result = [elem for elem in es.scan()][0]
+        result = [elem for elem in es._scan()][0]
         all_fields_exists = [elem in EXTRA_OUTLIERS_KEY_FIELDS + DEFAULT_OUTLIERS_KEY_FIELDS
                              for elem in result['_source']['outliers']]
         self.assertTrue(all(all_fields_exists))
 
-    def test_add_term_to_batch_empty(self):
-        eval_terms_array = defaultdict()
-        aggregator_value = ""
-        target_value = ""
-        observations = {}
-        doc = {}
-        # Create expected result
-        expected_eval_terms = defaultdict()
-        expected_eval_terms[aggregator_value] = defaultdict(list)
-        expected_eval_terms[aggregator_value]["targets"] = [target_value]
-        expected_eval_terms[aggregator_value]["observations"] = [{}]
-        expected_eval_terms[aggregator_value]["raw_docs"] = [{}]
+    def test_add_document_to_batch_empty_target(self):
+        dummy_doc_generate = DummyDocumentsGenerate()
+        dummy_doc = dummy_doc_generate.generate_document()
 
-        self.assertEqual(TermsAnalyzer.add_term_to_batch(eval_terms_array, aggregator_value, target_value, observations,
-                                                         doc), expected_eval_terms)
+        current_batch = {"dummy_key": "dummy_value"}
+        result = TermsAnalyzer._add_document_to_batch(current_batch, list(), ["dummy_aggregator"], dummy_doc)
+        self.assertEqual(result, current_batch)
 
-    def test_add_term_to_batch_no_modification(self):
-        eval_terms_array, aggregator_value, target_value, observations, doc = self._prepare_data_terms()
-        # Create expected result
-        expected_eval_terms = defaultdict()
-        expected_eval_terms[aggregator_value] = defaultdict(list)
-        expected_eval_terms[aggregator_value]["targets"] = [target_value]
-        expected_eval_terms[aggregator_value]["observations"] = [observations]
-        expected_eval_terms[aggregator_value]["raw_docs"] = [doc]
+    def test_add_document_to_batch_empty_aggergator(self):
+        dummy_doc_generate = DummyDocumentsGenerate()
+        dummy_doc = dummy_doc_generate.generate_document()
 
-        self.assertEqual(TermsAnalyzer.add_term_to_batch(eval_terms_array, aggregator_value, target_value, observations,
-                                                         doc), expected_eval_terms)
+        current_batch = {"dummy_key": "dummy_value"}
+        result = TermsAnalyzer._add_document_to_batch(current_batch, ["dummy_target"], list(), dummy_doc)
+        self.assertEqual(result, current_batch)
 
-    def test_add_term_to_batch_concerv_extra_value(self):
-        eval_terms_array, aggregator_value, target_value, observations, doc = self._prepare_data_terms()
-        # Add extra value:
-        eval_terms_array["newKey"] = defaultdict(list)
-        eval_terms_array["newKey2"] = "empty"
-        eval_terms_array[aggregator_value] = defaultdict(list)
-        eval_terms_array[aggregator_value]["targets"] = [target_value]
-        eval_terms_array[aggregator_value]["test"] = 12
-        # Create expected result
-        expected_eval_terms = defaultdict()
-        expected_eval_terms["newKey"] = defaultdict(list)
-        expected_eval_terms["newKey2"] = "empty"
-        expected_eval_terms[aggregator_value] = defaultdict(list)
-        expected_eval_terms[aggregator_value]["targets"] = [target_value, target_value]
-        expected_eval_terms[aggregator_value]["observations"] = [observations]
-        expected_eval_terms[aggregator_value]["raw_docs"] = [doc]
-        expected_eval_terms[aggregator_value]["test"] = 12
+    def test_add_document_to_batch_one_aggregator_and_one_target(self):
+        dummy_doc_generate = DummyDocumentsGenerate()
+        dummy_doc = dummy_doc_generate.generate_document()
+        target_value = "dummy_target"
+        aggregator_value = "dummy_aggregator"
 
-        self.assertEqual(TermsAnalyzer.add_term_to_batch(eval_terms_array, aggregator_value, target_value, observations,
-                                                         doc), expected_eval_terms)
+        current_batch = {"dummy_key": "dummy_value"}
+        result = TermsAnalyzer._add_document_to_batch(current_batch, [target_value], [aggregator_value], dummy_doc)
+
+        expected_batch = current_batch.copy()
+        expected_batch[aggregator_value] = defaultdict(list)
+        expected_batch[aggregator_value]["targets"].append(target_value)
+        expected_batch[aggregator_value]["observations"].append(dict())
+        expected_batch[aggregator_value]["raw_docs"].append(dummy_doc)
+
+        self.assertEqual(result, expected_batch)
 
     def test_min_target_buckets_detect_outlier(self):
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_whitelist_batch.conf")
@@ -466,8 +446,10 @@ class TestTermsAnalyzer(unittest.TestCase):
         analyzer.evaluate_model()
 
         list_outliers = []
-        for outlier in analyzer.outliers:
-            list_outliers.append((outlier.outlier_dict["aggregator"], outlier.outlier_dict["term"]))
+        for doc in es._scan():
+            if "outliers" in doc["_source"]:
+                list_outliers.append((doc["_source"]["outliers"]["aggregator"][0],
+                                      doc["_source"]["outliers"]["term"][0]))
 
         self.assertEqual(list_outliers, [("agg2", "2") for _ in range(6)])
 
@@ -516,7 +498,7 @@ class TestTermsAnalyzer(unittest.TestCase):
             self.test_es.add_doc(doc_generated)
 
         analyzer.evaluate_model()
-        self.assertEqual(len(analyzer.outliers), 0)
+        self.assertEqual(analyzer.total_outliers, 0)
 
     def test_batch_whitelist_work_with_min_target_bucket(self):
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_whitelist_batch.conf")
@@ -585,8 +567,10 @@ class TestTermsAnalyzer(unittest.TestCase):
         analyzer.evaluate_model()
 
         list_outliers = []
-        for outlier in analyzer.outliers:
-            list_outliers.append((outlier.outlier_dict["aggregator"], outlier.outlier_dict["term"]))
+        for doc in es._scan():
+            if "outliers" in doc["_source"]:
+                list_outliers.append((doc["_source"]["outliers"]["aggregator"][0],
+                                      doc["_source"]["outliers"]["term"][0]))
 
         self.assertEqual(list_outliers, [("agg1", "4") for _ in range(6)])
 
@@ -620,8 +604,10 @@ class TestTermsAnalyzer(unittest.TestCase):
         analyzer.evaluate_model()
 
         list_outliers = []
-        for outlier in analyzer.outliers:
-            list_outliers.append((outlier.outlier_dict["aggregator"], outlier.outlier_dict["term"]))
+        for doc in es._scan():
+            if "outliers" in doc["_source"]:
+                list_outliers.append((doc["_source"]["outliers"]["aggregator"][0],
+                                      doc["_source"]["outliers"]["term"][0]))
 
         # We detect agg2 but not agg1
         self.assertEqual(list_outliers, [("agg2", "0"), ("agg2", "0"), ("agg2", "3"), ("agg2", "4")])

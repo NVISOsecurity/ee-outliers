@@ -8,8 +8,7 @@
 
 ee-outliers provides support for whitelisting of certain outliers. By whitelisting an outlier, you prevent them from being tagged and stored in Elasticsearch.
 
-For events that have already been enriched and that match a whitelist later, the ``es_wipe_all_whitelisted_outliers`` flag can be used in order to remove them.
-The whitelist will then be checked for hits periodically as part of the housekeeping work, as defined in the parameter ``housekeeping_interval_seconds``.
+For events that have already been enriched and that match a whitelist later, the ``es_wipe_all_whitelisted_outliers`` flag can be used in order to remove them.  If a new entry is added to the whitelist, the housekeeping process will search and remove events that are now whitelisted.
 
 Two different whitelists are defined in the configuration file:
 
@@ -37,4 +36,4 @@ scheduled_task_user_specific_2=^.*rare scheduled task:.*-.*-.*-.*-.*$
 autorun_user_specific=^.*rare autorun:.*-.*-.*-.*-.*$
 ```
 
-<p align="right"><a href="DEVELOPMENT.md">Information fo developers &#8594;</a></p>
+<p align="right"><a href="DEVELOPMENT.md">Information for developers &#8594;</a></p>

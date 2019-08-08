@@ -13,10 +13,11 @@ Developed by NVISO Labs (https://blog.nviso.be - https://twitter.com/NVISO_Labs)
 
 **Table of contents**
 - [Introduction](#introduction)
-- [Getting started](doc/INSTALL.md)
-- [Building detection use cases](doc/CONFIG_OUTLIERS.md)
-- [Whitelisting outliers](doc/WHITELIST.md)
-- [Information fo developers](doc/DEVELOPMENT.md)
+- [Getting started](documentation/INSTALL.md)
+- [Building detection use cases](documentation/CONFIG_OUTLIERS.md)
+- [Whitelisting outliers](documentation/WHITELIST.md)
+- [Information for developers](documentation/DEVELOPMENT.md)
+    - [UML](documentation/UML.md)
 - [Screenshots](#screenshots)
 - [License](LICENSE)
 - [Contact](#contact)
@@ -42,7 +43,7 @@ The possibilities of the type of anomalies you can spot using ee-outliers is vir
 -	…
 
 Checkout the screenshots at the end of this readme for a few examples.
-Continue reading if you would like to get started with outlier detection in Elasticsearch yourself!
+Visit the page [Getting started](documentation/INSTALL.md) to get started with outlier detection in Elasticsearch yourself!
 
 #### Core features
 - Create your own custom outlier detection use cases specifically for your own needs
@@ -81,4 +82,4 @@ Thank you for using ee-outliers and we look forward to your feedback! 🐀
 We are grateful for the support received by [INNOVIRIS](https://innoviris.brussels/) and the Brussels region in funding our Research & Development activities. 
 
 
-<p align="right"><a href="doc/INSTALL.md">Getting started &#8594;</a></p>
+<p align="right"><a href="documentation/INSTALL.md">Getting started &#8594;</a></p>

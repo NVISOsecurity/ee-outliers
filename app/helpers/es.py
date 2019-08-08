@@ -13,7 +13,7 @@ from helpers.outlier import Outlier
 from collections import defaultdict
 from itertools import chain
 
-from typing import Dict, List, DefaultDict, cast, Any, Optional, Union, TYPE_CHECKING
+from typing import Dict, List, Tuple, DefaultDict, cast, Any, Optional, Union, TYPE_CHECKING
 if TYPE_CHECKING:
     from helpers.settings import Settings
     from helpers.logging import Logging
@@ -50,15 +50,11 @@ class ES:
 
         return self.conn
 
-    def scan(self, index: str, bool_clause: Optional[Dict[str, List]] = None, sort_clause: Optional[Dict] = None,
-             query_fields: Optional[Dict] = None, search_query: Optional[Dict[str, List]] = None,
-             model_settings: Optional[Dict] = None) -> Dict:
-
-        preserve_order: bool = False
-
+    def _get_history_window(self, model_settings: Optional[Dict] = None) -> Tuple[str, int, int]:
         timestamp_field: str
         history_window_days: int
         history_window_hours: int
+
         if model_settings is None:
             timestamp_field = self.settings.config.get("general", "timestamp_field", fallback="timestamp")
             history_window_days = self.settings.config.getint("general", "history_window_days")
@@ -67,13 +63,19 @@ class ES:
             timestamp_field = model_settings["timestamp_field"]
             history_window_days = model_settings["history_window_days"]
             history_window_hours = model_settings["history_window_hours"]
+        return timestamp_field, history_window_days, history_window_hours
 
-            if model_settings["process_documents_chronologically"]:
-                sort_clause = {"sort": [{model_settings["timestamp_field"]: "desc"}]}
-                preserve_order = True
+    def _scan(self, index: str, search_range: Dict[str, Dict], bool_clause: Optional[Dict[str, List]] = None,
+              sort_clause: Optional[Dict] = None, query_fields: Optional[Dict] = None,
+              search_query: Optional[Dict[str, List]] = None,
+              model_settings: Optional[Dict] = None) -> List[Dict[str, Any]]:
 
-        search_range: Dict[str, Dict] = self.get_time_filter(days=history_window_days, hours=history_window_hours,
-                                                             timestamp_field=timestamp_field)
+        preserve_order: bool = False
+
+        if model_settings is not None and model_settings["process_documents_chronologically"]:
+            sort_clause = {"sort": [{model_settings["timestamp_field"]: "desc"}]}
+            preserve_order = True
+
         return eshelpers.scan(self.conn, request_timeout=self.settings.config.getint("general", "es_timeout"),
                               index=index, query=build_search_query(bool_clause=bool_clause,
                                                                     sort_clause=sort_clause,
@@ -84,24 +86,9 @@ class ES:
                               scroll=self.settings.config.get("general", "es_scroll_time"),
                               preserve_order=preserve_order, raise_on_error=False)
 
-    def count_documents(self, index: str, bool_clause: Optional[Dict[str, List]] = None,
-                        query_fields: Optional[Dict] = None, search_query: Optional[Dict[str, List]] = None,
-                        model_settings: Optional[Dict[str, Any]] = None) -> int:
-        timestamp_field: str
-        history_window_days: int
-        history_window_hours: int
-        if model_settings is None:
-            timestamp_field = self.settings.config.get("general", "timestamp_field", fallback="timestamp")
-            history_window_days = self.settings.config.getint("general", "history_window_days")
-            history_window_hours = self.settings.config.getint("general", "history_window_hours")
-        else:
-            timestamp_field = model_settings["timestamp_field"]
-            history_window_days = model_settings["history_window_days"]
-            history_window_hours = model_settings["history_window_hours"]
-
-        search_range: Dict[str, Dict] = self.get_time_filter(days=history_window_days, hours=history_window_hours,
-                                                             timestamp_field=timestamp_field)
-
+    def _count_documents(self, index: str, search_range: Dict[str, Dict],
+                         bool_clause: Optional[Dict[str, List]] = None, query_fields: Optional[Dict] = None,
+                         search_query: Optional[Dict[str, List]] = None) -> int:
         res: Dict[str, Any] = self.conn.search(index=index, body=build_search_query(bool_clause=bool_clause,
                                                                                     search_range=search_range,
                                                                                     query_fields=query_fields,
@@ -116,9 +103,18 @@ class ES:
         else:
             return result
 
-    def _update_es(self, doc: Dict[str, Any]) -> None:
-        self.conn.delete(index=doc["_index"], doc_type=doc["_type"], id=doc["_id"], refresh=True)
-        self.conn.create(index=doc["_index"], doc_type=doc["_type"], id=doc["_id"], body=doc["_source"], refresh=True)
+    def count_and_scan_documents(self, index: str, bool_clause: Optional[Dict[str, List]] = None,
+                                 sort_clause: Optional[Dict] = None, query_fields: Optional[Dict] = None,
+                                 search_query: Optional[Dict[str, List]] = None,
+                                 model_settings: Optional[Dict] = None) -> Tuple[int, List[Dict[str, Any]]]:
+        timestamp_field, history_window_days, history_window_hours = self._get_history_window(model_settings)
+        search_range: Dict[str, Dict] = self.get_time_filter(days=history_window_days, hours=history_window_hours,
+                                                             timestamp_field=timestamp_field)
+        total_events: int = self._count_documents(index, search_range, bool_clause, query_fields, search_query)
+        if total_events > 0:
+            return total_events, self._scan(index, search_range, bool_clause, sort_clause, query_fields, search_query,
+                                            model_settings)
+        return total_events, []
 
     @staticmethod
     def filter_by_query_string(query_string: Optional[str] = None) -> Dict[str, List]:
@@ -152,14 +148,16 @@ class ES:
         total_outliers_processed: int = 0
 
         idx: str = self.settings.config.get("general", "es_index_pattern")
-        total_nr_outliers: int = self.count_documents(index=idx, bool_clause=outliers_filter_query)
+        total_nr_outliers: int
+        documents: List[Dict[str, Any]]
+        total_nr_outliers, documents = self.count_and_scan_documents(index=idx, bool_clause=outliers_filter_query)
 
         if total_nr_outliers > 0:
             self.logging.logger.info("going to analyze %s outliers and remove all whitelisted items", "{:,}"
                                      .format(total_nr_outliers))
             start_time = dt.datetime.today().timestamp()
 
-            for doc in self.scan(index=idx, bool_clause=outliers_filter_query):
+            for doc in documents:
                 total_outliers_processed = total_outliers_processed + 1
                 total_outliers_in_doc: int = int(doc["_source"]["outliers"]["total_outliers"])
                 # generate all outlier objects for this document
@@ -184,7 +182,7 @@ class ES:
                 if total_whitelisted == total_outliers_in_doc:
                     total_outliers_whitelisted += 1
                     doc = remove_outliers_from_document(doc)
-                    self._update_es(doc)
+                    self.add_update_bulk_action(doc)
 
                 # we don't use the ticker from the logger singleton, as this will be called from the housekeeping thread
                 # if we share a same ticker between multiple threads, strange results would start to appear in
@@ -194,7 +192,7 @@ class ES:
                     should_log = True
                 else:
                     should_log = total_outliers_processed % max(1,
-                                                                int(math.pow(10, (5 - self.logging.verbosity)))) == 0 \
+                                                                int(math.pow(10, (6 - self.logging.verbosity)))) == 0 \
                                  or total_outliers_processed == total_nr_outliers
 
                 if should_log:
@@ -205,8 +203,10 @@ class ES:
                     self.logging.logger.info("whitelisting historical outliers " + " [" + ticks_per_second + " eps." +
                                              " - " + '{:.2f}'.format(round(float(total_outliers_processed) /
                                                                            float(total_nr_outliers) * 100, 2)) +
-                                             "% done" + " - " + str(total_outliers_whitelisted) +
+                                             "% done" + " - " + "{:,}".format(total_outliers_whitelisted) +
                                              " outliers whitelisted]")
+
+            self.flush_bulk_actions()
 
         return total_outliers_whitelisted
 
@@ -214,16 +214,12 @@ class ES:
         idx: str = self.settings.config.get("general", "es_index_pattern")
 
         must_clause: Dict[str, Any] = {"filter": [{"term": {"tags": "outlier"}}]}
-        total_outliers: int = self.count_documents(index=idx, bool_clause=must_clause)
+        timestamp_field, history_window_days, history_window_hours = self._get_history_window()
+        search_range: Dict[str, Dict] = self.get_time_filter(days=history_window_days, hours=history_window_hours,
+                                                             timestamp_field=timestamp_field)
+        total_outliers: int = self._count_documents(index=idx, search_range=search_range, bool_clause=must_clause)
 
         if total_outliers > 0:
-
-            timestamp_field: str = self.settings.config.get("general", "timestamp_field", fallback="timestamp")
-            history_window_days: int = self.settings.config.getint("general", "history_window_days")
-            history_window_hours: int = self.settings.config.getint("general", "history_window_hours")
-
-            search_range: Dict[str, Dict] = self.get_time_filter(days=history_window_days, hours=history_window_hours,
-                                                                 timestamp_field=timestamp_field)
             query: Dict[str, Dict] = build_search_query(bool_clause=must_clause, search_range=search_range)
 
             script: Dict[str, str] = {
@@ -240,10 +236,11 @@ class ES:
         else:
             self.logging.logger.info("no existing outliers were found, so nothing was wiped")
 
-    def process_outlier(self, outlier: 'Outlier' = None, should_notify: bool = False) -> None:
+    def process_outlier(self, outlier: 'Outlier' = None, should_notify: bool = False) -> bool:
         if outlier.is_whitelisted():
             if self.settings.config.getboolean("general", "print_outliers_to_console"):
                 self.logging.logger.info(outlier.outlier_dict["summary"] + " [whitelisted outlier]")
+            return False
         else:
             if self.settings.config.getboolean("general", "es_save_results"):
                 self.save_outlier(outlier=outlier)
@@ -253,6 +250,18 @@ class ES:
 
             if self.settings.config.getboolean("general", "print_outliers_to_console"):
                 self.logging.logger.info("outlier - " + outlier.outlier_dict["summary"])
+            return True
+
+    def add_update_bulk_action(self, document: Dict[str, Any]) -> None:
+        action: Dict[str, Any] = {
+            '_op_type': 'update',
+            '_index': document["_index"],
+            '_type': document["_type"],
+            '_id': document["_id"],
+            'retry_on_conflict': 10,
+            'doc': document["_source"]
+        }
+        self.add_bulk_action(action)
 
     def add_bulk_action(self, action: Dict[str, Any]) -> None:
         self.bulk_actions.append(action)
@@ -271,17 +280,8 @@ class ES:
         for derived_field, derived_value in derived_fields.items():
             outlier.outlier_dict["derived_" + derived_field] = derived_value
 
-        doc = add_outlier_to_document(outlier)
-
-        action: Dict[str, Any] = {
-            '_op_type': 'update',
-            '_index': doc["_index"],
-            '_type': doc["_type"],
-            '_id': doc["_id"],
-            'retry_on_conflict': 10,
-            'doc': doc["_source"]
-        }
-        self.add_bulk_action(action)
+        doc: Dict[str, Any] = add_outlier_to_document(outlier)
+        self.add_update_bulk_action(doc)
 
     def extract_derived_fields(self, doc_fields: Dict) -> Dict:
         derived_fields: Dict = dict()
