@@ -3,6 +3,8 @@ from helpers.analyzer import Analyzer
 
 from typing import Dict, List, Any
 
+from helpers.outlier import Outlier
+
 
 class SimplequeryAnalyzer(Analyzer):
 

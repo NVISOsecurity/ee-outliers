@@ -6,7 +6,7 @@ from helpers.singletons import settings, es, logging
 from helpers.analyzer import Analyzer
 from helpers.outlier import Outlier
 
-from typing import List, Dict, Tuple, Union
+from typing import List, Dict, Tuple, Union, Any
 
 
 class Word2VecAnalyzer(Analyzer):
@@ -157,7 +157,7 @@ class Word2VecAnalyzer(Analyzer):
             if is_outlier:
                 fields: Dict = es.extract_fields_from_document(
                                         raw_docs[i], extract_derived_fields=self.model_settings["use_derived_fields"])
-                outliers.append(self.create_outlier(fields, raw_docs[i], extra_outlier_information=None))
+                outliers.append(self.create_outlier(fields, raw_docs[i]))
             else:
                 if w2v_model.use_test_data:
                     logging.logger.info("Not an outlier: " + str(eval_sentences[i]) + " - " + str(single_sentence_prob))

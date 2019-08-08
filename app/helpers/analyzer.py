@@ -65,14 +65,14 @@ class Analyzer(abc.ABC):
 
         try:
             model_settings["es_query_filter"] = settings.config.get(self.config_section_name, "es_query_filter")
-            self.search_query = es.filter_by_query_string(model_settings["es_query_filter"])
+            self.search_query = es.filter_by_query_string(cast(str, model_settings["es_query_filter"]))
 
         except NoOptionError:
             model_settings["es_query_filter"] = None
 
         try:
             model_settings["es_dsl_filter"] = settings.config.get(self.config_section_name, "es_dsl_filter")
-            self.search_query = es.filter_by_dsl_query(model_settings["es_dsl_filter"])
+            self.search_query = es.filter_by_dsl_query(cast(str, model_settings["es_dsl_filter"]))
 
         except NoOptionError:
             model_settings["es_dsl_filter"] = None
@@ -144,7 +144,7 @@ class Analyzer(abc.ABC):
         else:
             logging.logger.info("no outliers detected for use case")
 
-    def _prepare_outlier_parameters(self, extra_outlier_information: Optional[Dict[str, Any]],
+    def _prepare_outlier_parameters(self, extra_outlier_information: Dict[str, Any],
                                     fields: Dict) -> Tuple[List[str], List[str], str, List[str]]:
         """
         Compute different parameters to create outlier
@@ -178,7 +178,7 @@ class Analyzer(abc.ABC):
         return outlier_type, outlier_reason, outlier_summary, outlier_assets
 
     def create_outlier(self, fields: Dict, doc: Dict[str, Any],
-                       extra_outlier_information: Optional[Dict[str, Any]] = dict()):
+                       extra_outlier_information: Dict[str, Any] = dict()) -> Outlier:
         """
         Create an outlier
 

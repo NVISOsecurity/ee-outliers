@@ -236,7 +236,7 @@ class ES:
         else:
             self.logging.logger.info("no existing outliers were found, so nothing was wiped")
 
-    def process_outlier(self, outlier: 'Outlier' = None, should_notify: bool = False) -> bool:
+    def process_outlier(self, outlier: 'Outlier', should_notify: bool = False) -> bool:
         if outlier.is_whitelisted():
             if self.settings.config.getboolean("general", "print_outliers_to_console"):
                 self.logging.logger.info(outlier.outlier_dict["summary"] + " [whitelisted outlier]")
@@ -274,7 +274,7 @@ class ES:
         eshelpers.bulk(self.conn, self.bulk_actions, stats_only=True, refresh=refresh)
         self.bulk_actions = []
 
-    def save_outlier(self, outlier: 'Outlier' = None) -> None:
+    def save_outlier(self, outlier: 'Outlier') -> None:
         # add the derived fields as outlier observations
         derived_fields: Dict = self.extract_derived_fields(outlier.doc["_source"])
         for derived_field, derived_value in derived_fields.items():
