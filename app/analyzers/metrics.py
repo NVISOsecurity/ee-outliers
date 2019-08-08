@@ -252,7 +252,7 @@ class MetricsAnalyzer(Analyzer):
                     self.nr_whitelisted_elements += 1
                     list_documents_need_to_be_removed.append(ii)
             else:
-                non_outlier_values.add(metric_value)
+                non_outlier_values.add(str(metric_value))
 
         return list_outliers, list_documents_need_to_be_removed
 
@@ -267,19 +267,24 @@ class MetricsAnalyzer(Analyzer):
         :param metric_value: the metric value
         :return: the created outlier
         """
+
+        observations = metrics_aggregator_value["observations"][ii]
+
+        if non_outlier_values:
+            non_outlier_values_sample = ",".join(random.sample(
+                non_outlier_values, 3 if len(non_outlier_values) > 3 else len(non_outlier_values)))
+            observations["non_outlier_values_sample"] = non_outlier_values_sample
+
+        observations["metric"] = metric_value
+        observations["decision_frontier"] = decision_frontier
+
         confidence = np.abs(decision_frontier - metric_value)
-        non_outlier_values_sample = ",".join(random.sample(non_outlier_values, min(3, len(non_outlier_values))))
+        observations["confidence"] = confidence
 
         # Extract fields from raw document
         fields = es.extract_fields_from_document(
             metrics_aggregator_value["raw_docs"][ii],
             extract_derived_fields=self.model_settings["use_derived_fields"])
-
-        observations = metrics_aggregator_value["observations"][ii]
-        observations["metric"] = metric_value
-        observations["decision_frontier"] = decision_frontier
-        observations["confidence"] = confidence
-        observations["non_outlier_values_sample"] = non_outlier_values_sample
 
         outlier = self.create_outlier(fields, metrics_aggregator_value["raw_docs"][ii],
                                       extra_outlier_information=observations)

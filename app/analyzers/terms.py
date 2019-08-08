@@ -436,10 +436,13 @@ class TermsAnalyzer(Analyzer):
         :param ii: index of the document linked to this outlier
         :return: the created outlier
         """
-        non_outlier_values_sample = ",".join(random.sample(non_outlier_values, min(3, len(non_outlier_values))))
 
         observations = dict()
-        observations["non_outlier_values_sample"] = non_outlier_values_sample
+        if non_outlier_values:
+            non_outlier_values_sample = ",".join(random.sample(
+                non_outlier_values, 3 if len(non_outlier_values) > 3 else len(non_outlier_values)))
+            observations["non_outlier_values_sample"] = non_outlier_values_sample
+
         observations["term_count"] = term_value_count
         observations["aggregator"] = aggregator_value
         observations["term"] = term_value
