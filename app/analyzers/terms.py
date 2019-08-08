@@ -287,7 +287,7 @@ class TermsAnalyzer(Analyzer):
                              str(decision_frontier))
         # Check if current aggregator is outlier
         is_outlier: bool = helpers.utils.is_outlier(unique_target_count_across_aggregators, decision_frontier,
-                                              self.model_settings["trigger_on"])
+                                                    self.model_settings["trigger_on"])
 
         if is_outlier:
             list_outliers, list_documents_need_to_be_removed = self._mark_across_aggregator_document_as_outliers(
@@ -468,7 +468,7 @@ class TermsAnalyzer(Analyzer):
 
         raw_doc: Dict[str, Any] = batch[observations["aggregator"]]["raw_docs"][ii]
         fields: Dict = es.extract_fields_from_document(raw_doc,
-                                                 extract_derived_fields=self.model_settings["use_derived_fields"])
+                                                       extract_derived_fields=self.model_settings["use_derived_fields"])
         return self.create_outlier(fields, raw_doc, extra_outlier_information=calculated_observations)
 
     def _extract_additional_model_settings(self) -> None:

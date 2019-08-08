@@ -4,7 +4,7 @@ import smtplib
 from email.mime.text import MIMEText
 from helpers.logging import Logging
 
-from typing import Dict, Deque, Optional, TYPE_CHECKING
+from typing import Dict, Deque, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from helpers.settings import Settings
