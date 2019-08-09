@@ -39,6 +39,9 @@ class Settings:
         self.process_configuration_files()
 
     def process_configuration_files(self):
+        """
+        Parse configuration and save some value
+        """
         config_paths = self.args.config
 
         # Read configuration files
