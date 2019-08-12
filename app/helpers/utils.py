@@ -30,14 +30,6 @@ def flatten_dict(d, parent_key='', sep='.'):
     return dict(items)
 
 
-def dict_contains_dotkey(dict_value, key_name, case_sensitive=True):
-    try:
-        get_dotkey_value(dict_value, key_name, case_sensitive)
-        return True
-    except KeyError:
-        return False
-
-
 def get_dotkey_value(dict_value, key_name, case_sensitive=True):
     """
     Get value by dot key in dictionary
@@ -108,16 +100,20 @@ def extract_outlier_asset_information(fields, settings):
     """
     outlier_assets = list()
     for (asset_field_name, asset_field_type) in settings.config.items("assets"):
-        if dict_contains_dotkey(fields, asset_field_name, case_sensitive=False):
+        try:
+            # Could raise an error if key does't exist
+            dict_value = get_dotkey_value(fields, asset_field_name, case_sensitive=False)
 
-            asset_field_values_including_empty = flatten_fields_into_sentences(fields,
-                                                                               sentence_format=[asset_field_name])
-            # also remove all empty asset strings
-            asset_field_values = [sentence[0] for sentence in asset_field_values_including_empty if "" not in sentence]
+            sentences = _flatten_one_field_into_sentences(dict_value=dict_value, sentences=[[]])
+            # also remove all empty and None asset strings
+            asset_field_values = [sentence[0] for sentence in sentences if None not in sentence and "" not in sentence]
 
             # make sure we don't process empty process information, for example an empty user field
             for asset_field_value in asset_field_values:
                 outlier_assets.append(asset_field_type + ": " + asset_field_value)
+
+        except KeyError:
+            pass  # If error, do nothing
 
     return outlier_assets
 
@@ -167,18 +163,8 @@ def flatten_fields_into_sentences(fields=None, sentence_format=None):
     sentences = [[]]
 
     for i, field_name in enumerate(sentence_format):
-        new_sentences = []
-        if type(get_dotkey_value(fields, field_name, case_sensitive=False)) is list:
-            for field_value in get_dotkey_value(fields, field_name, case_sensitive=False):
-                for sentence in sentences:
-                    sentence_copy = sentence.copy()
-                    sentence_copy.append(flatten_sentence(field_value))
-                    new_sentences.append(sentence_copy)
-        else:
-            for sentence in sentences:
-                sentence.append(flatten_sentence(get_dotkey_value(fields, field_name, case_sensitive=False)))
-                new_sentences.append(sentence)
-
+        dict_value = get_dotkey_value(fields, field_name, case_sensitive=False)
+        new_sentences = _flatten_one_field_into_sentences(sentences=sentences, dict_value=dict_value)
         sentences = new_sentences.copy()
 
     # Remove all sentences that contain fields that could not be parsed, and that have been flattened to "None".
@@ -186,6 +172,25 @@ def flatten_fields_into_sentences(fields=None, sentence_format=None):
     sentences = [sentence for sentence in sentences if None not in sentence]
 
     return sentences
+
+
+def _flatten_one_field_into_sentences(dict_value, sentences=list(list())):
+    new_sentences = []
+    if type(dict_value) is list:
+        for field_value in dict_value:
+            flatten_field_value = flatten_sentence(field_value)
+
+            for sentence in sentences:
+                sentence_copy = sentence.copy()
+                sentence_copy.append(flatten_field_value)
+                new_sentences.append(sentence_copy)
+    else:
+        flatten_dict_value = flatten_sentence(dict_value)
+        for sentence in sentences:
+            sentence.append(flatten_dict_value)
+            new_sentences.append(sentence)
+
+    return new_sentences
 
 
 def replace_placeholder_fields_with_values(placeholder, fields):
@@ -201,17 +206,20 @@ def replace_placeholder_fields_with_values(placeholder, fields):
     field_name_list = regex.findall(placeholder)  # ['source_ip','destination_ip'] for example
 
     for field_name in field_name_list:
-        if dict_contains_dotkey(fields, field_name, case_sensitive=False):
-            if type(get_dotkey_value(fields, field_name, case_sensitive=False)) is list:
+        try:
+            dict_value = get_dotkey_value(fields, field_name, case_sensitive=False)
+
+            if type(dict_value) is list:
                 try:
-                    field_value = ", ".join(get_dotkey_value(fields, field_name, case_sensitive=False))
+                    field_value = ", ".join(dict_value)
                 except TypeError:
                     field_value = "complex field " + field_name
             else:
-                field_value = str(get_dotkey_value(fields, field_name, case_sensitive=False))
+                field_value = str(dict_value)
 
             placeholder = placeholder.replace('{' + field_name + '}', field_value)
-        else:
+
+        except KeyError:
             placeholder = placeholder.replace('{' + field_name + '}', "{field " + field_name + " not found in event}")
 
     return placeholder
