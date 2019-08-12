@@ -356,13 +356,8 @@ def add_tag_to_document(doc, tag):
 
 
 def remove_tag_from_document(doc, tag):
-    if "tags" not in doc["_source"]:
-        pass
-    else:
-        tags = doc["_source"]["tags"]
-        if tag in tags:
-            tags.remove(tag)
-            doc["_source"]["tags"] = tags
+    if "tags" in doc["_source"] and tag in  doc["_source"]["tags"]:
+        doc["_source"]["tags"].remove(tag)
     return doc
 
 
