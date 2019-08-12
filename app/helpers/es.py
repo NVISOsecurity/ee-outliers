@@ -36,6 +36,11 @@ class ES:
             self.notifier = Notifier(settings, logging)
 
     def init_connection(self):
+        """
+        Initialize the connection with ElasticSearch
+
+        :return: connection object
+        """
         self.conn = Elasticsearch([self.settings.config.get("general", "es_url")], use_ssl=False,
                                   timeout=self.settings.config.getint("general", "es_timeout"),
                                   verify_certs=False, retry_on_timeout=True)
@@ -50,6 +55,12 @@ class ES:
         return self.conn
 
     def _get_history_window(self, model_settings=None):
+        """
+        Get different parameters about windows settings
+
+        :param model_settings: model configuration part
+        :return: timtestamp field name, number of recover day , number of recover hours (in addition to the days)
+        """
         if model_settings is None:
             timestamp_field = self.settings.config.get("general", "timestamp_field", fallback="timestamp")
             history_window_days = self.settings.config.getint("general", "history_window_days")
@@ -62,7 +73,18 @@ class ES:
 
     def _scan(self, index, search_range, bool_clause=None, sort_clause=None, query_fields=None, search_query=None,
               model_settings=None):
+        """
+        Scan and get documents in ElasticSearch
 
+        :param index: on which index the request must be done
+        :param search_range: the range of research
+        :param bool_clause: boolean condition
+        :param sort_clause: request to sort results
+        :param query_fields: the query field
+        :param search_query: the search query
+        :param model_settings: part of the configuration linked to the model
+        :return: generator to fetch documents
+        """
         preserve_order = False
 
         if model_settings is not None and model_settings["process_documents_chronologically"]:
@@ -80,6 +102,16 @@ class ES:
                               preserve_order=preserve_order, raise_on_error=False)
 
     def _count_documents(self, index, search_range, bool_clause=None, query_fields=None, search_query=None):
+        """
+        Count number of document in ElasticSearch that match the query
+
+        :param index: on which index the request must be done
+        :param search_range: the range of research
+        :param bool_clause: boolean condition
+        :param query_fields: the query field
+        :param search_query: the search query
+        :return: number of document
+        """
         res = self.conn.search(index=index, body=build_search_query(bool_clause=bool_clause, search_range=search_range,
                                                                     query_fields=query_fields,
                                                                     search_query=search_query),
@@ -95,6 +127,17 @@ class ES:
 
     def count_and_scan_documents(self, index, bool_clause=None, sort_clause=None, query_fields=None, search_query=None,
                                  model_settings=None):
+        """
+        Count the number of document and fetch them from ElasticSearch
+
+        :param index: on which index the request must be done
+        :param bool_clause: boolean condition
+        :param sort_clause: request to sort result
+        :param query_fields: the query field
+        :param search_query: the search query
+        :param model_settings: part of the configuration linked to the model
+        :return: the number of document and a generator/list of all documents
+        """
         timestamp_field, history_window_days, history_window_hours = self._get_history_window(model_settings)
         search_range = self.get_time_filter(days=history_window_days, hours=history_window_hours,
                                             timestamp_field=timestamp_field)
@@ -106,6 +149,12 @@ class ES:
 
     @staticmethod
     def filter_by_query_string(query_string=None):
+        """
+        Format a query request
+
+        :param query_string: the query request
+        :return: query request formatted for ElasticSearch
+        """
         filter_clause = {"filter": [
             {"query_string": {"query": query_string}}
         ]}
@@ -114,6 +163,12 @@ class ES:
 
     @staticmethod
     def filter_by_dsl_query(dsl_query=None):
+        """
+        Format a DSL query
+
+        :param dsl_query: the DSL query
+        :return: the formatted request
+        """
         dsl_query = json.loads(dsl_query)
 
         if isinstance(dsl_query, list):
@@ -129,6 +184,12 @@ class ES:
     # this is part of housekeeping, so we should not access non-threat-save objects, such as logging progress to
     # the console using ticks!
     def remove_all_whitelisted_outliers(self):
+        """
+        Remove all whitelisted outliers present in ElasticSearch.
+        This method is normally only call by housekeeping
+
+        :return: the number of outliers removed
+        """
         outliers_filter_query = {"filter": [{"term": {"tags": "outlier"}}]}
 
         total_outliers_whitelisted = 0
@@ -196,6 +257,9 @@ class ES:
         return total_outliers_whitelisted
 
     def remove_all_outliers(self):
+        """
+        Remove all outliers present in ElasticSearch
+        """
         idx = self.settings.config.get("general", "es_index_pattern")
 
         must_clause = {"filter": [{"term": {"tags": "outlier"}}]}
@@ -222,6 +286,14 @@ class ES:
             self.logging.logger.info("no existing outliers were found, so nothing was wiped")
 
     def process_outlier(self, outlier=None, should_notify=False):
+        """
+        Check if outlier is whitelist, save outlier (if configuration is setup for that), notify (also depending of
+        configuration) and print.
+
+        :param outlier: the detected outlier
+        :param should_notify: True if notification need to be send
+        :return: True if not whitelist, False otherwise
+        """
         if outlier.is_whitelisted():
             if self.settings.config.getboolean("general", "print_outliers_to_console"):
                 self.logging.logger.info(outlier.outlier_dict["summary"] + " [whitelisted outlier]")
@@ -238,6 +310,11 @@ class ES:
             return True
 
     def add_update_bulk_action(self, document):
+        """
+        Add a bulk action of "update" type
+
+        :param document: document that need to be update
+        """
         action = {
             '_op_type': 'update',
             '_index': document["_index"],
@@ -249,17 +326,32 @@ class ES:
         self.add_bulk_action(action)
 
     def add_bulk_action(self, action):
+        """
+        Add a bluk action
+
+        :param action: action that need to be added
+        """
         self.bulk_actions.append(action)
         if len(self.bulk_actions) > self.BULK_FLUSH_SIZE:
             self.flush_bulk_actions()
 
     def flush_bulk_actions(self, refresh=False):
+        """
+        Force bulk action to be process
+
+        :param refresh: refresh or not in ElasticSearch
+        """
         if len(self.bulk_actions) == 0:
             return
         eshelpers.bulk(self.conn, self.bulk_actions, stats_only=True, refresh=refresh)
         self.bulk_actions = []
 
     def save_outlier(self, outlier=None):
+        """
+        Complete (with derived fields) and save outlier to ElasticSearch (via bulk action)
+
+        :param outlier: the outlier that need to be save
+        """
         # add the derived fields as outlier observations
         derived_fields = self.extract_derived_fields(outlier.doc["_source"])
         for derived_field, derived_value in derived_fields.items():
@@ -269,6 +361,12 @@ class ES:
         self.add_update_bulk_action(doc)
 
     def extract_derived_fields(self, doc_fields):
+        """
+        Extract derived field based on a document
+
+        :param doc_fields: document information used to extract derived fields
+        :return: all derived fields
+        """
         derived_fields = dict()
         for field_name, grok_pattern in self.settings.config.items("derivedfields"):
             if helpers.utils.dict_contains_dotkey(doc_fields, field_name, case_sensitive=False):
@@ -287,6 +385,13 @@ class ES:
         return derived_fields
 
     def extract_fields_from_document(self, doc, extract_derived_fields=False):
+        """
+        Extract fields information of a document (and also extract derived field if specified)
+
+        :param doc: document where information are fetch
+        :param extract_derived_fields: True to extract derived fields
+        :return: all documents fields
+        """
         doc_fields = doc["_source"]
 
         if extract_derived_fields:
@@ -299,6 +404,14 @@ class ES:
 
     @staticmethod
     def get_time_filter(days=None, hours=None, timestamp_field="timestamp"):
+        """
+        Create a filter to limit the time
+
+        :param days: number of days of the filter
+        :param hours: number of hours of the filter
+        :param timestamp_field: the name of the timestamp field
+        :return: the query
+        """
         time_start = (datetime.datetime.now() - datetime.timedelta(days=days, hours=hours)).isoformat()
         time_stop = datetime.datetime.now().isoformat()
 
@@ -315,6 +428,12 @@ class ES:
 
 
 def add_outlier_to_document(outlier):
+    """
+    Add outliers information to a document (this method also add tag to the document)
+
+    :param outlier: the outlier that need to be added (note that document is contain in the outlier)
+    :return: the modified document
+    """
     doc = add_tag_to_document(outlier.doc, "outlier")
 
     if "outliers" in doc["_source"]:
@@ -338,6 +457,12 @@ def add_outlier_to_document(outlier):
 
 
 def remove_outliers_from_document(doc):
+    """
+    Remove all outliers information from a document (reverse of "add_outlier_to_document")
+
+    :param doc: document that need to be modified
+    :return: the modified document
+    """
     doc = remove_tag_from_document(doc, "outlier")
 
     if "outliers" in doc["_source"]:
@@ -347,6 +472,13 @@ def remove_outliers_from_document(doc):
 
 
 def add_tag_to_document(doc, tag):
+    """
+    Add a tag to a document
+
+    :param doc: document that need to be modified
+    :param tag: the tag that need to be added
+    :return: modified document
+    """
     if "tags" not in doc["_source"]:
         doc["_source"]["tags"] = [tag]
     else:
@@ -356,12 +488,29 @@ def add_tag_to_document(doc, tag):
 
 
 def remove_tag_from_document(doc, tag):
+    """
+    Remove a tag from a document (reverse of "add_tag_to_document")
+
+    :param doc: document that need to be modified
+    :param tag: tag that need to be added
+    :return: modified document
+    """
     if "tags" in doc["_source"] and tag in  doc["_source"]["tags"]:
         doc["_source"]["tags"].remove(tag)
     return doc
 
 
 def build_search_query(bool_clause=None, sort_clause=None, search_range=None, query_fields=None, search_query=None):
+    """
+    Create a query for ElasticSearch
+
+    :param bool_clause: boolean condition
+    :param sort_clause: sort query
+    :param search_range: search range
+    :param query_fields: query fields
+    :param search_query: search query
+    :return: the building query
+    """
     query = dict()
     query["query"] = dict()
     query["query"]["bool"] = dict()
