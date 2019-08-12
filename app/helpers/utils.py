@@ -12,6 +12,14 @@ import helpers.singletons
 
 
 def flatten_dict(d, parent_key='', sep='.'):
+    """
+    Remove the deep of a dictionary. All value are referenced by a key composed of all parent key (join by a dot).
+
+    :param d: dictionary to flat
+    :param parent_key: key of the parent of this dictionary
+    :param sep: string to separate key and parent
+    :return: the flat dictionary
+    """
     items = []
     for k, v in d.items():
         new_key = parent_key + sep + k if parent_key else k
@@ -30,6 +38,11 @@ def get_dotkey_value(dict_value, key_name, case_sensitive=True):
     By changing the case_sensitive parameter to "False", all elements of the dot key will be matched case insensitive.
     For example, key "OsqueryFilter.process_name" will also match a nested dictionary with keys "osqueryfilter" and
     "prOcEss_nAme".
+
+    :param dict_value: dictionary where the research must be done
+    :param key_name: key of the value (each depth is separated by a dot)
+    :param case_sensitive: True to taking case into account
+    :return: the dictionary value
     """
     keys = key_name.split(".")
 
@@ -50,10 +63,23 @@ def get_dotkey_value(dict_value, key_name, case_sensitive=True):
 
 
 def match_ip_ranges(source_ip, ip_cidr):
+    """
+    Check if an ip is in a specific range
+
+    :param source_ip: ip to test
+    :param ip_cidr: mask of ip to test
+    :return: True if match, False otherwise
+    """
     return False if len(netaddr.all_matching_cidrs(source_ip, ip_cidr)) <= 0 else True
 
 
 def shannon_entropy(data):
+    """
+    Compute shannon entropy for a specific data
+
+    :param data: used to compute entropy
+    :return: Entropy value
+    """
     if not data:
         return 0
     entropy = 0
@@ -66,9 +92,11 @@ def shannon_entropy(data):
 
 def extract_outlier_asset_information(fields, settings):
     """
+    Extract all outlier assets
+
     :param fields: the dictionary containing all the event information
     :param settings: the settings object which also includes the configuration file that is used
-    :return:
+    :return:list of all outlier assets
     """
     outlier_assets = list()
     for (asset_field_name, asset_field_type) in settings.config.items("assets"):
@@ -93,6 +121,12 @@ def extract_outlier_asset_information(fields, settings):
 # Convert a sentence value into a flat string, if possible
 # If not, just return None
 def flatten_sentence(sentence=None):
+    """
+    Convert a sentence value into a flat string
+
+    :param sentence: sentence to flat
+    :return: the flat string or None if not possible
+    """
     if sentence is None:
         return None
 
@@ -119,6 +153,13 @@ def flatten_sentence(sentence=None):
 # fields: {hostname: [WIN-DRA, WIN-EVB], draman}
 # output: [[WIN-DRA, draman], [WIN-EVB, draman]]
 def flatten_fields_into_sentences(fields=None, sentence_format=None):
+    """
+    Convert a sentence format and a field dictionary into a list of sentence
+
+    :param fields: list of fields (like {hostname: [WIN-DRA, WIN-EVB], draman})
+    :param sentence_format: string with field name (like: hostname, username)
+    :return: list of sentence
+    """
     sentences = [[]]
 
     for i, field_name in enumerate(sentence_format):
@@ -153,6 +194,13 @@ def _flatten_one_field_into_sentences(dict_value, sentences=list(list())):
 
 
 def replace_placeholder_fields_with_values(placeholder, fields):
+    """
+    Replace placeholder in fields by values
+
+    :param placeholder: string that contain potentially some placeholder
+    :param fields: fields which will be used to replace placeholder with real value
+    :return: the initial string with the placeholder replaced
+    """
     # Replace fields from fieldmappings in summary
     regex = re.compile(r'\{([^\}]*)\}')
     field_name_list = regex.findall(placeholder)  # ['source_ip','destination_ip'] for example
@@ -178,6 +226,12 @@ def replace_placeholder_fields_with_values(placeholder, fields):
 
 
 def is_base64_encoded(_str):
+    """
+    Test if string is encoded in base64
+
+    :param _str: string that must be tested
+    :return: Decoded string value or False if not encode in base64
+    """
     try:
         decoded_bytes = base64.b64decode(_str)
         if base64.b64encode(decoded_bytes) == _str.encode("ascii"):
@@ -187,6 +241,12 @@ def is_base64_encoded(_str):
 
 
 def is_hex_encoded(_str):
+    """
+    Test if string is encode in hexadecimal
+
+    :param _str: string that must be tested
+    :return: Decoded value of False if not encode in hexadecimal
+    """
     try:
         decoded = int(_str, 16)
         return str(decoded)
@@ -195,6 +255,12 @@ def is_hex_encoded(_str):
 
 
 def is_url(_str):
+    """
+    Test if string is a valid URL
+
+    :param _str: string that must be tested
+    :return: True if valid URL, False otherwise
+    """
     try:
         if validators.url(_str):
             return True
@@ -203,6 +269,15 @@ def is_url(_str):
 
 
 def get_decision_frontier(trigger_method, values_array, trigger_sensitivity, trigger_on=None):
+    """
+    Compute the decision frontier
+
+    :param trigger_method: method to be used to make this computation
+    :param values_array: list of value used to mde the compute
+    :param trigger_sensitivity: sensitivity
+    :param trigger_on: high or low
+    :return: the decision frontier
+    """
     if trigger_method == "percentile":
         decision_frontier = get_percentile_decision_frontier(values_array, trigger_sensitivity)
 
@@ -250,11 +325,26 @@ def get_decision_frontier(trigger_method, values_array, trigger_sensitivity, tri
 # Example: values array is [0 5 10 20 30 2 5 5]
 # trigger_sensitivity is 10 (meaning: 10th percentile)
 def get_percentile_decision_frontier(values_array, percentile):
+    """
+    Calculate the percentile decision frontier
+
+    :param values_array: list of values used to make the computation
+    :param percentile: percentile
+    :return: the decision frontier
+    """
     res = np.percentile(list(set(values_array)), percentile)
     return res
 
 
 def get_stdev_decision_frontier(values_array, trigger_sensitivity, trigger_on):
+    """
+    Compute the standard deviation decision frontier
+
+    :param values_array: list of values used to make the computation
+    :param trigger_sensitivity: sensitivity
+    :param trigger_on: high or low
+    :return: the decision frontier
+    """
     stdev = np.std(values_array)
 
     if trigger_on == "high":
@@ -269,6 +359,14 @@ def get_stdev_decision_frontier(values_array, trigger_sensitivity, trigger_on):
 
 
 def get_mad_decision_frontier(values_array, trigger_sensitivity, trigger_on):
+    """
+    Compute median decision frontier
+
+    :param values_array: list of values used to make the computation
+    :param trigger_sensitivity: sensitivity
+    :param trigger_on: high or low
+    :return: the decision frontier
+    """
     mad = np.nanmedian(np.absolute(values_array - np.nanmedian(values_array, 0)), 0)  # median absolute deviation
 
     if trigger_on == "high":
@@ -283,6 +381,14 @@ def get_mad_decision_frontier(values_array, trigger_sensitivity, trigger_on):
 
 
 def is_outlier(term_value_count, decision_frontier, trigger_on):
+    """
+    Determine if value given in parameter is outlier or not
+
+    :param term_value_count: value that must be tested
+    :param decision_frontier: decision frontier
+    :param trigger_on: high or low
+    :return: True if outlier, False otherwise
+    """
     if trigger_on == "high":
         return term_value_count > decision_frontier
     elif trigger_on == "low":
@@ -292,6 +398,12 @@ def is_outlier(term_value_count, decision_frontier, trigger_on):
 
 
 def nested_dict_values(d):
+    """
+    Get all values of a dictionary
+
+    :param d: dictionary
+    :return: generator of value contains in the dictionary
+    """
     for v in d.values():
         if isinstance(v, dict):
             yield from nested_dict_values(v)
@@ -300,6 +412,12 @@ def nested_dict_values(d):
 
 
 def seconds_to_pretty_str(seconds):
+    """
+    Format second to display them correctly
+
+    :param seconds: number of second
+    :return: formatted time
+    """
     return strfdelta(tdelta=seconds, inputtype="seconds", fmt='{D}d {H}h {M}m {S}s')
 
 
@@ -324,6 +442,11 @@ def strfdelta(tdelta, fmt='{D:02}d {H:02}h {M:02}m {S:02}s', inputtype='timedelt
         'h', 'hours',
         'd', 'days',
         'w', 'weeks'
+
+    :param tdelta: time (in datetime or integer)
+    :param fmt: the desired format
+    :param inputtype: type of input
+    :return: formatted time
     """
 
     # Convert tdelta to integer seconds.
