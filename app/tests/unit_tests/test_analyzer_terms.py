@@ -600,7 +600,7 @@ class TestTermsAnalyzer(unittest.TestCase):
         # We detect agg2 but not agg1
         self.assertEqual(list_outliers, [("agg2", "0"), ("agg2", "0"), ("agg2", "3"), ("agg2", "4")])
 
-    def test_non_outliers_not_present_in_terms_for_first(self):
+    def test_non_outlier_values_not_present_in_terms_for_first(self):
         dummy_doc_generate = DummyDocumentsGenerate()
 
         # Generate documents
@@ -620,7 +620,7 @@ class TestTermsAnalyzer(unittest.TestCase):
 
         self.assertEqual(result["_source"]["outliers"]["non_outlier_values_sample"], list())
 
-    def test_non_outliers_not_present_in_terms_within(self):
+    def test_non_outlier_values_not_present_in_terms_within(self):
         dummy_doc_generate = DummyDocumentsGenerate()
 
         # Generate documents
@@ -642,7 +642,7 @@ class TestTermsAnalyzer(unittest.TestCase):
 
         self.assertEqual(result["_source"]["outliers"]["non_outlier_values_sample"], ["two"])
 
-    def test_non_outliers_empty_terms_across(self):
+    def test_non_outlier_values_empty_terms_across(self):
         dummy_doc_generate = DummyDocumentsGenerate()
 
         # Generate documents
