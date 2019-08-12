@@ -12,12 +12,12 @@ import helpers.utils
 
 from collections import defaultdict
 
-doc_without_outliers_test_whitelist_01_test_file = json.load(
-    open("/app/tests/unit_tests/files/doc_without_outliers_test_whitelist_01.json"))
 doc_without_outliers_test_whitelist_02_test_file = json.load(
     open("/app/tests/unit_tests/files/doc_without_outliers_test_whitelist_02.json"))
 doc_without_outliers_test_whitelist_03_test_file = json.load(
     open("/app/tests/unit_tests/files/doc_without_outliers_test_whitelist_03.json"))
+doc_without_outliers_test_whitelist_04_test_file = json.load(
+    open("/app/tests/unit_tests/files/doc_without_outliers_test_whitelist_04.json"))
 
 DEFAULT_OUTLIERS_KEY_FIELDS = ["type", "reason", "summary", "model_name", "model_type", "total_outliers"]
 EXTRA_OUTLIERS_KEY_FIELDS = ["target", "aggregator", "metric", "decision_frontier", "confidence"]
@@ -186,19 +186,19 @@ class TestMetricsAnalyzer(unittest.TestCase):
         # The parameter use_derived_fields haven't any impact on outliers keys
         self.assertTrue("derived_timestamp_year" in result['_source']['outliers'])
 
-    def _test_whitelist_batch_document_not_process_all(self):  # TODO FIX with new whitelist system
+    def test_whitelist_batch_document_not_process_all(self):
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/metrics_test_with_whitelist.conf")
         analyzer = MetricsAnalyzer("metrics_length_dummy_test")
 
-        # Whitelisted (ignored)
-        doc1_without_outlier = copy.deepcopy(doc_without_outliers_test_whitelist_01_test_file)
-        self.test_es.add_doc(doc1_without_outlier)
         # Not whitelisted (add)
         doc2_without_outlier = copy.deepcopy(doc_without_outliers_test_whitelist_02_test_file)
         self.test_es.add_doc(doc2_without_outlier)
         # Not whitelisted
         doc3_without_outlier = copy.deepcopy(doc_without_outliers_test_whitelist_03_test_file)
         self.test_es.add_doc(doc3_without_outlier)
+        # Whitelisted (ignored)
+        doc4_without_outlier = copy.deepcopy(doc_without_outliers_test_whitelist_04_test_file)
+        self.test_es.add_doc(doc4_without_outlier)
 
         analyzer.evaluate_model()
 
@@ -456,3 +456,23 @@ class TestMetricsAnalyzer(unittest.TestCase):
         doc_with_outlier = copy.deepcopy(doc_with_outlier_test_file)
 
         self.assertEqual(result, doc_with_outlier)
+
+    def test_remove_metric_from_batch_simple_value(self):
+        eval_metrics_array = defaultdict()
+        aggregator_value = "agg"
+        target_value = "dummy_target"
+        metrics_value = "dummy_metric"
+        observations = {}
+        dummy_doc_gen = DummyDocumentsGenerate()
+        doc = dummy_doc_gen.generate_document()
+
+        batch = MetricsAnalyzer.add_metric_to_batch(eval_metrics_array, aggregator_value, target_value, metrics_value,
+                                                    observations, doc)
+        result = MetricsAnalyzer.remove_metric_from_batch(batch[aggregator_value], 0)
+
+        expected_aggregator_value = defaultdict(list)
+        expected_aggregator_value["metrics"] = []
+        expected_aggregator_value["observations"] = []
+        expected_aggregator_value["raw_docs"] = []
+
+        self.assertEqual(result, expected_aggregator_value)
