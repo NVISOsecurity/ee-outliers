@@ -456,3 +456,9 @@ class TestMetricsAnalyzer(unittest.TestCase):
         doc_with_outlier = copy.deepcopy(doc_with_outlier_test_file)
 
         self.assertEqual(result, doc_with_outlier)
+
+    def test_extract_additional_model_settings_no_metrics_section(self):
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/metrics_test_no_metrics_section.conf")
+        # Metrics section not define produce a warning
+        with self.assertLogs(logging.logger, level='WARNING'):
+            MetricsAnalyzer("metrics_dummy_test")
