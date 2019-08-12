@@ -39,12 +39,22 @@ class Logging:
         self.logger.addHandler(ch)
 
     def init_ticker(self, total_steps=None, desc=None):
+        """
+        Initialize a ticker.
+        Warning: this method is not independant. Call it only one at a time
+
+        :param total_steps: number of total step
+        :param desc: description of the ticker
+        """
         self.total_steps = total_steps
         self.start_time = dt.datetime.today().timestamp()
         self.desc = desc
         self.current_step = 0
 
     def tick(self):
+        """
+        Increment the number of tick
+        """
         self.current_step += 1
 
         if self.verbosity >= 5:
@@ -63,5 +73,10 @@ class Logging:
                              "% done" + "]")
 
     def print_generic_intro(self, title):
+        """
+        Display title in log
+
+        :param title: title to display
+        """
         self.logger.info("")
         self.logger.info("===== " + title + " =====")
