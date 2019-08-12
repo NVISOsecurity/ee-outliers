@@ -20,6 +20,11 @@ class HousekeepingJob(threading.Thread):
 
     @staticmethod
     def _get_config_whitelist_parameters():
+        """
+        Get parameters linked to the whitelist
+
+        :return: dictionary with whitelist parameters
+        """
         return {
             'whitelist_literals': settings.config.items("whitelist_literals"),
             'whitelist_regexps': settings.config.items("whitelist_regexps"),
@@ -28,6 +33,9 @@ class HousekeepingJob(threading.Thread):
         }
 
     def run(self):
+        """
+        Task to launch the housekeeping
+        """
         logging.logger.info('housekeeping thread #%s started' % self.ident)
         self.remove_all_whitelisted_outliers()
 
@@ -39,6 +47,9 @@ class HousekeepingJob(threading.Thread):
         logging.logger.info('housekeeping thread #%s stopped' % self.ident)
 
     def execute_housekeeping(self):
+        """
+        Execute the housekeeping
+        """
         if len(self.file_mod_watcher.files_changed()) > 0:
             # reload configuration file, in case new whitelisted items were added by the analyst, they
             # should be processed!
@@ -51,6 +62,9 @@ class HousekeepingJob(threading.Thread):
 
     @staticmethod
     def remove_all_whitelisted_outliers():
+        """
+        Try to remove all whitelist outliers that are already in ElasticSearch
+        """
         if settings.config.getboolean("general", "es_wipe_all_whitelisted_outliers"):
             try:
                 logging.logger.info("housekeeping - going to remove all whitelisted outliers")

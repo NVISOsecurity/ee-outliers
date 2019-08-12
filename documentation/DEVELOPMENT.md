@@ -1,4 +1,4 @@
-<p align="left"><a href="WHITELIST.md">&#8592; Whitelisting outliser</a></p>
+<p align="left"><a href="NOTIFICATIONS.md">&#8592; Notification system</a></p>
 
 # Information for developers
 

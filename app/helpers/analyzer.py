@@ -170,7 +170,7 @@ class Analyzer(abc.ABC):
         outlier_type = [item.strip() for item in outlier_type]
         outlier_reason = [item.strip() for item in outlier_reason]
 
-        outlier_assets = helpers.utils.extract_outlier_asset_information(fields)
+        outlier_assets = helpers.utils.extract_outlier_asset_information(fields, settings)
         return outlier_type, outlier_reason, outlier_summary, outlier_assets
 
     def create_outlier(self, fields, doc, extra_outlier_information=dict()):

@@ -12,6 +12,14 @@ import helpers.singletons
 
 
 def flatten_dict(d, parent_key='', sep='.'):
+    """
+    Remove the deep of a dictionary. All value are referenced by a key composed of all parent key (join by a dot).
+
+    :param d: dictionary to flat
+    :param parent_key: key of the parent of this dictionary
+    :param sep: string to separate key and parent
+    :return: the flat dictionary
+    """
     items = []
     for k, v in d.items():
         new_key = parent_key + sep + k if parent_key else k
@@ -22,14 +30,6 @@ def flatten_dict(d, parent_key='', sep='.'):
     return dict(items)
 
 
-def dict_contains_dotkey(dict_value, key_name, case_sensitive=True):
-    try:
-        get_dotkey_value(dict_value, key_name, case_sensitive)
-        return True
-    except KeyError:
-        return False
-
-
 def get_dotkey_value(dict_value, key_name, case_sensitive=True):
     """
     Get value by dot key in dictionary
@@ -38,6 +38,11 @@ def get_dotkey_value(dict_value, key_name, case_sensitive=True):
     By changing the case_sensitive parameter to "False", all elements of the dot key will be matched case insensitive.
     For example, key "OsqueryFilter.process_name" will also match a nested dictionary with keys "osqueryfilter" and
     "prOcEss_nAme".
+
+    :param dict_value: dictionary where the research must be done
+    :param key_name: key of the value (each depth is separated by a dot)
+    :param case_sensitive: True to taking case into account
+    :return: the dictionary value
     """
     keys = key_name.split(".")
 
@@ -58,10 +63,23 @@ def get_dotkey_value(dict_value, key_name, case_sensitive=True):
 
 
 def match_ip_ranges(source_ip, ip_cidr):
+    """
+    Check if an ip is in a specific range
+
+    :param source_ip: ip to test
+    :param ip_cidr: mask of ip to test
+    :return: True if match, False otherwise
+    """
     return False if len(netaddr.all_matching_cidrs(source_ip, ip_cidr)) <= 0 else True
 
 
 def shannon_entropy(data):
+    """
+    Compute shannon entropy for a specific data
+
+    :param data: used to compute entropy
+    :return: Entropy value
+    """
     if not data:
         return 0
     entropy = 0
@@ -72,24 +90,30 @@ def shannon_entropy(data):
     return entropy
 
 
-def extract_outlier_asset_information(fields):
+def extract_outlier_asset_information(fields, settings):
     """
+    Extract all outlier assets
+
     :param fields: the dictionary containing all the event information
-    :return:
+    :param settings: the settings object which also includes the configuration file that is used
+    :return:list of all outlier assets
     """
     outlier_assets = list()
-    # Could not directly import settings because it will generate a loop of import
-    for (asset_field_name, asset_field_type) in helpers.singletons.settings.list_assets:
-        if dict_contains_dotkey(fields, asset_field_name, case_sensitive=False):
+    for (asset_field_name, asset_field_type) in settings.config.items("assets"):
+        try:
+            # Could raise an error if key does't exist
+            dict_value = get_dotkey_value(fields, asset_field_name, case_sensitive=False)
 
-            asset_field_values_including_empty = flatten_fields_into_sentences(fields,
-                                                                               sentence_format=[asset_field_name])
-            # also remove all empty asset strings
-            asset_field_values = [sentence[0] for sentence in asset_field_values_including_empty if "" not in sentence]
+            sentences = _flatten_one_field_into_sentences(dict_value=dict_value, sentences=[[]])
+            # also remove all empty and None asset strings
+            asset_field_values = [sentence[0] for sentence in sentences if None not in sentence and "" not in sentence]
 
             # make sure we don't process empty process information, for example an empty user field
             for asset_field_value in asset_field_values:
                 outlier_assets.append(asset_field_type + ": " + asset_field_value)
+
+        except KeyError:
+            pass  # If error, do nothing
 
     return outlier_assets
 
@@ -97,6 +121,12 @@ def extract_outlier_asset_information(fields):
 # Convert a sentence value into a flat string, if possible
 # If not, just return None
 def flatten_sentence(sentence=None):
+    """
+    Convert a sentence value into a flat string
+
+    :param sentence: sentence to flat
+    :return: the flat string or None if not possible
+    """
     if sentence is None:
         return None
 
@@ -123,21 +153,18 @@ def flatten_sentence(sentence=None):
 # fields: {hostname: [WIN-DRA, WIN-EVB], draman}
 # output: [[WIN-DRA, draman], [WIN-EVB, draman]]
 def flatten_fields_into_sentences(fields=None, sentence_format=None):
+    """
+    Convert a sentence format and a field dictionary into a list of sentence
+
+    :param fields: list of fields (like {hostname: [WIN-DRA, WIN-EVB], draman})
+    :param sentence_format: string with field name (like: hostname, username)
+    :return: list of sentence
+    """
     sentences = [[]]
 
     for i, field_name in enumerate(sentence_format):
-        new_sentences = []
-        if type(get_dotkey_value(fields, field_name, case_sensitive=False)) is list:
-            for field_value in get_dotkey_value(fields, field_name, case_sensitive=False):
-                for sentence in sentences:
-                    sentence_copy = sentence.copy()
-                    sentence_copy.append(flatten_sentence(field_value))
-                    new_sentences.append(sentence_copy)
-        else:
-            for sentence in sentences:
-                sentence.append(flatten_sentence(get_dotkey_value(fields, field_name, case_sensitive=False)))
-                new_sentences.append(sentence)
-
+        dict_value = get_dotkey_value(fields, field_name, case_sensitive=False)
+        new_sentences = _flatten_one_field_into_sentences(sentences=sentences, dict_value=dict_value)
         sentences = new_sentences.copy()
 
     # Remove all sentences that contain fields that could not be parsed, and that have been flattened to "None".
@@ -147,29 +174,64 @@ def flatten_fields_into_sentences(fields=None, sentence_format=None):
     return sentences
 
 
+def _flatten_one_field_into_sentences(dict_value, sentences=list(list())):
+    new_sentences = []
+    if type(dict_value) is list:
+        for field_value in dict_value:
+            flatten_field_value = flatten_sentence(field_value)
+
+            for sentence in sentences:
+                sentence_copy = sentence.copy()
+                sentence_copy.append(flatten_field_value)
+                new_sentences.append(sentence_copy)
+    else:
+        flatten_dict_value = flatten_sentence(dict_value)
+        for sentence in sentences:
+            sentence.append(flatten_dict_value)
+            new_sentences.append(sentence)
+
+    return new_sentences
+
+
 def replace_placeholder_fields_with_values(placeholder, fields):
+    """
+    Replace placeholder in fields by values
+
+    :param placeholder: string that contain potentially some placeholder
+    :param fields: fields which will be used to replace placeholder with real value
+    :return: the initial string with the placeholder replaced
+    """
     # Replace fields from fieldmappings in summary
     regex = re.compile(r'\{([^\}]*)\}')
     field_name_list = regex.findall(placeholder)  # ['source_ip','destination_ip'] for example
 
     for field_name in field_name_list:
-        if dict_contains_dotkey(fields, field_name, case_sensitive=False):
-            if type(get_dotkey_value(fields, field_name, case_sensitive=False)) is list:
+        try:
+            dict_value = get_dotkey_value(fields, field_name, case_sensitive=False)
+
+            if type(dict_value) is list:
                 try:
-                    field_value = ", ".join(get_dotkey_value(fields, field_name, case_sensitive=False))
+                    field_value = ", ".join(dict_value)
                 except TypeError:
                     field_value = "complex field " + field_name
             else:
-                field_value = str(get_dotkey_value(fields, field_name, case_sensitive=False))
+                field_value = str(dict_value)
 
             placeholder = placeholder.replace('{' + field_name + '}', field_value)
-        else:
+
+        except KeyError:
             placeholder = placeholder.replace('{' + field_name + '}', "{field " + field_name + " not found in event}")
 
     return placeholder
 
 
 def is_base64_encoded(_str):
+    """
+    Test if string is encoded in base64
+
+    :param _str: string that must be tested
+    :return: Decoded string value or False if not encode in base64
+    """
     try:
         decoded_bytes = base64.b64decode(_str)
         if base64.b64encode(decoded_bytes) == _str.encode("ascii"):
@@ -179,6 +241,12 @@ def is_base64_encoded(_str):
 
 
 def is_hex_encoded(_str):
+    """
+    Test if string is encode in hexadecimal
+
+    :param _str: string that must be tested
+    :return: Decoded value of False if not encode in hexadecimal
+    """
     try:
         decoded = int(_str, 16)
         return str(decoded)
@@ -187,6 +255,12 @@ def is_hex_encoded(_str):
 
 
 def is_url(_str):
+    """
+    Test if string is a valid URL
+
+    :param _str: string that must be tested
+    :return: True if valid URL, False otherwise
+    """
     try:
         if validators.url(_str):
             return True
@@ -195,6 +269,15 @@ def is_url(_str):
 
 
 def get_decision_frontier(trigger_method, values_array, trigger_sensitivity, trigger_on=None):
+    """
+    Compute the decision frontier
+
+    :param trigger_method: method to be used to make this computation
+    :param values_array: list of value used to mde the compute
+    :param trigger_sensitivity: sensitivity
+    :param trigger_on: high or low
+    :return: the decision frontier
+    """
     if trigger_method == "percentile":
         decision_frontier = get_percentile_decision_frontier(values_array, trigger_sensitivity)
 
@@ -242,11 +325,26 @@ def get_decision_frontier(trigger_method, values_array, trigger_sensitivity, tri
 # Example: values array is [0 5 10 20 30 2 5 5]
 # trigger_sensitivity is 10 (meaning: 10th percentile)
 def get_percentile_decision_frontier(values_array, percentile):
+    """
+    Calculate the percentile decision frontier
+
+    :param values_array: list of values used to make the computation
+    :param percentile: percentile
+    :return: the decision frontier
+    """
     res = np.percentile(list(set(values_array)), percentile)
     return res
 
 
 def get_stdev_decision_frontier(values_array, trigger_sensitivity, trigger_on):
+    """
+    Compute the standard deviation decision frontier
+
+    :param values_array: list of values used to make the computation
+    :param trigger_sensitivity: sensitivity
+    :param trigger_on: high or low
+    :return: the decision frontier
+    """
     stdev = np.std(values_array)
 
     if trigger_on == "high":
@@ -261,6 +359,14 @@ def get_stdev_decision_frontier(values_array, trigger_sensitivity, trigger_on):
 
 
 def get_mad_decision_frontier(values_array, trigger_sensitivity, trigger_on):
+    """
+    Compute median decision frontier
+
+    :param values_array: list of values used to make the computation
+    :param trigger_sensitivity: sensitivity
+    :param trigger_on: high or low
+    :return: the decision frontier
+    """
     mad = np.nanmedian(np.absolute(values_array - np.nanmedian(values_array, 0)), 0)  # median absolute deviation
 
     if trigger_on == "high":
@@ -275,6 +381,14 @@ def get_mad_decision_frontier(values_array, trigger_sensitivity, trigger_on):
 
 
 def is_outlier(term_value_count, decision_frontier, trigger_on):
+    """
+    Determine if value given in parameter is outlier or not
+
+    :param term_value_count: value that must be tested
+    :param decision_frontier: decision frontier
+    :param trigger_on: high or low
+    :return: True if outlier, False otherwise
+    """
     if trigger_on == "high":
         return term_value_count > decision_frontier
     elif trigger_on == "low":
@@ -284,6 +398,12 @@ def is_outlier(term_value_count, decision_frontier, trigger_on):
 
 
 def nested_dict_values(d):
+    """
+    Get all values of a dictionary
+
+    :param d: dictionary
+    :return: generator of value contains in the dictionary
+    """
     for v in d.values():
         if isinstance(v, dict):
             yield from nested_dict_values(v)
@@ -292,6 +412,12 @@ def nested_dict_values(d):
 
 
 def seconds_to_pretty_str(seconds):
+    """
+    Format second to display them correctly
+
+    :param seconds: number of second
+    :return: formatted time
+    """
     return strfdelta(tdelta=seconds, inputtype="seconds", fmt='{D}d {H}h {M}m {S}s')
 
 
@@ -316,6 +442,11 @@ def strfdelta(tdelta, fmt='{D:02}d {H:02}h {M:02}m {S:02}s', inputtype='timedelt
         'h', 'hours',
         'd', 'days',
         'w', 'weeks'
+
+    :param tdelta: time (in datetime or integer)
+    :param fmt: the desired format
+    :param inputtype: type of input
+    :return: formatted time
     """
 
     # Convert tdelta to integer seconds.
