@@ -274,6 +274,8 @@ class MetricsAnalyzer(Analyzer):
             non_outlier_values_sample = ",".join(random.sample(
                 non_outlier_values, 3 if len(non_outlier_values) > 3 else len(non_outlier_values)))
             observations["non_outlier_values_sample"] = non_outlier_values_sample
+        else:
+            observations["non_outlier_values_sample"] = []
 
         observations["metric"] = metric_value
         observations["decision_frontier"] = decision_frontier

@@ -20,7 +20,8 @@ doc_without_outliers_test_whitelist_04_test_file = json.load(
     open("/app/tests/unit_tests/files/doc_without_outliers_test_whitelist_04.json"))
 
 DEFAULT_OUTLIERS_KEY_FIELDS = ["type", "reason", "summary", "model_name", "model_type", "total_outliers"]
-EXTRA_OUTLIERS_KEY_FIELDS = ["target", "aggregator", "metric", "decision_frontier", "confidence"]
+EXTRA_OUTLIERS_KEY_FIELDS = ["target", "non_outlier_values_sample", "aggregator", "metric", "decision_frontier",
+                             "confidence"]
 
 doc_without_outlier_test_file = json.load(open("/app/tests/unit_tests/files/doc_without_outlier.json"))
 doc_with_outlier_test_file = json.load(open("/app/tests/unit_tests/files/doc_with_metrics_outlier.json"))
@@ -476,3 +477,41 @@ class TestMetricsAnalyzer(unittest.TestCase):
         expected_aggregator_value["raw_docs"] = []
 
         self.assertEqual(result, expected_aggregator_value)
+
+    def test_non_outliers_not_present_in_metrics_for_first(self):
+        dummy_doc_generate = DummyDocumentsGenerate()
+
+        # Generate documents
+        # Outlier document
+        self.test_es.add_doc(dummy_doc_generate.generate_document(user_id=11))
+        # Non outlier document
+        self.test_es.add_doc(dummy_doc_generate.generate_document(user_id=8))
+
+        # Run analyzer
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/metrics_test_02.conf")
+        analyzer = MetricsAnalyzer("metrics_dummy_test_no_derived")
+        analyzer.evaluate_model()
+
+        result = [elem for elem in es._scan()][0]
+
+        self.assertEqual(result["_source"]["outliers"]["non_outlier_values_sample"], list())
+
+    def test_non_outliers_present_in_metrics(self):
+        dummy_doc_generate = DummyDocumentsGenerate()
+
+        # Generate documents
+        # Outlier document
+        self.test_es.add_doc(dummy_doc_generate.generate_document(user_id=11))
+        # Non outlier document
+        self.test_es.add_doc(dummy_doc_generate.generate_document(user_id=8))
+        # Outlier document
+        self.test_es.add_doc(dummy_doc_generate.generate_document(user_id=12))
+
+        # Run analyzer
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/metrics_test_02.conf")
+        analyzer = MetricsAnalyzer("metrics_dummy_test_no_derived")
+        analyzer.evaluate_model()
+
+        result = [elem for elem in es._scan()][2]
+
+        self.assertEqual(result["_source"]["outliers"]["non_outlier_values_sample"], ["8.0"])
