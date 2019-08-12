@@ -456,3 +456,23 @@ class TestMetricsAnalyzer(unittest.TestCase):
         doc_with_outlier = copy.deepcopy(doc_with_outlier_test_file)
 
         self.assertEqual(result, doc_with_outlier)
+
+    def test_remove_metric_from_batch_simple_value(self):
+        eval_metrics_array = defaultdict()
+        aggregator_value = "agg"
+        target_value = "dummy_target"
+        metrics_value = "dummy_metric"
+        observations = {}
+        dummy_doc_gen = DummyDocumentsGenerate()
+        doc = dummy_doc_gen.generate_document()
+
+        batch = MetricsAnalyzer.add_metric_to_batch(eval_metrics_array, aggregator_value, target_value, metrics_value,
+                                                    observations, doc)
+        result = MetricsAnalyzer.remove_metric_from_batch(batch[aggregator_value], 0)
+
+        expected_aggregator_value = defaultdict(list)
+        expected_aggregator_value["metrics"] = []
+        expected_aggregator_value["observations"] = []
+        expected_aggregator_value["raw_docs"] = []
+
+        self.assertEqual(result, expected_aggregator_value)
