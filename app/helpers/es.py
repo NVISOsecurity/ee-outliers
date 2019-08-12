@@ -374,13 +374,8 @@ def add_tag_to_document(doc: Dict[str, Any], tag: str) -> Dict[str, Any]:
 
 
 def remove_tag_from_document(doc: Dict[str, Any], tag: str) -> Dict[str, Any]:
-    if "tags" not in doc["_source"]:
-        pass
-    else:
-        tags: List[str] = doc["_source"]["tags"]
-        if tag in tags:
-            tags.remove(tag)
-            doc["_source"]["tags"] = tags
+    if "tags" in doc["_source"] and tag in doc["_source"]["tags"]:
+        doc["_source"]["tags"].remove(tag)
     return doc
 
 
