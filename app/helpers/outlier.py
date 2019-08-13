@@ -1,10 +1,10 @@
 import helpers.singletons
-import re
 import helpers.utils
 import textwrap
 
 
 class Outlier:
+
     def __init__(self, outlier_type, outlier_reason, outlier_summary, doc):
         self.outlier_dict = dict()
         self.outlier_dict["type"] = outlier_type  # can be multiple types, for example: malware, powershell
@@ -80,37 +80,21 @@ class Outlier:
                 dict_values_to_check.add(str(dict_val).strip())
 
         # Check if value is whitelisted as literal
-        for (_, each_whitelist_configuration_file_value) in \
-                helpers.singletons.settings.whitelist_literals_config:
-            whitelist_values_to_check = set(map(str.strip, each_whitelist_configuration_file_value.split(',')))
-
+        for list_whitelist_elements in helpers.singletons.settings.whitelist_literals_config:
             # If all whitelisted value are in the dict to check
-            if whitelist_values_to_check.issubset(dict_values_to_check):
+            if list_whitelist_elements.issubset(dict_values_to_check):
                 return True
 
         # Check if value is whitelisted as regexps
-        for (_, each_whitelist_configuration_file_value) in \
-                helpers.singletons.settings.whitelist_regexps_config:
-            whitelist_values_to_check = each_whitelist_configuration_file_value.split(",")
-
+        for whitelist_values_to_check in helpers.singletons.settings.whitelist_regexps_config:
             total_whitelisted_fields_to_match = len(whitelist_values_to_check)
             total_whitelisted_fields_matched = 0
 
-            for whitelist_val_to_check in whitelist_values_to_check:  # For each regex value
-
-                try:
-                    p = re.compile(whitelist_val_to_check.strip(), re.IGNORECASE)
-                except Exception:
-                    # something went wrong compiling the regular expression, probably because of a user error such as
-                    # unbalanced escape characters. We should just ignore the regular expression and continue (and let
-                    # the user know in the beginning that some could not be compiled).  Even if we check for errors
-                    # in the beginning of running outliers, we might still run into issues when the configuration
-                    # changes during running of ee-outlies. So this should catch any remaining errors in the
-                    # whitelist that could occur with regexps.
-                    break
+            for compile_whitelist_val_to_check in whitelist_values_to_check:  # For each regex value
 
                 # If regex match with the outlier
-                if Outlier.dictionary_matches_specific_whitelist_item_regexp(p, dict_values_to_check):
+                if Outlier.dictionary_matches_specific_whitelist_item_regexp(compile_whitelist_val_to_check,
+                                                                             dict_values_to_check):
                     # Increment the number of match
                     total_whitelisted_fields_matched += 1
                 else:

@@ -172,6 +172,22 @@ class TestOutlierOperations(unittest.TestCase):
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/whitelist_tests_03.conf")
         self.assertFalse(test_outlier.is_whitelisted())
 
+    def test_single_regex_to_match_in_doc_with_outlier(self):
+        orig_doc = copy.deepcopy(doc_with_outlier_test_file)
+        test_outlier = Outlier(outlier_type="dummy type", outlier_reason="dummy reason",
+                               outlier_summary="dummy summary", doc=orig_doc)
+
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/whitelist_tests_06.conf")
+        self.assertTrue(test_outlier.is_whitelisted())
+
+    def test_single_regex_not_to_match_in_doc_with_outlier(self):
+        orig_doc = copy.deepcopy(doc_with_outlier_test_file)
+        test_outlier = Outlier(outlier_type="dummy type", outlier_reason="dummy reason",
+                               outlier_summary="dummy summary", doc=orig_doc)
+
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/whitelist_tests_07.conf")
+        self.assertFalse(test_outlier.is_whitelisted())
+
     def test_whitelist_config_file_multi_item_match_with_three_fields_and_whitespace(self):
         orig_doc = copy.deepcopy(doc_with_outlier_test_file)
         test_outlier = Outlier(outlier_type="dummy type", outlier_reason="dummy reason",
