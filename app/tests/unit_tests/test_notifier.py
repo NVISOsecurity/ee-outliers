@@ -85,3 +85,67 @@ class TestNotifier(unittest.TestCase):
 
         self.assertEqual(len(self.test_notifier.get_list_email()), 0)
         self.test_notifier.restore_notifier()
+
+    def test_notification_on_outlier_already_detected(self):
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/notifications_test.conf")
+        self.test_notifier = TestStubNotifier()
+
+        doc_generate = DummyDocumentsGenerate()
+
+        # Create outliers
+        doc1 = doc_generate.generate_document()
+        outlier1 = Outlier("dummy type", "dummy reason", "dummy summary", doc1)
+        doc2 = doc_generate.generate_document()
+        outlier2 = Outlier("dummy type2", "dummy reason2", "dummy summary", doc2)
+
+        # execute notification
+        es.notifier.notify_on_outlier(outlier1)
+        es.notifier.notify_on_outlier(outlier2)
+
+        self.assertEqual(len(self.test_notifier.get_list_email()), 1)
+        self.test_notifier.restore_notifier()
+
+    def test_notification_on_two_different_outliers(self):
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/notifications_test.conf")
+        self.test_notifier = TestStubNotifier()
+
+        doc_generate = DummyDocumentsGenerate()
+
+        # Create outliers
+        doc1 = doc_generate.generate_document()
+        outlier1 = Outlier("dummy type", "dummy reason", "dummy summary", doc1)
+        doc2 = doc_generate.generate_document()
+        outlier2 = Outlier("dummy type2", "dummy reason2", "dummy summary2", doc2)
+
+        # execute notification
+        es.notifier.notify_on_outlier(outlier1)
+        es.notifier.notify_on_outlier(outlier2)
+
+        self.assertEqual(len(self.test_notifier.get_list_email()), 2)
+        self.test_notifier.restore_notifier()
+
+    def test_notification_on_outlier_already_detected_but_not_in_queue(self):
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/notifications_test.conf")
+        self.test_notifier = TestStubNotifier()
+
+        doc_generate = DummyDocumentsGenerate()
+
+        # Create outliers
+        doc = doc_generate.generate_document()
+        # Full the queue (3 elements)
+        outlier1 = Outlier("dummy type", "dummy reason", "dummy summary1", doc)
+        es.notifier.notify_on_outlier(outlier1)
+        outlier2 = Outlier("dummy type2", "dummy reason2", "dummy summary2", doc)
+        es.notifier.notify_on_outlier(outlier2)
+        outlier3 = Outlier("dummy type3", "dummy reason3", "dummy summary3", doc)
+        es.notifier.notify_on_outlier(outlier3)
+        # Add a new one that will remove the first
+        outlier4 = Outlier("dummy type4", "dummy reason4", "dummy summary4", doc)
+        es.notifier.notify_on_outlier(outlier4)
+        
+        # Add again the first one
+        es.notifier.notify_on_outlier(outlier1)
+
+        # All outliers notify need to be present (so 5)
+        self.assertEqual(len(self.test_notifier.get_list_email()), 5)
+        self.test_notifier.restore_notifier()
