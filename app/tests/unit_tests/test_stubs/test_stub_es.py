@@ -86,9 +86,7 @@ class TestStubEs:
                     if '_index' in bulk:
                         data['_index'] = bulk['_index']
 
-                    # print("avant", self.list_data[bulk['_id']])
                     self.list_data[bulk['_id']].update(data)
-                    # print("après", self.list_data[bulk['_id']])
 
             else:
                 raise KeyError('Unknown bulk action: "' + bulk['_op_type'] + '"')
