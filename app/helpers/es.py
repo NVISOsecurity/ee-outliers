@@ -335,7 +335,7 @@ class ES:
             '_source': {
                 "script": {
                     "source": "ctx._source.remove(\"outliers\"); " +
-                              "if (ctx._source.tags.indexOf(\"outlier\") > -1) { " +
+                              "if (ctx._source.tags != null && ctx._source.tags.indexOf(\"outlier\") > -1) { " +
                               "ctx._source.tags.remove(ctx._source.tags.indexOf(\"outlier\")); " +
                               "}",
                     "lang": "painless"
