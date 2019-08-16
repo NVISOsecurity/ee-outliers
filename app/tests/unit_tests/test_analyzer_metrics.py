@@ -6,7 +6,7 @@ import copy
 from tests.unit_tests.test_stubs.test_stub_es import TestStubEs
 from analyzers.metrics import MetricsAnalyzer
 from helpers.singletons import logging, es
-from tests.unit_tests.utils.test_settings import TestSettings
+from tests.unit_tests.utils.update_settings import UpdateSettings
 from tests.unit_tests.utils.dummy_documents_generate import DummyDocumentsGenerate
 import helpers.utils
 
@@ -34,7 +34,7 @@ class TestMetricsAnalyzer(unittest.TestCase):
 
     def setUp(self):
         self.test_es = TestStubEs()
-        self.test_settings = TestSettings()
+        self.test_settings = UpdateSettings()
 
     def tearDown(self):
         # restore the default configuration file so we don't influence other unit tests that use the settings singleton
