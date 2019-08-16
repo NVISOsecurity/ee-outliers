@@ -207,12 +207,12 @@ class TestOutlierOperations(unittest.TestCase):
     def test_whitelist_config_change_remove_multi_item_literal(self):
         doc_with_outlier = copy.deepcopy(doc_with_outlier_test_file)
         # Without score because "remove whitelisted outlier" use "bulk" operation which doesn't take into account score
-        doc_without_outlier_without_score = copy.deepcopy(doc_without_outlier_without_score_test_file)
+        doc_without_outlier = copy.deepcopy(doc_without_outlier_test_file)
         self.test_es.add_doc(doc_with_outlier)
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/whitelist_tests_01_with_general.conf")
         es.remove_all_whitelisted_outliers()
         result = [elem for elem in es._scan()][0]
-        self.assertEqual(result, doc_without_outlier_without_score)
+        self.assertEqual(result, doc_without_outlier)
 
     def test_whitelist_config_change_single_literal_not_to_match_in_doc_with_outlier(self):
         doc_with_outlier = copy.deepcopy(doc_with_outlier_test_file)
