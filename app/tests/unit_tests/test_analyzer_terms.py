@@ -72,13 +72,13 @@ class TestTermsAnalyzer(unittest.TestCase):
         # Generate document that match outlier
         command_name = "default_name_"
         for i in range(nbr_generated_documents):
-            self.test_es.add_doc(dummy_doc_generate.generate_document(command_query=command_query,
-                                                                      command_name=command_name + str(i)))
+            self.test_es.add_doc(dummy_doc_generate.generate_document({"command_query": command_query,
+                                                                       "command_name": command_name + str(i)}))
         # Generate whitelist document
-        self.test_es.add_doc(dummy_doc_generate.generate_document(hostname="whitelist_hostname",
-                                                                  command_query=command_query,
-                                                                  command_name=command_name + str(
-                                                                      nbr_generated_documents)))
+        self.test_es.add_doc(dummy_doc_generate.generate_document({"hostname": "whitelist_hostname",
+                                                                  "command_query": command_query,
+                                                                   "command_name": command_name + str(
+                                                                       nbr_generated_documents)}))
 
         # Run analyzer
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_with_whitelist.conf")
@@ -269,7 +269,7 @@ class TestTermsAnalyzer(unittest.TestCase):
 
     def test_terms_use_derived_fields_in_outlier(self):
         dummy_doc_generate = DummyDocumentsGenerate()
-        self.test_es.add_doc(dummy_doc_generate.generate_document(user_id=11))
+        self.test_es.add_doc(dummy_doc_generate.generate_document({"user_id": 11}))
 
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_01.conf")
         analyzer = TermsAnalyzer("terms_dummy_test_derived")
@@ -291,7 +291,7 @@ class TestTermsAnalyzer(unittest.TestCase):
 
     def test_terms_not_use_derived_fields_but_present_in_outlier(self):
         dummy_doc_generate = DummyDocumentsGenerate()
-        self.test_es.add_doc(dummy_doc_generate.generate_document(user_id=11))
+        self.test_es.add_doc(dummy_doc_generate.generate_document({"user_id": 11}))
 
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_01.conf")
         analyzer = TermsAnalyzer("terms_dummy_test_not_derived")
@@ -428,7 +428,7 @@ class TestTermsAnalyzer(unittest.TestCase):
         for aggregator, target_value in doc_to_generate:
             user_id = target_value
             hostname = aggregator
-            doc_generated = dummy_doc_gen.generate_document(user_id=user_id, hostname=hostname)
+            doc_generated = dummy_doc_gen.generate_document({"user_id": user_id, "hostname": hostname})
             self.test_es.add_doc(doc_generated)
 
         analyzer.evaluate_model()
@@ -482,7 +482,7 @@ class TestTermsAnalyzer(unittest.TestCase):
         for aggregator, target_value in doc_to_generate:
             user_id = target_value
             hostname = aggregator
-            doc_generated = dummy_doc_gen.generate_document(user_id=user_id, hostname=hostname)
+            doc_generated = dummy_doc_gen.generate_document({"user_id": user_id, "hostname": hostname})
             self.test_es.add_doc(doc_generated)
 
         analyzer.evaluate_model()
@@ -549,8 +549,8 @@ class TestTermsAnalyzer(unittest.TestCase):
             user_id = target_value
             hostname = aggregator
 
-            doc_generated = dummy_doc_gen.generate_document(deployment_name=deployment_name, user_id=user_id,
-                                                            hostname=hostname)
+            doc_generated = dummy_doc_gen.generate_document({"deployment_name": deployment_name, "user_id": user_id,
+                                                             "hostname": hostname})
             self.test_es.add_doc(doc_generated)
         analyzer.evaluate_model()
 
@@ -585,8 +585,8 @@ class TestTermsAnalyzer(unittest.TestCase):
             user_id = target_value
             hostname = aggregator
 
-            doc_generated = dummy_doc_gen.generate_document(deployment_name=deployment_name, user_id=user_id,
-                                                            hostname=hostname)
+            doc_generated = dummy_doc_gen.generate_document({"deployment_name": deployment_name, "user_id": user_id,
+                                                             "hostname": hostname})
             self.test_es.add_doc(doc_generated)
 
         analyzer.evaluate_model()
@@ -605,11 +605,15 @@ class TestTermsAnalyzer(unittest.TestCase):
 
         # Generate documents
         # Outlier document
-        self.test_es.add_doc(dummy_doc_generate.generate_document(hostname="one", deployment_name="one"))  # index: 0
+        # index: 0
         # Non outlier
-        self.test_es.add_doc(dummy_doc_generate.generate_document(hostname="one", deployment_name="two"))  # index: 1
-        self.test_es.add_doc(dummy_doc_generate.generate_document(hostname="one", deployment_name="two"))  # index: 2
-        self.test_es.add_doc(dummy_doc_generate.generate_document(hostname="one", deployment_name="two"))  # index: 3
+        self.test_es.add_doc(dummy_doc_generate.generate_document({"hostname": "one", "deployment_name": "one"}))
+        # index: 1
+        self.test_es.add_doc(dummy_doc_generate.generate_document({"hostname": "one", "deployment_name": "two"}))
+        # index: 2
+        self.test_es.add_doc(dummy_doc_generate.generate_document({"hostname": "one", "deployment_name": "two"}))
+        # index: 3
+        self.test_es.add_doc(dummy_doc_generate.generate_document({"hostname": "one", "deployment_name": "two"}))
 
         # Run analyzer
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_01.conf")
@@ -625,13 +629,18 @@ class TestTermsAnalyzer(unittest.TestCase):
 
         # Generate documents
         # Outlier document
-        self.test_es.add_doc(dummy_doc_generate.generate_document(hostname="one", deployment_name="one"))  # index: 0
+        # index: 0
         # Non outlier
-        self.test_es.add_doc(dummy_doc_generate.generate_document(hostname="one", deployment_name="two"))  # index: 1
-        self.test_es.add_doc(dummy_doc_generate.generate_document(hostname="one", deployment_name="two"))  # index: 2
-        self.test_es.add_doc(dummy_doc_generate.generate_document(hostname="one", deployment_name="two"))  # index: 3
+        self.test_es.add_doc(dummy_doc_generate.generate_document({"hostname": "one", "deployment_name": "one"}))
+        # index: 1
+        self.test_es.add_doc(dummy_doc_generate.generate_document({"hostname": "one", "deployment_name": "two"}))
+        # index: 2
+        self.test_es.add_doc(dummy_doc_generate.generate_document({"hostname": "one", "deployment_name": "two"}))
+        # index: 3
         # Outlier document
-        self.test_es.add_doc(dummy_doc_generate.generate_document(hostname="one", deployment_name="three"))  # index: 4
+        self.test_es.add_doc(dummy_doc_generate.generate_document({"hostname": "one", "deployment_name": "two"}))
+        # index: 4
+        self.test_es.add_doc(dummy_doc_generate.generate_document({"hostname": "one", "deployment_name": "three"}))
 
         # Run analyzer
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_01.conf")
@@ -647,13 +656,18 @@ class TestTermsAnalyzer(unittest.TestCase):
 
         # Generate documents
         # Outlier document
-        self.test_es.add_doc(dummy_doc_generate.generate_document(hostname="one"))  # index: 0
+        # index: 0
+        self.test_es.add_doc(dummy_doc_generate.generate_document({"hostname": "one"}))
         # Non outlier
-        self.test_es.add_doc(dummy_doc_generate.generate_document(hostname="two", deployment_name="one"))  # index: 1
-        self.test_es.add_doc(dummy_doc_generate.generate_document(hostname="two", deployment_name="two"))  # index: 2
-        self.test_es.add_doc(dummy_doc_generate.generate_document(hostname="two", deployment_name="three"))  # index: 3
+        # index: 1
+        self.test_es.add_doc(dummy_doc_generate.generate_document({"hostname": "two", "deployment_name": "one"}))
+        # index: 2
+        self.test_es.add_doc(dummy_doc_generate.generate_document({"hostname": "two", "deployment_name": "two"}))
+        # index: 3
+        self.test_es.add_doc(dummy_doc_generate.generate_document({"hostname": "two", "deployment_name": "three"}))
         # Outlier document
-        self.test_es.add_doc(dummy_doc_generate.generate_document(hostname="three"))  # index 4
+        # index 4
+        self.test_es.add_doc(dummy_doc_generate.generate_document({"hostname": "three"}))
         # index: 4
 
         # Run analyzer
