@@ -447,6 +447,7 @@ class TestMetricsAnalyzer(unittest.TestCase):
         eval_metrics_array, aggregator_value, target_value, metrics_value, observations = \
             self._preperate_data_terms_with_doc(metrics_value=12)
         doc_without_outlier = copy.deepcopy(doc_without_outlier_test_file)
+        self.test_es.add_doc(doc_without_outlier)
         metrics = MetricsAnalyzer.add_metric_to_batch(eval_metrics_array, aggregator_value, target_value, metrics_value,
                                                       observations, doc_without_outlier)
 

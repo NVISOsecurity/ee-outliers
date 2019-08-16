@@ -10,8 +10,7 @@ from tests.unit_tests.utils.test_settings import TestSettings
 from helpers.outlier import Outlier
 
 doc_without_outlier_test_file = json.load(open("/app/tests/unit_tests/files/doc_without_outlier.json"))
-doc_with_outlier_test_file = json.load(
-                            open("/app/tests/unit_tests/files/doc_with_analyzer_outlier_without_score_and_sort.json"))
+doc_with_outlier_test_file = json.load(open("/app/tests/unit_tests/files/doc_with_analyzer_outlier.json"))
 
 
 class TestAnalyzer(unittest.TestCase):
@@ -44,6 +43,7 @@ class TestAnalyzer(unittest.TestCase):
         analyzer = TestStubAnalyzer("analyzer_dummy_test")
 
         doc_without_outlier = copy.deepcopy(doc_without_outlier_test_file)
+        self.test_es.add_doc(doc_without_outlier)
         doc_with_outlier = copy.deepcopy(doc_with_outlier_test_file)
 
         doc_fields = doc_without_outlier["_source"]
