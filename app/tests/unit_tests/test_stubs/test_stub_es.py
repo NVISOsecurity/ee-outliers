@@ -66,8 +66,7 @@ class TestStubEs:
 
         for bulk in es.bulk_actions:
             if bulk['_op_type'] == 'update':
-                data = {}
-
+                # If it is a script bulk request
                 if "_source" in bulk and "script" in bulk["_source"]:
                     data = self.list_data[bulk['_id']]
 
@@ -75,7 +74,7 @@ class TestStubEs:
                     data = helpers.es.remove_outliers_from_document(data)
                     self.list_data[bulk['_id']] = data
 
-                else:
+                else:  # Else it is only a update request
                     data = {
                         "_source": bulk['doc'],
                         "_id": bulk['_id']
