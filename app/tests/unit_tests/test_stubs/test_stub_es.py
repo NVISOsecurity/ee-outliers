@@ -1,4 +1,5 @@
 from helpers.singletons import es
+import helpers.es
 
 
 class TestStubEs:
@@ -65,15 +66,30 @@ class TestStubEs:
 
         for bulk in es.bulk_actions:
             if bulk['_op_type'] == 'update':
-                data = {
-                    "_source": bulk['doc'],
-                    "_id": bulk['_id']
-                }
-                if '_type' in bulk:
-                    data['_type'] = bulk['_type']
-                if '_index' in bulk:
-                    data['_index'] = bulk['_index']
-                self.list_data[bulk['_id']] = data
+                data = {}
+
+                if "_source" in bulk and "script" in bulk["_source"]:
+                    data = self.list_data[bulk['_id']]
+
+                    # We supposed here that only the remove of outlier is possible
+                    data = helpers.es.remove_outliers_from_document(data)
+                    self.list_data[bulk['_id']] = data
+
+                else:
+                    data = {
+                        "_source": bulk['doc'],
+                        "_id": bulk['_id']
+                    }
+
+                    if '_type' in bulk:
+                        data['_type'] = bulk['_type']
+                    if '_index' in bulk:
+                        data['_index'] = bulk['_index']
+
+                    # print("avant", self.list_data[bulk['_id']])
+                    self.list_data[bulk['_id']].update(data)
+                    # print("après", self.list_data[bulk['_id']])
+
             else:
                 raise KeyError('Unknown bulk action: "' + bulk['_op_type'] + '"')
         es.bulk_actions = []
