@@ -599,3 +599,68 @@ class TestTermsAnalyzer(unittest.TestCase):
 
         # We detect agg2 but not agg1
         self.assertEqual(list_outliers, [("agg2", "0"), ("agg2", "0"), ("agg2", "3"), ("agg2", "4")])
+
+    def test_non_outlier_values_not_present_in_terms_for_first(self):
+        dummy_doc_generate = DummyDocumentsGenerate()
+
+        # Generate documents
+        # Outlier document
+        self.test_es.add_doc(dummy_doc_generate.generate_document(hostname="one", deployment_name="one"))  # index: 0
+        # Non outlier
+        self.test_es.add_doc(dummy_doc_generate.generate_document(hostname="one", deployment_name="two"))  # index: 1
+        self.test_es.add_doc(dummy_doc_generate.generate_document(hostname="one", deployment_name="two"))  # index: 2
+        self.test_es.add_doc(dummy_doc_generate.generate_document(hostname="one", deployment_name="two"))  # index: 3
+
+        # Run analyzer
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_01.conf")
+        analyzer = TermsAnalyzer("terms_dummy_test_float_low")
+        analyzer.evaluate_model()
+
+        result = [elem for elem in es._scan()][0]
+
+        self.assertEqual(result["_source"]["outliers"]["non_outlier_values_sample"], list())
+
+    def test_non_outlier_values_not_present_in_terms_within(self):
+        dummy_doc_generate = DummyDocumentsGenerate()
+
+        # Generate documents
+        # Outlier document
+        self.test_es.add_doc(dummy_doc_generate.generate_document(hostname="one", deployment_name="one"))  # index: 0
+        # Non outlier
+        self.test_es.add_doc(dummy_doc_generate.generate_document(hostname="one", deployment_name="two"))  # index: 1
+        self.test_es.add_doc(dummy_doc_generate.generate_document(hostname="one", deployment_name="two"))  # index: 2
+        self.test_es.add_doc(dummy_doc_generate.generate_document(hostname="one", deployment_name="two"))  # index: 3
+        # Outlier document
+        self.test_es.add_doc(dummy_doc_generate.generate_document(hostname="one", deployment_name="three"))  # index: 4
+
+        # Run analyzer
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_01.conf")
+        analyzer = TermsAnalyzer("terms_dummy_test_float_low")
+        analyzer.evaluate_model()
+
+        result = [elem for elem in es._scan()][4]
+
+        self.assertEqual(result["_source"]["outliers"]["non_outlier_values_sample"], ["two"])
+
+    def test_non_outlier_values_empty_terms_across(self):
+        dummy_doc_generate = DummyDocumentsGenerate()
+
+        # Generate documents
+        # Outlier document
+        self.test_es.add_doc(dummy_doc_generate.generate_document(hostname="one"))  # index: 0
+        # Non outlier
+        self.test_es.add_doc(dummy_doc_generate.generate_document(hostname="two", deployment_name="one"))  # index: 1
+        self.test_es.add_doc(dummy_doc_generate.generate_document(hostname="two", deployment_name="two"))  # index: 2
+        self.test_es.add_doc(dummy_doc_generate.generate_document(hostname="two", deployment_name="three"))  # index: 3
+        # Outlier document
+        self.test_es.add_doc(dummy_doc_generate.generate_document(hostname="three"))  # index 4
+        # index: 4
+
+        # Run analyzer
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_01.conf")
+        analyzer = TermsAnalyzer("terms_across_dummy_test_float_low")
+        analyzer.evaluate_model()
+
+        result = [elem for elem in es._scan()][4]
+
+        self.assertEqual(result["_source"]["outliers"]["non_outlier_values_sample"], list())
