@@ -8,7 +8,7 @@ import helpers.es
 from helpers.outlier import Outlier
 from helpers.singletons import es
 from tests.unit_tests.test_stubs.test_stub_es import TestStubEs
-from tests.unit_tests.utils.test_settings import TestSettings
+from tests.unit_tests.utils.update_settings import UpdateSettings
 from tests.unit_tests.utils.dummy_documents_generate import DummyDocumentsGenerate
 
 doc_without_outlier_test_file = json.load(open("/app/tests/unit_tests/files/doc_without_outlier.json"))
@@ -32,7 +32,7 @@ nested_doc_for_whitelist_test = {'169.254.184.188', 'fe80::491a:881a:b1bf:b539',
 class TestOutlierOperations(unittest.TestCase):
     def setUp(self):
         self.test_es = TestStubEs()
-        self.test_settings = TestSettings()
+        self.test_settings = UpdateSettings()
 
     def tearDown(self):
         # restore the default configuration file so we don't influence other unit tests that use the settings singleton

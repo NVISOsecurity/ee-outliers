@@ -41,10 +41,10 @@ class DummyDocumentsGenerate:
         self.start_timestamp += datetime.timedelta(seconds=1)
         return self.start_timestamp
 
-    def generate_document(self, create_outlier=False, nbr_tags=1, index=None, slave_name=None, hostname=None,
-                          deployment_name=None, user_id=None, test_hex_value=None, test_base64_value=None,
-                          test_url_value=None, command_query=None, command_name=None, outlier_summary=None,
-                          outlier_observation=None):
+    def generate_document(self, create_outlier=False, nbr_tags=1, index=None, filename=None, slave_name=None,
+                          hostname=None, deployment_name=None, user_id=None, test_hex_value=None,
+                          test_base64_value=None, test_url_value=None, command_query=None, command_name=None,
+                          outlier_summary=None, outlier_observation=None):
         doc_date_time = self._generate_date()
         str_date = doc_date_time.strftime("%Y.%m.%d")
 
@@ -56,7 +56,7 @@ class DummyDocumentsGenerate:
             '_type': "doc",
             '_id': self.id,
             '_version': 2,
-            '_source': self._generate_source(doc_date_time, create_outlier, nbr_tags, slave_name, hostname,
+            '_source': self._generate_source(doc_date_time, create_outlier, nbr_tags, filename, slave_name, hostname,
                                              deployment_name, user_id, test_hex_value, test_base64_value,
                                              test_url_value, command_query, command_name, outlier_summary,
                                              outlier_observation)
@@ -64,12 +64,14 @@ class DummyDocumentsGenerate:
         self.id += 1
         return doc
 
-    def _generate_source(self, doc_date_time, create_outlier, nbr_tags, slave_name, hostname, deployment_name,
+    def _generate_source(self, doc_date_time, create_outlier, nbr_tags, filename, slave_name, hostname, deployment_name,
                          user_id, test_hex_value, test_base64_value, test_url_value, command_query, command_name,
                          outlier_summary, outlier_observation):
         # Example: 2018-08-23T10:48:16.200315+00:00
         str_timestamp = self._date_time_to_timestamp(doc_date_time)
-        filename = random.choice(all_possible_filename)
+
+        if filename is None:
+            filename = random.choice(all_possible_filename)
 
         if slave_name is None:
             slave_name = random.choice(all_possible_slave_name)
