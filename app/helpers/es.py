@@ -335,7 +335,9 @@ class ES:
             '_source': {
                 "script": {
                     "source": "ctx._source.remove(\"outliers\"); " +
-                              "ctx._source.tags.remove(ctx._source.tags.indexOf(\"outlier\"))",
+                              "if (ctx._source.tags.indexOf(\"outlier\") > -1) { " +
+                              "ctx._source.tags.remove(ctx._source.tags.indexOf(\"outlier\")); " +
+                              "}",
                     "lang": "painless"
                 }
             }
