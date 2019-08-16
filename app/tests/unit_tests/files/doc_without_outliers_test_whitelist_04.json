@@ -53,7 +53,7 @@
             },
             "deployment_name": "DUMMY Workstations",
             "filename": "osquery_get_all_processes_with_listening_conns.log",
-            "hostname": "DUMMY-PC",
+            "hostname": "whitelist_hostname",
             "logged_in_users": [
                 "dummyuser"
             ],

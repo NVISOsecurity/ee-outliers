@@ -36,4 +36,4 @@ scheduled_task_user_specific_2=^.*rare scheduled task:.*-.*-.*-.*-.*$
 autorun_user_specific=^.*rare autorun:.*-.*-.*-.*-.*$
 ```
 
-<p align="right"><a href="DEVELOPMENT.md">Information for developers &#8594;</a></p>
+<p align="right"><a href="NOTIFICATIONS.md">Notification system &#8594;</a></p>

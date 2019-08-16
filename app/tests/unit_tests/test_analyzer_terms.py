@@ -11,15 +11,13 @@ from helpers.singletons import logging, es
 from tests.unit_tests.utils.test_settings import TestSettings
 from tests.unit_tests.utils.dummy_documents_generate import DummyDocumentsGenerate
 
-doc_without_outliers_test_whitelist_01_test_file = json.load(
-    open("/app/tests/unit_tests/files/doc_without_outliers_test_whitelist_01.json"))
 doc_without_outliers_test_whitelist_02_test_file = json.load(
     open("/app/tests/unit_tests/files/doc_without_outliers_test_whitelist_02.json"))
 doc_without_outliers_test_whitelist_03_test_file = json.load(
     open("/app/tests/unit_tests/files/doc_without_outliers_test_whitelist_03.json"))
 doc_without_outlier_test_file = json.load(open("/app/tests/unit_tests/files/doc_without_outlier.json"))
 doc_with_terms_outlier_coeff_of_variation_no_score_sort = json.load(
-    open("/app/tests/unit_tests/files/doc_with_terms_outlier_coeff_of_variation_no_score_sort.json"))
+    open("/app/tests/unit_tests/files/doc_with_terms_outlier_coeff_of_variation.json"))
 
 LIST_AGGREGATOR_VALUE = ["agg-WIN-EVB-draman", "agg-WIN-DRA-draman"]
 LIST_TARGET_VALUE = ["WIN-DRA-draman", "WIN-EVB-draman", "LINUX-DRA-draman"]
@@ -43,16 +41,6 @@ class TestTermsAnalyzer(unittest.TestCase):
         # restore the default configuration file so we don't influence other unit tests that use the settings singleton
         self.test_settings.restore_default_configuration_path()
         self.test_es.restore_es()
-
-    @staticmethod
-    def _prepare_data_terms():
-        eval_terms_array = defaultdict()
-        # "random" value
-        aggregator_value = "key"
-        target_value = "test"
-        observations = {'a': 1, 'test': 'ok'}
-        doc = {'source': 'this', 'target': 12}
-        return eval_terms_array, aggregator_value, target_value, observations, doc
 
     # This test work only if we try to detect whitelist element on non outliers elements
     # Here the count is not lower than three, so documents aren't outliers, and we never see that the first one is
