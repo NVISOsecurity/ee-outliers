@@ -11,6 +11,8 @@ test_file_no_whitelist_path_config = "/app/tests/unit_tests/files/housekeeping_n
 test_file_whitelist_path_config = "/app/tests/unit_tests/files/whitelist_tests_01.conf"
 doc_without_outlier_without_score_test_file = json.load(open(
     "/app/tests/unit_tests/files/doc_without_outlier_without_score.json"))
+doc_without_outlier_test_file = json.load(open(
+    "/app/tests/unit_tests/files/doc_without_outlier.json"))
 doc_with_outlier_test_file = json.load(open("/app/tests/unit_tests/files/doc_with_outlier.json"))
 
 
@@ -65,9 +67,8 @@ class TestHousekeeping(unittest.TestCase):
         result = [elem for elem in self.test_es._scan()][0]
 
         # Compute expected result:
-        doc_without_outlier = copy.deepcopy(doc_without_outlier_without_score_test_file)
+        doc_without_outlier = copy.deepcopy(doc_without_outlier_test_file)
         self._restore_config(test_file_no_whitelist_path_config)
-
         self.assertEqual(result, doc_without_outlier)
 
     def test_housekeeping_not_execute_no_whitelist_parameter_change(self):

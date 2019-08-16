@@ -11,7 +11,7 @@ from tests.unit_tests.utils.dummy_documents_generate import DummyDocumentsGenera
 
 doc_without_outlier_test_file = json.load(open("/app/tests/unit_tests/files/doc_without_outlier.json"))
 doc_with_outlier_test_file = json.load(
-                        open("/app/tests/unit_tests/files/doc_with_simple_query_outlier_without_score_and_sort.json"))
+                        open("/app/tests/unit_tests/files/doc_with_simple_query_outlier.json"))
 
 DEFAULT_OUTLIERS_KEY_FIELDS = ["type", "reason", "summary", "model_name", "model_type", "total_outliers"]
 

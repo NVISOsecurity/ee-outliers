@@ -21,6 +21,8 @@ all_test_hex_values = ["not hex value", "12177014F73", "546869732069732061207465
 all_test_base64_values = ["QVlCQUJUVQ==", "VGhpcyBpcyBhIHRleHQ=", "not base"]
 all_test_url_values = ["http://google.be", "This is a test without URL", "Example: http://www.dance.com/",
                        "http://nviso.be", "http://long-url-example-to-test.brussels"]
+all_outlier_summary = ["dummy summary"]
+all_outlier_observation = ["dummy observation"]
 
 
 class DummyDocumentsGenerate:
@@ -41,7 +43,8 @@ class DummyDocumentsGenerate:
 
     def generate_document(self, create_outlier=False, nbr_tags=1, index=None, slave_name=None, hostname=None,
                           deployment_name=None, user_id=None, test_hex_value=None, test_base64_value=None,
-                          test_url_value=None, command_query=None, command_name=None):
+                          test_url_value=None, command_query=None, command_name=None, outlier_summary=None,
+                          outlier_observation=None):
         doc_date_time = self._generate_date()
         str_date = doc_date_time.strftime("%Y.%m.%d")
 
@@ -55,13 +58,15 @@ class DummyDocumentsGenerate:
             '_version': 2,
             '_source': self._generate_source(doc_date_time, create_outlier, nbr_tags, slave_name, hostname,
                                              deployment_name, user_id, test_hex_value, test_base64_value,
-                                             test_url_value, command_query, command_name)
+                                             test_url_value, command_query, command_name, outlier_summary,
+                                             outlier_observation)
         }
         self.id += 1
         return doc
 
     def _generate_source(self, doc_date_time, create_outlier, nbr_tags, slave_name, hostname, deployment_name,
-                         user_id, test_hex_value, test_base64_value, test_url_value, command_query, command_name):
+                         user_id, test_hex_value, test_base64_value, test_url_value, command_query, command_name,
+                         outlier_summary, outlier_observation):
         # Example: 2018-08-23T10:48:16.200315+00:00
         str_timestamp = self._date_time_to_timestamp(doc_date_time)
         filename = random.choice(all_possible_filename)
@@ -82,7 +87,7 @@ class DummyDocumentsGenerate:
             'test': self._generate_test_data(test_hex_value, test_base64_value, test_url_value)
         }
         if create_outlier:
-            source['outliers'] = dict()  # TODO
+            source['outliers'] = self._generate_outlier_data(outlier_summary, outlier_observation)
         return source
 
     def _generate_tag(self, nbr_tags, create_outlier=False):
@@ -144,6 +149,24 @@ class DummyDocumentsGenerate:
             'hex_value': test_hex_value,
             'base64_value': test_base64_value,
             'url_value': test_url_value
+        }
+
+    def _generate_outlier_data(self, outlier_summary, outlier_observation):
+
+        if outlier_summary is None:
+            outlier_summary = random.choice(all_outlier_summary)
+
+        if outlier_observation is None:
+            outlier_observation = random.choice(all_outlier_observation)
+
+        return {
+            "observation": outlier_observation,
+            "reason": "dummy reason",
+            "summary": outlier_summary,
+            "type": "dummy type",
+            "model_name": "dummy test",
+            "model_type": "dummy type",
+            "total_outliers": "1"
         }
 
     def create_documents(self, nbr_document):

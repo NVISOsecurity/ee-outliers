@@ -228,7 +228,7 @@ class ES:
                 if total_whitelisted == total_outliers_in_doc:
                     total_outliers_whitelisted += 1
                     doc = remove_outliers_from_document(doc)
-                    self.add_update_bulk_action(doc)
+                    self.add_remove_outlier_bulk_action(doc)
 
                 # we don't use the ticker from the logger singleton, as this will be called from the housekeeping thread
                 # if we share a same ticker between multiple threads, strange results would start to appear in
@@ -322,6 +322,25 @@ class ES:
             '_id': document["_id"],
             'retry_on_conflict': 10,
             'doc': document["_source"]
+        }
+        self.add_bulk_action(action)
+
+    def add_remove_outlier_bulk_action(self, document):
+        action = {
+            '_op_type': 'update',
+            '_index': document["_index"],
+            '_type': document["_type"],
+            '_id': document["_id"],
+            'retry_on_conflict': 10,
+            '_source': {
+                "script": {
+                    "source": "ctx._source.remove(\"outliers\"); " +
+                              "if (ctx._source.tags != null && ctx._source.tags.indexOf(\"outlier\") > -1) { " +
+                              "ctx._source.tags.remove(ctx._source.tags.indexOf(\"outlier\")); " +
+                              "}",
+                    "lang": "painless"
+                }
+            }
         }
         self.add_bulk_action(action)
 
