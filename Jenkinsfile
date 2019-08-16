@@ -74,12 +74,6 @@ pipeline {
     }
 
     post {
-        success {
-            slackSend color: 'good', message: "Build Succeeded! - ${env.JOB_NAME} ${env.BUILD_NUMBER} (<${env.BUILD_URL}|Open>)"
-        }
-        failure {
-            slackSend color: 'danger', message: "Build Failed! - ${env.JOB_NAME} ${env.BUILD_NUMBER} (<${env.BUILD_URL}|Open>)"
-        }
         always {
             script {
                 sh 'docker run -v $WORKSPACE:/workspace --rm alpine/flake8 --exit-zero --ignore=E501 --output-file=/workspace/flake8.xml /workspace/app'
