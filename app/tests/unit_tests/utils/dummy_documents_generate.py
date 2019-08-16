@@ -49,6 +49,7 @@ class DummyDocumentsGenerate:
         - create_outlier
         - nbr_tags
         - index
+        - filename
         - slave_name
         - hostname
         - deployment_name
@@ -83,7 +84,9 @@ class DummyDocumentsGenerate:
     def _generate_source(self, doc_date_time, specific_value):
         # Example: 2018-08-23T10:48:16.200315+00:00
         str_timestamp = self._date_time_to_timestamp(doc_date_time)
-        filename = random.choice(all_possible_filename)
+
+        if "filename" not in specific_value:
+            specific_value["filename"] = random.choice(all_possible_filename)
 
         if "slave_name" not in specific_value:
             specific_value["slave_name"] = random.choice(all_possible_slave_name)
@@ -98,8 +101,8 @@ class DummyDocumentsGenerate:
             '@version': '1',
             'slave_name': specific_value["slave_name"],
             'type': random.choice(all_possible_doc_source_type),
-            'filename': filename,
-            'meta': self._generate_meta(doc_date_time, filename, specific_value),
+            'filename': specific_value["filename"],
+            'meta': self._generate_meta(doc_date_time, specific_value["filename"], specific_value),
             'test': self._generate_test_data(specific_value)
         }
         if "create_outlier" in specific_value:

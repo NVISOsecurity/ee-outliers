@@ -6,7 +6,7 @@ import copy
 from helpers.singletons import es
 from tests.unit_tests.test_stubs.test_stub_analyzer import TestStubAnalyzer
 from tests.unit_tests.test_stubs.test_stub_es import TestStubEs
-from tests.unit_tests.utils.test_settings import TestSettings
+from tests.unit_tests.utils.update_settings import UpdateSettings
 from helpers.outlier import Outlier
 
 doc_without_outlier_test_file = json.load(open("/app/tests/unit_tests/files/doc_without_outlier.json"))
@@ -18,7 +18,7 @@ class TestAnalyzer(unittest.TestCase):
     def setUp(self):
         # "es" use in Analyzer construction and in the method "process_outlier"
         self.test_es = TestStubEs()
-        self.test_settings = TestSettings()
+        self.test_settings = UpdateSettings()
 
     def tearDown(self):
         # restore the default configuration file so we don't influence other unit tests that use the settings singleton
