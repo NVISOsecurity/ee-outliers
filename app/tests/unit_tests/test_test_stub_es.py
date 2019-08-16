@@ -115,7 +115,7 @@ class TestTestStubEs(unittest.TestCase):
 
     def test_bulk_update_do_not_remove_values(self):
         dummy_doc_gen = DummyDocumentsGenerate()
-        doc = dummy_doc_gen.generate_document(create_outlier=True)
+        doc = dummy_doc_gen.generate_document({"create_outlier": True})
         self.test_es.add_doc(doc)
         test_doc = copy.deepcopy(doc)
 

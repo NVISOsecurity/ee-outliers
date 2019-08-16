@@ -47,10 +47,10 @@ class TestMetricsAnalyzer(unittest.TestCase):
 
         # Generate document that match outlier
         for _ in range(nbr_generated_documents):
-            self.test_es.add_doc(dummy_doc_generate.generate_document(command_query=command_query))
+            self.test_es.add_doc(dummy_doc_generate.generate_document({"command_query": command_query}))
         # Generate whitelist document
-        self.test_es.add_doc(dummy_doc_generate.generate_document(hostname="whitelist_hostname",
-                                                                  command_query=command_query))
+        self.test_es.add_doc(dummy_doc_generate.generate_document({"hostname": "whitelist_hostname",
+                                                                   "command_query": command_query}))
 
         # Run analyzer
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/metrics_test_with_whitelist.conf")
@@ -70,7 +70,7 @@ class TestMetricsAnalyzer(unittest.TestCase):
 
         # Generate document
         for user_id in list_user_id:
-            self.test_es.add_doc(dummy_doc_generate.generate_document(user_id=user_id))
+            self.test_es.add_doc(dummy_doc_generate.generate_document({"user_id": user_id}))
         # Only the fist one must be detected like outlier, because user_id need to be bigger than 10
 
         # Run analyzer
@@ -91,7 +91,7 @@ class TestMetricsAnalyzer(unittest.TestCase):
 
         # Generate document
         for user_id in list_user_id:
-            self.test_es.add_doc(dummy_doc_generate.generate_document(user_id=user_id))
+            self.test_es.add_doc(dummy_doc_generate.generate_document({"user_id": user_id}))
         # Only the fist one must be detected like outlier, because user_id need to be bigger than 10
 
         # Run analyzer
@@ -111,7 +111,7 @@ class TestMetricsAnalyzer(unittest.TestCase):
 
         # Generate document
         for user_id in list_user_id:
-            self.test_es.add_doc(dummy_doc_generate.generate_document(user_id=user_id))
+            self.test_es.add_doc(dummy_doc_generate.generate_document({"user_id": user_id}))
 
         # Run analyzer
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/metrics_test_small_batch_eval.conf")
@@ -132,7 +132,7 @@ class TestMetricsAnalyzer(unittest.TestCase):
 
         # Generate document
         for user_id in list_user_id:
-            self.test_es.add_doc(dummy_doc_generate.generate_document(user_id=user_id))
+            self.test_es.add_doc(dummy_doc_generate.generate_document({"user_id": user_id}))
 
         # Run analyzer
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/metrics_test_small_batch_eval.conf")
@@ -154,7 +154,7 @@ class TestMetricsAnalyzer(unittest.TestCase):
 
     def test_metrics_use_derived_fields_in_outlier(self):
         dummy_doc_generate = DummyDocumentsGenerate()
-        self.test_es.add_doc(dummy_doc_generate.generate_document(user_id=11))
+        self.test_es.add_doc(dummy_doc_generate.generate_document({"user_id": 11}))
 
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/metrics_test_01.conf")
         analyzer = MetricsAnalyzer("metrics_dummy_test_derived")
@@ -176,7 +176,7 @@ class TestMetricsAnalyzer(unittest.TestCase):
 
     def test_metrics_not_use_derived_fields_but_present_in_outlier(self):
         dummy_doc_generate = DummyDocumentsGenerate()
-        self.test_es.add_doc(dummy_doc_generate.generate_document(user_id=11))
+        self.test_es.add_doc(dummy_doc_generate.generate_document({"user_id": 11}))
 
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/metrics_test_01.conf")
         analyzer = MetricsAnalyzer("metrics_dummy_test_not_derived")
@@ -214,8 +214,8 @@ class TestMetricsAnalyzer(unittest.TestCase):
             user_id = target_value
             hostname = aggregator
 
-            doc_generated = dummy_doc_gen.generate_document(deployment_name=deployment_name, user_id=user_id,
-                                                            hostname=hostname)
+            doc_generated = dummy_doc_gen.generate_document({"deployment_name": deployment_name, "user_id": user_id,
+                                                            "hostname": hostname})
             self.test_es.add_doc(doc_generated)
 
     def test_metrics_batch_whitelist_three_outliers_one_whitelist(self):
@@ -290,7 +290,7 @@ class TestMetricsAnalyzer(unittest.TestCase):
         dummy_doc_generate = DummyDocumentsGenerate()
 
         # Generate document
-        self.test_es.add_doc(dummy_doc_generate.generate_document(user_id=11))
+        self.test_es.add_doc(dummy_doc_generate.generate_document({"user_id": 11}))
 
         # Run analyzer
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/metrics_test_02.conf")
@@ -305,7 +305,7 @@ class TestMetricsAnalyzer(unittest.TestCase):
         dummy_doc_generate = DummyDocumentsGenerate()
 
         # Generate document
-        self.test_es.add_doc(dummy_doc_generate.generate_document(user_id=11))
+        self.test_es.add_doc(dummy_doc_generate.generate_document({"user_id": 11}))
 
         # Run analyzer
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/metrics_test_02.conf")
@@ -320,7 +320,7 @@ class TestMetricsAnalyzer(unittest.TestCase):
         dummy_doc_generate = DummyDocumentsGenerate()
 
         # Generate document
-        self.test_es.add_doc(dummy_doc_generate.generate_document(user_id=11))
+        self.test_es.add_doc(dummy_doc_generate.generate_document({"user_id": 11}))
 
         # Run analyzer
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/metrics_test_02.conf")

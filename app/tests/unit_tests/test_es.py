@@ -54,9 +54,9 @@ class TestEs(unittest.TestCase):
         self.test_settings.change_configuration_path(test_file_whitelist_path_config)
 
         doc_generate = DummyDocumentsGenerate()
-        self.test_es.add_doc(doc_generate.generate_document(
-            create_outlier=True, outlier_observation="dummy observation",
-            command_query="osquery_get_all_processes_with_listening_conns.log"))
+        self.test_es.add_doc(doc_generate.generate_document({
+            "create_outlier": True, "outlier_observation": "dummy observation",
+            "command_query": "osquery_get_all_processes_with_listening_conns.log"}))
 
         # Check that outlier correctly generated
         result = [doc for doc in es._scan()][0]

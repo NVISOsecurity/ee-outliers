@@ -122,7 +122,7 @@ class TestOutlierOperations(unittest.TestCase):
         # Contain: "C:\Windows\system32\msfeedssync.exe sync"
 
         dummy_doc_gen = DummyDocumentsGenerate()
-        doc = dummy_doc_gen.generate_document(command_query=r'C:\Windows\system32\msfeedssync.exe sync')
+        doc = dummy_doc_gen.generate_document({"command_query": r'C:\Windows\system32\msfeedssync.exe sync'})
 
         result = Outlier.is_whitelisted_doc(doc)
         self.assertTrue(result)
@@ -131,7 +131,7 @@ class TestOutlierOperations(unittest.TestCase):
         self.test_settings.change_configuration_path(test_file_outliers_path_config)
         # Contain: "C:\Windows\system32\msfeedssync.exe sync"
         dummy_doc_gen = DummyDocumentsGenerate()
-        doc = dummy_doc_gen.generate_document(command_query=r'C:\Windows\system32\msfeedssync.exe syncOther')
+        doc = dummy_doc_gen.generate_document({"command_query": r'C:\Windows\system32\msfeedssync.exe syncOther'})
 
         result = Outlier.is_whitelisted_doc(doc)
         self.assertFalse(result)
