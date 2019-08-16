@@ -21,8 +21,8 @@ class TestSettings(unittest.TestCase):
         self.test_settings.change_configuration_path(test_whitelist_single_literal_file)
 
         dummy_doc_gen = DummyDocumentsGenerate()
-        doc = dummy_doc_gen.generate_document(create_outlier=True, outlier_observation="dummy observation",
-                                              filename="osquery_get_all_processes_with_listening_conns.log")
+        doc = dummy_doc_gen.generate_document({"create_outlier": True, "outlier_observation": "dummy observation",
+                                               "filename": "osquery_get_all_processes_with_listening_conns.log"})
 
         # With this configuration, outlier is not whitlisted
         self.assertFalse(Outlier.is_whitelisted_doc(doc))
