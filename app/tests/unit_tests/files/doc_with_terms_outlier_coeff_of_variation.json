@@ -90,7 +90,7 @@
             "model_name": ["dummy_test_no_bucket"],
             "total_outliers": 1,
             "summary": ["dummy summary"],
-            "non_outlier_values_sample": [""],
+            "non_outlier_values_sample": [],
             "trigger_method": ["coeff_of_variation"],
             "derived_timestamp_year": ["2018"],
             "derived_timestamp_month": ["07"],
