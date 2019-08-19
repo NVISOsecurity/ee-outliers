@@ -3,6 +3,7 @@ import argparse
 import re
 
 from helpers.singleton import singleton
+import helpers.singletons
 
 parser = argparse.ArgumentParser()
 

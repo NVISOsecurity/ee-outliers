@@ -18,7 +18,7 @@ class Outlier:
     # support this too.
     # Example: "dns_tunneling_fp = rule_updates.et.com, intel_server" -> should match both values across the entire
     # event (rule_updates.et.com and intel_server);
-    def is_whitelisted(self):
+    def is_whitelisted(self, display_logger=False):
         """
         Check if the current outlier is whitelisted or not. To do this computation, the document content is used.
         Notice that the computation is done one and then just given when this method is again call.
@@ -26,9 +26,14 @@ class Outlier:
         :return: True if whitelisted, False otherwise
         """
         if self._is_whitelisted is None:
+            if display_logger:
+                helpers.singletons.logging.logger.info("[DEBUG] Compute whitelist")
+
             # Create dictionary that contain all stuff
             self._is_whitelisted = Outlier.is_whitelisted_doc({'outlier_dict': self.outlier_dict,
-                                                               'additional_dict_to_check': self.doc})
+                                                               'additional_dict_to_check': self.doc}, display_logger)
+        else:
+            helpers.singletons.logging.logger.info("[DEBUG] Whitelist is already compute, just return result")
         return self._is_whitelisted
 
     def get_outlier_dict_of_arrays(self):
@@ -62,7 +67,7 @@ class Outlier:
         return isinstance(other, Outlier) and self.outlier_dict == other.outlier_dict
 
     @staticmethod
-    def is_whitelisted_doc(dict_to_check=None):
+    def is_whitelisted_doc(dict_to_check=None, display_logger=False):
         """
         Allow to know if values of a dictionary is whitelisted or not
 
@@ -84,9 +89,20 @@ class Outlier:
                 helpers.singletons.settings.whitelist_literals_config:
             whitelist_values_to_check = set(map(str.strip, each_whitelist_configuration_file_value.split(',')))
 
+            if display_logger:
+                helpers.singletons.logging.logger.info("[DEBUG] " + str(whitelist_values_to_check) + " issubset of " +
+                                                       str(dict_values_to_check))
+
             # If all whitelisted value are in the dict to check
             if whitelist_values_to_check.issubset(dict_values_to_check):
+                if display_logger:
+                    helpers.singletons.logging.logger.info("[DEBUG] = True")
+                    helpers.singletons.logging.logger.info("[DEBUG] ")
                 return True
+
+            if display_logger:
+                helpers.singletons.logging.logger.info("[DEBUG] = False")
+                helpers.singletons.logging.logger.info("[DEBUG] ")
 
         # Check if value is whitelisted as regexps
         for (_, each_whitelist_configuration_file_value) in \
