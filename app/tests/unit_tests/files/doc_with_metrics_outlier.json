@@ -1,6 +1,7 @@
 {
     "_id": "d8_9WWQBFCEzBdQxDtu-",
     "_index": "logstash-eagleeye-osqueryfilter-2018.07.02",
+    "_score": null,
     "_source": {
         "@timestamp": "2018-07-02T07:54:30.549Z",
         "@version": "1",
@@ -83,6 +84,7 @@
             "model_type": ["metrics"], 
             "metric": [12], 
             "summary": ["dummy summary"],
+            "non_outlier_values_sample": [],
             "type": ["dummy type"],
             "reason": ["dummy reason"],
             "target": ["test"], 
@@ -101,5 +103,8 @@
         "timestamp": "2018-07-02T07:54:30.549523+00:00",
         "type": "eagleeye"
     },
-    "_type": "doc"
+    "_type": "doc",
+    "sort": [
+        42153
+    ]
 }
