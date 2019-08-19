@@ -74,7 +74,7 @@ def setup_logging() -> None:
 
 
 def print_intro() -> None:
-    logging.logger.info("outliers.py - version 0.2.0 - contact: research@nviso.be")
+    logging.logger.info("outliers.py - version 0.2.1 - contact: research@nviso.be")
     logging.logger.info("run mode: " + settings.args.run_mode)
 
     logging.print_generic_intro("initializing")

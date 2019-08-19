@@ -1,6 +1,7 @@
 {
     "_id": "d8_9WWQBFCEzBdQxDtu-",
     "_index": "logstash-eagleeye-osqueryfilter-2018.07.02",
+    "_score": null,
     "_source": {
         "@timestamp": "2018-07-02T07:54:30.549Z",
         "@version": "1",
@@ -80,11 +81,24 @@
         },
         "outliers": {
             "reason": ["dummy reason"],
-            "total_outliers": 1,
+            "model_type": ["terms"],
+            "term": ["07"],
             "type": ["dummy type"],
+            "term_count": [1], 
+            "decision_frontier": [0.0],
+            "aggregator": ["DUMMY-PC - 02"],
+            "model_name": ["dummy_test_no_bucket"],
+            "total_outliers": 1,
             "summary": ["dummy summary"],
-            "model_type": ["simplequery"], 
-            "model_name": ["dummy_test"]
+            "non_outlier_values_sample": [],
+            "trigger_method": ["coeff_of_variation"],
+            "derived_timestamp_year": ["2018"],
+            "derived_timestamp_month": ["07"],
+            "derived_timestamp_day": ["02"],
+            "derived_timestamp_hour": ["07"],
+            "derived_timestamp_minute": ["54"],
+            "derived_timestamp_second": ["30.549523"],
+            "derived_timestamp_timezone": ["+00:00"]
         },
         "slave_name": "ee-slave-lab",
         "smoky_filter_name": "OsqueryFilter",
@@ -94,7 +108,17 @@
             "outlier"
         ],
         "timestamp": "2018-07-02T07:54:30.549523+00:00",
-        "type": "eagleeye"
+        "type": "eagleeye",
+        "timestamp_year": "2018",
+        "timestamp_month": "07",
+        "timestamp_day": "02",
+        "timestamp_hour": "07",
+        "timestamp_minute": "54",
+        "timestamp_second": "30.549523",
+        "timestamp_timezone": "+00:00"
     },
-    "_type": "doc"
+    "_type": "doc",
+    "sort": [
+        42153
+    ]
 }

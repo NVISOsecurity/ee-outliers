@@ -102,9 +102,9 @@ class TestTestStubEs(unittest.TestCase):
 
     def test_flush_bulk_actions_using_one_save_outlier(self):
         doc_with_outlier_with_derived_timestamp = copy.deepcopy(doc_with_outlier_with_derived_timestamp_test_file)
-        doc_with_outlier_with_derived_timestamp.pop('sort')  # field add by es
-        doc_with_outlier_with_derived_timestamp.pop('_score')  # field add by es
         doc_without_outlier = copy.deepcopy(doc_without_outlier_test_file)
+        self.test_es.add_doc(doc_without_outlier)
+
         test_outlier = Outlier(outlier_type="dummy type", outlier_reason="dummy reason",
                                outlier_summary="dummy summary", doc=doc_without_outlier)
         test_outlier.outlier_dict["observation"] = "dummy observation"
@@ -112,3 +112,19 @@ class TestTestStubEs(unittest.TestCase):
         es.save_outlier(test_outlier)
         result = [elem for elem in es._scan()][0]
         self.assertEqual(result, doc_with_outlier_with_derived_timestamp)
+
+    def test_bulk_update_do_not_remove_values(self):
+        dummy_doc_gen = DummyDocumentsGenerate()
+        doc = dummy_doc_gen.generate_document({"create_outlier": True})
+        self.test_es.add_doc(doc)
+        test_doc = copy.deepcopy(doc)
+
+        # Remove outlier
+        test_doc["_source"].pop("outliers")
+
+        # Update the document (without outliers)
+        es.add_update_bulk_action(test_doc)
+
+        # Result in ES is the same that the original document (outliers wasn't removed)
+        result = [elem for elem in es._scan()][0]
+        self.assertEqual(doc, result)

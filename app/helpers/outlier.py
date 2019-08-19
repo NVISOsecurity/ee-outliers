@@ -22,6 +22,12 @@ class Outlier:
     # Example: "dns_tunneling_fp = rule_updates.et.com, intel_server" -> should match both values across the entire
     # event (rule_updates.et.com and intel_server);
     def is_whitelisted(self) -> bool:
+        """
+        Check if the current outlier is whitelisted or not. To do this computation, the document content is used.
+        Notice that the computation is done one and then just given when this method is again call.
+
+        :return: True if whitelisted, False otherwise
+        """
         if self._is_whitelisted is None:
             # Create dictionary that contain all stuff
             self._is_whitelisted = Outlier.is_whitelisted_doc({'outlier_dict': self.outlier_dict,
@@ -29,6 +35,11 @@ class Outlier:
         return self._is_whitelisted
 
     def get_outlier_dict_of_arrays(self) -> Dict[str, List[str]]:
+        """
+        Transform outliers information into a dictionary where all value are list
+
+        :return: a dictionary of list
+        """
         outlier_dict_of_arrays: Dict[str, List[str]] = dict()
 
         for k, v in self.outlier_dict.items():
@@ -55,6 +66,12 @@ class Outlier:
 
     @staticmethod
     def is_whitelisted_doc(dict_to_check: Dict) -> bool:
+        """
+        Allow to know if values of a dictionary is whitelisted or not
+
+        :param dict_to_check: dictionary that must be check
+        :return: True if whitelisted, False otherwise
+        """
         dict_values_to_check: Set[str] = set()
 
         for dict_val in helpers.utils.nested_dict_values(dict_to_check):
@@ -113,6 +130,13 @@ class Outlier:
 
     @staticmethod
     def dictionary_matches_specific_whitelist_item_regexp(regex: Pattern, set_of_values_to_check: Set[str]) -> bool:
+        """
+        Check if a dictionary match with a regex
+
+        :param regex: regex use to made the test
+        :param set_of_values_to_check: set of value that must be checked
+        :return: True if one value of the set match the regex
+        """
         # "any" operator will not create all the list to made the computation. The current code allow to "stop" the
         # "loop" when one element match
         return any(regex.match(value_to_check) for value_to_check in set_of_values_to_check)

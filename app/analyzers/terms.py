@@ -139,10 +139,8 @@ class TermsAnalyzer(Analyzer):
         # unique_target_counts_across_aggregators: [5, 2] (the first term contains 5 unique values, the second
         # one contains 2)
         if self.model_settings["target_count_method"] == "across_aggregators":
-            # List of document (per aggregator) that aren't outlier (to help user to see non match results)
-            # Notice that this dictionary will only be used if there is a loop (first loop fill the dict. Second loop
-            # take the result if outlier is detected).
-            non_outlier_values: DefaultDict[str, List] = defaultdict(list)
+            outliers: List[Outlier] = list()  # List outliers
+
             first_run: bool = True  # Force to run one time the loop
             nr_whitelisted_element_detected: int = 0  # Number of elements that have been removed (due to whitelist)
 
@@ -156,8 +154,7 @@ class TermsAnalyzer(Analyzer):
                 # Compute decision frontier and loop on all aggregator
                 # For each of them, evaluate if it is an outlier and remove terms that are whitelisted (no return
                 # because it is a dictionary)
-                nr_whitelisted_element_detected, outliers = self._evaluate_aggregator_for_outlier_accross(
-                    batch, non_outlier_values)
+                nr_whitelisted_element_detected, outliers = self._evaluate_aggregator_for_outlier_accross(batch)
 
             # All outliers and no remaining terms
             return outliers, defaultdict()
@@ -189,13 +186,11 @@ class TermsAnalyzer(Analyzer):
         else:
             raise ValueError("Unexpected target count method " + self.model_settings["target_count_method"])
 
-    def _evaluate_aggregator_for_outlier_accross(self, batch: DefaultDict,
-                                                 non_outlier_values: Dict) -> Tuple[int, List[Outlier]]:
+    def _evaluate_aggregator_for_outlier_accross(self, batch: DefaultDict) -> Tuple[int, List[Outlier]]:
         """
         Evaluate all aggregator to detect outlier (accross context)
 
         :param batch: batch use to made the analyze
-        :param non_outlier_values: list of values that aren't outlier
         :return: Number of element whitelisted and list of outliers
         """
         nr_whitelisted_element_detected: int = 0
@@ -214,8 +209,7 @@ class TermsAnalyzer(Analyzer):
             new_list_outliers, list_documents_need_to_be_removed = \
                 self._evaluate_each_aggregator_is_outliers_and_mark_across(batch, aggregator_value,
                                                                            unique_target_count_across_aggregators,
-                                                                           decision_frontier,
-                                                                           non_outlier_values[aggregator_value])
+                                                                           decision_frontier)
 
             # If some documents need to be removed
             if list_documents_need_to_be_removed:
@@ -274,7 +268,6 @@ class TermsAnalyzer(Analyzer):
         :param aggregator_value: aggregator value that must be computed
         :param unique_target_count_across_aggregators: number of element for this aggregator
         :param decision_frontier: value of the decision frontier
-        :param non_outlier_values: list of document that aren't outliers
         :return: the list of outliers and the list of document that have been detected like outlier but that are
         whitelisted (and that must be removed)
         """
@@ -291,17 +284,13 @@ class TermsAnalyzer(Analyzer):
 
         if is_outlier:
             list_outliers, list_documents_need_to_be_removed = self._mark_across_aggregator_document_as_outliers(
-                batch, aggregator_value, unique_target_count_across_aggregators, decision_frontier, non_outlier_values)
-        else:
-            # Save non outliers list (do not be return because it is a dictionary)
-            non_outlier_values += batch[aggregator_value]["targets"]
+                batch, aggregator_value, unique_target_count_across_aggregators, decision_frontier)
 
         return list_outliers, list_documents_need_to_be_removed
 
-    def _mark_across_aggregator_document_as_outliers(self, batch: DefaultDict, aggregator_value: str,
-                                                     unique_target_count_across_aggregators: int,
-                                                     decision_frontier: Union[int, float, float64],
-                                                     non_outlier_values: Set[str]) -> Tuple[List[Outlier], List[int]]:
+    def _mark_across_aggregator_document_as_outliers(
+            self, batch: DefaultDict, aggregator_value: str, unique_target_count_across_aggregators: int,
+            decision_frontier: Union[int, float, float64]) -> Tuple[List[Outlier], List[int]]:
         """
         Mark all document of a specific aggregator like an outlier
 
@@ -309,13 +298,13 @@ class TermsAnalyzer(Analyzer):
         :param aggregator_value: the aggregator value
         :param unique_target_count_across_aggregators: number of element for this aggregator
         :param decision_frontier: value of the decision frontier
-        :param non_outlier_values: list of document that aren't outliers
         :return: the list of outliers and the list of document that have been detected like outlier but that are
         whitelisted (and that must be removed)
         """
         # Initialise
         list_outliers: List[Outlier] = list()
         list_documents_need_to_be_removed: List[int] = list()
+        non_outlier_values: Set = set()
 
         for ii, term_value in enumerate(batch[aggregator_value]["targets"]):
             outlier: Outlier = self._create_outlier(non_outlier_values, unique_target_count_across_aggregators,
@@ -453,10 +442,14 @@ class TermsAnalyzer(Analyzer):
         :param ii: index of the document linked to this outlier
         :return: the created outlier
         """
-        non_outlier_values_sample: str = ",".join(random.sample(non_outlier_values, min(3, len(non_outlier_values))))
-
         observations: Dict[str, Any] = dict()
-        observations["non_outlier_values_sample"] = non_outlier_values_sample
+        if non_outlier_values:
+            non_outlier_values_sample: str = ",".join(random.sample(
+                non_outlier_values, 3 if len(non_outlier_values) > 3 else len(non_outlier_values)))
+            observations["non_outlier_values_sample"] = non_outlier_values_sample
+        else:
+            observations["non_outlier_values_sample"] = []
+
         observations["term_count"] = term_value_count
         observations["aggregator"] = aggregator_value
         observations["term"] = term_value

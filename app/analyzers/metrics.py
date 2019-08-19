@@ -5,6 +5,7 @@ from helpers.singletons import settings, es, logging
 from helpers.outlier import Outlier
 from collections import defaultdict
 import re
+import random
 import helpers.utils
 from helpers.analyzer import Analyzer
 from numpy import float64
@@ -249,6 +250,7 @@ class MetricsAnalyzer(Analyzer):
         """
         list_outliers: List[Outlier] = []
         list_documents_need_to_be_removed: List[int] = []
+        non_outlier_values: Set = set()
 
         # Calculate all outliers in array
         for ii, metric_value in enumerate(metrics_aggregator_value["metrics"]):
@@ -256,13 +258,16 @@ class MetricsAnalyzer(Analyzer):
                                                         self.model_settings["trigger_on"])
 
             if is_outlier:
-                outlier: Outlier = self._compute_fields_observation_and_create_outlier(metrics_aggregator_value, ii,
+                outlier: Outlier = self._compute_fields_observation_and_create_outlier(non_outlier_values,
+                                                                                       metrics_aggregator_value, ii,
                                                                                        decision_frontier, metric_value)
                 if not outlier.is_whitelisted():
                     list_outliers.append(outlier)
                 else:
                     self.nr_whitelisted_elements += 1
                     list_documents_need_to_be_removed.append(ii)
+            else:
+                non_outlier_values.add(str(metric_value))
 
         return list_outliers, list_documents_need_to_be_removed
 
@@ -278,17 +283,25 @@ class MetricsAnalyzer(Analyzer):
         :param metric_value: the metric value
         :return: the created outlier
         """
+        observations: Dict[str, Any] = metrics_aggregator_value["observations"][ii]
+
+        if non_outlier_values:
+            non_outlier_values_sample = ",".join(random.sample(
+                non_outlier_values, 3 if len(non_outlier_values) > 3 else len(non_outlier_values)))
+            observations["non_outlier_values_sample"] = non_outlier_values_sample
+        else:
+            observations["non_outlier_values_sample"] = []
+
+        observations["metric"] = metric_value
+        observations["decision_frontier"] = decision_frontier
+
         confidence: int = np.abs(decision_frontier - metric_value)
+        observations["confidence"] = confidence
 
         # Extract fields from raw document
         fields: Dict = es.extract_fields_from_document(
             metrics_aggregator_value["raw_docs"][ii],
             extract_derived_fields=self.model_settings["use_derived_fields"])
-
-        observations = metrics_aggregator_value["observations"][ii]
-        observations["metric"] = metric_value
-        observations["decision_frontier"] = decision_frontier
-        observations["confidence"] = confidence
 
         outlier: Outlier = self.create_outlier(fields, metrics_aggregator_value["raw_docs"][ii],
                                                extra_outlier_information=observations)

@@ -81,23 +81,11 @@
         },
         "outliers": {
             "reason": ["dummy reason"],
-            "model_type": ["terms"],
-            "term": ["WIN-EVB-draman"], 
-            "confidence": [0.6666666666666667],
-            "type": ["dummy type"],
-            "term_count": [1], 
-            "decision_frontier": [0.0],
-            "aggregator": ["DUMMY-PC - 02"],
-            "model_name": ["dummy_test"], 
             "total_outliers": 1,
+            "type": ["dummy type"],
             "summary": ["dummy summary"],
-            "derived_timestamp_year": ["2018"],
-            "derived_timestamp_month": ["07"],
-            "derived_timestamp_day": ["02"],
-            "derived_timestamp_hour": ["07"],
-            "derived_timestamp_minute": ["54"],
-            "derived_timestamp_second": ["30.549523"],
-            "derived_timestamp_timezone": ["+00:00"]
+            "model_type": ["simplequery"], 
+            "model_name": ["dummy_test"]
         },
         "slave_name": "ee-slave-lab",
         "smoky_filter_name": "OsqueryFilter",
@@ -107,14 +95,7 @@
             "outlier"
         ],
         "timestamp": "2018-07-02T07:54:30.549523+00:00",
-        "type": "eagleeye",
-        "timestamp_year": "2018",
-        "timestamp_month": "07",
-        "timestamp_day": "02",
-        "timestamp_hour": "07",
-        "timestamp_minute": "54",
-        "timestamp_second": "30.549523",
-        "timestamp_timezone": "+00:00"
+        "type": "eagleeye"
     },
     "_type": "doc",
     "sort": [
