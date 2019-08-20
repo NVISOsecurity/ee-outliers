@@ -42,7 +42,7 @@ def run_outliers():
     setup_logging()
     print_intro()
 
-    logging.logger.info("List whitelist literals: " + str(settings.whitelist_literals_config))
+    logging.logger.info("[DEBUG] List whitelist literals: " + str(settings.whitelist_literals_config))
 
     # everything has been setup correctly, we can now start analysis in the correct run mode
     if settings.args.run_mode == "daemon":

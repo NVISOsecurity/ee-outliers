@@ -209,21 +209,22 @@ class ES:
                 # generate all outlier objects for this document
                 total_whitelisted = 0
 
-                if total_outliers_in_doc > 1:
-                    for i in range(total_outliers_in_doc):
-                        outlier_type = doc["_source"]["outliers"]["type"][i]
-                        outlier_reason = doc["_source"]["outliers"]["reason"][i]
-                        outlier_summary = doc["_source"]["outliers"]["summary"][i]
+                for i in range(total_outliers_in_doc):
+                    outlier_type = doc["_source"]["outliers"]["type"][i]
+                    outlier_reason = doc["_source"]["outliers"]["reason"][i]
+                    outlier_summary = doc["_source"]["outliers"]["summary"][i]
 
-                        total_whitelisted += self.check_outlier_whitelist(outlier_type, outlier_reason, outlier_summary,
-                                                                          doc)
-                else:
-                    outlier_type = doc["_source"]["outliers"]["type"]
-                    outlier_reason = doc["_source"]["outliers"]["reason"]
-                    outlier_summary = doc["_source"]["outliers"]["summary"]
+                    display_whitelist = False
+                    if "WerFault.exe" in outlier_summary:
+                        self.logging.logger.info("[DEBUG] Analyze outlier with outlier_summary: " + outlier_summary)
+                        display_whitelist = True
+                    else:
+                        self.logging.logger.info("[DEBUG] Not in: " + outlier_summary)
 
-                    total_whitelisted += self.check_outlier_whitelist(outlier_type, outlier_reason, outlier_summary,
-                                                                      doc)
+                    outlier = Outlier(outlier_type=outlier_type, outlier_reason=outlier_reason,
+                                      outlier_summary=outlier_summary, doc=doc)
+                    if outlier.is_whitelisted(display_whitelist):
+                        total_whitelisted += 1
 
                 # if all outliers for this document are whitelisted, removed them all. If not, don't touch the document.
                 # this is a limitation in the way our outliers are stored: if not ALL of them are whitelisted, we
@@ -261,20 +262,6 @@ class ES:
             self.flush_bulk_actions()
 
         return total_outliers_whitelisted
-
-    def check_outlier_whitelist(self, outlier_type, outlier_reason, outlier_summary, doc):
-        display_whitelist = False
-        if "WerFault.exe" in outlier_summary:
-            self.logging.logger.info("[DEBUG] Analyze outlier with outlier_summary: " + outlier_summary)
-            display_whitelist = True
-        else:
-            self.logging.logger.info("[DEBUG] Not in: " + outlier_summary)
-
-        outlier = Outlier(outlier_type=outlier_type, outlier_reason=outlier_reason,
-                          outlier_summary=outlier_summary, doc=doc)
-        if outlier.is_whitelisted(display_whitelist):
-            return 1
-        return 0
 
     def remove_all_outliers(self):
         """

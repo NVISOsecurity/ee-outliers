@@ -15,7 +15,6 @@ doc_without_outlier_test_file = json.load(open("/app/tests/unit_tests/files/doc_
 doc_without_outlier_without_score_test_file = json.load(open(
     "/app/tests/unit_tests/files/doc_without_outlier_without_score.json"))
 doc_with_outlier_test_file = json.load(open("/app/tests/unit_tests/files/doc_with_outlier.json"))
-doc_with_outlier_list_test_file = json.load(open("/app/tests/unit_tests/files/doc_with_outlier_list.json"))
 doc_with_two_outliers_test_file = json.load(open("/app/tests/unit_tests/files/doc_with_two_outliers.json"))
 doc_with_three_outliers_test_file = json.load(open("/app/tests/unit_tests/files/doc_with_three_outliers.json"))
 
@@ -47,7 +46,7 @@ class TestOutlierOperations(unittest.TestCase):
         test_outlier.outlier_dict["observation"] = "dummy observation"
 
         doc_with_outlier = helpers.es.add_outlier_to_document(test_outlier)
-        self.assertDictEqual(doc_with_outlier_list_test_file, doc_with_outlier)
+        self.assertDictEqual(doc_with_outlier_test_file, doc_with_outlier)
 
     def test_remove_outlier_from_doc(self):
         doc = copy.deepcopy(doc_without_outlier_test_file)
