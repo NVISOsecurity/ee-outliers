@@ -7,7 +7,7 @@ from analyzers.metrics import MetricsAnalyzer
 
 from tests.unit_tests.test_stubs.test_stub_notifier import TestStubNotifier
 from tests.unit_tests.test_stubs.test_stub_es import TestStubEs
-from tests.unit_tests.utils.test_settings import TestSettings
+from tests.unit_tests.utils.update_settings import UpdateSettings
 from tests.unit_tests.utils.dummy_documents_generate import DummyDocumentsGenerate
 
 
@@ -15,7 +15,7 @@ class TestNotifier(unittest.TestCase):
 
     def setUp(self):
         self.test_es = TestStubEs()
-        self.test_settings = TestSettings()
+        self.test_settings = UpdateSettings()
 
     def tearDown(self):
         self.test_settings.restore_default_configuration_path()
@@ -61,7 +61,7 @@ class TestNotifier(unittest.TestCase):
         doc_generate = DummyDocumentsGenerate()
 
         # Create document that's an outlier
-        doc = doc_generate.generate_document(user_id=11)
+        doc = doc_generate.generate_document({"user_id": 11})
         self.test_es.add_doc(doc)
 
         analyzer = MetricsAnalyzer("metrics_numerical_value_dummy_test")
@@ -77,7 +77,7 @@ class TestNotifier(unittest.TestCase):
         doc_generate = DummyDocumentsGenerate()
 
         # Create document that's an outlier
-        doc = doc_generate.generate_document(user_id=11)
+        doc = doc_generate.generate_document({"user_id": 11})
         self.test_es.add_doc(doc)
 
         analyzer = MetricsAnalyzer("metrics_no_notif_numerical_value_dummy_test")
