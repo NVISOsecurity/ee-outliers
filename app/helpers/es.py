@@ -215,7 +215,7 @@ class ES:
                     outlier_summary = doc["_source"]["outliers"]["summary"][i]
 
                     display_whitelist = False
-                    if "WerFault.exe" in outlier_summary:
+                    if "WerFault.exe" in outlier_summary or "beaconing DNS connection to" in outlier_summary:
                         self.logging.logger.info("[DEBUG] Analyze outlier with outlier_summary: " + outlier_summary)
                         display_whitelist = True
                     else:
@@ -302,7 +302,8 @@ class ES:
         :return: True if not whitelist, False otherwise
         """
         display_whitelist = False
-        if "WerFault.exe" in outlier.outlier_dict["summary"]:
+        if "WerFault.exe" in outlier.outlier_dict["summary"] or \
+                "beaconing DNS connection to" in outlier.outlier_dict["summary"]:
             self.logging.logger.info("[DEBUG] Process outlier with outlier_summary: " + outlier_summary)
             display_whitelist = True
 
