@@ -1,4 +1,4 @@
-from configparser import NoOptionError, NoSectionError
+from configparser import NoOptionError
 
 import numpy as np
 from helpers.singletons import settings, es, logging

@@ -1,5 +1,5 @@
 import random
-from configparser import NoOptionError, NoSectionError
+from configparser import NoOptionError
 
 from helpers.singletons import settings, es, logging
 from collections import defaultdict
