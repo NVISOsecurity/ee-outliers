@@ -461,9 +461,12 @@ class TestMetricsAnalyzer(unittest.TestCase):
 
     def test_extract_additional_model_settings_no_metrics_section(self):
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/metrics_test_no_metrics_section.conf")
-        # Metrics section not define produce a warning
-        with self.assertLogs(logging.logger, level='WARNING'):
-            MetricsAnalyzer("metrics_dummy_test")
+
+        # Metrics section not define produce an error
+        with self.assertLogs(logging.logger, level='ERROR'):
+            analyzer = MetricsAnalyzer("metrics_dummy_test")
+            # Check that we detect a problem in configuration
+            self.assertTrue(analyzer.configuration_parsing_error)
 
     def test_remove_metric_from_batch_simple_value(self):
         eval_metrics_array = defaultdict()

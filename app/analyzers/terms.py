@@ -494,10 +494,7 @@ class TermsAnalyzer(Analyzer):
                                                          "coeff_of_variation"}:
             raise ValueError("Unexpected outlier trigger method " + str(self.model_settings["trigger_method"]))
 
-        try:
-            self.terms_batch_eval_size = settings.config.getint("terms", "terms_batch_eval_size")
-        except (NoOptionError, NoSectionError):
-            logging.logger.warning("No value has been defined for the parameter terms_batch_eval_size")
+        self.terms_batch_eval_size = settings.config.getint("terms", "terms_batch_eval_size")
 
     @staticmethod
     def remove_term_from_batch(eval_terms_array, aggregator_value, term_counter):

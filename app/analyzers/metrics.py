@@ -317,10 +317,7 @@ class MetricsAnalyzer(Analyzer):
         if self.model_settings["trigger_on"] not in SUPPORTED_TRIGGERS:
             raise ValueError("Unexpected outlier trigger condition " + self.model_settings["trigger_on"])
 
-        try:
-            self.metrics_batch_eval_size = settings.config.getint("metrics", "metrics_batch_eval_size")
-        except (NoOptionError, NoSectionError):
-            logging.logger.warning("No value has been defined for the parameter metrics_batch_eval_size")
+        self.metrics_batch_eval_size = settings.config.getint("metrics", "metrics_batch_eval_size")
 
     @staticmethod
     def add_metric_to_batch(eval_metrics_array, aggregator_value, target_value, metrics_value, observations, doc):
