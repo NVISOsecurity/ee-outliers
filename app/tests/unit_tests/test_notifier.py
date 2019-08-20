@@ -29,7 +29,7 @@ class TestNotifier(unittest.TestCase):
 
         # Create outlier
         doc = doc_generate.generate_document()
-        outlier = Outlier("dummy type", "dummy reason", "dummy summary", doc)
+        outlier = Outlier("numerical_value_dummy_test", "metrics", "dummy type", "dummy reason", "dummy summary", doc)
 
         # execute notification
         es.notifier.notify_on_outlier(outlier)
@@ -45,7 +45,7 @@ class TestNotifier(unittest.TestCase):
 
         # Create outlier
         doc = doc_generate.generate_document()
-        outlier = Outlier("dummy type", "dummy reason", "dummy summary", doc)
+        outlier = Outlier("numerical_value_dummy_test", "metrics", "dummy type", "dummy reason", "dummy summary", doc)
 
         # execute notification
         es.notifier.notify_on_outlier(outlier)
@@ -94,9 +94,10 @@ class TestNotifier(unittest.TestCase):
 
         # Create outliers
         doc1 = doc_generate.generate_document()
-        outlier1 = Outlier("dummy type", "dummy reason", "dummy summary", doc1)
+        outlier1 = Outlier("numerical_value_dummy_test", "metrics", "dummy type", "dummy reason", "dummy summary", doc1)
         doc2 = doc_generate.generate_document()
-        outlier2 = Outlier("dummy type2", "dummy reason2", "dummy summary", doc2)
+        outlier2 = Outlier("numerical_value_dummy_test", "metrics", "dummy type2", "dummy reason2", "dummy summary",
+                           doc2)
 
         # execute notification
         es.notifier.notify_on_outlier(outlier1)
@@ -113,9 +114,10 @@ class TestNotifier(unittest.TestCase):
 
         # Create outliers
         doc1 = doc_generate.generate_document()
-        outlier1 = Outlier("dummy type", "dummy reason", "dummy summary", doc1)
+        outlier1 = Outlier("numerical_value_dummy_test", "metrics", "dummy type", "dummy reason", "dummy summary", doc1)
         doc2 = doc_generate.generate_document()
-        outlier2 = Outlier("dummy type2", "dummy reason2", "dummy summary2", doc2)
+        outlier2 = Outlier("numerical_value_dummy_test", "metrics", "dummy type2", "dummy reason2", "dummy summary2",
+                           doc2)
 
         # execute notification
         es.notifier.notify_on_outlier(outlier1)
@@ -133,14 +135,17 @@ class TestNotifier(unittest.TestCase):
         # Create outliers
         doc = doc_generate.generate_document()
         # Full the queue (3 elements)
-        outlier1 = Outlier("dummy type", "dummy reason", "dummy summary1", doc)
+        outlier1 = Outlier("numerical_value_dummy_test", "metrics", "dummy type", "dummy reason", "dummy summary1", doc)
         es.notifier.notify_on_outlier(outlier1)
-        outlier2 = Outlier("dummy type2", "dummy reason2", "dummy summary2", doc)
+        outlier2 = Outlier("numerical_value_dummy_test", "metrics", "dummy type2", "dummy reason2", "dummy summary2",
+                           doc)
         es.notifier.notify_on_outlier(outlier2)
-        outlier3 = Outlier("dummy type3", "dummy reason3", "dummy summary3", doc)
+        outlier3 = Outlier("numerical_value_dummy_test", "metrics", "dummy type3", "dummy reason3", "dummy summary3",
+                           doc)
         es.notifier.notify_on_outlier(outlier3)
         # Add a new one that will remove the first
-        outlier4 = Outlier("dummy type4", "dummy reason4", "dummy summary4", doc)
+        outlier4 = Outlier("numerical_value_dummy_test", "metrics", "dummy type4", "dummy reason4", "dummy summary4",
+                           doc)
         es.notifier.notify_on_outlier(outlier4)
         
         # Add again the first one

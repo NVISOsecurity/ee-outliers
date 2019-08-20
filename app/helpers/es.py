@@ -213,9 +213,11 @@ class ES:
                     outlier_type = doc["_source"]["outliers"]["type"][i]
                     outlier_reason = doc["_source"]["outliers"]["reason"][i]
                     outlier_summary = doc["_source"]["outliers"]["summary"][i]
+                    model_name = doc["_source"]["outliers"]["model_name"][i]
+                    model_type = doc["_source"]["outliers"]["model_type"][i]
 
-                    outlier = Outlier(outlier_type=outlier_type, outlier_reason=outlier_reason,
-                                      outlier_summary=outlier_summary, doc=doc)
+                    outlier = Outlier(model_name=model_name, model_type=model_type, outlier_type=outlier_type,
+                                      outlier_reason=outlier_reason, outlier_summary=outlier_summary, doc=doc)
                     if outlier.is_whitelisted():
                         total_whitelisted += 1
 

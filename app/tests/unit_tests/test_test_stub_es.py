@@ -105,8 +105,8 @@ class TestTestStubEs(unittest.TestCase):
         doc_without_outlier = copy.deepcopy(doc_without_outlier_test_file)
         self.test_es.add_doc(doc_without_outlier)
 
-        test_outlier = Outlier(outlier_type="dummy type", outlier_reason="dummy reason",
-                               outlier_summary="dummy summary", doc=doc_without_outlier)
+        test_outlier = Outlier(model_name="dummy name", model_type="dummy_type", outlier_type="dummy type",
+                               outlier_reason="dummy reason", outlier_summary="dummy summary", doc=doc_without_outlier)
         test_outlier.outlier_dict["observation"] = "dummy observation"
 
         es.save_outlier(test_outlier)

@@ -15,6 +15,8 @@ doc_without_outlier_test_file = json.load(open("/app/tests/unit_tests/files/doc_
 doc_without_outlier_without_score_test_file = json.load(open(
     "/app/tests/unit_tests/files/doc_without_outlier_without_score.json"))
 doc_with_outlier_test_file = json.load(open("/app/tests/unit_tests/files/doc_with_outlier.json"))
+doc_with_outlier_without_model_info_test_file = json.load(open(
+    "/app/tests/unit_tests/files/doc_with_outlier_without_model_info.json"))
 doc_with_two_outliers_test_file = json.load(open("/app/tests/unit_tests/files/doc_with_two_outliers.json"))
 doc_with_three_outliers_test_file = json.load(open("/app/tests/unit_tests/files/doc_with_three_outliers.json"))
 
@@ -41,17 +43,17 @@ class TestOutlierOperations(unittest.TestCase):
 
     def test_add_outlier_to_doc(self):
         doc = copy.deepcopy(doc_without_outlier_test_file)
-        test_outlier = Outlier(outlier_type="dummy type", outlier_reason="dummy reason",
-                               outlier_summary="dummy summary", doc=doc)
+        test_outlier = Outlier(model_name="dummy name", model_type="dummy_type", outlier_type="dummy type",
+                               outlier_reason="dummy reason", outlier_summary="dummy summary", doc=doc)
         test_outlier.outlier_dict["observation"] = "dummy observation"
 
         doc_with_outlier = helpers.es.add_outlier_to_document(test_outlier)
-        self.assertDictEqual(doc_with_outlier_test_file, doc_with_outlier)
+        self.assertDictEqual(doc_with_outlier_without_model_info_test_file, doc_with_outlier)
 
     def test_remove_outlier_from_doc(self):
         doc = copy.deepcopy(doc_without_outlier_test_file)
-        test_outlier = Outlier(outlier_type="dummy type", outlier_reason="dummy reason",
-                               outlier_summary="dummy summary", doc=doc)
+        test_outlier = Outlier(model_name="dummy name", model_type="dummy_type", outlier_type="dummy type",
+                               outlier_reason="dummy reason", outlier_summary="dummy summary", doc=doc)
         test_outlier.outlier_dict["observation"] = "dummy observation"
 
         doc_with_outlier = helpers.es.add_outlier_to_document(test_outlier)
@@ -61,8 +63,8 @@ class TestOutlierOperations(unittest.TestCase):
 
     def test_add_duplicate_outlier_to_doc(self):
         doc = copy.deepcopy(doc_without_outlier_test_file)
-        test_outlier = Outlier(outlier_type="dummy type", outlier_reason="dummy reason",
-                               outlier_summary="dummy summary", doc=doc)
+        test_outlier = Outlier(model_name="dummy name", model_type="dummy_type", outlier_type="dummy type",
+                               outlier_reason="dummy reason", outlier_summary="dummy summary", doc=doc)
 
         doc_with_outlier = helpers.es.add_outlier_to_document(test_outlier)
         doc_with_outlier = helpers.es.add_outlier_to_document(test_outlier)
@@ -71,12 +73,12 @@ class TestOutlierOperations(unittest.TestCase):
 
     def test_add_two_outliers_to_doc(self):
         doc = copy.deepcopy(doc_without_outlier_test_file)
-        test_outlier = Outlier(outlier_type="dummy type",  outlier_reason="dummy reason",
-                               outlier_summary="dummy summary", doc=doc)
+        test_outlier = Outlier(model_name="dummy name", model_type="dummy_type", outlier_type="dummy type",
+                               outlier_reason="dummy reason", outlier_summary="dummy summary", doc=doc)
         test_outlier.outlier_dict["observation"] = "dummy observation"
 
-        test_outlier_2 = Outlier(outlier_type="dummy type 2", outlier_reason="dummy reason 2",
-                                 outlier_summary="dummy summary 2", doc=doc)
+        test_outlier_2 = Outlier(model_name="dummy name 2", model_type="dummy_type", outlier_type="dummy type 2",
+                                 outlier_reason="dummy reason 2", outlier_summary="dummy summary 2", doc=doc)
         test_outlier_2.outlier_dict["observation_2"] = "dummy observation 2"
 
         helpers.es.add_outlier_to_document(test_outlier)
@@ -86,16 +88,16 @@ class TestOutlierOperations(unittest.TestCase):
 
     def test_add_three_outliers_to_doc(self):
         doc = copy.deepcopy(doc_without_outlier_test_file)
-        test_outlier = Outlier(outlier_type="dummy type", outlier_reason="dummy reason",
-                               outlier_summary="dummy summary", doc=doc)
+        test_outlier = Outlier(model_name="dummy name 3", model_type="dummy_type", outlier_type="dummy type",
+                               outlier_reason="dummy reason", outlier_summary="dummy summary", doc=doc)
         test_outlier.outlier_dict["observation"] = "dummy observation"
 
-        test_outlier_2 = Outlier(outlier_type="dummy type 2", outlier_reason="dummy reason 2",
-                                 outlier_summary="dummy summary 2", doc=doc)
+        test_outlier_2 = Outlier(model_name="dummy name 3", model_type="dummy_type", outlier_type="dummy type 2",
+                                 outlier_reason="dummy reason 2", outlier_summary="dummy summary 2", doc=doc)
         test_outlier_2.outlier_dict["observation_2"] = "dummy observation 2"
 
-        test_outlier_3 = Outlier(outlier_type="dummy type 3", outlier_reason="dummy reason 3",
-                                 outlier_summary="dummy summary 3", doc=doc)
+        test_outlier_3 = Outlier(model_name="dummy name 3", model_type="dummy_type", outlier_type="dummy type 3",
+                                 outlier_reason="dummy reason 3", outlier_summary="dummy summary 3", doc=doc)
         test_outlier_3.outlier_dict["observation_3"] = "dummy observation 3"
 
         helpers.es.add_outlier_to_document(test_outlier)
@@ -124,7 +126,7 @@ class TestOutlierOperations(unittest.TestCase):
         dummy_doc_gen = DummyDocumentsGenerate()
         doc = dummy_doc_gen.generate_document({"command_query": r'C:\Windows\system32\msfeedssync.exe sync'})
 
-        result = Outlier.is_whitelisted_doc(doc)
+        result = Outlier.is_whitelisted_doc(doc, extra_whitelist_section="")
         self.assertTrue(result)
 
     def test_whitelist_literal_mismatch(self):
@@ -133,7 +135,7 @@ class TestOutlierOperations(unittest.TestCase):
         dummy_doc_gen = DummyDocumentsGenerate()
         doc = dummy_doc_gen.generate_document({"command_query": r'C:\Windows\system32\msfeedssync.exe syncOther'})
 
-        result = Outlier.is_whitelisted_doc(doc)
+        result = Outlier.is_whitelisted_doc(doc, extra_whitelist_section="")
         self.assertFalse(result)
 
     def test_whitelist_regexp_match(self):
@@ -150,56 +152,56 @@ class TestOutlierOperations(unittest.TestCase):
 
     def test_whitelist_config_file_multi_item_match(self):
         orig_doc = copy.deepcopy(doc_with_outlier_test_file)
-        test_outlier = Outlier(outlier_type="dummy type", outlier_reason="dummy reason",
-                               outlier_summary="dummy summary", doc=orig_doc)
+        test_outlier = Outlier(model_name="dummy name", model_type="dummy_type", outlier_type="dummy type",
+                               outlier_reason="dummy reason", outlier_summary="dummy summary", doc=orig_doc)
 
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/whitelist_tests_01.conf")
         self.assertTrue(test_outlier.is_whitelisted())
 
     def test_single_literal_to_match_in_doc_with_outlier(self):
         orig_doc = copy.deepcopy(doc_with_outlier_test_file)
-        test_outlier = Outlier(outlier_type="dummy type", outlier_reason="dummy reason",
-                               outlier_summary="dummy summary", doc=orig_doc)
+        test_outlier = Outlier(model_name="dummy name", model_type="dummy_type", outlier_type="dummy type",
+                               outlier_reason="dummy reason", outlier_summary="dummy summary", doc=orig_doc)
 
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/whitelist_tests_02.conf")
         self.assertTrue(test_outlier.is_whitelisted())
 
     def test_single_literal_not_to_match_in_doc_with_outlier(self):
         orig_doc = copy.deepcopy(doc_with_outlier_test_file)
-        test_outlier = Outlier(outlier_type="dummy type", outlier_reason="dummy reason",
-                               outlier_summary="dummy summary", doc=orig_doc)
+        test_outlier = Outlier(model_name="dummy name", model_type="dummy_type", outlier_type="dummy type",
+                               outlier_reason="dummy reason", outlier_summary="dummy summary", doc=orig_doc)
 
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/whitelist_tests_03.conf")
         self.assertFalse(test_outlier.is_whitelisted())
 
     def test_single_regex_to_match_in_doc_with_outlier(self):
         orig_doc = copy.deepcopy(doc_with_outlier_test_file)
-        test_outlier = Outlier(outlier_type="dummy type", outlier_reason="dummy reason",
-                               outlier_summary="dummy summary", doc=orig_doc)
+        test_outlier = Outlier(model_name="dummy name", model_type="dummy_type", outlier_type="dummy type",
+                               outlier_reason="dummy reason", outlier_summary="dummy summary", doc=orig_doc)
 
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/whitelist_tests_06.conf")
         self.assertTrue(test_outlier.is_whitelisted())
 
     def test_single_regex_not_to_match_in_doc_with_outlier(self):
-        orig_doc = copy.deepcopy(doc_with_outlier_test_file)
-        test_outlier = Outlier(outlier_type="dummy type", outlier_reason="dummy reason",
-                               outlier_summary="dummy summary", doc=orig_doc)
-
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/whitelist_tests_07.conf")
-        self.assertFalse(test_outlier.is_whitelisted())
+        orig_doc = copy.deepcopy(doc_with_outlier_test_file)
+        test_outlier = Outlier(model_name="dummy name", model_type="dummy_type", outlier_type="dummy type",
+                               outlier_reason="dummy reason", outlier_summary="dummy summary", doc=orig_doc)
+        result = test_outlier.is_whitelisted()
+        self.assertFalse(result)
 
     def test_whitelist_config_file_multi_item_match_with_three_fields_and_whitespace(self):
         orig_doc = copy.deepcopy(doc_with_outlier_test_file)
-        test_outlier = Outlier(outlier_type="dummy type", outlier_reason="dummy reason",
-                               outlier_summary="dummy summary", doc=orig_doc)
+        test_outlier = Outlier(model_name="dummy name", model_type="dummy_type", outlier_type="dummy type",
+                               outlier_reason="dummy reason", outlier_summary="dummy summary", doc=orig_doc)
 
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/whitelist_tests_04.conf")
         self.assertTrue(test_outlier.is_whitelisted())
 
     def test_whitelist_config_file_multi_item_mismatch_with_three_fields_and_whitespace(self):
         orig_doc = copy.deepcopy(doc_with_outlier_test_file)
-        test_outlier = Outlier(outlier_type="dummy type", outlier_reason="dummy reason",
-                               outlier_summary="dummy summary", doc=orig_doc)
+        test_outlier = Outlier(model_name="dummy name", model_type="dummy_type", outlier_type="dummy type",
+                               outlier_reason="dummy reason", outlier_summary="dummy summary", doc=orig_doc)
 
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/whitelist_tests_05.conf")
         self.assertFalse(test_outlier.is_whitelisted())

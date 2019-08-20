@@ -6,7 +6,6 @@ import copy
 from tests.unit_tests.test_stubs.test_stub_es import TestStubEs
 from analyzers.simplequery import SimplequeryAnalyzer
 from helpers.singletons import logging, es
-from helpers.outlier import Outlier
 from tests.unit_tests.utils.update_settings import UpdateSettings
 from tests.unit_tests.utils.dummy_documents_generate import DummyDocumentsGenerate
 
