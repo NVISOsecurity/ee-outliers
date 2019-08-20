@@ -63,7 +63,7 @@ pipeline {
                         latest_tag = "devlatest"
                     }
                     if (latest_tag != "") {
-                        docker.withRegistry('https://localhost/', 'docker-registry-basic') {
+                        docker.withRegistry('https://localhost:1234/', 'jenkins-nexus') {
                             app.push("${version}r${env.BUILD_NUMBER}-${env.BRANCH_NAME}")
                             app.push("${latest_tag}")
                         }
