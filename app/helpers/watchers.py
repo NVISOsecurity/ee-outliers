@@ -2,9 +2,9 @@ import os
 
 
 class FileModificationWatcher:
-    _previous_mtimes = {}
 
     def __init__(self, files=[]):
+        self._previous_mtimes = {}
         self.add_files(files)
 
     def add_files(self, files):

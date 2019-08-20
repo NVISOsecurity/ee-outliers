@@ -41,53 +41,72 @@ class DummyDocumentsGenerate:
         self.start_timestamp += datetime.timedelta(seconds=1)
         return self.start_timestamp
 
-    def generate_document(self, create_outlier=False, nbr_tags=1, index=None, slave_name=None, hostname=None,
-                          deployment_name=None, user_id=None, test_hex_value=None, test_base64_value=None,
-                          test_url_value=None, command_query=None, command_name=None, outlier_summary=None,
-                          outlier_observation=None):
+    def generate_document(self, specific_value={}):
+        """
+        Generate a document
+
+        List of key that can be set in dictionary:
+        - create_outlier
+        - nbr_tags
+        - index
+        - filename
+        - slave_name
+        - hostname
+        - deployment_name
+        - user_id
+        - test_hex_value
+        - test_base64_value
+        - test_url_value
+        - command_query
+        - command_name
+        - outlier.summary
+        - outlier.observation
+
+        :param specific_value: dictionary where value can be setup
+        :return: the document
+        """
         doc_date_time = self._generate_date()
         str_date = doc_date_time.strftime("%Y.%m.%d")
 
-        if index is None:
-            index = random.choice(all_possible_index_prefix) + str(str_date)
+        if "index" not in specific_value:
+            specific_value["index"] = random.choice(all_possible_index_prefix) + str(str_date)
 
         doc = {
-            '_index': index,
+            '_index': specific_value["index"],
             '_type': "doc",
             '_id': self.id,
             '_version': 2,
-            '_source': self._generate_source(doc_date_time, create_outlier, nbr_tags, slave_name, hostname,
-                                             deployment_name, user_id, test_hex_value, test_base64_value,
-                                             test_url_value, command_query, command_name, outlier_summary,
-                                             outlier_observation)
+            '_source': self._generate_source(doc_date_time, specific_value)
         }
         self.id += 1
         return doc
 
-    def _generate_source(self, doc_date_time, create_outlier, nbr_tags, slave_name, hostname, deployment_name,
-                         user_id, test_hex_value, test_base64_value, test_url_value, command_query, command_name,
-                         outlier_summary, outlier_observation):
+    def _generate_source(self, doc_date_time, specific_value):
         # Example: 2018-08-23T10:48:16.200315+00:00
         str_timestamp = self._date_time_to_timestamp(doc_date_time)
-        filename = random.choice(all_possible_filename)
 
-        if slave_name is None:
-            slave_name = random.choice(all_possible_slave_name)
+        if "filename" not in specific_value:
+            specific_value["filename"] = random.choice(all_possible_filename)
+
+        if "slave_name" not in specific_value:
+            specific_value["slave_name"] = random.choice(all_possible_slave_name)
+
+        if "nbr_tags" not in specific_value:
+            specific_value["nbr_tags"] = 1
 
         source = {
-            'tags': self._generate_tag(nbr_tags, create_outlier),
+            'tags': self._generate_tag(specific_value["nbr_tags"], "create_outlier" in specific_value),
             'timestamp': str_timestamp,
             '@timestamp': str_timestamp,
             '@version': '1',
-            'slave_name': slave_name,
+            'slave_name': specific_value["slave_name"],
             'type': random.choice(all_possible_doc_source_type),
-            'filename': filename,
-            'meta': self._generate_meta(doc_date_time, filename, hostname, deployment_name, user_id, command_query,
-                                        command_name),
-            'test': self._generate_test_data(test_hex_value, test_base64_value, test_url_value)
+            'filename': specific_value["filename"],
+            'meta': self._generate_meta(doc_date_time, specific_value["filename"], specific_value),
+            'test': self._generate_test_data(specific_value)
         }
-        if create_outlier:
-            source['outliers'] = self._generate_outlier_data(outlier_summary, outlier_observation)
+        if "create_outlier" in specific_value:
+            source['outliers'] = self._generate_outlier_data(specific_value)
         return source
 
     def _generate_tag(self, nbr_tags, create_outlier=False):
@@ -103,66 +122,66 @@ class DummyDocumentsGenerate:
 
         return list_tags
 
-    def _generate_meta(self, doc_date_time, filename, hostname, deployment_name, user_id, command_query, command_name):
-        if hostname is None:
-            hostname = random.choice(all_possible_hostname)
+    def _generate_meta(self, doc_date_time, filename, specific_value):
+        if "hostname" not in specific_value:
+            specific_value["hostname"] = random.choice(all_possible_hostname)
 
-        if deployment_name is None:
-            deployment_name = random.choice(all_possible_deployment_name),
+        if "deployment_name" not in specific_value:
+            specific_value["deployment_name"] = random.choice(all_possible_deployment_name),
 
-        if user_id is None:
-            user_id = random.randint(0, 5)
+        if "user_id" not in specific_value:
+            specific_value["user_id"] = random.randint(0, 5)
 
         return {
             'timestamp': self._date_time_to_timestamp(doc_date_time),
-            'command': self._generate_query_command(command_query, command_name),
-            'deployment_name': deployment_name,
+            'command': self._generate_query_command(specific_value),
+            'deployment_name': specific_value["deployment_name"],
             'toolname': random.choice(all_possible_toolname),
             'filename': filename,
-            'hostname': hostname,
+            'hostname': specific_value["hostname"],
             'output_file_path': filename,
-            'user_id': user_id
+            'user_id': specific_value["user_id"]
         }
 
-    def _generate_query_command(self, command_query, command_name):
-        if command_query is None:
-            command_query = random.choice(all_possible_command_query)
-        if command_name is None:
-            command_name = random.choice(all_possible_command_name)
+    def _generate_query_command(self, specific_value):
+        if "command_query" not in specific_value:
+            specific_value["command_query"] = random.choice(all_possible_command_query)
+        if "command_name" not in specific_value:
+            specific_value["command_name"] = random.choice(all_possible_command_name)
         return {
-            'name': command_name,
-            'query': command_query,
+            'name': specific_value["command_name"],
+            'query': specific_value["command_query"],
             'mode': "base_scan"
         }
 
-    def _generate_test_data(self, test_hex_value, test_base64_value, test_url_value):
-        if test_hex_value is None:
-            test_hex_value = random.choice(all_test_hex_values)
+    def _generate_test_data(self, specific_value):
+        if "test_hex_value" not in specific_value:
+            specific_value["test_hex_value"] = random.choice(all_test_hex_values)
 
-        if test_base64_value is None:
-            test_base64_value = random.choice(all_test_base64_values)
+        if "test_base64_value" not in specific_value:
+            specific_value["test_base64_value"] = random.choice(all_test_base64_values)
 
-        if test_url_value is None:
-            test_url_value = random.choice(all_test_url_values)
+        if "test_url_value" not in specific_value:
+            specific_value["test_url_value"] = random.choice(all_test_url_values)
 
         return {
-            'hex_value': test_hex_value,
-            'base64_value': test_base64_value,
-            'url_value': test_url_value
+            'hex_value': specific_value["test_hex_value"],
+            'base64_value': specific_value["test_base64_value"],
+            'url_value': specific_value["test_url_value"]
         }
 
-    def _generate_outlier_data(self, outlier_summary, outlier_observation):
+    def _generate_outlier_data(self, specific_value):
 
-        if outlier_summary is None:
-            outlier_summary = random.choice(all_outlier_summary)
+        if "outlier.summary" not in specific_value:
+            specific_value["outlier.summary"] = random.choice(all_outlier_summary)
 
-        if outlier_observation is None:
-            outlier_observation = random.choice(all_outlier_observation)
+        if "outlier.observation" not in specific_value:
+            specific_value["outlier.observation"] = random.choice(all_outlier_observation)
 
         return {
-            "observation": outlier_observation,
+            "observation": specific_value["outlier.observation"],
             "reason": "dummy reason",
-            "summary": outlier_summary,
+            "summary": specific_value["outlier.summary"],
             "type": "dummy type",
             "model_name": "dummy test",
             "model_type": "dummy type",
@@ -211,7 +230,7 @@ class DummyDocumentsGenerate:
 
         for nbr_doc in nbr_doc_generated_per_hours:
             for _ in range(nbr_doc):
-                all_doc.append(self.generate_document(hostname=hostname))
+                all_doc.append(self.generate_document({"hostname": hostname}))
             self.start_timestamp += datetime.timedelta(hours=1)
             self.start_timestamp = self.start_timestamp.replace(minute=0, second=0)
 
