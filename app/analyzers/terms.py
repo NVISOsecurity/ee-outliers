@@ -259,8 +259,7 @@ class TermsAnalyzer(Analyzer):
 
     def _evaluate_each_aggregator_is_outliers_and_mark_across(
             self, batch: DefaultDict, aggregator_value: str, unique_target_count_across_aggregators: int,
-            decision_frontier: Union[int, float, float64],
-            non_outlier_values: Set[str]) -> Tuple[List[Outlier], List[int]]:
+            decision_frontier: Union[int, float, float64]) -> Tuple[List[Outlier], List[int]]:
         """
         Compute value for a specific aggregator and try to detect outlier
 

@@ -183,7 +183,7 @@ def flatten_fields_into_sentences(fields: Dict, sentence_format: List) -> List[L
     return sentences
 
 
-def _flatten_one_field_into_sentences(dict_value: Optional[List, Dict],
+def _flatten_one_field_into_sentences(dict_value: Union[List, Dict],
                                       sentences: List[List] = list(list())) -> List[List]:
     new_sentences: List[List] = []
     if type(dict_value) is list:

@@ -10,7 +10,7 @@ import helpers.utils
 from helpers.analyzer import Analyzer
 from numpy import float64
 
-from typing import Dict, Any, Tuple, List, DefaultDict, cast, Optional, Union
+from typing import Dict, Set, Any, Tuple, List, DefaultDict, cast, Optional, Union
 
 SUPPORTED_METRICS: List[str] = ["length", "numerical_value", "entropy", "base64_encoded_length", "hex_encoded_length",
                                 "url_length"]
@@ -271,7 +271,8 @@ class MetricsAnalyzer(Analyzer):
 
         return list_outliers, list_documents_need_to_be_removed
 
-    def _compute_fields_observation_and_create_outlier(self, metrics_aggregator_value: Dict[str, Any], ii: int,
+    def _compute_fields_observation_and_create_outlier(self, non_outlier_values: Set,
+                                                       metrics_aggregator_value: Dict[str, Any], ii: int,
                                                        decision_frontier: Union[int, float, float64],
                                                        metric_value: Union[float, int]) -> Outlier:
         """
