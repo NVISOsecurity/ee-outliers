@@ -75,10 +75,8 @@ class Settings:
         except NoOptionError:
             self.print_outliers_to_console = 0
 
-        try:
-            self.es_save_results = self.config.getboolean("general", "es_save_results")
-        except NoOptionError:
-            self.es_save_results = 0
+        # Could produce an error, but don't catch it. Crash program if not define
+        self.es_save_results = self.config.getboolean("general", "es_save_results")
 
         try:
             self.list_derived_fields = self.config.items("derivedfields")
