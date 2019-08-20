@@ -84,6 +84,7 @@
             "model_type": ["metrics"], 
             "metric": [12], 
             "summary": ["dummy summary"],
+            "non_outlier_values_sample": [],
             "type": ["dummy type"],
             "reason": ["dummy reason"],
             "target": ["test"], 

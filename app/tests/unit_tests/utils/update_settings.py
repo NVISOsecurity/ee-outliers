@@ -3,7 +3,7 @@ from helpers.singletons import settings
 import copy
 
 
-class TestSettings:
+class UpdateSettings:
 
     def __init__(self):
         args_config = settings.args.config

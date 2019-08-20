@@ -3,7 +3,7 @@ import unittest
 import copy
 
 from tests.unit_tests.test_stubs.test_stub_es import TestStubEs
-from tests.unit_tests.utils.test_settings import TestSettings
+from tests.unit_tests.utils.update_settings import UpdateSettings
 from tests.unit_tests.utils.dummy_documents_generate import DummyDocumentsGenerate
 from helpers.singletons import es
 import helpers.es
@@ -15,7 +15,7 @@ class TestEs(unittest.TestCase):
 
     def setUp(self):
         self.test_es = TestStubEs()
-        self.test_settings = TestSettings()
+        self.test_settings = UpdateSettings()
 
     def tearDown(self):
         self.test_es.restore_es()
@@ -54,9 +54,9 @@ class TestEs(unittest.TestCase):
         self.test_settings.change_configuration_path(test_file_whitelist_path_config)
 
         doc_generate = DummyDocumentsGenerate()
-        self.test_es.add_doc(doc_generate.generate_document(
-            create_outlier=True, outlier_observation="dummy observation",
-            command_query="osquery_get_all_processes_with_listening_conns.log"))
+        self.test_es.add_doc(doc_generate.generate_document({
+            "create_outlier": True, "outlier_observation": "dummy observation",
+            "command_query": "osquery_get_all_processes_with_listening_conns.log"}))
 
         # Check that outlier correctly generated
         result = [doc for doc in es._scan()][0]
