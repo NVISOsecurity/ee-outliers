@@ -36,9 +36,9 @@ def run_outliers() -> None:
         test_filename: str = 'test_*.py'
         test_directory: str = '/app/tests/unit_tests'
 
-        suite: unittest.TestSuite = unittest.TestLoader().discover(test_directory, pattern=test_filename)
-        unittest.TextTestRunner(verbosity=settings.config.getint("general", "log_verbosity")).run(suite)
-        sys.exit()
+        suite = unittest.TestLoader().discover(test_directory, pattern=test_filename)
+        test_result = unittest.TextTestRunner(verbosity=settings.config.getint("general", "log_verbosity")).run(suite)
+        sys.exit(not test_result.wasSuccessful())
 
     # at this point, we know we are not running tests, so we should set up logging,
     # parse the configuration files, etc.
