@@ -5,12 +5,11 @@ from email.mime.text import MIMEText
 from helpers.logging import Logging
 
 from typing import Dict, Deque, TYPE_CHECKING
+from configparser import NoOptionError
 
 if TYPE_CHECKING:
     from helpers.settings import Settings
     from helpers.outlier import Outlier
-
-from configparser import NoOptionError
 
 
 class Notifier:
