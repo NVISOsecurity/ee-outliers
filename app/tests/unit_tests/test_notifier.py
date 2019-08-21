@@ -142,7 +142,7 @@ class TestNotifier(unittest.TestCase):
         # Add a new one that will remove the first
         outlier4 = Outlier("dummy type4", "dummy reason4", "dummy summary4", doc)
         es.notifier.notify_on_outlier(outlier4)
-        
+
         # Add again the first one
         es.notifier.notify_on_outlier(outlier1)
 
