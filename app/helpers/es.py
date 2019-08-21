@@ -38,9 +38,9 @@ class ES:
 
     def init_connection(self):
         """
-        Initialize the connection with ElasticSearch
+        Initialize the connection with Elasticsearch
 
-        :return: True if connection is enable, False otherwise
+        :return: Connection object if connection with Elasticsearch succeeded, False otherwise
         """
         self.conn = Elasticsearch([self.settings.config.get("general", "es_url")], use_ssl=False,
                                   timeout=self.settings.config.getint("general", "es_timeout"),
@@ -49,17 +49,11 @@ class ES:
         if self.conn.ping():
             self.logging.logger.info("connected to Elasticsearch on host %s" %
                                      (self.settings.config.get("general", "es_url")))
+            return self.conn
         else:
-            self.logging.logger.error("could not connect to to host %s. Exiting!" %
+            self.logging.logger.error("could not connect to Elasticsearch on host %s" %
                                       (self.settings.config.get("general", "es_url")))
             return False
-
-        return True
-
-    def try_to_init_connection(self):
-        while not self.init_connection():
-            self.logging.logger.info("Problem to connect to ElasticSearch. Wait 1 min before new test")
-            time.sleep(60)
 
     def _get_history_window(self, model_settings=None):
         """
@@ -81,7 +75,7 @@ class ES:
     def _scan(self, index, search_range, bool_clause=None, sort_clause=None, query_fields=None, search_query=None,
               model_settings=None):
         """
-        Scan and get documents in ElasticSearch
+        Scan and get documents in Elasticsearch
 
         :param index: on which index the request must be done
         :param search_range: the range of research
@@ -110,7 +104,7 @@ class ES:
 
     def _count_documents(self, index, search_range, bool_clause=None, query_fields=None, search_query=None):
         """
-        Count number of document in ElasticSearch that match the query
+        Count number of document in Elasticsearch that match the query
 
         :param index: on which index the request must be done
         :param search_range: the range of research
@@ -126,7 +120,7 @@ class ES:
                                scroll=self.settings.config.get("general", "es_scroll_time"))
         result = res["hits"]["total"]
 
-        # Result depend of the version of ElasticSearch (> 7, the result is a dictionary)
+        # Result depend of the version of Elasticsearch (> 7, the result is a dictionary)
         if isinstance(result, dict):
             return result["value"]
         else:
@@ -135,7 +129,7 @@ class ES:
     def count_and_scan_documents(self, index, bool_clause=None, sort_clause=None, query_fields=None, search_query=None,
                                  model_settings=None):
         """
-        Count the number of document and fetch them from ElasticSearch
+        Count the number of document and fetch them from Elasticsearch
 
         :param index: on which index the request must be done
         :param bool_clause: boolean condition
@@ -160,7 +154,7 @@ class ES:
         Format a query request
 
         :param query_string: the query request
-        :return: query request formatted for ElasticSearch
+        :return: query request formatted for Elasticsearch
         """
         filter_clause = {"filter": [
             {"query_string": {"query": query_string}}
@@ -192,7 +186,7 @@ class ES:
     # the console using ticks!
     def remove_all_whitelisted_outliers(self):
         """
-        Remove all whitelisted outliers present in ElasticSearch.
+        Remove all whitelisted outliers present in Elasticsearch.
         This method is normally only call by housekeeping
 
         :return: the number of outliers removed
@@ -267,7 +261,7 @@ class ES:
 
     def remove_all_outliers(self):
         """
-        Remove all outliers present in ElasticSearch
+        Remove all outliers present in Elasticsearch
         """
         idx = self.settings.config.get("general", "es_index_pattern")
 
@@ -367,7 +361,7 @@ class ES:
         """
         Force bulk action to be process
 
-        :param refresh: refresh or not in ElasticSearch
+        :param refresh: refresh or not in Elasticsearch
         """
         if len(self.bulk_actions) == 0:
             return
@@ -376,7 +370,7 @@ class ES:
 
     def save_outlier(self, outlier=None):
         """
-        Complete (with derived fields) and save outlier to ElasticSearch (via bulk action)
+        Complete (with derived fields) and save outlier to Elasticsearch (via bulk action)
 
         :param outlier: the outlier that need to be save
         """
@@ -536,7 +530,7 @@ def remove_tag_from_document(doc, tag):
 
 def build_search_query(bool_clause=None, sort_clause=None, search_range=None, query_fields=None, search_query=None):
     """
-    Create a query for ElasticSearch
+    Create a query for Elasticsearch
 
     :param bool_clause: boolean condition
     :param sort_clause: sort query
