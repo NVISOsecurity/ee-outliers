@@ -61,9 +61,6 @@ class Outlier:
 
         return _str
 
-    def __eq__(self, other):
-        return isinstance(other, Outlier) and self.outlier_dict == other.outlier_dict
-
     @staticmethod
     def is_whitelisted_doc(dict_to_check, extra_whitelist_section):
         """
