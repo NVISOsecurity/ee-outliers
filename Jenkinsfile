@@ -57,19 +57,13 @@ pipeline {
                     def version = readFile "${env.WORKSPACE}/VERSION"
                     def full_version = version.trim()
                     def feature_version = full_version.split("\\.")[1..2].join(".")
-                    def latest_tag = ""
-                    if(env.BRANCH_NAME == 'master') {
-                        latest_tag = "latest"
-                    } else if(env.BRANCH_NAME == 'development') {
-                        latest_tag = "devlatest"
-                        full_version = "${full_version}-dev"
-                        feature_version = "${feature_version}-dev"
-                    }
-                    if (latest_tag != "") {
-                        docker.withRegistry('https://localhost:1234/', 'jenkins-nexus') {
+                    docker.withRegistry('https://localhost:1234/', 'jenkins-nexus') {
+                        if(env.BRANCH_NAME == 'master') {
                             app.push("${full_version}")
                             app.push("${feature_version}")
-                            app.push("${latest_tag}")
+                            app.push("latest")
+                        } else if(env.BRANCH_NAME == 'development') {
+                            latest_tag = "devlatest"
                         }
                     }
                 }
