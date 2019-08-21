@@ -190,8 +190,10 @@ def run_daemon_mode():
 
 def run_interactive_mode():
     """
-
+    Run outliers in interactive mode.
+    In this mode, outliers will run onces and then stop.
     """
+
     # Initialize Elasticsearch connection
     while not es.init_connection():
         time.sleep(60)
@@ -219,7 +221,9 @@ def run_interactive_mode():
 
 
 def perform_analysis():
-    """ The entrypoint for analysis """
+    """ The entrypoint for analysis
+    :return: List of analyzers that have been processed and analyzed
+    """
     analyzers = list()
 
     for config_section_name in settings.config.sections():
@@ -282,6 +286,10 @@ def perform_analysis():
 
 
 def print_analysis_summary(analyzed_models):
+    """
+    Print a summary of the analysis
+    :param analyzed_models: processed analyzers that should be summarized
+    """
     logging.logger.info("")
     logging.logger.info("============================")
     logging.logger.info("===== analysis summary =====")
