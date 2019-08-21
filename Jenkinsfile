@@ -55,17 +55,37 @@ pipeline {
                 script {
                     env.WORKSPACE = pwd()
                     def version = readFile "${env.WORKSPACE}/VERSION"
-                    version = version.trim()
+                    def full_version = version.trim()
+                    def feature_version = full_version.split("\\.")[1..2].join(".")
                     def latest_tag = ""
                     if(env.BRANCH_NAME == 'master') {
                         latest_tag = "latest"
                     } else if(env.BRANCH_NAME == 'development') {
                         latest_tag = "devlatest"
+                        full_version = "${full_version}-dev"
+                        feature_version = "${feature_version}-dev"
                     }
                     if (latest_tag != "") {
                         docker.withRegistry('https://localhost:1234/', 'jenkins-nexus') {
-                            app.push("${version}r${env.BUILD_NUMBER}-${env.BRANCH_NAME}")
+                            app.push("${full_version}")
+                            app.push("${feature_version}")
                             app.push("${latest_tag}")
+                        }
+                    }
+                }
+            }
+        }
+        stage('Official release') {
+            steps {
+                script {
+                    if (env.BRANCH_NAME == 'master') {
+                        sshagent (credentials: ['GithubSSHKey']) {
+                            sh '''
+                                if ! git tag --list $(cat VERSION); then
+                                    git tag $(cat VERSION)
+                                    git push origin --tags
+                                fi
+                            '''
                         }
                     }
                 }
