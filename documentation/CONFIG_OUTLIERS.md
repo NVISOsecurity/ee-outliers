@@ -103,7 +103,7 @@ Possible ``trigger_method`` values:
  - ``coeff_of_variation``: Coefficient of variation. ``trigger_sensitivity`` defines the comparison value (the value of each document is not taking into account). Value with a range from ``0-Inf.``.
 
 **process_documents_chronologically**
-Force ElasticSearch to give result in chronological order or not.
+Force Elasticsearch to give result in chronological order or not.
 
 **target**
 The document field that will be used to do the computation (based on the `trigger_method` selected).
