@@ -36,7 +36,7 @@ class TestAnalyzer(unittest.TestCase):
                                    outlier_summary='dummy summary', doc=doc_without_outlier)
         expected_outlier.outlier_dict['model_name'] = 'dummy_test'
         expected_outlier.outlier_dict['model_type'] = 'analyzer'
-        self.assertEqual(outlier, expected_outlier)
+        self.assertTrue(outlier.outlier_dict == expected_outlier.outlier_dict)
 
     def test_simple_process_outlier_save_es(self):
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/analyzer_test_01.conf")
