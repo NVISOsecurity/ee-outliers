@@ -1,14 +1,15 @@
+from datetime import datetime
+
 import random
 import time
 import os
 import sys
 import unittest
-import numpy as np
 
-import elasticsearch.exceptions
-
-from datetime import datetime
 from croniter import croniter
+
+import numpy as np
+import elasticsearch.exceptions
 
 import helpers.utils
 from helpers.singletons import settings, logging, es
@@ -21,12 +22,11 @@ from analyzers.terms import TermsAnalyzer
 from analyzers.word2vec import Word2VecAnalyzer
 
 
-##############
-# Entrypoint #
-##############
 def run_outliers():
-    # Run modes
-
+    """
+    Entrypoint into ee-outliers.
+    From here we start using the appropriate run mode.
+    """
     # if running in test mode, we just want to run the tests and exit as quick as possible.
     # no need to set up other things like logging, which should happen afterwards.
     if settings.args.run_mode == "tests":
@@ -34,8 +34,8 @@ def run_outliers():
         test_directory = '/app/tests/unit_tests'
 
         suite = unittest.TestLoader().discover(test_directory, pattern=test_filename)
-        unittest.TextTestRunner(verbosity=settings.config.getint("general", "log_verbosity")).run(suite)
-        sys.exit()
+        test_result = unittest.TextTestRunner(verbosity=settings.config.getint("general", "log_verbosity")).run(suite)
+        sys.exit(not test_result.wasSuccessful())
 
     # at this point, we know we are not running tests, so we should set up logging,
     # parse the configuration files, etc.
@@ -51,6 +51,11 @@ def run_outliers():
 
 
 def setup_logging():
+    """
+    Setup the correct logging verbosity and file handlers.
+    We also add a logger for Sentry in case it has been set in the environment.
+    Sentry allows us to centrally collect error logging during development.
+    """
     if os.environ.get("SENTRY_SDK_URL"):
         import sentry_sdk
         sentry_sdk.init(os.environ.get("SENTRY_SDK_URL"))
@@ -71,7 +76,11 @@ def setup_logging():
 
 
 def print_intro():
-    logging.logger.info("outliers.py - version 0.2.2 - contact: research@nviso.be")
+    """
+    Print the banner information including version, loaded configuration files and any parsing errors
+    that might have occurred when loading them.
+    """
+    logging.logger.info("outliers.py - version 0.2.3 - contact: research@nviso.be")
     logging.logger.info("run mode: " + settings.args.run_mode)
 
     logging.print_generic_intro("initializing")
@@ -93,16 +102,23 @@ def print_intro():
 
 
 def run_daemon_mode():
+    """
+    Run outliers in daemon mode.
+    In this mode, outliers will continue running based on the cron scheduled defined in the configuration file.
+    """
+
     # In daemon mode, we also want to monitor the configuration file for changes.
     # In case of a change, we need to make sure that we are using this new configuration file
     for config_file in settings.args.config:
         logging.logger.info("monitoring configuration file " + config_file + " for changes")
 
+    # Monitor configuration files for potential changes
     file_mod_watcher = FileModificationWatcher()
     file_mod_watcher.add_files(settings.args.config)
 
     # Initialize Elasticsearch connection
-    es.init_connection()
+    while not es.init_connection():
+        time.sleep(60)
 
     # Create housekeeping job, don't start it yet
     housekeeping_job = HousekeepingJob()
@@ -146,7 +162,8 @@ def run_daemon_mode():
         else:
             # Make sure we are still connected to Elasticsearch before analyzing, in case something went wrong with
             # the connection in between runs
-            es.init_connection()
+            while not es.init_connection():
+                time.sleep(60)
 
         # Make sure housekeeping is up and running
         if not housekeeping_job.is_alive():
@@ -172,7 +189,14 @@ def run_daemon_mode():
 
 
 def run_interactive_mode():
-    es.init_connection()
+    """
+    Run outliers in interactive mode.
+    In this mode, outliers will run onces and then stop.
+    """
+
+    # Initialize Elasticsearch connection
+    while not es.init_connection():
+        time.sleep(60)
 
     if settings.config.getboolean("general", "es_wipe_all_existing_outliers"):
         es.remove_all_outliers()
@@ -186,7 +210,7 @@ def run_interactive_mode():
         print_analysis_summary(analyzed_models)
     except KeyboardInterrupt:
         logging.logger.info("keyboard interrupt received, stopping housekeeping thread")
-    except Exception:
+    except Exception:  # pylint: disable=broad-except
         logging.logger.error("error running outliers in interactive mode", exc_info=True)
     finally:
         logging.logger.info("asking housekeeping jobs to shutdown after finishing")
@@ -197,7 +221,9 @@ def run_interactive_mode():
 
 
 def perform_analysis():
-    """ The entrypoint for analysis """
+    """ The entrypoint for analysis
+    :return: List of analyzers that have been processed and analyzed
+    """
     analyzers = list()
 
     for config_section_name in settings.config.sections():
@@ -222,7 +248,7 @@ def perform_analysis():
             elif config_section_name.startswith("word2vec_"):
                 _analyzer = Word2VecAnalyzer(config_section_name=config_section_name)
                 analyzers.append(_analyzer)
-        except Exception:
+        except Exception:  # pylint: disable=broad-except
             logging.logger.error("error while initializing analyzer " + config_section_name, exc_info=True)
 
     analyzers_to_evaluate = list()
@@ -250,7 +276,7 @@ def perform_analysis():
         except elasticsearch.exceptions.NotFoundError:
             analyzer.index_not_found_analysis = True
             logging.logger.warning("index %s does not exist, skipping use case" % analyzer.es_index)
-        except Exception:
+        except Exception:  # pylint: disable=broad-except
             analyzer.unknown_error_analysis = True
             logging.logger.error("error while analyzing use case", exc_info=True)
         finally:
@@ -260,6 +286,10 @@ def perform_analysis():
 
 
 def print_analysis_summary(analyzed_models):
+    """
+    Print a summary of the analysis
+    :param analyzed_models: processed analyzers that should be summarized
+    """
     logging.logger.info("")
     logging.logger.info("============================")
     logging.logger.info("===== analysis summary =====")

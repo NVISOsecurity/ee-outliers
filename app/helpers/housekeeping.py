@@ -63,7 +63,7 @@ class HousekeepingJob(threading.Thread):
     @staticmethod
     def remove_all_whitelisted_outliers():
         """
-        Try to remove all whitelist outliers that are already in ElasticSearch
+        Try to remove all whitelist outliers that are already in Elasticsearch
         """
         if settings.config.getboolean("general", "es_wipe_all_whitelisted_outliers"):
             try:
