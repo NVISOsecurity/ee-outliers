@@ -178,7 +178,7 @@ def flatten_fields_into_sentences(fields: Dict, sentence_format: List) -> List[L
 
     # Remove all sentences that contain fields that could not be parsed, and that have been flattened to "None".
     # We can't reasonably work with these, so we just ignore them.
-    sentences: List[List] = [sentence for sentence in sentences if None not in sentence]
+    sentences = [sentence for sentence in sentences if None not in sentence]
 
     return sentences
 
@@ -188,14 +188,14 @@ def _flatten_one_field_into_sentences(dict_value: Union[List, Dict],
     new_sentences: List[List] = []
     if type(dict_value) is list:
         for field_value in dict_value:
-            flatten_field_value = flatten_sentence(field_value)
+            flatten_field_value: Optional[str] = flatten_sentence(field_value)
 
             for sentence in sentences:
                 sentence_copy: List = sentence.copy()
                 sentence_copy.append(flatten_field_value)
                 new_sentences.append(sentence_copy)
     else:
-        flatten_dict_value: str = flatten_sentence(dict_value)
+        flatten_dict_value: Optional[str] = flatten_sentence(dict_value)
         for sentence in sentences:
             sentence.append(flatten_dict_value)
             new_sentences.append(sentence)

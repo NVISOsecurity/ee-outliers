@@ -24,7 +24,7 @@ if TYPE_CHECKING:
 class ES:
     grok_filters: Dict[str, Grok] = dict()
 
-    notifier: Notifier
+    notifier: Optional[Notifier] = None
 
     bulk_actions: List[Dict[str, Any]] = []
 
@@ -57,7 +57,7 @@ class ES:
 
         return True
 
-    def try_to_init_connection(self):
+    def try_to_init_connection(self) -> None:
         while not self.init_connection():
             self.logging.logger.info("Problem to connect to ElasticSearch. Wait 1 min before new test")
             time.sleep(60)
@@ -129,11 +129,12 @@ class ES:
         :param search_query: the search query
         :return: number of document
         """
-        res: Dict[str, Any] = self.conn.search(index=index, body=build_search_query(bool_clause=bool_clause, search_range=search_range,
-                                                                    query_fields=query_fields,
-                                                                    search_query=search_query),
-                               size=self.settings.config.getint("general", "es_scan_size"),
-                               scroll=self.settings.config.get("general", "es_scroll_time"))
+        res: Dict[str, Any] = self.conn.search(index=index, body=build_search_query(bool_clause=bool_clause,
+                                                                                    search_range=search_range,
+                                                                                    query_fields=query_fields,
+                                                                                    search_query=search_query),
+                                               size=self.settings.config.getint("general", "es_scan_size"),
+                                               scroll=self.settings.config.get("general", "es_scroll_time"))
         result: Union[Dict[str, Any], int] = res["hits"]["total"]
 
         # Result depend of the version of ElasticSearch (> 7, the result is a dictionary)
@@ -188,7 +189,7 @@ class ES:
         :param dsl_query: the DSL query
         :return: the formatted request
         """
-        dsl_query: Union[Dict, List] = json.loads(dsl_query)
+        json_result: Union[Dict, List] = json.loads(dsl_query)
 
         filter_clause: Dict[str, List]
         if isinstance(json_result, list):
@@ -325,7 +326,7 @@ class ES:
                 self.save_outlier(outlier=outlier)
 
             if should_notify:
-                self.notifier.notify_on_outlier(outlier=outlier)
+                cast(Notifier, self.notifier).notify_on_outlier(outlier=outlier)
 
             if self.settings.config.getboolean("general", "print_outliers_to_console"):
                 self.logging.logger.info("outlier - " + outlier.outlier_dict["summary"])
@@ -347,8 +348,8 @@ class ES:
         }
         self.add_bulk_action(action)
 
-    def add_remove_outlier_bulk_action(self, document):  # TODO add type
-        action = {
+    def add_remove_outlier_bulk_action(self, document: Dict[str, Any]) -> None:
+        action: Dict[str, Any] = {
             '_op_type': 'update',
             '_index': document["_index"],
             '_type': document["_type"],

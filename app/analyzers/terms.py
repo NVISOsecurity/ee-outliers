@@ -139,8 +139,6 @@ class TermsAnalyzer(Analyzer):
         # unique_target_counts_across_aggregators: [5, 2] (the first term contains 5 unique values, the second
         # one contains 2)
         if self.model_settings["target_count_method"] == "across_aggregators":
-            outliers: List[Outlier] = list()  # List outliers
-
             first_run: bool = True  # Force to run one time the loop
             nr_whitelisted_element_detected: int = 0  # Number of elements that have been removed (due to whitelist)
 
