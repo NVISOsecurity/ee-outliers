@@ -6,6 +6,7 @@ import json
 import datetime as dt
 from pygrok import Grok
 import math
+import time
 
 from helpers.singleton import singleton
 from helpers.notifier import Notifier
@@ -39,7 +40,7 @@ class ES:
         """
         Initialize the connection with ElasticSearch
 
-        :return: connection object
+        :return: True if connection is enable, False otherwise
         """
         self.conn = Elasticsearch([self.settings.config.get("general", "es_url")], use_ssl=False,
                                   timeout=self.settings.config.getint("general", "es_timeout"),
@@ -51,8 +52,14 @@ class ES:
         else:
             self.logging.logger.error("could not connect to to host %s. Exiting!" %
                                       (self.settings.config.get("general", "es_url")))
+            return False
 
-        return self.conn
+        return True
+
+    def try_to_init_connection(self):
+        while not self.init_connection():
+            self.logging.logger.info("Problem to connect to ElasticSearch. Wait 1 min before new test")
+            time.sleep(60)
 
     def _get_history_window(self, model_settings=None):
         """

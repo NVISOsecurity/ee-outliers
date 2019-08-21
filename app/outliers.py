@@ -102,7 +102,7 @@ def run_daemon_mode():
     file_mod_watcher.add_files(settings.args.config)
 
     # Initialize Elasticsearch connection
-    es.init_connection()
+    es.try_to_init_connection()
 
     # Create housekeeping job, don't start it yet
     housekeeping_job = HousekeepingJob()
@@ -146,7 +146,7 @@ def run_daemon_mode():
         else:
             # Make sure we are still connected to Elasticsearch before analyzing, in case something went wrong with
             # the connection in between runs
-            es.init_connection()
+            es.try_to_init_connection()
 
         # Make sure housekeeping is up and running
         if not housekeeping_job.is_alive():
@@ -172,7 +172,7 @@ def run_daemon_mode():
 
 
 def run_interactive_mode():
-    es.init_connection()
+    es.try_to_init_connection()
 
     if settings.config.getboolean("general", "es_wipe_all_existing_outliers"):
         es.remove_all_outliers()
