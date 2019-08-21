@@ -15,4 +15,5 @@ class UpdateSettings:
 
     def restore_default_configuration_path(self):
         settings.args.config = self.backup_default_args_config
+        settings.error_parsing_config = None
         settings.process_configuration_files()

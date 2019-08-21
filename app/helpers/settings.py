@@ -36,6 +36,7 @@ class Settings:
         self.failing_regular_expressions = set()
 
         self.args = parser.parse_args()
+        self.error_parsing_config = None
         self.process_configuration_files()
 
     def process_configuration_files(self):
@@ -48,21 +49,29 @@ class Settings:
         config = configparser.ConfigParser(interpolation=None)
         config.optionxform = str  # preserve case sensitivity in config keys, important for derived field names
 
-        self.loaded_config_paths = config.read(config_paths)
-        self.failed_config_paths = set(config_paths) - set(self.loaded_config_paths)
+        self.failed_config_paths = set(config_paths)
+        try:
+            self.loaded_config_paths = config.read(config_paths)
+            self.failed_config_paths -= set(self.loaded_config_paths)
+        except configparser.DuplicateOptionError as exception:
+            self.error_parsing_config = exception
 
         self.config = config
 
-        self.whitelist_literals_config = self.config.items("whitelist_literals")
-        self.whitelist_regexps_config = self.config.items("whitelist_regexps")
+        try:
+            self.whitelist_literals_config = self.config.items("whitelist_literals")
+            self.whitelist_regexps_config = self.config.items("whitelist_regexps")
 
-        # Verify that all regular expressions in the whitelist are valid.
-        # If this is not the case, log an error to the user, as these will be ignored.
-        for (_, each_whitelist_configuration_file_value) in self.whitelist_regexps_config:
-            whitelist_values_to_check = each_whitelist_configuration_file_value.split(",")
+            # Verify that all regular expressions in the whitelist are valid.
+            # If this is not the case, log an error to the user, as these will be ignored.
+            for (_, each_whitelist_configuration_file_value) in self.whitelist_regexps_config:
+                whitelist_values_to_check = each_whitelist_configuration_file_value.split(",")
 
-            for whitelist_val_to_check in whitelist_values_to_check:
-                try:
-                    re.compile(whitelist_val_to_check.strip(), re.IGNORECASE)
-                except Exception:
-                    self.failing_regular_expressions.add(whitelist_val_to_check)
+                for whitelist_val_to_check in whitelist_values_to_check:
+                    try:
+                        re.compile(whitelist_val_to_check.strip(), re.IGNORECASE)
+                    except Exception:
+                        self.failing_regular_expressions.add(whitelist_val_to_check)
+        except configparser.NoSectionError as exception:
+            if self.error_parsing_config is None:
+                raise exception
