@@ -74,7 +74,7 @@ def setup_logging() -> None:
 
 
 def print_intro() -> None:
-    logging.logger.info("outliers.py - version 0.2.1 - contact: research@nviso.be")
+    logging.logger.info("outliers.py - version 0.2.2 - contact: research@nviso.be")
     logging.logger.info("run mode: " + settings.args.run_mode)
 
     logging.print_generic_intro("initializing")
@@ -105,7 +105,7 @@ def run_daemon_mode() -> None:
     file_mod_watcher.add_files(settings.args.config)
 
     # Initialize Elasticsearch connection
-    es.init_connection()
+    es.try_to_init_connection()
 
     # Create housekeeping job, don't start it yet
     housekeeping_job: HousekeepingJob = HousekeepingJob()
@@ -149,7 +149,7 @@ def run_daemon_mode() -> None:
         else:
             # Make sure we are still connected to Elasticsearch before analyzing, in case something went wrong with
             # the connection in between runs
-            es.init_connection()
+            es.try_to_init_connection()
 
         # Make sure housekeeping is up and running
         if not housekeeping_job.is_alive():
@@ -175,7 +175,7 @@ def run_daemon_mode() -> None:
 
 
 def run_interactive_mode() -> None:
-    es.init_connection()
+    es.try_to_init_connection()
 
     if settings.config.getboolean("general", "es_wipe_all_existing_outliers"):
         es.remove_all_outliers()

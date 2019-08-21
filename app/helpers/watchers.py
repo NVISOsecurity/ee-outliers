@@ -4,9 +4,9 @@ from typing import Dict, List
 
 
 class FileModificationWatcher:
-    _previous_mtimes: Dict[str, float] = {}
 
     def __init__(self, files: List[str] = []) -> None:
+        self._previous_mtimes: Dict[str, float] = {}
         self.add_files(files)
 
     def add_files(self, files: List[str]) -> None:

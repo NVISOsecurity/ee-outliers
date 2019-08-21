@@ -10,6 +10,8 @@ if TYPE_CHECKING:
     from helpers.settings import Settings
     from helpers.outlier import Outlier
 
+from configparser import NoOptionError
+
 
 class Notifier:
 
@@ -32,7 +34,12 @@ class Notifier:
         self.smtp_pass = self.settings.config.get("notifier", "smtp_pass")
         self.notification_email = self.settings.config.get("notifier", "notification_email")
 
-        self.last_seen_ignore_queue = collections.deque(maxlen=1000)
+        try:
+            nr_max_que_len = settings.config.getint("notifier", "max_cache_ignore")
+        except NoOptionError:
+            nr_max_que_len = 1000
+
+        self.last_seen_ignore_queue = collections.deque(maxlen=nr_max_que_len)
 
     def notify_on_outlier(self, outlier: 'Outlier') -> None:
         if outlier.outlier_dict["summary"] in self.last_seen_ignore_queue:
