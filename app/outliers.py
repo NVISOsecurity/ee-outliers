@@ -22,10 +22,11 @@ from analyzers.terms import TermsAnalyzer
 from analyzers.word2vec import Word2VecAnalyzer
 
 
-##############
-# Entrypoint #
-##############
 def run_outliers():
+    """
+    Entrypoint into ee-outliers.
+    From here we start using the appropriate run mode.
+    """
     # if running in test mode, we just want to run the tests and exit as quick as possible.
     # no need to set up other things like logging, which should happen afterwards.
     if settings.args.run_mode == "tests":
@@ -50,6 +51,11 @@ def run_outliers():
 
 
 def setup_logging():
+    """
+    Setup the correct logging verbosity and file handlers.
+    We also add a logger for Sentry in case it has been set in the environment.
+    Sentry allows us to centrally collect error logging during development.
+    """
     if os.environ.get("SENTRY_SDK_URL"):
         import sentry_sdk
         sentry_sdk.init(os.environ.get("SENTRY_SDK_URL"))
@@ -70,6 +76,10 @@ def setup_logging():
 
 
 def print_intro():
+    """
+    Print the banner information including version, loaded configuration files and any parsing errors
+    that might have occurred when loading them.
+    """
     logging.logger.info("outliers.py - version 0.2.2 - contact: research@nviso.be")
     logging.logger.info("run mode: " + settings.args.run_mode)
 
@@ -92,6 +102,11 @@ def print_intro():
 
 
 def run_daemon_mode():
+    """
+    Run outliers in daemon mode.
+    In this mode, outliers will continue running based on the cron scheduled defined in the configuration file.
+    """
+
     # In daemon mode, we also want to monitor the configuration file for changes.
     # In case of a change, we need to make sure that we are using this new configuration file
     for config_file in settings.args.config:
@@ -174,6 +189,9 @@ def run_daemon_mode():
 
 
 def run_interactive_mode():
+    """
+
+    """
     # Initialize Elasticsearch connection
     while not es.init_connection():
         time.sleep(60)
