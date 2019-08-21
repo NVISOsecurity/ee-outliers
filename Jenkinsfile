@@ -63,7 +63,7 @@ pipeline {
                             app.push("${feature_version}")
                             app.push("latest")
                         } else if(env.BRANCH_NAME == 'development') {
-                            latest_tag = "devlatest"
+                            app.push("devlatest")
                         }
                     }
                 }
