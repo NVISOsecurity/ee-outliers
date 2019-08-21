@@ -1,14 +1,15 @@
+from datetime import datetime
+
 import random
 import time
 import os
 import sys
 import unittest
-import numpy as np
 
-import elasticsearch.exceptions
-
-from datetime import datetime
 from croniter import croniter
+
+import numpy as np
+import elasticsearch.exceptions
 
 import helpers.utils
 from helpers.singletons import settings, logging, es
@@ -25,8 +26,6 @@ from analyzers.word2vec import Word2VecAnalyzer
 # Entrypoint #
 ##############
 def run_outliers():
-    # Run modes
-
     # if running in test mode, we just want to run the tests and exit as quick as possible.
     # no need to set up other things like logging, which should happen afterwards.
     if settings.args.run_mode == "tests":
@@ -98,11 +97,13 @@ def run_daemon_mode():
     for config_file in settings.args.config:
         logging.logger.info("monitoring configuration file " + config_file + " for changes")
 
+    # Monitor configuration files for potential changes
     file_mod_watcher = FileModificationWatcher()
     file_mod_watcher.add_files(settings.args.config)
 
     # Initialize Elasticsearch connection
-    es.try_to_init_connection()
+    while not es.init_connection():
+        time.sleep(60)
 
     # Create housekeeping job, don't start it yet
     housekeeping_job = HousekeepingJob()
@@ -146,7 +147,8 @@ def run_daemon_mode():
         else:
             # Make sure we are still connected to Elasticsearch before analyzing, in case something went wrong with
             # the connection in between runs
-            es.try_to_init_connection()
+            while not es.init_connection():
+                time.sleep(60)
 
         # Make sure housekeeping is up and running
         if not housekeeping_job.is_alive():
@@ -172,7 +174,9 @@ def run_daemon_mode():
 
 
 def run_interactive_mode():
-    es.try_to_init_connection()
+    # Initialize Elasticsearch connection
+    while not es.init_connection():
+        time.sleep(60)
 
     if settings.config.getboolean("general", "es_wipe_all_existing_outliers"):
         es.remove_all_outliers()
@@ -186,7 +190,7 @@ def run_interactive_mode():
         print_analysis_summary(analyzed_models)
     except KeyboardInterrupt:
         logging.logger.info("keyboard interrupt received, stopping housekeeping thread")
-    except Exception:
+    except Exception:  # pylint: disable=broad-except
         logging.logger.error("error running outliers in interactive mode", exc_info=True)
     finally:
         logging.logger.info("asking housekeeping jobs to shutdown after finishing")
@@ -222,7 +226,7 @@ def perform_analysis():
             elif config_section_name.startswith("word2vec_"):
                 _analyzer = Word2VecAnalyzer(config_section_name=config_section_name)
                 analyzers.append(_analyzer)
-        except Exception:
+        except Exception:  # pylint: disable=broad-except
             logging.logger.error("error while initializing analyzer " + config_section_name, exc_info=True)
 
     analyzers_to_evaluate = list()
@@ -250,7 +254,7 @@ def perform_analysis():
         except elasticsearch.exceptions.NotFoundError:
             analyzer.index_not_found_analysis = True
             logging.logger.warning("index %s does not exist, skipping use case" % analyzer.es_index)
-        except Exception:
+        except Exception:  # pylint: disable=broad-except
             analyzer.unknown_error_analysis = True
             logging.logger.error("error while analyzing use case", exc_info=True)
         finally:
