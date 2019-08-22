@@ -56,10 +56,8 @@ pipeline {
                     if (env.BRANCH_NAME == 'master') {
                         sshagent (credentials: ['GithubSSHKey']) {
                             sh '''
-                                if ! git tag --list $(cat VERSION); then
-                                    git tag $(cat VERSION)
-                                    git push origin --tags
-                                fi
+                                git tag $(cat VERSION)
+                                git push origin --tags
                             '''
                         }
                     }
