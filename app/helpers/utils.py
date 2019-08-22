@@ -93,11 +93,11 @@ def kl_divergence(data: Optional[str], baseline_distribution: Dict) -> float:
     if not data:
         return 0
 
-    distribution = Counter(data)
-    data_length = sum(distribution.values())
-    frequencies = {k: v/data_length for k, v in dict(distribution).items()}
+    distribution: Counter = Counter(data)
+    data_length: int = sum(distribution.values())
+    frequencies: Dict = {k: v/data_length for k, v in dict(distribution).items()}
 
-    entropy = 0
+    entropy: float = 0
     for character, frequency in frequencies.items():
         try:
             entropy += frequency * math.log(frequency/baseline_distribution[character], 2)
