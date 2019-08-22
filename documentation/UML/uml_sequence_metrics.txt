@@ -41,7 +41,7 @@ title ee-outliers - Sequence - Metrics
 participant Metrics
 participant Analyzer
 participant ES 
-database ElasticSearch
+database Elasticsearch
 
 Metrics -> Metrics : evaluate_model
 activate Metrics
@@ -98,7 +98,7 @@ activate Metrics
             ES -> ES : save_outlier
             activate ES
 
-                ES -> ElasticSearch
+                ES -> Elasticsearch
 
             ' END save_outlier
             return
