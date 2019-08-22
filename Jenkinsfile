@@ -49,6 +49,21 @@ pipeline {
                 }
             }
         }
+        
+        stage('Official release') {
+            steps {
+                script {
+                    if (env.BRANCH_NAME == 'master') {
+                        sshagent (credentials: ['GithubSSHKey']) {
+                            sh '''
+                                git tag $(cat VERSION)
+                                git push origin --tags
+                            '''
+                        }
+                    }
+                }
+            }
+        }
 
         stage('Push image') {
             steps {
@@ -64,22 +79,6 @@ pipeline {
                             app.push("latest")
                         } else if(env.BRANCH_NAME == 'development') {
                             app.push("devlatest")
-                        }
-                    }
-                }
-            }
-        }
-        stage('Official release') {
-            steps {
-                script {
-                    if (env.BRANCH_NAME == 'master') {
-                        sshagent (credentials: ['GithubSSHKey']) {
-                            sh '''
-                                if ! git tag --list $(cat VERSION); then
-                                    git tag $(cat VERSION)
-                                    git push origin --tags
-                                fi
-                            '''
                         }
                     }
                 }
