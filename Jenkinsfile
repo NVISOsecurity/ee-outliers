@@ -27,6 +27,7 @@ pipeline {
         stage('Test image') {
             steps {
                 script {
+                    sh 'chmod 777 app/tests/unit_tests/files/housekeeping_no_whitelist.conf app/tests/unit_tests/files/file_modification_test.conf'
                     app.inside {
                         sh 'python3 /app/outliers.py tests --config /defaults/outliers.conf'
                     }
