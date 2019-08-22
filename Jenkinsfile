@@ -27,6 +27,7 @@ pipeline {
         stage('Test image') {
             steps {
                 script {
+                    sh 'chmod 777 app/tests/unit_tests/files/housekeeping_no_whitelist.conf app/tests/unit_tests/files/file_modification_test.conf'
                     app.inside {
                         sh 'python3 /app/outliers.py tests --config /defaults/outliers.conf'
                     }
@@ -49,6 +50,21 @@ pipeline {
                 }
             }
         }
+        
+        stage('Official release') {
+            steps {
+                script {
+                    if (env.BRANCH_NAME == 'master') {
+                        sshagent (credentials: ['GithubSSHKey']) {
+                            sh '''
+                                git tag $(cat VERSION)
+                                git push origin --tags
+                            '''
+                        }
+                    }
+                }
+            }
+        }
 
         stage('Push image') {
             steps {
@@ -64,22 +80,6 @@ pipeline {
                             app.push("latest")
                         } else if(env.BRANCH_NAME == 'development') {
                             app.push("devlatest")
-                        }
-                    }
-                }
-            }
-        }
-        stage('Official release') {
-            steps {
-                script {
-                    if (env.BRANCH_NAME == 'master') {
-                        sshagent (credentials: ['GithubSSHKey']) {
-                            sh '''
-                                if ! git tag --list $(cat VERSION); then
-                                    git tag $(cat VERSION)
-                                    git push origin --tags
-                                fi
-                            '''
                         }
                     }
                 }
