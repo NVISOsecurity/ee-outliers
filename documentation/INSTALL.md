@@ -38,7 +38,7 @@ In this mode, ee-outliers will continuously run based on a cron schedule defined
 
 Example from the default configuration file which will run ee-outliers at 00:10 each night (format: Minutes Hours DayNumber Month DayName):
 
-```
+```init
 [daemon]
 schedule=10 0 * * *
 ```
