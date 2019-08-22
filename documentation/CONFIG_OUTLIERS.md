@@ -120,7 +120,7 @@ This model will simply run an Elasticsearch query and tag all the matching event
 Each metrics model section in the configuration file should be prefixed by ``simplequery_``.
 
 **Example model**
-```
+```ini
 ##############################
 # SIMPLEQUERY - POWERSHELL EXECUTION IN HIDDEN WINDOW
 ##############################
@@ -147,7 +147,7 @@ Each metrics model section in the configuration file should be prefixed by ``met
 
 **Example model**
 
-```
+```ini
 ##############################
 # METRICS - BASE64 ENCODED COMMAND LINE ARGUMENTS
 ##############################
@@ -200,7 +200,7 @@ The terms model looks for outliers by calculting rare combinations of a certain 
 Each metrics model section in the configuration file should be prefixed by ``terms_``.
 
 **Example model**
-```
+```ini
 ##############################
 # TERMS - RARE PROCESSES WITH OUTBOUND CONNECTIVITY
 ##############################
@@ -246,7 +246,7 @@ This method could be used for detecting an occurance in events. Example use case
 
 **Example model**
 
-```
+```ini
 ##############################
 # DERIVED FIELDS
 ##############################
@@ -283,7 +283,7 @@ Some fields contains multiple information, like timestamp that could be split be
 
 For this example, the following configuration allow to extract timestamp information:
 
-```
+```ini
 ##############################
 # DERIVED FIELDS
 ##############################
