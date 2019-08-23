@@ -8,6 +8,7 @@ from tests.unit_tests.test_stubs.test_stub_es import TestStubEs
 from tests.unit_tests.utils.update_settings import UpdateSettings
 
 test_file_no_whitelist_path_config = "/app/tests/unit_tests/files/housekeeping_no_whitelist.conf"
+test_file_whitelist_dummy_reason_path_config = "/app/tests/unit_tests/files/housekeeping_whitelist.conf"
 test_file_whitelist_path_config = "/app/tests/unit_tests/files/whitelist_tests_01.conf"
 doc_without_outlier_test_file = json.load(open(
     "/app/tests/unit_tests/files/doc_without_outlier.json"))
@@ -69,19 +70,20 @@ class TestHousekeeping(unittest.TestCase):
         self._restore_config(test_file_no_whitelist_path_config)
         self.assertEqual(result, doc_without_outlier)
 
-    def test_housekeeping_not_execute_no_whitelist_parameter_change(self):
-        self.test_settings.change_configuration_path(test_file_no_whitelist_path_config)
-        self._backup_config(test_file_no_whitelist_path_config)
+    def test_housekeeping_execute_no_whitelist_parameter_change(self):
+        self.test_settings.change_configuration_path(test_file_whitelist_dummy_reason_path_config)
+        self._backup_config(test_file_whitelist_dummy_reason_path_config)
         housekeeping = HousekeepingJob()
 
         # Add document to "Database"
         doc_with_outlier = copy.deepcopy(doc_with_outlier_test_file)
+        expected_doc = copy.deepcopy(doc_with_outlier_test_file)
         self.test_es.add_doc(doc_with_outlier)
 
         # Update configuration (create new section and append to default)
         filecontent = "\n\n[dummy_section]\nparam=1"
 
-        with open(test_file_no_whitelist_path_config, 'a') as test_file:
+        with open(test_file_whitelist_dummy_reason_path_config, 'a') as test_file:
             test_file.write(filecontent)
 
         housekeeping.execute_housekeeping()
@@ -89,5 +91,5 @@ class TestHousekeeping(unittest.TestCase):
         # Fetch result
         result = [elem for elem in self.test_es._scan()][0]
 
-        self._restore_config(test_file_no_whitelist_path_config)
-        self.assertEqual(result, doc_with_outlier)
+        self._restore_config(test_file_whitelist_dummy_reason_path_config)
+        self.assertNotEqual(result, expected_doc)

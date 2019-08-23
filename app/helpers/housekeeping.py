@@ -18,8 +18,7 @@ class HousekeepingJob(threading.Thread):
         # indicates whether the thread should be terminated.
         self.shutdown_flag = threading.Event()
 
-        self.dict_analyzer = dict()
-        self.list_analyzer_change = False
+        self.list_analyzer = list()
 
     @staticmethod
     def _get_config_whitelist_parameters():
@@ -51,25 +50,23 @@ class HousekeepingJob(threading.Thread):
         """
         Execute the housekeeping
         """
-        if self.list_analyzer_change or self.file_mod_watcher.files_changed():
+        if self.file_mod_watcher.files_changed():
+            # reload configuration file, in case new whitelisted items were added by the analyst, they
+            # should be processed!
             settings.process_configuration_files()
-            if self.list_analyzer_change or self.last_config_parameters != self._get_config_whitelist_parameters():
-                self.list_analyzer_change = False  # Reset the fact that analyzer have change
-                self.last_config_parameters = self._get_config_whitelist_parameters()
-                settings.process_configuration_files()
-                logging.logger.info("housekeeping - changes detected, process again housekeeping")
-                self.remove_all_whitelisted_outliers()
+
+            dict_analyzer = dict()
+            for analyzer in self.list_analyzer:
+                analyzer.extract_model_settings()
+                dict_analyzer[(analyzer.model_type, analyzer.model_name)] = analyzer
+
+            settings.process_configuration_files()
+            logging.logger.info("housekeeping - changes detected, process again housekeeping")
+            self.remove_all_whitelisted_outliers()
 
     def update_analyzer_list(self, list_analyzer):
-        # If analyze list have change
-        if self.dict_analyzer != list_analyzer:
-            logging.logger.info("housekeeping - list analyzer have change")
-
-            self.dict_analyzer = dict()
-            for analyzer in list_analyzer:
-                analyzer.extract_model_settings()
-                self.dict_analyzer[(analyzer.model_type, analyzer.model_name)] = analyzer
-            self.list_analyzer_change = True
+        self.list_analyzer = list_analyzer
+        logging.logger.info("housekeeping - list analyzer have been updated")
 
     def stop_housekeeping(self):
         self.shutdown_flag.set()
