@@ -135,7 +135,7 @@ To have more information about the configuration of one analyzer, visit the page
   </tr>
   <tr>
     <td class="tg-0pky">es_query_filter</td>
-    <td class="tg-0pky">Any valid ElasticSearch query</td>
+    <td class="tg-0pky">Any valid Elasticsearch query</td>
     <td class="tg-c3ow">Mandatory</td>
   </tr>
   <tr>
@@ -199,6 +199,9 @@ To have more information about the configuration of one analyzer, visit the page
     <td class="tg-0pky">Mandatory</td>
   </tr>
 </table>
+
+#### Arbitrary parameters
+Any other parameters that are not used by the model will be automatically copy to the outlier parameter. More information [here](CONFIG_OUTLIERS.md#arbitrary-parameters).
 
 
 ### Usual model paramters
