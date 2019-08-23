@@ -20,16 +20,16 @@
 - Small bug enhance (condition simplification)
 - Move `add_term_to_batch` into Analyzer
 - Move `print_analysis_intro` into Analyzer
-- "timestamp_field", "history_window_days" and "history_window_hours" could be different for each model. If not define, take global value (see #157)
+- "timestamp_field", "history_window_days" and "history_window_hours" could be different for each model. If not define, take global value (see [https://github.com/NVISO-BE/ee-outliers/issues/157](#157))
 - Add and enhance tests of Utils
 - Test static methods of Analyzer and Outlier
 - Create a class to test easily methods, without having ES connection (see `test_stub_es` file)
 - Adapt result given by "count_document", depending of the ElasticSearch version
 - Remove import done in the code
 - Create `FileModificationWatcher`, which was done before in Utils.
-- Bug fix #154, #156
+- Bug fix [https://github.com/NVISO-BE/ee-outliers/issues/154](#154), [https://github.com/NVISO-BE/ee-outliers/issues/156](#156)
 
-## Version 0.1.2 (November 13, 2018)
+## [https://github.com/NVISO-BE/ee-outliers/releases/tag/0.1.2](Version 0.1.2) (November 13, 2018)
 
 - "assets" is now a required global configuration section
 - "outlier_assets" are no longer used on per-use-case basis
