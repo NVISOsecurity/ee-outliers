@@ -121,10 +121,10 @@ class Analyzer(abc.ABC):
         model_settings["outlier_type"] = settings.config.get(self.config_section_name, "outlier_type")
         model_settings["outlier_summary"] = settings.config.get(self.config_section_name, "outlier_summary")
 
-        self.model_settings["run_model"] = settings.config.getboolean("general", "run_models") and settings.config.getboolean(
-            self.config_section_name, "run_model")
-        self.model_settings["test_model"] = settings.config.getboolean("general", "test_models") and \
-                                            settings.config.getboolean(self.config_section_name, "test_model")
+        model_settings["run_model"] = settings.config.getboolean("general", "run_models") and \
+                                      settings.config.getboolean(self.config_section_name, "run_model")
+        model_settings["test_model"] = settings.config.getboolean("general", "test_models") and \
+                                       settings.config.getboolean(self.config_section_name, "test_model")
 
         return model_settings
 
