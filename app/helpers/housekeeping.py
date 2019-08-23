@@ -39,7 +39,6 @@ class HousekeepingJob(threading.Thread):
         Task to launch the housekeeping
         """
         logging.logger.info('housekeeping thread #%s started' % self.ident)
-        self.remove_all_whitelisted_outliers()
 
         # Remove all existing whitelisted items if needed
         while not self.shutdown_flag.is_set():
@@ -52,16 +51,14 @@ class HousekeepingJob(threading.Thread):
         """
         Execute the housekeeping
         """
-        # if self.last_config_parameters != self._get_config_whitelist_parameters():
-        if self.list_analyzer_change or \
-                (self.file_mod_watcher.files_changed() and
-                    self.last_config_parameters != self._get_config_whitelist_parameters()):
-            
-            self.list_analyzer_change = False  # Reset the fact that analyzer have change
-            self.last_config_parameters = self._get_config_whitelist_parameters()
+        if self.list_analyzer_change or self.file_mod_watcher.files_changed():
             settings.process_configuration_files()
-            logging.logger.info("housekeeping - changes detected, process again housekeeping")
-            self.remove_all_whitelisted_outliers()
+            if self.list_analyzer_change or self.last_config_parameters != self._get_config_whitelist_parameters():
+                self.list_analyzer_change = False  # Reset the fact that analyzer have change
+                self.last_config_parameters = self._get_config_whitelist_parameters()
+                settings.process_configuration_files()
+                logging.logger.info("housekeeping - changes detected, process again housekeeping")
+                self.remove_all_whitelisted_outliers()
 
     def update_analyzer_list(self, list_analyzer):
         # If analyze list have change
