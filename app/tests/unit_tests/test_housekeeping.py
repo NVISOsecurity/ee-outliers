@@ -9,8 +9,6 @@ from tests.unit_tests.utils.update_settings import UpdateSettings
 
 test_file_no_whitelist_path_config = "/app/tests/unit_tests/files/housekeeping_no_whitelist.conf"
 test_file_whitelist_path_config = "/app/tests/unit_tests/files/whitelist_tests_01.conf"
-doc_without_outlier_without_score_test_file = json.load(open(
-    "/app/tests/unit_tests/files/doc_without_outlier_without_score.json"))
 doc_without_outlier_test_file = json.load(open(
     "/app/tests/unit_tests/files/doc_without_outlier.json"))
 doc_with_outlier_test_file = json.load(open("/app/tests/unit_tests/files/doc_with_outlier.json"))
