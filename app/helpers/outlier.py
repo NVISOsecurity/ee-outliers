@@ -20,7 +20,7 @@ class Outlier:
     # support this too.
     # Example: "dns_tunneling_fp = rule_updates.et.com, intel_server" -> should match both values across the entire
     # event (rule_updates.et.com and intel_server);
-    def is_whitelisted(self):
+    def is_whitelisted(self, extra_literals_whitelist_value=[], extra_regexps_whitelist_value=[]):
         """
         Check if the current outlier is whitelisted or not. To do this computation, the document content is used.
         Notice that the computation is done one and then just given when this method is again call.
@@ -31,7 +31,8 @@ class Outlier:
             # Create dictionary that contain all stuff
             self._is_whitelisted = Outlier.is_whitelisted_doc({'outlier_dict': self.outlier_dict,
                                                                'additional_dict_to_check': self.doc},
-                                                              (self.model_type, self.model_name))
+                                                              extra_literals_whitelist_value,
+                                                              extra_regexps_whitelist_value)
         return self._is_whitelisted
 
     def get_outlier_dict_of_arrays(self):
@@ -62,7 +63,7 @@ class Outlier:
         return _str
 
     @staticmethod
-    def is_whitelisted_doc(dict_to_check, extra_whitelist_section):
+    def is_whitelisted_doc(dict_to_check, extra_literals_whitelist_value=[], extra_regexps_whitelist_value=[]):
         """
         Allow to know if values of a dictionary is whitelisted or not
 
@@ -80,13 +81,15 @@ class Outlier:
                 dict_values_to_check.add(str(dict_val).strip())
 
         # Check if value is whitelisted as literal
-        for list_whitelist_elements in helpers.singletons.settings.get_whitelist_literals(extra_whitelist_section):
+        for list_whitelist_elements in (helpers.singletons.settings.whitelist_literals_config +
+                                        extra_literals_whitelist_value):
             # If all whitelisted value are in the dict to check
             if list_whitelist_elements.issubset(dict_values_to_check):
                 return True
 
         # Check if value is whitelisted as regexps
-        for whitelist_values_to_check in helpers.singletons.settings.get_whitelist_regexps(extra_whitelist_section):
+        for whitelist_values_to_check in (helpers.singletons.settings.whitelist_regexps_config +
+                                          extra_regexps_whitelist_value):
             total_whitelisted_fields_to_match = len(whitelist_values_to_check)
             total_whitelisted_fields_matched = 0
 

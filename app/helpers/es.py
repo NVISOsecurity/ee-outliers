@@ -290,27 +290,19 @@ class ES:
 
     def process_outlier(self, outlier=None, should_notify=False):
         """
-        Check if outlier is whitelist, save outlier (if configuration is setup for that), notify (also depending of
-        configuration) and print.
+        Save outlier (if configuration is setup for that), notify (also depending of configuration) and print.
 
         :param outlier: the detected outlier
         :param should_notify: True if notification need to be send
-        :return: True if not whitelist, False otherwise
         """
-        if outlier.is_whitelisted():
-            if self.settings.config.getboolean("general", "print_outliers_to_console"):
-                self.logging.logger.info(outlier.outlier_dict["summary"] + " [whitelisted outlier]")
-            return False
-        else:
-            if self.settings.config.getboolean("general", "es_save_results"):
-                self.save_outlier(outlier=outlier)
+        if self.settings.config.getboolean("general", "es_save_results"):
+            self.save_outlier(outlier=outlier)
 
-            if should_notify:
-                self.notifier.notify_on_outlier(outlier=outlier)
+        if should_notify:
+            self.notifier.notify_on_outlier(outlier=outlier)
 
-            if self.settings.config.getboolean("general", "print_outliers_to_console"):
-                self.logging.logger.info("outlier - " + outlier.outlier_dict["summary"])
-            return True
+        if self.settings.config.getboolean("general", "print_outliers_to_console"):
+            self.logging.logger.info("outlier - " + outlier.outlier_dict["summary"])
 
     def add_update_bulk_action(self, document):
         """

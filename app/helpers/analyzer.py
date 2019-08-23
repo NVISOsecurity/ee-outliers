@@ -1,6 +1,7 @@
 import abc
 from configparser import NoOptionError
 
+import re
 import dateutil
 
 from helpers.singletons import settings, es, logging
@@ -31,12 +32,16 @@ class Analyzer(abc.ABC):
 
         self.nr_whitelisted_elements = 0
 
+        self.whitelist_literals_per_model = list()
+        self.whitelist_regexps_per_model = list()
+
         # extract all settings for this use case
         self.configuration_parsing_error = False
 
         try:
             self.model_settings = self._extract_model_settings()
             self._extract_additional_model_settings()
+            self.extract_whitelist_per_model()
         except Exception:
             logging.logger.error("error while parsing use case configuration for " + self.config_section_name,
                                  exc_info=True)
@@ -127,6 +132,27 @@ class Analyzer(abc.ABC):
         """
         pass
 
+    def extract_whitelist_per_model(self):
+        self.whitelist_literals_per_model = list()
+        self.whitelist_regexps_per_model = list()
+
+        list_literals_value_in_config = self._get_config_information_based_on_prefix("whitelist_literals_")
+        for value in list_literals_value_in_config:
+            self.whitelist_literals_per_model.append(settings.extract_whitelist_literal_from_value(value))
+
+        list_regexps_value_in_config = self._get_config_information_based_on_prefix("whitelist_regexps_")
+        for value in list_regexps_value_in_config:
+            list_compile_regex_whitelist_value, failing_regular_expressions = \
+                settings.extract_whitelist_regex_from_value(value)
+            self.whitelist_regexps_per_model.append(list_compile_regex_whitelist_value)
+
+    def _get_config_information_based_on_prefix(self, prefix):
+        set_values_in_config = list()
+        for key, value in dict(settings.config.items(self.config_section_name)).items():
+            if key[0:len(prefix)] == prefix and value != "":
+                set_values_in_config.append(value)
+        return set_values_in_config
+
     def print_analysis_summary(self):
         """
         Print information about the analyzer. Must be call at the end of processing
@@ -205,7 +231,11 @@ class Analyzer(abc.ABC):
         self.total_outliers += 1
         self.outlier_summaries.add(outlier.outlier_dict["summary"])
 
-        es.process_outlier(outlier=outlier, should_notify=self.model_settings["should_notify"])
+        if outlier.is_whitelisted(self.whitelist_literals_per_model, self.whitelist_regexps_per_model):
+            if settings.config.getboolean("general", "print_outliers_to_console"):
+                logging.logger.info(outlier.outlier_dict["summary"] + " [whitelisted outlier]")
+        else:
+            es.process_outlier(outlier=outlier, should_notify=self.model_settings["should_notify"])
 
     def print_analysis_intro(self, event_type, total_events):
         logging.logger.info("")

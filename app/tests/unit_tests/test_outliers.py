@@ -124,7 +124,7 @@ class TestOutlierOperations(unittest.TestCase):
         dummy_doc_gen = DummyDocumentsGenerate()
         doc = dummy_doc_gen.generate_document({"command_query": r'C:\Windows\system32\msfeedssync.exe sync'})
 
-        result = Outlier.is_whitelisted_doc(doc, extra_whitelist_section="")
+        result = Outlier.is_whitelisted_doc(doc)
         self.assertTrue(result)
 
     def test_whitelist_literal_mismatch(self):
@@ -133,7 +133,7 @@ class TestOutlierOperations(unittest.TestCase):
         dummy_doc_gen = DummyDocumentsGenerate()
         doc = dummy_doc_gen.generate_document({"command_query": r'C:\Windows\system32\msfeedssync.exe syncOther'})
 
-        result = Outlier.is_whitelisted_doc(doc, extra_whitelist_section="")
+        result = Outlier.is_whitelisted_doc(doc)
         self.assertFalse(result)
 
     def test_whitelist_regexp_match(self):

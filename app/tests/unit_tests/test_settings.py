@@ -25,9 +25,9 @@ class TestSettings(unittest.TestCase):
                                                "filename": "osquery_get_all_processes_with_listening_conns.log"})
 
         # With this configuration, outlier is not whitlisted
-        self.assertFalse(Outlier.is_whitelisted_doc(doc, extra_whitelist_section=""))
+        self.assertFalse(Outlier.is_whitelisted_doc(doc))
 
         # Update configuration
         self.test_settings.change_configuration_path(test_whitelist_multiple_literal_file)
         # Now outlier is whitelisted
-        self.assertTrue(Outlier.is_whitelisted_doc(doc, extra_whitelist_section=""))
+        self.assertTrue(Outlier.is_whitelisted_doc(doc))
