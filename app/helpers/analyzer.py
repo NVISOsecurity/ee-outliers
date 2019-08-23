@@ -210,8 +210,8 @@ class Analyzer(abc.ABC):
         """
         outlier_type, outlier_reason, outlier_summary, outlier_assets = \
             self._prepare_outlier_parameters(extra_outlier_information, fields)
-        outlier = Outlier(model_name=self.model_name, model_type=self.model_type, outlier_type=outlier_type,
-                          outlier_reason=outlier_reason, outlier_summary=outlier_summary, doc=doc)
+        outlier = Outlier(outlier_type=outlier_type, outlier_reason=outlier_reason, outlier_summary=outlier_summary,
+                          doc=doc)
 
         if outlier_assets:
             outlier.outlier_dict["assets"] = outlier_assets

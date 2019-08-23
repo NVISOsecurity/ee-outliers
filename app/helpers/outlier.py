@@ -5,10 +5,8 @@ import textwrap
 
 class Outlier:
 
-    def __init__(self, model_name, model_type, outlier_type, outlier_reason, outlier_summary, doc):
+    def __init__(self, outlier_type, outlier_reason, outlier_summary, doc):
         self.outlier_dict = dict()
-        self.model_name = model_name
-        self.model_type = model_type
         self.outlier_dict["type"] = outlier_type  # can be multiple types, for example: malware, powershell
         self.outlier_dict["reason"] = outlier_reason  # can be multiple reasons, for example: DNS tunneling, IDS alert
         # hard-wrap the length of a summary line to 150 characters to make it easier to visualize
