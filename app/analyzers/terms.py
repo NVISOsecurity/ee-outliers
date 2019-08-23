@@ -38,7 +38,7 @@ class TermsAnalyzer(Analyzer):
                 is_last_batch = (logging.current_step == self.total_events)  # Check if it is the last batch
                 # Run if it is the last batch OR if the batch size is large enough
 
-                if is_last_batch or total_targets_in_batch >= settings.config.getint("terms", "terms_batch_eval_size"):
+                if is_last_batch or total_targets_in_batch >= self.terms_batch_eval_size:
 
                     # Display log message
                     log_message = "evaluating batch of " + "{:,}".format(total_targets_in_batch) + " terms "
@@ -493,6 +493,8 @@ class TermsAnalyzer(Analyzer):
                                                          "pct_of_avg_value", "mad", "madpos", "stdev", "float",
                                                          "coeff_of_variation"}:
             raise ValueError("Unexpected outlier trigger method " + str(self.model_settings["trigger_method"]))
+
+        self.terms_batch_eval_size = settings.config.getint("terms", "terms_batch_eval_size")
 
     @staticmethod
     def remove_term_from_batch(eval_terms_array, aggregator_value, term_counter):

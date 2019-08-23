@@ -42,7 +42,7 @@ class HousekeepingJob(threading.Thread):
 
             dict_analyzer = dict()
             for analyzer in self.list_analyzer:
-                analyzer.extract_model_settings()
+                # TODO reload analyzer whitelist
                 dict_analyzer[(analyzer.model_type, analyzer.model_name)] = analyzer
 
             settings.process_configuration_files()
