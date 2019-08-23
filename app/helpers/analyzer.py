@@ -35,8 +35,7 @@ class Analyzer(abc.ABC):
         self.configuration_parsing_error = False
 
         try:
-            self.model_settings = self._extract_model_settings()
-            self._extract_additional_model_settings()
+            self.extract_model_settings()
         except Exception:
             logging.logger.error("error while parsing use case configuration for " + self.config_section_name,
                                  exc_info=True)
@@ -54,71 +53,72 @@ class Analyzer(abc.ABC):
         else:
             return None
 
-    def _extract_model_settings(self):
-        model_settings = dict()
+    def extract_model_settings(self):
+        self.model_settings = dict()
 
         # by default, we don't process documents chronologically when analyzing the model, as it
         # has a high impact on performance when scanning in Elasticsearch
-        model_settings["process_documents_chronologically"] = True
+        self.model_settings["process_documents_chronologically"] = True
 
         try:
-            model_settings["es_query_filter"] = settings.config.get(self.config_section_name, "es_query_filter")
-            self.search_query = es.filter_by_query_string(model_settings["es_query_filter"])
+            self.model_settings["es_query_filter"] = settings.config.get(self.config_section_name, "es_query_filter")
+            self.search_query = es.filter_by_query_string(self.model_settings["es_query_filter"])
 
         except NoOptionError:
-            model_settings["es_query_filter"] = None
+            self.model_settings["es_query_filter"] = None
 
         try:
-            model_settings["es_dsl_filter"] = settings.config.get(self.config_section_name, "es_dsl_filter")
-            self.search_query = es.filter_by_dsl_query(model_settings["es_dsl_filter"])
+            self.model_settings["es_dsl_filter"] = settings.config.get(self.config_section_name, "es_dsl_filter")
+            self.search_query = es.filter_by_dsl_query(self.model_settings["es_dsl_filter"])
 
         except NoOptionError:
-            model_settings["es_dsl_filter"] = None
+            self.model_settings["es_dsl_filter"] = None
 
         try:
-            model_settings["timestamp_field"] = settings.config.get(self.config_section_name, "timestamp_field")
+            self.model_settings["timestamp_field"] = settings.config.get(self.config_section_name, "timestamp_field")
         except NoOptionError:
-            model_settings["timestamp_field"] = settings.config.get("general", "timestamp_field", fallback="timestamp")
+            self.model_settings["timestamp_field"] = settings.config.get("general", "timestamp_field",
+                                                                         fallback="timestamp")
 
         try:
-            model_settings["history_window_days"] = settings.config.getint(self.config_section_name,
-                                                                           "history_window_days")
+            self.model_settings["history_window_days"] = settings.config.getint(self.config_section_name,
+                                                                                "history_window_days")
         except NoOptionError:
-            model_settings["history_window_days"] = settings.config.getint("general", "history_window_days")
+            self.model_settings["history_window_days"] = settings.config.getint("general", "history_window_days")
 
         try:
-            model_settings["history_window_hours"] = settings.config.getint(self.config_section_name,
-                                                                            "history_window_hours")
+            self.model_settings["history_window_hours"] = settings.config.getint(self.config_section_name,
+                                                                                 "history_window_hours")
         except NoOptionError:
-            model_settings["history_window_hours"] = settings.config.getint("general", "history_window_hours")
+            self.model_settings["history_window_hours"] = settings.config.getint("general", "history_window_hours")
 
         try:
-            model_settings["should_notify"] = settings.config.getboolean("notifier", "email_notifier") and \
+            self.model_settings["should_notify"] = settings.config.getboolean("notifier", "email_notifier") and \
                                               settings.config.getboolean(self.config_section_name, "should_notify")
         except NoOptionError:
-            model_settings["should_notify"] = False
+            self.model_settings["should_notify"] = False
 
         try:
-            model_settings["use_derived_fields"] = settings.config.getboolean(self.config_section_name,
-                                                                              "use_derived_fields")
+            self.model_settings["use_derived_fields"] = settings.config.getboolean(self.config_section_name,
+                                                                                   "use_derived_fields")
         except NoOptionError:
-            model_settings["use_derived_fields"] = False
+            self.model_settings["use_derived_fields"] = False
 
         try:
             self.es_index = settings.config.get(self.config_section_name, "es_index")
         except NoOptionError:
             self.es_index = settings.config.get("general", "es_index_pattern")
 
-        model_settings["outlier_reason"] = settings.config.get(self.config_section_name, "outlier_reason")
-        model_settings["outlier_type"] = settings.config.get(self.config_section_name, "outlier_type")
-        model_settings["outlier_summary"] = settings.config.get(self.config_section_name, "outlier_summary")
+        self.model_settings["outlier_reason"] = settings.config.get(self.config_section_name, "outlier_reason")
+        self.model_settings["outlier_type"] = settings.config.get(self.config_section_name, "outlier_type")
+        self.model_settings["outlier_summary"] = settings.config.get(self.config_section_name, "outlier_summary")
 
         self.should_run_model = settings.config.getboolean("general", "run_models") and settings.config.getboolean(
             self.config_section_name, "run_model")
         self.should_test_model = settings.config.getboolean("general", "test_models") and settings.config.getboolean(
             self.config_section_name, "test_model")
 
-        return model_settings
+        self._extract_additional_model_settings()
 
     def _extract_additional_model_settings(self):
         """

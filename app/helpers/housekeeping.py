@@ -18,11 +18,13 @@ class HousekeepingJob(threading.Thread):
         # indicates whether the thread should be terminated.
         self.shutdown_flag = threading.Event()
 
+        self.dict_analyzer = dict()
+        self.list_analyzer_change = False
+
     @staticmethod
     def _get_config_whitelist_parameters():
         """
         Get parameters linked to the whitelist
-
         :return: dictionary with whitelist parameters
         """
         return {
@@ -41,8 +43,8 @@ class HousekeepingJob(threading.Thread):
 
         # Remove all existing whitelisted items if needed
         while not self.shutdown_flag.is_set():
-            self.shutdown_flag.wait(5)
-            self.execute_housekeeping()
+            if not self.shutdown_flag.wait(5):  # Return True if flag was set by outliers
+                self.execute_housekeeping()
 
         logging.logger.info('housekeeping thread #%s stopped' % self.ident)
 
@@ -50,15 +52,31 @@ class HousekeepingJob(threading.Thread):
         """
         Execute the housekeeping
         """
-        if len(self.file_mod_watcher.files_changed()) > 0:
-            # reload configuration file, in case new whitelisted items were added by the analyst, they
-            # should be processed!
+        # if self.last_config_parameters != self._get_config_whitelist_parameters():
+        if self.list_analyzer_change or \
+                (self.file_mod_watcher.files_changed() and
+                    self.last_config_parameters != self._get_config_whitelist_parameters()):
+            
+            self.list_analyzer_change = False  # Reset the fact that analyzer have change
+            self.last_config_parameters = self._get_config_whitelist_parameters()
             settings.process_configuration_files()
+            logging.logger.info("housekeeping - changes detected, process again housekeeping")
+            self.remove_all_whitelisted_outliers()
 
-            if self.last_config_parameters != self._get_config_whitelist_parameters():
-                self.last_config_parameters = self._get_config_whitelist_parameters()
-                logging.logger.info("housekeeping - changes detected in the whitelist configuration")
-                self.remove_all_whitelisted_outliers()
+    def update_analyzer_list(self, list_analyzer):
+        # If analyze list have change
+        if self.dict_analyzer != list_analyzer:
+            logging.logger.info("housekeeping - list analyzer have change")
+
+            self.dict_analyzer = dict()
+            for analyzer in list_analyzer:
+                analyzer.extract_model_settings()
+                self.dict_analyzer[(analyzer.model_type, analyzer.model_name)] = analyzer
+            self.list_analyzer_change = True
+
+    def stop_housekeeping(self):
+        self.shutdown_flag.set()
+        self.join()
 
     @staticmethod
     def remove_all_whitelisted_outliers():

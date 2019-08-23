@@ -171,7 +171,7 @@ def run_daemon_mode():
 
         # Perform analysis
         logging.print_generic_intro("starting outlier detection")
-        analyzed_models = perform_analysis()
+        analyzed_models = perform_analysis(housekeeping_job)
         print_analysis_summary(analyzed_models)
 
         errored_models = [analyzer for analyzer in analyzed_models if analyzer.unknown_error_analysis]
@@ -206,7 +206,7 @@ def run_interactive_mode():
     housekeeping_job.start()
 
     try:
-        analyzed_models = perform_analysis()
+        analyzed_models = perform_analysis(housekeeping_job)
         print_analysis_summary(analyzed_models)
     except KeyboardInterrupt:
         logging.logger.info("keyboard interrupt received, stopping housekeeping thread")
@@ -214,13 +214,12 @@ def run_interactive_mode():
         logging.logger.error("error running outliers in interactive mode", exc_info=True)
     finally:
         logging.logger.info("asking housekeeping jobs to shutdown after finishing")
-        housekeeping_job.shutdown_flag.set()
-        housekeeping_job.join()
+        housekeeping_job.stop_housekeeping()
 
     logging.logger.info("finished performing outlier detection")
 
 
-def perform_analysis():
+def perform_analysis(housekeeping_job):
     """ The entrypoint for analysis
     :return: List of analyzers that have been processed and analyzed
     """
@@ -257,6 +256,7 @@ def perform_analysis():
         if analyzer.should_run_model or analyzer.should_test_model:
             analyzers_to_evaluate.append(analyzer)
 
+    housekeeping_job.update_analyzer_list(analyzers_to_evaluate)
     random.shuffle(analyzers_to_evaluate)
 
     for index, analyzer in enumerate(analyzers_to_evaluate):
