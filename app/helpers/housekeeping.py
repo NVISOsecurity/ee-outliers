@@ -12,26 +12,11 @@ class HousekeepingJob(threading.Thread):
         self.file_mod_watcher = FileModificationWatcher()
         self.file_mod_watcher.add_files(settings.args.config)
 
-        self.last_config_parameters = self._get_config_whitelist_parameters()
-
         # The shutdown_flag is a threading.Event object that
         # indicates whether the thread should be terminated.
         self.shutdown_flag = threading.Event()
 
         self.list_analyzer = list()
-
-    @staticmethod
-    def _get_config_whitelist_parameters():
-        """
-        Get parameters linked to the whitelist
-        :return: dictionary with whitelist parameters
-        """
-        return {
-            'whitelist_literals': settings.config.items("whitelist_literals"),
-            'whitelist_regexps': settings.config.items("whitelist_regexps"),
-            'es_wipe_all_whitelisted_outliers': settings.config.getboolean("general",
-                                                                           "es_wipe_all_whitelisted_outliers")
-        }
 
     def run(self):
         """
