@@ -296,17 +296,17 @@ class ES:
         :return: True if not whitelist, False otherwise
         """
         if outlier.is_whitelisted():
-            if self.settings.config.getboolean("general", "print_outliers_to_console"):
+            if self.settings.print_outliers_to_console:
                 self.logging.logger.info(outlier.outlier_dict["summary"] + " [whitelisted outlier]")
             return False
         else:
-            if self.settings.config.getboolean("general", "es_save_results"):
+            if self.settings.es_save_results:
                 self.save_outlier(outlier=outlier)
 
             if should_notify:
                 self.notifier.notify_on_outlier(outlier=outlier)
 
-            if self.settings.config.getboolean("general", "print_outliers_to_console"):
+            if self.settings.print_outliers_to_console:
                 self.logging.logger.info("outlier - " + outlier.outlier_dict["summary"])
             return True
 

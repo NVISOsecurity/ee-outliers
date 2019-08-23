@@ -517,7 +517,7 @@ class TestUtils(unittest.TestCase):
         # NOT be added as assets. Both IP and user should match, so 2 matches.
 
     def test_extract_outlier_asset_information_case_insensitive_value(self):
-        from helpers.singletons import settings, es
+        from helpers.singletons import es, settings
 
         # test case for case insensitive asset matching
         orig_doc = copy.deepcopy(doc_with_outlier_test_file)
