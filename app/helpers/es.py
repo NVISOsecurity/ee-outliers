@@ -6,7 +6,6 @@ import json
 import datetime as dt
 from pygrok import Grok
 import math
-import time
 
 from helpers.singleton import singleton
 from helpers.notifier import Notifier
@@ -295,13 +294,13 @@ class ES:
         :param outlier: the detected outlier
         :param should_notify: True if notification need to be send
         """
-        if self.settings.config.getboolean("general", "es_save_results"):
+        if self.settings.es_save_results:
             self.save_outlier(outlier=outlier)
 
         if should_notify:
             self.notifier.notify_on_outlier(outlier=outlier)
 
-        if self.settings.config.getboolean("general", "print_outliers_to_console"):
+        if self.settings.print_outliers_to_console:
             self.logging.logger.info("outlier - " + outlier.outlier_dict["summary"])
 
     def add_update_bulk_action(self, document):

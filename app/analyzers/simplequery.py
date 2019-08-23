@@ -38,7 +38,8 @@ class SimplequeryAnalyzer(Analyzer):
         else:
             query["filter"] = [exclude_hits_filter]
 
-        self.total_events, documents = es.count_and_scan_documents(index=self.es_index, search_query=query,
+        self.total_events, documents = es.count_and_scan_documents(index=self.model_settings["es_index"],
+                                                                   search_query=query,
                                                                    model_settings=self.model_settings)
         self.print_analysis_intro(event_type="evaluating " + self.config_section_name,
                                   total_events=self.total_events)

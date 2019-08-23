@@ -2,6 +2,8 @@ import configparser
 import argparse
 import re
 
+from configparser import NoOptionError, NoSectionError
+
 from helpers.singleton import singleton
 
 parser = argparse.ArgumentParser()
@@ -58,6 +60,24 @@ class Settings:
         # Regex whitelist
         self.whitelist_regexps_config, self.failing_regular_expressions = \
             self._extract_whitelist_regex_from_settings_section("whitelist_regexps")
+
+        try:
+            self.print_outliers_to_console = self.config.getboolean("general", "print_outliers_to_console")
+        except NoOptionError:
+            self.print_outliers_to_console = 0
+
+        # Could produce an error, but don't catch it. Crash program if not define
+        self.es_save_results = self.config.getboolean("general", "es_save_results")
+
+        try:
+            self.list_derived_fields = self.config.items("derivedfields")
+        except NoSectionError:
+            self.list_derived_fields = dict()
+
+        try:
+            self.list_assets = self.config.items("assets")
+        except NoSectionError:
+            self.list_assets = dict()
 
     def _extract_whitelist_literals_from_settings_section(self, settings_section):
         list_whitelist_literals = list()

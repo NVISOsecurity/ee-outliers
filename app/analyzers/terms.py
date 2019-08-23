@@ -11,7 +11,8 @@ from helpers.analyzer import Analyzer
 class TermsAnalyzer(Analyzer):
 
     def evaluate_model(self):
-        self.total_events, documents = es.count_and_scan_documents(index=self.es_index, search_query=self.search_query,
+        self.total_events, documents = es.count_and_scan_documents(index=self.model_settings["es_index"],
+                                                                   search_query=self.search_query,
                                                                    model_settings=self.model_settings)
 
         self.print_analysis_intro(event_type="evaluating " + self.model_name, total_events=self.total_events)
@@ -38,7 +39,7 @@ class TermsAnalyzer(Analyzer):
                 is_last_batch = (logging.current_step == self.total_events)  # Check if it is the last batch
                 # Run if it is the last batch OR if the batch size is large enough
 
-                if is_last_batch or total_targets_in_batch >= settings.config.getint("terms", "terms_batch_eval_size"):
+                if is_last_batch or total_targets_in_batch >= self.terms_batch_eval_size:
 
                     # Display log message
                     log_message = "evaluating batch of " + "{:,}".format(total_targets_in_batch) + " terms "
@@ -493,6 +494,8 @@ class TermsAnalyzer(Analyzer):
                                                          "pct_of_avg_value", "mad", "madpos", "stdev", "float",
                                                          "coeff_of_variation"}:
             raise ValueError("Unexpected outlier trigger method " + str(self.model_settings["trigger_method"]))
+
+        self.terms_batch_eval_size = settings.config.getint("terms", "terms_batch_eval_size")
 
     @staticmethod
     def remove_term_from_batch(eval_terms_array, aggregator_value, term_counter):

@@ -11,6 +11,8 @@ from helpers.outlier import Outlier
 
 class Analyzer(abc.ABC):
 
+    DEFAULT_CONFIG_KEY = {"run_model", "test_model"}
+
     def __init__(self, config_section_name):
         # the configuration file section for the use case, for example [simplequery_test_model]
         self.config_section_name = config_section_name
@@ -42,6 +44,7 @@ class Analyzer(abc.ABC):
             self.model_settings = self._extract_model_settings()
             self._extract_additional_model_settings()
             self.extract_whitelist_per_model()
+            self.extra_model_settings = self._extract_arbitrary_config()
         except Exception:
             logging.logger.error("error while parsing use case configuration for " + self.config_section_name,
                                  exc_info=True)
@@ -110,18 +113,18 @@ class Analyzer(abc.ABC):
             model_settings["use_derived_fields"] = False
 
         try:
-            self.es_index = settings.config.get(self.config_section_name, "es_index")
+            model_settings["es_index"] = settings.config.get(self.config_section_name, "es_index")
         except NoOptionError:
-            self.es_index = settings.config.get("general", "es_index_pattern")
+            model_settings["es_index"] = settings.config.get("general", "es_index_pattern")
 
         model_settings["outlier_reason"] = settings.config.get(self.config_section_name, "outlier_reason")
         model_settings["outlier_type"] = settings.config.get(self.config_section_name, "outlier_type")
         model_settings["outlier_summary"] = settings.config.get(self.config_section_name, "outlier_summary")
 
-        self.should_run_model = settings.config.getboolean("general", "run_models") and settings.config.getboolean(
+        self.model_settings["run_model"] = settings.config.getboolean("general", "run_models") and settings.config.getboolean(
             self.config_section_name, "run_model")
-        self.should_test_model = settings.config.getboolean("general", "test_models") and settings.config.getboolean(
-            self.config_section_name, "test_model")
+        self.model_settings["test_model"] = settings.config.getboolean("general", "test_models") and \
+                                            settings.config.getboolean(self.config_section_name, "test_model")
 
         return model_settings
 
@@ -152,6 +155,22 @@ class Analyzer(abc.ABC):
             if key[0:len(prefix)] == prefix and value != "":
                 set_values_in_config.append(value)
         return set_values_in_config
+
+    def _extract_arbitrary_config(self):
+        """
+        Extract all other key in the model section to copied verbatim to the outlier
+
+        :return: dictionary with arbitrary key config
+        """
+        extra_model_settings = dict()
+        prefix_whitelist = "whitelist_"
+
+        all_items = settings.config.items(self.config_section_name)
+        for key, value in all_items:
+            if key not in self.model_settings and key[0:len(prefix_whitelist)] != prefix_whitelist:
+                extra_model_settings[key] = value
+
+        return extra_model_settings
 
     def print_analysis_summary(self):
         """
@@ -217,6 +236,9 @@ class Analyzer(abc.ABC):
             outlier.outlier_dict["assets"] = outlier_assets
 
         # This loop add also model_name and model_type to Outlier
+        for key, value in self.extra_model_settings.items():
+            outlier.outlier_dict[key] = value
+
         for k, v in extra_outlier_information.items():
             outlier.outlier_dict[k] = v
 
@@ -232,7 +254,7 @@ class Analyzer(abc.ABC):
         self.outlier_summaries.add(outlier.outlier_dict["summary"])
 
         if outlier.is_whitelisted(self.whitelist_literals_per_model, self.whitelist_regexps_per_model):
-            if settings.config.getboolean("general", "print_outliers_to_console"):
+            if settings.print_outliers_to_console:
                 logging.logger.info(outlier.outlier_dict["summary"] + " [whitelisted outlier]")
         else:
             es.process_outlier(outlier=outlier, should_notify=self.model_settings["should_notify"])

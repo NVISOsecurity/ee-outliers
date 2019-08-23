@@ -26,7 +26,8 @@ class MetricsAnalyzer(Analyzer):
         remaining_metrics = defaultdict()
         total_metrics_in_batch = 0
 
-        self.total_events, documents = es.count_and_scan_documents(index=self.es_index, search_query=self.search_query,
+        self.total_events, documents = es.count_and_scan_documents(index=self.model_settings["es_index"],
+                                                                   search_query=self.search_query,
                                                                    model_settings=self.model_settings)
 
         self.print_analysis_intro(event_type="evaluating " + self.config_section_name, total_events=self.total_events)
@@ -54,8 +55,7 @@ class MetricsAnalyzer(Analyzer):
 
                 is_last_batch = (logging.current_step == self.total_events)  # Check if it is the last batch
                 # Run if it is the last batch OR if the batch size is large enough
-                if is_last_batch or total_metrics_in_batch >= settings.config.getint("metrics",
-                                                                                     "metrics_batch_eval_size"):
+                if is_last_batch or total_metrics_in_batch >= self.metrics_batch_eval_size:
 
                     # Display log message
                     log_message = "evaluating batch of " + "{:,}".format(total_metrics_in_batch) + " metrics "
@@ -317,6 +317,8 @@ class MetricsAnalyzer(Analyzer):
 
         if self.model_settings["trigger_on"] not in SUPPORTED_TRIGGERS:
             raise ValueError("Unexpected outlier trigger condition " + self.model_settings["trigger_on"])
+
+        self.metrics_batch_eval_size = settings.config.getint("metrics", "metrics_batch_eval_size")
 
     @staticmethod
     def add_metric_to_batch(eval_metrics_array, aggregator_value, target_value, metrics_value, observations, doc):

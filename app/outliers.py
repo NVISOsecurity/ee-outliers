@@ -254,7 +254,7 @@ def perform_analysis():
     analyzers_to_evaluate = list()
 
     for analyzer in analyzers:
-        if analyzer.should_run_model or analyzer.should_test_model:
+        if analyzer.model_settings["run_model"] or analyzer.model_settings["test_model"]:
             analyzers_to_evaluate.append(analyzer)
 
     random.shuffle(analyzers_to_evaluate)
@@ -275,7 +275,7 @@ def perform_analysis():
                                 "% done" + "]")
         except elasticsearch.exceptions.NotFoundError:
             analyzer.index_not_found_analysis = True
-            logging.logger.warning("index %s does not exist, skipping use case" % analyzer.es_index)
+            logging.logger.warning("index %s does not exist, skipping use case" % analyzer.model_settings["es_index"])
         except Exception:  # pylint: disable=broad-except
             analyzer.unknown_error_analysis = True
             logging.logger.error("error while analyzing use case", exc_info=True)
