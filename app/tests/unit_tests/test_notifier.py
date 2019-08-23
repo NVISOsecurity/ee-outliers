@@ -147,7 +147,7 @@ class TestNotifier(unittest.TestCase):
         outlier4 = Outlier("numerical_value_dummy_test", "metrics", "dummy type4", "dummy reason4", "dummy summary4",
                            doc)
         es.notifier.notify_on_outlier(outlier4)
-        
+
         # Add again the first one
         es.notifier.notify_on_outlier(outlier1)
 

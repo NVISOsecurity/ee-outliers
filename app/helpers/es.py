@@ -523,7 +523,7 @@ def remove_tag_from_document(doc, tag):
     :param tag: tag that need to be added
     :return: modified document
     """
-    if "tags" in doc["_source"] and tag in  doc["_source"]["tags"]:
+    if "tags" in doc["_source"] and tag in doc["_source"]["tags"]:
         doc["_source"]["tags"].remove(tag)
     return doc
 

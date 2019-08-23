@@ -12,8 +12,6 @@ from tests.unit_tests.utils.update_settings import UpdateSettings
 from tests.unit_tests.utils.dummy_documents_generate import DummyDocumentsGenerate
 
 doc_without_outlier_test_file = json.load(open("/app/tests/unit_tests/files/doc_without_outlier.json"))
-doc_without_outlier_without_score_test_file = json.load(open(
-    "/app/tests/unit_tests/files/doc_without_outlier_without_score.json"))
 doc_with_outlier_test_file = json.load(open("/app/tests/unit_tests/files/doc_with_outlier.json"))
 doc_with_outlier_without_model_info_test_file = json.load(open(
     "/app/tests/unit_tests/files/doc_with_outlier_without_model_info.json"))

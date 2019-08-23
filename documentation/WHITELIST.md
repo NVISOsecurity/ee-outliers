@@ -19,7 +19,7 @@ This whitelist will only hit for outlier events that contain an exact whiteliste
 The whitelist is checked against all the event fields, not only the outlier fields!
 
 Example:
-```
+```ini
 [whitelist_literals]
 slack_connection=rare outbound connection: Slack.exe
 ```
@@ -31,7 +31,7 @@ This whitelist will hit for all outlier events that contain a regular expression
 The whitelist is checked against all the event fields, not only the outlier fields!
 
 Example:
-```
+```ini
 [whitelist_regexps]
 scheduled_task_user_specific_2=^.*rare scheduled task:.*-.*-.*-.*-.*$
 autorun_user_specific=^.*rare autorun:.*-.*-.*-.*-.*$
