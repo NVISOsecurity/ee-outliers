@@ -47,7 +47,7 @@ class Settings:
         config_paths = self.args.config
 
         # Read configuration files
-        config = configparser.ConfigParser(interpolation=None)
+        config = configparser.ConfigParser(interpolation=None, strict=False)
         config.optionxform = str  # preserve case sensitivity in config keys, important for derived field names
 
         self.loaded_config_paths = config.read(config_paths)
@@ -119,3 +119,17 @@ class Settings:
                 failing_regular_expressions.add(whitelist_val_to_check)
 
         return list_compile_regex_whitelist_value, failing_regular_expressions
+
+    def check_no_duplicate_key(self):
+        """
+        Method to check if some duplicates are present in the configuration
+
+        :return: the error (that contain message with duplicate), None if no duplicate
+        """
+        try:
+            config = configparser.ConfigParser(interpolation=None, strict=True)
+            config.optionxform = str  # preserve case sensitivity in config keys, important for derived field names
+            config.read(self.args.config)
+        except (configparser.DuplicateOptionError, configparser.DuplicateSectionError) as err:
+            return err
+        return None
