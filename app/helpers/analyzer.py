@@ -1,7 +1,6 @@
 import abc
 from configparser import NoOptionError
 
-import re
 import dateutil
 
 from helpers.singletons import settings, es, logging
@@ -10,8 +9,6 @@ from helpers.outlier import Outlier
 
 
 class Analyzer(abc.ABC):
-
-    DEFAULT_CONFIG_KEY = {"run_model", "test_model"}
 
     def __init__(self, config_section_name):
         # the configuration file section for the use case, for example [simplequery_test_model]
@@ -121,10 +118,10 @@ class Analyzer(abc.ABC):
         model_settings["outlier_type"] = settings.config.get(self.config_section_name, "outlier_type")
         model_settings["outlier_summary"] = settings.config.get(self.config_section_name, "outlier_summary")
 
-        model_settings["run_model"] = settings.config.getboolean("general", "run_models") and \
-                                      settings.config.getboolean(self.config_section_name, "run_model")
-        model_settings["test_model"] = settings.config.getboolean("general", "test_models") and \
-                                       settings.config.getboolean(self.config_section_name, "test_model")
+        model_settings["run_model"] = settings.config.getboolean(
+            "general", "run_models") and settings.config.getboolean(self.config_section_name, "run_model")
+        model_settings["test_model"] = settings.config.getboolean(
+            "general", "test_models") and settings.config.getboolean(self.config_section_name, "test_model")
 
         return model_settings
 
