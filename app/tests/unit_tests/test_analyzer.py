@@ -59,3 +59,9 @@ class TestAnalyzer(unittest.TestCase):
         analyzer = TestStubAnalyzer("analyzer_arbitrary_dummy_test")
 
         self.assertDictEqual(analyzer.extra_model_settings, {"test_arbitrary_key": "arbitrary_value"})
+
+    def test_arbitrary_key_config_with_whitelist_prefix_not_present_in_analyzer(self):
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/analyzer_test_01.conf")
+        analyzer = TestStubAnalyzer("analyzer_arbitrary_whitelist_prefix_dummy_test")
+
+        self.assertDictEqual(analyzer.extra_model_settings, {})
