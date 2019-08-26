@@ -5,6 +5,7 @@
 **Table of contents**
 - [Existing detection models](#existing-detection-models)
 - [General model parameters](#general-model-parameters)
+- [Arbitrary parameters](#arbitrary-parameters)
 - [simplequery models](#simplequery-models)
 - [metrics models](#metrics-models)
 - [terms models](#terms-models)
@@ -111,6 +112,40 @@ The document field that will be used to do the computation (based on the `trigge
 **aggregator**
 One or multiple document fields that will be used to group documents.
 
+
+## Arbitrary parameters
+It is also possible to add arbitrary parameters that will simply be copied into the outlier information. Note that these parameters will be taken into account when evaluating the [whitelist](WHITELIST.md).  Also note that placeholders are not supported here.
+
+<details>
+<summary>Example</summary>
+
+```ini
+##############################
+# SIMPLEQUERY - NETWORK TROJAN DETECTED
+##############################h
+[simplequery_suricata_network_trojan_detected]
+es_query_filter = _exists_:smoky_filter_name AND smoky_filter_name.raw:SuricataFilter  AND  SuricataFilter.event_type.raw:alert AND SuricataFilter.alert.category.raw:"A Network Trojan was detected"
+
+outlier_type = IDS
+outlier_reason = network trojan detected
+outlier_summary = {SuricataFilter.alert.signature}
+test_arbitrary_key=arbitrary_value
+
+run_model = 1
+test_model = 0
+```
+should then result in an event:
+
+```json
+{
+    "outliers": {
+          "test_arbitrary_key": "arbitrary_value"
+     }
+}
+```
+
+</details>
+
 --------------------
 
 ## simplequery models
@@ -120,7 +155,7 @@ This model will simply run an Elasticsearch query and tag all the matching event
 Each metrics model section in the configuration file should be prefixed by ``simplequery_``.
 
 **Example model**
-```
+```ini
 ##############################
 # SIMPLEQUERY - POWERSHELL EXECUTION IN HIDDEN WINDOW
 ##############################
@@ -147,7 +182,7 @@ Each metrics model section in the configuration file should be prefixed by ``met
 
 **Example model**
 
-```
+```ini
 ##############################
 # METRICS - BASE64 ENCODED COMMAND LINE ARGUMENTS
 ##############################
@@ -200,7 +235,7 @@ The terms model looks for outliers by calculting rare combinations of a certain 
 Each metrics model section in the configuration file should be prefixed by ``terms_``.
 
 **Example model**
-```
+```ini
 ##############################
 # TERMS - RARE PROCESSES WITH OUTBOUND CONNECTIVITY
 ##############################
@@ -246,7 +281,7 @@ This method could be used for detecting an occurance in events. Example use case
 
 **Example model**
 
-```
+```ini
 ##############################
 # DERIVED FIELDS
 ##############################
@@ -283,7 +318,7 @@ Some fields contains multiple information, like timestamp that could be split be
 
 For this example, the following configuration allow to extract timestamp information:
 
-```
+```ini
 ##############################
 # DERIVED FIELDS
 ##############################

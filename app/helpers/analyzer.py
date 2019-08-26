@@ -12,6 +12,8 @@ from typing import Dict, Set, Tuple, Any, List, Union, Optional, cast
 
 class Analyzer(abc.ABC):
 
+    DEFAULT_CONFIG_KEY = {"run_model", "test_model", "es_index"}
+
     def __init__(self, config_section_name: str) -> None:
         # the configuration file section for the use case, for example [simplequery_test_model]
         self.config_section_name: str = config_section_name
@@ -39,6 +41,7 @@ class Analyzer(abc.ABC):
         try:
             self.model_settings: Dict[str, Any] = self._extract_model_settings()
             self._extract_additional_model_settings()
+            self.extra_model_settings = self._extract_arbitrary_config()
         except Exception:
             logging.logger.error("error while parsing use case configuration for " + self.config_section_name,
                                  exc_info=True)
@@ -130,6 +133,21 @@ class Analyzer(abc.ABC):
         """
         pass
 
+    def _extract_arbitrary_config(self) -> None:
+        """
+        Extract all other key in the model section to copied verbatim to the outlier
+
+        :return: dictionary with arbitrary key config
+        """
+        extra_model_settings = dict()
+
+        all_items = settings.config.items(self.config_section_name)
+        for key, value in all_items:
+            if key not in self.model_settings and key not in Analyzer.DEFAULT_CONFIG_KEY:
+                extra_model_settings[key] = value
+
+        return extra_model_settings
+
     def print_analysis_summary(self) -> None:
         """
         Print information about the analyzer. Must be call at the end of processing
@@ -195,9 +213,11 @@ class Analyzer(abc.ABC):
         if outlier_assets:
             outlier.outlier_dict["assets"] = outlier_assets
 
-        if extra_outlier_information is not None:
-            for k, v in extra_outlier_information.items():
-                outlier.outlier_dict[k] = v
+        for key, value in self.extra_model_settings.items():
+            outlier.outlier_dict[key] = value
+
+        for k, v in extra_outlier_information.items():
+            outlier.outlier_dict[k] = v
 
         return outlier
 
