@@ -123,7 +123,7 @@ def extract_outlier_asset_information(fields, settings):
     :return:list of all outlier assets
     """
     outlier_assets = list()
-    for (asset_field_name, asset_field_type) in settings.config.items("assets"):
+    for (asset_field_name, asset_field_type) in settings.list_assets:
         try:
             # Could raise an error if key does't exist
             dict_value = get_dotkey_value(fields, asset_field_name, case_sensitive=False)

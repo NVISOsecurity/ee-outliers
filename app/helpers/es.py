@@ -390,7 +390,7 @@ class ES:
         :return: all derived fields
         """
         derived_fields = dict()
-        for field_name, grok_pattern in self.settings.config.items("derivedfields"):
+        for field_name, grok_pattern in self.settings.list_derived_fields:
             try:
                 # If key doesn't exist, an exception is raise
                 doc_value = helpers.utils.get_dotkey_value(doc_fields, field_name, case_sensitive=False)
