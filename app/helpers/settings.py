@@ -2,11 +2,11 @@ import configparser
 import argparse
 import re
 
-from configparser import NoOptionError, NoSectionError
+from configparser import NoOptionError, NoSectionError, DuplicateOptionError, DuplicateSectionError
 
 from helpers.singleton import singleton  # type: ignore
 
-from typing import List, Set, Optional, Tuple, AbstractSet
+from typing import List, Set, Optional, Tuple, Union
 
 
 parser: argparse.ArgumentParser = argparse.ArgumentParser()
@@ -93,7 +93,7 @@ class Settings:
         except NoSectionError:
             self.list_assets = list()
 
-    def check_no_duplicate_key(self):
+    def check_no_duplicate_key(self) -> Union[None, DuplicateSectionError, DuplicateOptionError]:
         """
         Method to check if some duplicates are present in the configuration
 
@@ -101,8 +101,9 @@ class Settings:
         """
         try:
             config = configparser.ConfigParser(interpolation=None, strict=True)
-            config.optionxform = str  # preserve case sensitivity in config keys, important for derived field names
+            # preserve case sensitivity in config keys, important for derived field names
+            config.optionxform = str  # type: ignore
             config.read(self.args.config)
-        except (configparser.DuplicateOptionError, configparser.DuplicateSectionError) as err:
+        except (DuplicateOptionError, DuplicateSectionError) as err:
             return err
         return None
