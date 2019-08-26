@@ -5,6 +5,7 @@ import copy
 
 from helpers.housekeeping import HousekeepingJob
 from tests.unit_tests.test_stubs.test_stub_es import TestStubEs
+from tests.unit_tests.test_stubs.test_stub_analyzer import TestStubAnalyzer
 from tests.unit_tests.utils.update_settings import UpdateSettings
 
 test_file_no_whitelist_path_config = "/app/tests/unit_tests/files/housekeeping_no_whitelist.conf"
@@ -42,6 +43,9 @@ class TestHousekeeping(unittest.TestCase):
         self._backup_config(test_file_no_whitelist_path_config)
         housekeeping = HousekeepingJob()
 
+        analyzer = TestStubAnalyzer("analyzer_dummy_test")
+        housekeeping.update_analyzer_list([analyzer])
+
         # Add document to "Database"
         doc_with_outlier = copy.deepcopy(doc_with_outlier_test_file)
         self.test_es.add_doc(doc_with_outlier)
@@ -74,6 +78,9 @@ class TestHousekeeping(unittest.TestCase):
         self.test_settings.change_configuration_path(test_file_whitelist_dummy_reason_path_config)
         self._backup_config(test_file_whitelist_dummy_reason_path_config)
         housekeeping = HousekeepingJob()
+
+        analyzer = TestStubAnalyzer("analyzer_dummy_test")
+        housekeeping.update_analyzer_list([analyzer])
 
         # Add document to "Database"
         doc_with_outlier = copy.deepcopy(doc_with_outlier_test_file)

@@ -16,7 +16,7 @@ class HousekeepingJob(threading.Thread):
         # indicates whether the thread should be terminated.
         self.shutdown_flag = threading.Event()
 
-        self.list_analyzer = list()
+        self.dict_analyzer = dict()
 
     def run(self):
         """
@@ -40,32 +40,31 @@ class HousekeepingJob(threading.Thread):
             # should be processed!
             settings.process_configuration_files()
 
-            dict_analyzer = dict()
-            for analyzer in self.list_analyzer:
-                # TODO reload analyzer whitelist
-                dict_analyzer[(analyzer.model_type, analyzer.model_name)] = analyzer
+            for analyzer in self.dict_analyzer.values():
+                analyzer.extract_whitelist_per_model()
 
             settings.process_configuration_files()
             logging.logger.info("housekeeping - changes detected, process again housekeeping")
             self.remove_all_whitelisted_outliers()
 
     def update_analyzer_list(self, list_analyzer):
-        self.list_analyzer = list_analyzer
+        self.dict_analyzer = dict()  # Reset list
+        for analyzer in list_analyzer:
+            self.dict_analyzer[analyzer.config_section_name] = analyzer
         logging.logger.info("housekeeping - list analyzer have been updated")
 
     def stop_housekeeping(self):
         self.shutdown_flag.set()
         self.join()
 
-    @staticmethod
-    def remove_all_whitelisted_outliers():
+    def remove_all_whitelisted_outliers(self):
         """
         Try to remove all whitelist outliers that are already in Elasticsearch
         """
         if settings.config.getboolean("general", "es_wipe_all_whitelisted_outliers"):
             try:
                 logging.logger.info("housekeeping - going to remove all whitelisted outliers")
-                total_docs_whitelisted = es.remove_all_whitelisted_outliers()
+                total_docs_whitelisted = es.remove_all_whitelisted_outliers(self.dict_analyzer)
 
                 if total_docs_whitelisted > 0:
                     logging.logger.info(

@@ -8,6 +8,7 @@ import helpers.es
 from helpers.outlier import Outlier
 from helpers.singletons import es
 from tests.unit_tests.test_stubs.test_stub_es import TestStubEs
+from tests.unit_tests.test_stubs.test_stub_analyzer import TestStubAnalyzer
 from tests.unit_tests.utils.update_settings import UpdateSettings
 from tests.unit_tests.utils.dummy_documents_generate import DummyDocumentsGenerate
 
@@ -210,14 +211,20 @@ class TestOutlierOperations(unittest.TestCase):
         doc_without_outlier = copy.deepcopy(doc_without_outlier_test_file)
         self.test_es.add_doc(doc_with_outlier)
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/whitelist_tests_01_with_general.conf")
-        es.remove_all_whitelisted_outliers()
+
+        analyzer = TestStubAnalyzer("analyzer_dummy_test")
+        es.remove_all_whitelisted_outliers({"analyzer_dummy_test": analyzer})
+
         result = [elem for elem in es._scan()][0]
-        self.assertEqual(result, doc_without_outlier)
+        self.assertDictEqual(result, doc_without_outlier)
 
     def test_whitelist_config_change_single_literal_not_to_match_in_doc_with_outlier(self):
         doc_with_outlier = copy.deepcopy(doc_with_outlier_test_file)
         self.test_es.add_doc(doc_with_outlier)
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/whitelist_tests_03_with_general.conf")
-        es.remove_all_whitelisted_outliers()
+
+        analyzer = TestStubAnalyzer("analyzer_dummy_test")
+
+        es.remove_all_whitelisted_outliers({"analyzer_dummy_test": analyzer})
         result = [elem for elem in es._scan()][0]
         self.assertEqual(result, doc_with_outlier)
