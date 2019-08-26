@@ -2,7 +2,10 @@ import configparser
 import argparse
 import re
 
+from configparser import NoOptionError, NoSectionError
+
 from helpers.singleton import singleton
+import helpers.singletons
 
 parser = argparse.ArgumentParser()
 
@@ -58,20 +61,34 @@ class Settings:
 
         self.config = config
 
+        self.whitelist_literals_config = self.config.items("whitelist_literals")
+        self.whitelist_regexps_config = self.config.items("whitelist_regexps")
+
+        # Verify that all regular expressions in the whitelist are valid.
+        # If this is not the case, log an error to the user, as these will be ignored.
+        for (_, each_whitelist_configuration_file_value) in self.whitelist_regexps_config:
+            whitelist_values_to_check = each_whitelist_configuration_file_value.split(",")
+
+            for whitelist_val_to_check in whitelist_values_to_check:
+                try:
+                    re.compile(whitelist_val_to_check.strip(), re.IGNORECASE)
+                except Exception:
+                    self.failing_regular_expressions.add(whitelist_val_to_check)
+
         try:
-            self.whitelist_literals_config = self.config.items("whitelist_literals")
-            self.whitelist_regexps_config = self.config.items("whitelist_regexps")
+            self.print_outliers_to_console = self.config.getboolean("general", "print_outliers_to_console")
+        except NoOptionError:
+            self.print_outliers_to_console = 0
 
-            # Verify that all regular expressions in the whitelist are valid.
-            # If this is not the case, log an error to the user, as these will be ignored.
-            for (_, each_whitelist_configuration_file_value) in self.whitelist_regexps_config:
-                whitelist_values_to_check = each_whitelist_configuration_file_value.split(",")
+        # Could produce an error, but don't catch it. Crash program if not define
+        self.es_save_results = self.config.getboolean("general", "es_save_results")
 
-                for whitelist_val_to_check in whitelist_values_to_check:
-                    try:
-                        re.compile(whitelist_val_to_check.strip(), re.IGNORECASE)
-                    except Exception:
-                        self.failing_regular_expressions.add(whitelist_val_to_check)
-        except configparser.NoSectionError as exception:
-            if self.error_parsing_config is None:
-                raise exception
+        try:
+            self.list_derived_fields = self.config.items("derivedfields")
+        except NoSectionError:
+            self.list_derived_fields = dict()
+
+        try:
+            self.list_assets = self.config.items("assets")
+        except NoSectionError:
+            self.list_assets = dict()

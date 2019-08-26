@@ -7,6 +7,7 @@ import re
 from statistics import mean, median
 import validators
 from string import Formatter
+from collections import Counter
 
 import helpers.singletons
 
@@ -71,6 +72,29 @@ def match_ip_ranges(source_ip, ip_cidr):
     :return: True if match, False otherwise
     """
     return False if len(netaddr.all_matching_cidrs(source_ip, ip_cidr)) <= 0 else True
+
+
+def kl_divergence(data, baseline_distribution):
+    """
+    :param data: String data
+    :param baseline_distribution: non-malicious character frequency distribution
+    :return: Relative entropy of string compared to known distribution
+    """
+    if not data:
+        return 0
+
+    distribution = Counter(data)
+    data_length = sum(distribution.values())
+    frequencies = {k: v/data_length for k, v in dict(distribution).items()}
+
+    entropy = 0
+    for character, frequency in frequencies.items():
+        try:
+            entropy += frequency * math.log(frequency/baseline_distribution[character], 2)
+        except KeyError:
+            pass  # trying to calculate the entropy of a character not available in the input distribution, so skip it
+
+    return entropy
 
 
 def shannon_entropy(data):
