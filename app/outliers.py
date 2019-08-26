@@ -49,7 +49,7 @@ def run_outliers() -> None:
     # Check no duplicate in settings
     error = settings.check_no_duplicate_key()
     if error is not None:
-        logging.logger.warning("Duplicate value in configuration (take only the last specified value): " + str(error))
+        logging.logger.warning("duplicate value detected in configuration file. Only the last specified value will be used: " + str(error))
 
     # everything has been setup correctly, we can now start analysis in the correct run mode
     if settings.args.run_mode == "daemon":
