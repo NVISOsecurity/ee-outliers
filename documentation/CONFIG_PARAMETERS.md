@@ -200,6 +200,9 @@ To have more information about the configuration of one analyzer, visit the page
   </tr>
 </table>
 
+#### Arbitrary parameters
+Any other parameters that are not used by the model will be automatically copy to the outlier parameter. More information [here](CONFIG_OUTLIERS.md#arbitrary-parameters).
+
 
 ### Usual model paramters
 

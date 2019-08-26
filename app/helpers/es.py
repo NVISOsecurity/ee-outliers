@@ -296,17 +296,17 @@ class ES:
         :return: True if not whitelist, False otherwise
         """
         if outlier.is_whitelisted():
-            if self.settings.config.getboolean("general", "print_outliers_to_console"):
+            if self.settings.print_outliers_to_console:
                 self.logging.logger.info(outlier.outlier_dict["summary"] + " [whitelisted outlier]")
             return False
         else:
-            if self.settings.config.getboolean("general", "es_save_results"):
+            if self.settings.es_save_results:
                 self.save_outlier(outlier=outlier)
 
             if should_notify:
                 self.notifier.notify_on_outlier(outlier=outlier)
 
-            if self.settings.config.getboolean("general", "print_outliers_to_console"):
+            if self.settings.print_outliers_to_console:
                 self.logging.logger.info("outlier - " + outlier.outlier_dict["summary"])
             return True
 
@@ -521,7 +521,7 @@ def remove_tag_from_document(doc, tag):
     :param tag: tag that need to be added
     :return: modified document
     """
-    if "tags" in doc["_source"] and tag in  doc["_source"]["tags"]:
+    if "tags" in doc["_source"] and tag in doc["_source"]["tags"]:
         doc["_source"]["tags"].remove(tag)
     return doc
 
