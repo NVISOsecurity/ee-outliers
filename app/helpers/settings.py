@@ -39,7 +39,6 @@ class Settings:
         self.failing_regular_expressions = set()
 
         self.args = parser.parse_args()
-        self.error_parsing_config = None
         self.process_configuration_files()
 
     def process_configuration_files(self):
@@ -52,12 +51,8 @@ class Settings:
         config = configparser.ConfigParser(interpolation=None, strict=False)
         config.optionxform = str  # preserve case sensitivity in config keys, important for derived field names
 
-        self.failed_config_paths = set(config_paths)
-        try:
-            self.loaded_config_paths = config.read(config_paths)
-            self.failed_config_paths -= set(self.loaded_config_paths)
-        except configparser.DuplicateOptionError as exception:
-            self.error_parsing_config = exception
+        self.loaded_config_paths = config.read(config_paths)
+        self.failed_config_paths = set(config_paths) - set(self.loaded_config_paths)
 
         self.config = config
 
@@ -92,3 +87,17 @@ class Settings:
             self.list_assets = self.config.items("assets")
         except NoSectionError:
             self.list_assets = dict()
+
+    def check_no_duplicate_key(self):
+        """
+        Method to check if some duplicates are present in the configuration
+
+        :return: the error (that contain message with duplicate), None if no duplicate
+        """
+        try:
+            config = configparser.ConfigParser(interpolation=None, strict=True)
+            config.optionxform = str  # preserve case sensitivity in config keys, important for derived field names
+            config.read(self.args.config)
+        except (configparser.DuplicateOptionError, configparser.DuplicateSectionError) as err:
+            return err
+        return None

@@ -40,12 +40,12 @@ def run_outliers():
     # at this point, we know we are not running tests, so we should set up logging,
     # parse the configuration files, etc.
     setup_logging()
-    # Check if they was some problem with the settings and display message
-    if settings.error_parsing_config is not None:
-        logging.logger.warning("Error during the parsing of the configuration. All elements after the duplicate key "
-                               "will be ignore (and can introduce bugs)")
-        logging.logger.warning(str(settings.error_parsing_config))
     print_intro()
+
+    # Check no duplicate in settings
+    error = settings.check_no_duplicate_key()
+    if error is not None:
+        logging.logger.warning("Duplicate value in configuration (take only the last specified value): " + str(error))
 
     # everything has been setup correctly, we can now start analysis in the correct run mode
     if settings.args.run_mode == "daemon":
