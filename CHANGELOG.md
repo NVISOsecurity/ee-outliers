@@ -1,3 +1,22 @@
+# Changelog
+
+## Version 0.2.3 (August 21, 2019)
+TODO
+
+## Version 0.2.2 (August 20, 2019)
+- Bug fix in Jenkings
+- Fix bug with watcher that create bug when settings were modified
+- DummyDocumentGenerate now work with dictionary (and not a lot of parameters)
+- Add test for Notifier
+- Fix #48
+
+## Version 0.2.1 (August 16, 2019)
+- Add documentation about Notifier
+- Integrate UML correctly in the documentation
+- Add docstring for a lot of methods
+- Add `non_outlier_values` in `Metrics`
+- Fix windows that was all the time recompute (changes between "count" and "scan")
+- Add and enhance tests
 
 ## Version 0.2.0 (August 2, 2019)
 - Move Docker image from "debian" to "python 3.6"
