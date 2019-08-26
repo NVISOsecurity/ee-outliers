@@ -6,7 +6,7 @@ from configparser import NoOptionError, NoSectionError
 
 from helpers.singleton import singleton  # type: ignore
 
-from typing import List, Set, Optional, Tuple
+from typing import List, Set, Optional, Tuple, AbstractSet
 
 
 parser: argparse.ArgumentParser = argparse.ArgumentParser()
@@ -72,20 +72,23 @@ class Settings:
                 except Exception:
                     self.failing_regular_expressions.add(whitelist_val_to_check)
 
+        self.print_outliers_to_console: bool
         try:
             self.print_outliers_to_console = self.config.getboolean("general", "print_outliers_to_console")
         except NoOptionError:
-            self.print_outliers_to_console = 0
+            self.print_outliers_to_console = False
 
         # Could produce an error, but don't catch it. Crash program if not define
-        self.es_save_results = self.config.getboolean("general", "es_save_results")
+        self.es_save_results: bool = self.config.getboolean("general", "es_save_results")
 
+        self.list_derived_fields: List[Tuple[str, str]]
         try:
             self.list_derived_fields = self.config.items("derivedfields")
         except NoSectionError:
-            self.list_derived_fields = dict()
+            self.list_derived_fields = list()
 
+        self.list_assets: List[Tuple[str, str]]
         try:
             self.list_assets = self.config.items("assets")
         except NoSectionError:
-            self.list_assets = dict()
+            self.list_assets = list()

@@ -133,13 +133,13 @@ class Analyzer(abc.ABC):
         """
         pass
 
-    def _extract_arbitrary_config(self) -> None:
+    def _extract_arbitrary_config(self) -> Dict[str, Any]:
         """
         Extract all other key in the model section to copied verbatim to the outlier
 
         :return: dictionary with arbitrary key config
         """
-        extra_model_settings = dict()
+        extra_model_settings: Dict[str, Any] = dict()
 
         all_items = settings.config.items(self.config_section_name)
         for key, value in all_items:
