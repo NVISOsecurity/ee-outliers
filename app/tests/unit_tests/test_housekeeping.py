@@ -7,10 +7,12 @@ from helpers.housekeeping import HousekeepingJob
 from tests.unit_tests.test_stubs.test_stub_es import TestStubEs
 from tests.unit_tests.test_stubs.test_stub_analyzer import TestStubAnalyzer
 from tests.unit_tests.utils.update_settings import UpdateSettings
+from tests.unit_tests.utils.dummy_documents_generate import DummyDocumentsGenerate
 
 test_file_no_whitelist_path_config = "/app/tests/unit_tests/files/housekeeping_no_whitelist.conf"
 test_file_whitelist_dummy_reason_path_config = "/app/tests/unit_tests/files/housekeeping_whitelist.conf"
 test_file_whitelist_path_config = "/app/tests/unit_tests/files/whitelist_tests_01.conf"
+test_file_whitelist_model_path_config = "/app/tests/unit_tests/files/whitelist_tests_model_whitelist_01.conf"
 doc_without_outlier_test_file = json.load(open(
     "/app/tests/unit_tests/files/doc_without_outlier.json"))
 doc_with_outlier_test_file = json.load(open("/app/tests/unit_tests/files/doc_with_outlier.json"))
@@ -75,6 +77,7 @@ class TestHousekeeping(unittest.TestCase):
         self.assertEqual(result, doc_without_outlier)
 
     def test_housekeeping_execute_no_whitelist_parameter_change(self):
+        # Check that housekeeping run even when we change new part in the configuration
         self.test_settings.change_configuration_path(test_file_whitelist_dummy_reason_path_config)
         self._backup_config(test_file_whitelist_dummy_reason_path_config)
         housekeeping = HousekeepingJob()
@@ -84,7 +87,7 @@ class TestHousekeeping(unittest.TestCase):
 
         # Add document to "Database"
         doc_with_outlier = copy.deepcopy(doc_with_outlier_test_file)
-        expected_doc = copy.deepcopy(doc_with_outlier_test_file)
+        expected_doc_with_outlier = copy.deepcopy(doc_with_outlier_test_file)
         self.test_es.add_doc(doc_with_outlier)
 
         # Update configuration (create new section and append to default)
@@ -99,4 +102,62 @@ class TestHousekeeping(unittest.TestCase):
         result = [elem for elem in self.test_es._scan()][0]
 
         self._restore_config(test_file_whitelist_dummy_reason_path_config)
-        self.assertNotEqual(result, expected_doc)
+        self.assertNotEqual(result, expected_doc_with_outlier)
+
+    def test_whitelist_literals_per_model_removed_by_housekeeping(self):
+        # Init
+        doc_generate = DummyDocumentsGenerate()
+        self.test_settings.change_configuration_path(test_file_whitelist_model_path_config)
+        self._backup_config(test_file_whitelist_model_path_config)
+        housekeeping = HousekeepingJob()
+
+        # Generate document
+        document = doc_generate.generate_document({"hostname": "HOSTNAME-WHITELISTED", "create_outlier": True,
+                                                   "outlier.model_name": "dummy_test",
+                                                   "outlier.model_type": "simplequery"})
+        self.assertTrue("outliers" in document["_source"])
+
+        analyzer = TestStubAnalyzer("simplequery_dummy_test")
+        housekeeping.update_analyzer_list([analyzer])
+
+        self.test_es.add_doc(document)
+
+        filecontent = "\n\n[dummy_section]\nparam=1"
+
+        with open(test_file_whitelist_model_path_config, 'a') as test_file:
+            test_file.write(filecontent)
+
+        housekeeping.execute_housekeeping()
+
+        result = [elem for elem in self.test_es._scan()][0]
+        self._restore_config(test_file_whitelist_model_path_config)
+        self.assertTrue("outliers" not in result["_source"])
+
+    def test_whitelist_literals_per_model_not_removed_by_housekeeping(self):
+        # Init
+        doc_generate = DummyDocumentsGenerate()
+        self.test_settings.change_configuration_path(test_file_whitelist_model_path_config)
+        self._backup_config(test_file_whitelist_model_path_config)
+        housekeeping = HousekeepingJob()
+
+        # Generate document
+        document = doc_generate.generate_document({"hostname": "NOT-WHITELISTED", "create_outlier": True,
+                                                   "outlier.model_name": "dummy_test",
+                                                   "outlier.model_type": "simplequery"})
+        self.assertTrue("outliers" in document["_source"])
+
+        analyzer = TestStubAnalyzer("simplequery_dummy_test")
+        housekeeping.update_analyzer_list([analyzer])
+
+        self.test_es.add_doc(document)
+
+        filecontent = "\n\n[dummy_section]\nparam=1"
+
+        with open(test_file_whitelist_model_path_config, 'a') as test_file:
+            test_file.write(filecontent)
+
+        housekeeping.execute_housekeeping()
+
+        result = [elem for elem in self.test_es._scan()][0]
+        self._restore_config(test_file_whitelist_model_path_config)
+        self.assertTrue("outliers" in result["_source"])
