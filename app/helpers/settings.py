@@ -46,7 +46,7 @@ class Settings:
         config_paths = self.args.config
 
         # Read configuration files
-        config = configparser.ConfigParser(interpolation=None)
+        config = configparser.ConfigParser(interpolation=None, strict=False)
         config.optionxform = str  # preserve case sensitivity in config keys, important for derived field names
 
         self.failed_config_paths = set(config_paths)
