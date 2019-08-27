@@ -22,12 +22,14 @@ from analyzers.terms import TermsAnalyzer
 from analyzers.word2vec import Word2VecAnalyzer
 
 
+EE_OUTLIERS_VERSIONS = "0.2.5"
+
 def run_outliers():
     """
     Entrypoint into ee-outliers.
     From here we start using the appropriate run mode.
     """
-    # if running in test mode, we just want to run the tests and exit as quick as possible.
+    # If running in test mode, we just want to run the tests and exit as quick as possible.
     # no need to set up other things like logging, which should happen afterwards.
     if settings.args.run_mode == "tests":
         test_filename = 'test_*.py'
@@ -37,7 +39,7 @@ def run_outliers():
         test_result = unittest.TextTestRunner(verbosity=settings.config.getint("general", "log_verbosity")).run(suite)
         sys.exit(not test_result.wasSuccessful())
 
-    # at this point, we know we are not running tests, so we should set up logging,
+    # At this point, we know we are not running tests, so we should set up logging,
     # parse the configuration files, etc.
     setup_logging()
     print_intro()
@@ -45,9 +47,10 @@ def run_outliers():
     # Check no duplicate in settings
     error = settings.check_no_duplicate_key()
     if error is not None:
-        logging.logger.warning("duplicate value detected in configuration file. Only the last specified value will be used: " + str(error))
+        logging.logger.warning(
+            'duplicate value detected in configuration file. Only the last specified value will be used: %s', error)
 
-    # everything has been setup correctly, we can now start analysis in the correct run mode
+    # Everything has been setup correctly, we can now start analysis in the correct run mode
     if settings.args.run_mode == "daemon":
         run_daemon_mode()
 
@@ -76,8 +79,8 @@ def setup_logging():
     if os.path.exists(os.path.dirname(log_file)):
         logging.add_file_handler(log_file)
     else:
-        logging.logger.warning("log directory for log file %s does not exist, check your settings! Only logging " +
-                               "to stdout.", log_file)
+        logging.logger.warning(
+            'log directory for log file %s does not exist, check your settings! Only logging to stdout', log_file)
 
 
 def print_intro():
@@ -85,25 +88,25 @@ def print_intro():
     Print the banner information including version, loaded configuration files and any parsing errors
     that might have occurred when loading them.
     """
-    logging.logger.info("outliers.py - version 0.2.5 - contact: research@nviso.be")
-    logging.logger.info("run mode: " + settings.args.run_mode)
+    logging.logger.info("outliers.py - version %s - contact: research@nviso.be", EE_OUTLIERS_VERSIONS)
+    logging.logger.info("run mode: %s", settings.args.run_mode)
 
     logging.print_generic_intro("initializing")
-    logging.logger.info("loaded " + str(len(settings.loaded_config_paths)) + " configuration files")
+    logging.logger.info("loaded %d configuration files", len(settings.loaded_config_paths))
 
     if settings.failed_config_paths:
-        logging.logger.error("failed to load " + str(len(settings.failed_config_paths)) + " configuration files that " +
-                             "will be ignored")
+        logging.logger.error("failed to load %d configuration files that will be "
+                             "ignored", len(settings.failed_config_paths))
 
         for failed_config_path in settings.failed_config_paths:
-            logging.logger.error("\t+ failed to load configuration file " + str(failed_config_path))
+            logging.logger.error("\t+ failed to load configuration file %s", failed_config_path)
 
     if settings.failing_regular_expressions:
-        logging.logger.error("failed to parse " + str(len(settings.failing_regular_expressions)) + " regular " +
-                             "expressions in whitelist that will be ignored")
+        logging.logger.error("failed to parse %d regular expressions in whitelist that "
+                             "will be ignored", len(settings.failing_regular_expressions))
 
         for failed_regular_expression in settings.failing_regular_expressions:
-            logging.logger.error("\t+ failed to parse regular expression " + str(failed_regular_expression))
+            logging.logger.error("\t+ failed to parse regular expression %s", failed_regular_expression)
 
 
 def run_daemon_mode():
@@ -115,7 +118,7 @@ def run_daemon_mode():
     # In daemon mode, we also want to monitor the configuration file for changes.
     # In case of a change, we need to make sure that we are using this new configuration file
     for config_file in settings.args.config:
-        logging.logger.info("monitoring configuration file " + config_file + " for changes")
+        logging.logger.info("monitoring configuration file %s for changes", config_file)
 
     # Monitor configuration files for potential changes
     file_mod_watcher = FileModificationWatcher()
@@ -131,12 +134,16 @@ def run_daemon_mode():
     first_run = True
     run_succeeded_without_errors = None
 
+    # The daemon should run forever, until the user kills it
     while True:
         next_run = None
         should_schedule_next_run = False
 
-        while (next_run is None or datetime.now() < next_run) and first_run is False and \
+        # This loop will run for as long we don't need to perform an analysis
+        while (next_run is None or datetime.now() < next_run) and first_run is False and  \
                 run_succeeded_without_errors is True:
+
+            # Check if we already know when to perform the analysis next; if not, we need to schedule it
             if next_run is None:
                 should_schedule_next_run = True
 
@@ -146,45 +153,49 @@ def run_daemon_mode():
                 settings.process_configuration_files()
                 should_schedule_next_run = True
 
+            # Schedule a next rune based on the cron schedule defined in the configuration file
             if should_schedule_next_run:
                 next_run = croniter(settings.config.get("daemon", "schedule"), datetime.now()).get_next(datetime)
                 logging.logger.info("next run scheduled on {0:%Y-%m-%d %H:%M:%S}".format(next_run))
                 should_schedule_next_run = False
 
+            # Wait 5 seconds before checking the cron schedule again
             time.sleep(5)
 
-        settings.process_configuration_files()  # Refresh settings
+        # Refresh settings in case the cron has changed for example
+        settings.process_configuration_files()
 
+        # On the first run, we might have to wipe all the existing outliers if this is set in the configuration file
         if first_run:
             first_run = False
-            logging.logger.info("first run, so we will start immediately - after this, we will respect the cron " +
+            logging.logger.info("first run, so we will start immediately - after this, we will respect the cron "
                                 "schedule defined in the configuration file")
 
             # Wipe all existing outliers if needed
             if settings.config.getboolean("general", "es_wipe_all_existing_outliers"):
                 logging.logger.info("wiping all existing outliers on first run")
                 es.remove_all_outliers()
-        else:
-            # Make sure we are still connected to Elasticsearch before analyzing, in case something went wrong with
-            # the connection in between runs
-            while not es.init_connection():
-                time.sleep(60)
+
+        # Make sure we are still connected to Elasticsearch before analyzing, in case something went wrong with
+        # the connection in between runs
+        while not es.init_connection():
+            time.sleep(60)
 
         # Make sure housekeeping is up and running
         if not housekeeping_job.is_alive():
             housekeeping_job.start()
 
-        # Perform analysis
+        # Perform analysis and print the analysis summary at the end
         logging.print_generic_intro("starting outlier detection")
         analyzed_models = perform_analysis()
         print_analysis_summary(analyzed_models)
 
         errored_models = [analyzer for analyzer in analyzed_models if analyzer.unknown_error_analysis]
 
-        # Check the result of the analysis
+        # Check the result of the analysis. In case an error occured, we want to re-run right away (after a minute)
         if errored_models:
             run_succeeded_without_errors = False
-            logging.logger.warning("ran into errors while analyzing use cases - not going to wait for the cron " +
+            logging.logger.warning("ran into errors while analyzing use cases - not going to wait for the cron "
                                    "schedule, we just start analyzing again after sleeping for a minute first")
             time.sleep(60)
         else:
@@ -210,13 +221,13 @@ def run_interactive_mode():
     housekeeping_job = HousekeepingJob()
     housekeeping_job.start()
 
+    # The difference with daemon mode is that in interactive mode, we want to allow the user to stop execution on the
+    # command line, interactively.
     try:
         analyzed_models = perform_analysis()
         print_analysis_summary(analyzed_models)
     except KeyboardInterrupt:
         logging.logger.info("keyboard interrupt received, stopping housekeeping thread")
-    except Exception:  # pylint: disable=broad-except
-        logging.logger.error("error running outliers in interactive mode", exc_info=True)
     finally:
         logging.logger.info("asking housekeeping jobs to shutdown after finishing")
         housekeeping_job.shutdown_flag.set()
@@ -231,6 +242,7 @@ def perform_analysis():
     """
     analyzers = list()
 
+    # Create all the analyzer objects based on the models defined in the configuration file
     for config_section_name in settings.config.sections():
         _analyzer = None
         try:
@@ -247,23 +259,27 @@ def perform_analysis():
                 analyzers.append(_analyzer)
 
             elif config_section_name.startswith("beaconing_"):
-                logging.logger.error("use of the beaconing model is deprecated, please use the terms model using " +
-                                     "coeff_of_variation trigger method to convert use case " + config_section_name)
+                logging.logger.error("use of the beaconing model is deprecated, please use the terms model using "
+                                     "coeff_of_variation trigger method to convert use case %s ", config_section_name)
 
             elif config_section_name.startswith("word2vec_"):
                 _analyzer = Word2VecAnalyzer(config_section_name=config_section_name)
                 analyzers.append(_analyzer)
         except Exception:  # pylint: disable=broad-except
-            logging.logger.error("error while initializing analyzer " + config_section_name, exc_info=True)
+            logging.logger.error("error while initializing analyzer %s", config_section_name, exc_info=True)
 
+    # In case the created analyzer is activated in test or run mode, add it to the list of analyzers to evaluate
     analyzers_to_evaluate = list()
-
     for analyzer in analyzers:
         if analyzer.should_run_model or analyzer.should_test_model:
             analyzers_to_evaluate.append(analyzer)
 
+    # In case a single analyzer is causing issues (for example taking up too much time & resources), then a naive
+    # shuffle will prevent this analyzer from blocking all the analyzers from running that come after it.
     random.shuffle(analyzers_to_evaluate)
 
+    # Now it's time actually evaluate all the models. We also make sure to add some information that will be useful
+    # in the summary presented to the user at the end of running all the models.
     for index, analyzer in enumerate(analyzers_to_evaluate):
         if analyzer.configuration_parsing_error:
             continue
