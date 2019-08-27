@@ -1,13 +1,19 @@
 # Changelog
 
 ## [Version 0.2.5](https://github.com/NVISO-BE/ee-outliers/releases/tag/0.2.5) (August 26, 2019)
-TODO
+- Add arbitrary config
+- Enhance settings performance: store value when the configuration is parse
+- Duplicate key/section in configuration doesn't produce a crash
+- Add tests
 
 ## [Version 0.2.4](https://github.com/NVISO-BE/ee-outliers/releases/tag/0.2.4) (August 22, 2019)
-TODO
+- Fix Jenkins bug
+- Return appropriate result if unit tests fail
 
 ## Version 0.2.3 (August 21, 2019)
-TODO
+- Add a new metric: `relative_english_entropy`
+- Add docstring in main
+- Enhance connection to Elasticsearch (in case they are some problem)
 
 ## Version 0.2.2 (August 20, 2019)
 - Bug fix in Jenkings
