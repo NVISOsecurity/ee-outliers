@@ -1,9 +1,9 @@
 # Changelog
 
-## Version 0.2.5 (August 26, 2019)
+## [Version 0.2.5](https://github.com/NVISO-BE/ee-outliers/releases/tag/0.2.5) (August 26, 2019)
 TODO
 
-## Version 0.2.4 (August 22, 2019)
+## [Version 0.2.4](https://github.com/NVISO-BE/ee-outliers/releases/tag/0.2.4) (August 22, 2019)
 TODO
 
 ## Version 0.2.3 (August 21, 2019)
@@ -14,7 +14,7 @@ TODO
 - Fix bug with watcher that create bug when settings were modified
 - DummyDocumentGenerate now work with dictionary (and not a lot of parameters)
 - Add test for Notifier
-- Fix #48
+- Fix [#48](https://github.com/NVISO-BE/ee-outliers/issues/48)
 
 ## Version 0.2.1 (August 16, 2019)
 - Add documentation about Notifier
@@ -54,7 +54,7 @@ TODO
 - Create `FileModificationWatcher`, which was done before in Utils.
 - Bug fix [#154](https://github.com/NVISO-BE/ee-outliers/issues/154), [#156](https://github.com/NVISO-BE/ee-outliers/issues/156)
 
-## [Version 0.1.2](https://github.com/NVISO-BE/ee-outliers/releases/tag/0.1.2) (November 13, 2018)
+## Version 0.1.2 (November 13, 2018)
 
 - "assets" is now a required global configuration section
 - "outlier_assets" are no longer used on per-use-case basis
