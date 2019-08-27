@@ -262,7 +262,7 @@ The following parameters could be used for analyzers `terms` and `metrics`.
   </tr>
   <tr>
     <td class="tg-0pky">metric</td>
-    <td class="tg-0pky"><code>length</code>, <code>numerical_value</code>, <code>entropy</code>, <code>base64_encoded_length</code>, <code>hex_encoded_length</code>, <code>url_length</code></td>
+    <td class="tg-0pky"><code>length</code>, <code>numerical_value</code>, <code>entropy</code>, <code>base64_encoded_length</code>, <code>hex_encoded_length</code>, <code>url_length</code>, <code>relative_english_entropy</code></td>
     <td class="tg-0pky">Mandatory</td>
   </tr>
 </table>
