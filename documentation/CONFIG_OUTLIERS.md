@@ -219,6 +219,7 @@ The metrics model looks for outliers based on a calculated metric of a specific 
 - ``hex_encoded_length``: calculate total length of hexadecimal encoded substrings in the target and use this as metric.
 - ``base64_encoded_length``: calculate total length of base64 encoded substrings in the target and use this as metric. Example: base64_encoded_length("houston we have a cHJvYmxlbQ==") => base64_decoded_string: problem, base64_encoded_length: 7
 - ``url_length``: extract all URLs from the target value and use this as metric. Example: url_length("why don't we go http://www.dance.com") => extracted_urls_length: 20, extracted_urls: http://www.dance.com
+- ``relative_english_entropy``: compute Kullback Leibler entropy.
 
 The metrics model works as following:
 

@@ -85,7 +85,7 @@ def print_intro():
     Print the banner information including version, loaded configuration files and any parsing errors
     that might have occurred when loading them.
     """
-    logging.logger.info("outliers.py - version 0.2.4 - contact: research@nviso.be")
+    logging.logger.info("outliers.py - version 0.2.5 - contact: research@nviso.be")
     logging.logger.info("run mode: " + settings.args.run_mode)
 
     logging.print_generic_intro("initializing")
