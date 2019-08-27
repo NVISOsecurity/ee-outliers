@@ -23,8 +23,8 @@
 - Fix [#48](https://github.com/NVISO-BE/ee-outliers/issues/48)
 
 ## Version 0.2.1 (August 16, 2019)
-- Add documentation about Notifier
-- Integrate UML correctly in the documentation
+- Add documentation about Notifier ([here](documentation/NOTIFICATIONS.md))
+- Integrate UML correctly in the documentation ([here](documentation/UML.md))
 - Add docstring for a lot of methods
 - Add `non_outlier_values` in `Metrics`
 - Fix windows that was all the time recompute (changes between "count" and "scan")
