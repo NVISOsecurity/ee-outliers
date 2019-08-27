@@ -1,5 +1,11 @@
 # Changelog
 
+## Version 0.2.5 (August 26, 2019)
+TODO
+
+## Version 0.2.4 (August 22, 2019)
+TODO
+
 ## Version 0.2.3 (August 21, 2019)
 TODO
 
