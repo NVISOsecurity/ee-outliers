@@ -600,6 +600,13 @@ class TestTermsAnalyzer(unittest.TestCase):
         # We detect agg2 but not agg1
         self.assertEqual(list_outliers, [("agg2", "0"), ("agg2", "0"), ("agg2", "3"), ("agg2", "4")])
 
+    def test_extract_additional_model_settings_no_terms_section(self):
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_no_terms_section.conf")
+        # Terms section not define produce a warning
+        with self.assertLogs(logging.logger, level='ERROR'):
+            analyzer = TermsAnalyzer("terms_dummy_test")
+            self.assertTrue(analyzer.configuration_parsing_error)
+
     def test_non_outlier_values_not_present_in_terms_for_first(self):
         dummy_doc_generate = DummyDocumentsGenerate()
 
