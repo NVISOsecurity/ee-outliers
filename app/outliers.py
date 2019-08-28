@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime  # pylint: disable=missing-docstring
 
 import random
 import time
@@ -23,6 +23,7 @@ from analyzers.word2vec import Word2VecAnalyzer
 
 
 EE_OUTLIERS_VERSIONS = "0.2.5"
+
 
 def run_outliers():
     """
