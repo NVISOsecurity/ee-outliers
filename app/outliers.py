@@ -1,4 +1,4 @@
-from datetime import datetime  # pylint: disable=missing-docstring
+from datetime import datetime
 
 import random
 import time
@@ -27,9 +27,9 @@ EE_OUTLIERS_VERSIONS = "0.2.5"
 
 def run_outliers():
     """
-    Entrypoint into ee-outliers.
-    From here we start using the appropriate run mode.
-    """
+        Entrypoint into ee-outliers.
+        From here we start using the appropriate run mode.
+        """
     # If running in test mode, we just want to run the tests and exit as quick as possible.
     # no need to set up other things like logging, which should happen afterwards.
     if settings.args.run_mode == "tests":
@@ -110,6 +110,7 @@ def print_intro():
             logging.logger.error("\t+ failed to parse regular expression %s", failed_regular_expression)
 
 
+# pylint: disable=too-many-branches
 def run_daemon_mode():
     """
     Run outliers in daemon mode.
@@ -237,6 +238,7 @@ def run_interactive_mode():
     logging.logger.info("finished performing outlier detection")
 
 
+# pylint: disable=too-many-branches
 def perform_analysis():
     """ The entrypoint for analysis
     :return: List of analyzers that have been processed and analyzed
@@ -291,13 +293,12 @@ def perform_analysis():
             analyzer.analysis_end_time = datetime.today().timestamp()
             analyzer.completed_analysis = True
 
-            logging.logger.info("finished processing use case - " + str(index + 1) + "/" +
-                                str(len(analyzers_to_evaluate)) + " [" + '{:.2f}'
-                                .format(round((index + 1) / float(len(analyzers_to_evaluate)) * 100, 2)) +
-                                "% done" + "]")
+            logging.logger.info("finished processing use case - %d / %d [%s%% done]", index + 1,
+                                len(analyzers_to_evaluate),
+                                '{:.2f}'.format(round((index + 1) / float(len(analyzers_to_evaluate)) * 100, 2)))
         except elasticsearch.exceptions.NotFoundError:
             analyzer.index_not_found_analysis = True
-            logging.logger.warning("index %s does not exist, skipping use case" % analyzer.es_index)
+            logging.logger.warning("index %s does not exist, skipping use case", analyzer.es_index)
         except Exception:  # pylint: disable=broad-except
             analyzer.unknown_error_analysis = True
             logging.logger.error("error while analyzing use case", exc_info=True)
@@ -330,8 +331,8 @@ def print_analysis_summary(analyzed_models):
     total_outliers_detected = sum([analyzer.total_outliers for analyzer in analyzed_models])
     total_outliers_whitelisted = sum([analyzer.nr_whitelisted_elements for analyzer in analyzed_models])
     logging.logger.info("total use cases processed: %i", total_models_processed)
-    logging.logger.info("total outliers detected: " + "{:,}".format(total_outliers_detected))
-    logging.logger.info("total whitelisted outliers: " + "{:,}".format(total_outliers_whitelisted))
+    logging.logger.info("total outliers detected: %s", "{:,}".format(total_outliers_detected))
+    logging.logger.info("total whitelisted outliers: %s", "{:,}".format(total_outliers_whitelisted))
     logging.logger.info("")
     logging.logger.info("succesfully analyzed use cases: %i", len(completed_models))
     logging.logger.info("succesfully analyzed use cases without events: %i",
@@ -348,9 +349,9 @@ def print_analysis_summary(analyzed_models):
     completed_models_with_events.sort(key=lambda _: _.analysis_time_seconds, reverse=True)
 
     if completed_models_with_events:
-        logging.logger.info("total analysis time: " +
+        logging.logger.info("total analysis time: %s",
                             helpers.utils.seconds_to_pretty_str(seconds=round(float(np.sum(analysis_times)))))
-        logging.logger.info("average analysis time: " +
+        logging.logger.info("average analysis time: %s",
                             helpers.utils.seconds_to_pretty_str(seconds=round(np.average(analysis_times))))
 
         # print most time consuming use cases
@@ -359,9 +360,9 @@ def print_analysis_summary(analyzed_models):
         completed_models_with_events_taking_most_time = completed_models_with_events[:10]
 
         for model in completed_models_with_events_taking_most_time:
-            logging.logger.info("\t+ " + model.config_section_name + " - " +
-                                "{:,}".format(model.total_events) + " events - " +
-                                "{:,}".format(model.total_outliers) + " outliers - " +
+            logging.logger.info("\t+ %s - %s events - %s outliers - %s", model.config_section_name,
+                                "{:,}".format(model.total_events),
+                                "{:,}".format(model.total_outliers),
                                 helpers.utils.seconds_to_pretty_str(round(model.analysis_time_seconds)))
 
     if configuration_parsing_error_models:
@@ -369,17 +370,17 @@ def print_analysis_summary(analyzed_models):
         logging.logger.info("models for which the configuration parsing failed:")
 
         for model in configuration_parsing_error_models:
-            logging.logger.info("\t+ " + model.config_section_name)
+            logging.logger.info("\t+ %s", model.config_section_name)
 
     if unknown_error_models:
         logging.logger.info("")
         logging.logger.info("models for which an unexpected error was encountered:")
 
         for model in unknown_error_models:
-            logging.logger.info("\t+ " + model.config_section_name)
+            logging.logger.info("\t+ %s", model.config_section_name)
 
     if not analyzed_models:
-        logging.logger.warning("no use cases were analyzed. are you sure your configuration file contains use " +
+        logging.logger.warning("no use cases were analyzed. are you sure your configuration file contains use "
                                "cases, which are enabled?")
 
     logging.logger.info("============================")

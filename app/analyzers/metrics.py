@@ -58,7 +58,7 @@ class MetricsAnalyzer(Analyzer):
 
                     # Display log message
                     log_message = "evaluating batch of " + "{:,}".format(total_metrics_in_batch) + " metrics "
-                    if len(remaining_metrics) > 0:
+                    if remaining_metrics > 0:
                         log_message += "(+ " + "{:,}".format(len(remaining_metrics)) + " metrics from last batch) "
                     log_message += "[" + "{:,}".format(logging.current_step) + " events processed]"
                     logging.logger.info(log_message)
