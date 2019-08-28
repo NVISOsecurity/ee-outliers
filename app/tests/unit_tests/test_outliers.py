@@ -42,8 +42,6 @@ class TestOutlierOperations(unittest.TestCase):
         test_outlier = Outlier(outlier_type="dummy type", outlier_reason="dummy reason",
                                outlier_summary="dummy summary", doc=doc)
         # Model name, model type and obseration are added by analyzer
-        test_outlier.outlier_dict["model_name"] = ["dummy_test"]
-        test_outlier.outlier_dict["model_type"] = ["analyzer"]
         test_outlier.outlier_dict["observation"] = ["dummy observation"]
 
         doc_with_outlier = helpers.es.add_outlier_to_document(test_outlier)
