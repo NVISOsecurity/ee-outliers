@@ -9,7 +9,11 @@ from helpers.outlier import Outlier
 
 
 class Analyzer(abc.ABC):
-
+    """
+    The base class for all analyzers.
+    This class keeps state around the model type, processed events, identified outliers, etc.
+    It is also resposible for extracting the model settings from the configuration files.
+    """
     DEFAULT_CONFIG_KEY = {"run_model", "test_model", "es_index"}
 
     def __init__(self, config_section_name):
@@ -40,8 +44,8 @@ class Analyzer(abc.ABC):
             self.model_settings = self._extract_model_settings()
             self._extract_additional_model_settings()
             self.extra_model_settings = self._extract_arbitrary_config()
-        except Exception:
-            logging.logger.error("error while parsing use case configuration for " + self.config_section_name,
+        except Exception:  # pylint: disable=broad-except
+            logging.logger.error("error while parsing use case configuration for %s", self.config_section_name,
                                  exc_info=True)
             self.configuration_parsing_error = True
 
@@ -193,7 +197,7 @@ class Analyzer(abc.ABC):
 
     def create_outlier(self, fields, doc, extra_outlier_information=dict()):
         """
-        Create an outlier
+        Create an outlier object with all the correct fields & parameters
 
         :param fields: extracted fields
         :param doc: document linked to this outlier
@@ -211,8 +215,8 @@ class Analyzer(abc.ABC):
         for key, value in self.extra_model_settings.items():
             outlier.outlier_dict[key] = value
 
-        for k, v in extra_outlier_information.items():
-            outlier.outlier_dict[k] = v
+        for outlier_key, outlier_value in extra_outlier_information.items():
+            outlier.outlier_dict[outlier_key] = outlier_value
 
         return outlier
 
@@ -228,9 +232,14 @@ class Analyzer(abc.ABC):
         es.process_outlier(outlier=outlier, should_notify=self.model_settings["should_notify"])
 
     def print_analysis_intro(self, event_type, total_events):
+        """
+        Print an introduction before starting the analysis
+        :param event_type: can be any string, typically evaluating or training
+        :param total_events: the total number of events being processed
+        """
         logging.logger.info("")
-        logging.logger.info("===== " + event_type + " [" + self.model_type + " model] ===")
-        logging.logger.info("analyzing " + "{:,}".format(total_events) + " events")
+        logging.logger.info("===== %s [%s model] ===", event_type, self.model_type)
+        logging.logger.info("analyzing %s events", "{:,}".format(total_events))
         logging.logger.info(self.get_time_window_info(history_days=self.model_settings["history_window_days"],
                                                       history_hours=self.model_settings["history_window_hours"]))
 
