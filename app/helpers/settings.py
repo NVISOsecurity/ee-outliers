@@ -5,7 +5,6 @@ import re
 from configparser import NoOptionError, NoSectionError
 
 from helpers.singleton import singleton
-import helpers.singletons
 
 parser = argparse.ArgumentParser()
 
