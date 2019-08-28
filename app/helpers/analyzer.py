@@ -205,6 +205,9 @@ class Analyzer(abc.ABC):
         :param extra_outlier_information: extra information that should be added to the outlier
         :return: the created outlier object
         """
+        if extra_outlier_information is None:
+            extra_outlier_information = dict()
+
         outlier_type, outlier_reason, outlier_summary, outlier_assets = \
             self._prepare_outlier_parameters(extra_outlier_information, fields)
         outlier = Outlier(outlier_type=outlier_type, outlier_reason=outlier_reason, outlier_summary=outlier_summary,
