@@ -459,8 +459,8 @@ class ES:
         :param timestamp_field: the name of the timestamp field
         :return: the query
         """
-        time_start = (dt.datetime.datetime.now() - dt.datetime.timedelta(days=days, hours=hours)).isoformat()
-        time_stop = dt.datetime.datetime.now().isoformat()
+        time_start = (dt.datetime.now() - dt.timedelta(days=days, hours=hours)).isoformat()
+        time_stop = dt.datetime.now().isoformat()
 
         # Construct absolute time range filter, increases cacheability
         time_filter = {
