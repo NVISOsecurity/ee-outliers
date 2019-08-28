@@ -8,8 +8,13 @@ import helpers.utils
 from helpers.outlier import Outlier
 
 
+# pylint: disable=too-many-instance-attributes
 class Analyzer(abc.ABC):
-
+    """
+    The base class for all analyzers.
+    This class keeps state around the model type, processed events, identified outliers, etc.
+    It is also resposible for extracting the model settings from the configuration files.
+    """
     DEFAULT_CONFIG_KEY = {"run_model", "test_model", "es_index"}
 
     def __init__(self, config_section_name):
@@ -40,22 +45,23 @@ class Analyzer(abc.ABC):
             self.model_settings = self._extract_model_settings()
             self._extract_additional_model_settings()
             self.extra_model_settings = self._extract_arbitrary_config()
-        except Exception:
-            logging.logger.error("error while parsing use case configuration for " + self.config_section_name,
+        except Exception:  # pylint: disable=broad-except
+            logging.logger.error("error while parsing use case configuration for %s", self.config_section_name,
                                  exc_info=True)
             self.configuration_parsing_error = True
 
     @property
     def analysis_time_seconds(self):
         """
-        Get time to execute this model
+        Return the time that was needed to complete the analysis, in seconds.
 
-        :return: float value that represent the time in seconds
+        :return: float value that represent the time in seconds. In case the analysis has not completed,
+        this will return None.
         """
         if self.completed_analysis:
             return float(self.analysis_end_time - self.analysis_start_time)
-        else:
-            return None
+
+        return None
 
     def _extract_model_settings(self):
         model_settings = dict()
@@ -128,7 +134,6 @@ class Analyzer(abc.ABC):
         Method call in the construction to load all parameters of this analyzer
         This method can be overridden by children to load content linked to a specific analyzer
         """
-        pass
 
     def _extract_arbitrary_config(self):
         """
@@ -191,15 +196,18 @@ class Analyzer(abc.ABC):
         outlier_assets = helpers.utils.extract_outlier_asset_information(fields, settings)
         return outlier_type, outlier_reason, outlier_summary, outlier_assets
 
-    def create_outlier(self, fields, doc, extra_outlier_information=dict()):
+    def create_outlier(self, fields, doc, extra_outlier_information=None):
         """
-        Create an outlier
+        Create an outlier object with all the correct fields & parameters
 
         :param fields: extracted fields
         :param doc: document linked to this outlier
-        :param extra_outlier_information: other information that need to be taking into account
-        :return: created outlier
+        :param extra_outlier_information: extra information that should be added to the outlier
+        :return: the created outlier object
         """
+        if extra_outlier_information is None:
+            extra_outlier_information = dict()
+
         outlier_type, outlier_reason, outlier_summary, outlier_assets = \
             self._prepare_outlier_parameters(extra_outlier_information, fields)
         outlier = Outlier(outlier_type=outlier_type, outlier_reason=outlier_reason, outlier_summary=outlier_summary,
@@ -211,8 +219,9 @@ class Analyzer(abc.ABC):
         for key, value in self.extra_model_settings.items():
             outlier.outlier_dict[key] = value
 
-        for k, v in extra_outlier_information.items():
-            outlier.outlier_dict[k] = v
+        if extra_outlier_information:
+            for outlier_key, outlier_value in extra_outlier_information.items():
+                outlier.outlier_dict[outlier_key] = outlier_value
 
         return outlier
 
@@ -228,9 +237,14 @@ class Analyzer(abc.ABC):
         es.process_outlier(outlier=outlier, should_notify=self.model_settings["should_notify"])
 
     def print_analysis_intro(self, event_type, total_events):
+        """
+        Print an introduction before starting the analysis
+        :param event_type: can be any string, typically evaluating or training
+        :param total_events: the total number of events being processed
+        """
         logging.logger.info("")
-        logging.logger.info("===== " + event_type + " [" + self.model_type + " model] ===")
-        logging.logger.info("analyzing " + "{:,}".format(total_events) + " events")
+        logging.logger.info("===== %s [%s model] ===", event_type, self.model_type)
+        logging.logger.info("analyzing %s events", "{:,}".format(total_events))
         logging.logger.info(self.get_time_window_info(history_days=self.model_settings["history_window_days"],
                                                       history_hours=self.model_settings["history_window_hours"]))
 
@@ -239,6 +253,13 @@ class Analyzer(abc.ABC):
 
     @staticmethod
     def get_time_window_info(history_days=None, history_hours=None):
+        """
+        Convert an absolute number of days and hours into a string that represents the start and end dates covering
+        the time window between [now- (history_days + history_hours)] and now.
+        :param history_days: total number of days to look back
+        :param history_hours: total number of hours to look back
+        :return:
+        """
         search_range = es.get_time_filter(days=history_days, hours=history_hours,
                                           timestamp_field=settings.config.get("general", "timestamp_field",
                                                                               fallback="timestamp"))
@@ -254,4 +275,9 @@ class Analyzer(abc.ABC):
 
     @abc.abstractmethod
     def evaluate_model(self):
+        """
+        This is the method that will be called whenever all the default analyzer parameters have been initialized.
+        This is the only method that should be implemented in the subclasses and will be responsible for actual
+        detection of outliers.
+        """
         raise NotImplementedError()
