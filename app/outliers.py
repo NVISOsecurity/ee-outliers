@@ -27,9 +27,9 @@ EE_OUTLIERS_VERSIONS = "0.2.5"
 
 def run_outliers():
     """
-        Entrypoint into ee-outliers.
-        From here we start using the appropriate run mode.
-        """
+    Entrypoint into ee-outliers.
+    From here we start using the appropriate run mode.
+    """
     # If running in test mode, we just want to run the tests and exit as quick as possible.
     # no need to set up other things like logging, which should happen afterwards.
     if settings.args.run_mode == "tests":
