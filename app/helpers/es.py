@@ -639,5 +639,3 @@ def build_search_query(bool_clause=None, sort_clause=None, search_range=None, qu
         query["query"]["bool"]["filter"].append(search_query["filter"].copy())
 
     return query
-
-
