@@ -6,7 +6,6 @@ import json
 import datetime as dt
 from pygrok import Grok
 import math
-import time
 
 from helpers.singleton import singleton
 from helpers.notifier import Notifier
