@@ -28,7 +28,8 @@ class Word2VecAnalyzer(Analyzer):
 
         sentences = list()
 
-        self.total_events, documents = es.count_and_scan_documents(index=self.es_index, search_query=self.search_query,
+        self.total_events, documents = es.count_and_scan_documents(index=self.model_settings["es_index"],
+                                                                   search_query=self.search_query,
                                                                    model_settings=self.model_settings)
         training_data_size_pct = settings.config.getint("machine_learning", "training_data_size_pct")
         training_data_size = self.total_events / 100 * training_data_size_pct
@@ -81,7 +82,8 @@ class Word2VecAnalyzer(Analyzer):
                 self.evaluate_test_sentences(w2v_model=w2v_model)
                 return
 
-            self.total_events, documents = es.count_and_scan_documents(index=self.es_index, search_query=search_query,
+            self.total_events, documents = es.count_and_scan_documents(index=self.model_settings["es_index"],
+                                                                       search_query=search_query,
                                                                        model_settings=self.model_settings)
             self.print_analysis_intro(event_type="evaluating " + self.model_name, total_events=self.total_events)
 
