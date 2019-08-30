@@ -199,7 +199,7 @@ class ES:
 
     # this is part of housekeeping, so we should not access non-threat-save objects, such as logging progress to
     # the console using ticks!
-    def remove_all_whitelisted_outliers(self):
+    def remove_all_whitelisted_outliers(self, dict_with_analyzer):
         """
         Remove all whitelisted outliers present in Elasticsearch.
         This method is normally only call by housekeeping
@@ -230,9 +230,20 @@ class ES:
                     outlier_reason = doc["_source"]["outliers"]["reason"][i]
                     outlier_summary = doc["_source"]["outliers"]["summary"][i]
 
+                    # Extract information and get analyzer linked to this outlier
+                    model_name = doc["_source"]["outliers"]["model_name"][i]
+                    model_type = doc["_source"]["outliers"]["model_type"][i]
+                    config_section_name = model_type + "_" + model_name
+                    if config_section_name not in dict_with_analyzer:
+                        self.logging.logger.warning("Outlier '" + config_section_name + "' " +
+                                                    " haven't been found in configuration, could not check whitelist")
+                        break  # If one outlier is not whitelisted, we keep all other outliers
+                    analyzer = dict_with_analyzer[config_section_name]
+
                     outlier = Outlier(outlier_type=outlier_type, outlier_reason=outlier_reason,
                                       outlier_summary=outlier_summary, doc=doc)
-                    if outlier.is_whitelisted():
+                    if outlier.is_whitelisted(extra_literals_whitelist_value=analyzer.model_whitelist_literals,
+                                              extra_regexps_whitelist_value=analyzer.model_whitelist_regexps):
                         total_whitelisted += 1
 
                 # if all outliers for this document are whitelisted, removed them all. If not, don't touch the document.
@@ -303,29 +314,20 @@ class ES:
 
     def process_outlier(self, outlier=None, should_notify=False):
         """
-        Check if outlier is whitelist, save outlier (if configuration is setup for that), notify (also depending of
-        configuration) and print.
+        Save outlier (if configuration is setup for that), notify (also depending of configuration) and print.
 
         :param outlier: the detected outlier
         :param should_notify: True if notification need to be send
-        :return: True if not whitelist, False otherwise
         """
-        is_whitelisted = outlier.is_whitelisted()
 
-        if is_whitelisted:
-            if self.settings.print_outliers_to_console:
-                self.logging.logger.info(outlier.outlier_dict["summary"] + " [whitelisted outlier]")
-        else:
-            if self.settings.es_save_results:
-                self.save_outlier(outlier=outlier)
+        if self.settings.es_save_results:
+            self.save_outlier(outlier=outlier)
 
-            if should_notify:
-                self.notifier.notify_on_outlier(outlier=outlier)
+        if should_notify:
+            self.notifier.notify_on_outlier(outlier=outlier)
 
-            if self.settings.print_outliers_to_console:
-                self.logging.logger.info("outlier - " + outlier.outlier_dict["summary"])
-
-        return is_whitelisted
+        if self.settings.print_outliers_to_console:
+            self.logging.logger.info("outlier - " + outlier.outlier_dict["summary"])
 
     def add_update_bulk_action(self, document):
         """
@@ -410,7 +412,7 @@ class ES:
         :return: all derived fields
         """
         derived_fields = dict()
-        for field_name, grok_pattern in self.settings.config.items("derivedfields"):
+        for field_name, grok_pattern in self.settings.list_derived_fields:
             try:
                 # If key doesn't exist, an exception is raise
                 doc_value = helpers.utils.get_dotkey_value(doc_fields, field_name, case_sensitive=False)

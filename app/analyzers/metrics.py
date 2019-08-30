@@ -26,7 +26,8 @@ class MetricsAnalyzer(Analyzer):
         remaining_metrics = defaultdict()
         total_metrics_in_batch = 0
 
-        self.total_events, documents = es.count_and_scan_documents(index=self.es_index, search_query=self.search_query,
+        self.total_events, documents = es.count_and_scan_documents(index=self.model_settings["es_index"],
+                                                                   search_query=self.search_query,
                                                                    model_settings=self.model_settings)
 
         self.print_analysis_intro(event_type="evaluating " + self.config_section_name, total_events=self.total_events)
@@ -245,7 +246,7 @@ class MetricsAnalyzer(Analyzer):
                 outlier = self._compute_fields_observation_and_create_outlier(non_outlier_values,
                                                                               metrics_aggregator_value, ii,
                                                                               decision_frontier, metric_value)
-                if not outlier.is_whitelisted():
+                if not outlier.is_whitelisted(self.model_whitelist_literals, self.model_whitelist_regexps):
                     list_outliers.append(outlier)
                 else:
                     self.nr_whitelisted_elements += 1

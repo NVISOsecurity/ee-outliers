@@ -3,6 +3,7 @@ import unittest
 import copy
 
 from tests.unit_tests.test_stubs.test_stub_es import TestStubEs
+from tests.unit_tests.test_stubs.test_stub_analyzer import TestStubAnalyzer
 from tests.unit_tests.utils.update_settings import UpdateSettings
 from tests.unit_tests.utils.dummy_documents_generate import DummyDocumentsGenerate
 from helpers.singletons import es
@@ -56,14 +57,17 @@ class TestEs(unittest.TestCase):
         doc_generate = DummyDocumentsGenerate()
         self.test_es.add_doc(doc_generate.generate_document({
             "create_outlier": True, "outlier_observation": "dummy observation",
+            "outlier.model_name": "dummy_test", "outlier.model_type": "analyzer",
             "command_query": "osquery_get_all_processes_with_listening_conns.log"}))
 
         # Check that outlier correctly generated
         result = [doc for doc in es._scan()][0]
         self.assertTrue("outliers" in result["_source"])
 
+        stub_analyzer = TestStubAnalyzer("analyzer_dummy_test")
+
         # Remove whitelisted outlier
-        es.remove_all_whitelisted_outliers()
+        es.remove_all_whitelisted_outliers({"analyzer_dummy_test": stub_analyzer})
 
         # Check that outlier is correctly remove
         result = [doc for doc in es._scan()][0]

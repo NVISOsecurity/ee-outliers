@@ -189,7 +189,7 @@ def run_daemon_mode():
 
         # Perform analysis and print the analysis summary at the end
         logging.print_generic_intro("starting outlier detection")
-        analyzed_models = perform_analysis()
+        analyzed_models = perform_analysis(housekeeping_job)
         print_analysis_summary(analyzed_models)
 
         errored_models = [analyzer for analyzer in analyzed_models if analyzer.unknown_error_analysis]
@@ -226,20 +226,19 @@ def run_interactive_mode():
     # The difference with daemon mode is that in interactive mode, we want to allow the user to stop execution on the
     # command line, interactively.
     try:
-        analyzed_models = perform_analysis()
+        analyzed_models = perform_analysis(housekeeping_job)
         print_analysis_summary(analyzed_models)
     except KeyboardInterrupt:
         logging.logger.info("keyboard interrupt received, stopping housekeeping thread")
     finally:
         logging.logger.info("asking housekeeping jobs to shutdown after finishing")
-        housekeeping_job.shutdown_flag.set()
-        housekeeping_job.join()
+        housekeeping_job.stop_housekeeping()
 
     logging.logger.info("finished performing outlier detection")
 
 
 # pylint: disable=too-many-branches
-def perform_analysis():
+def perform_analysis(housekeeping_job):
     """ The entrypoint for analysis
     :return: List of analyzers that have been processed and analyzed
     """
@@ -274,8 +273,10 @@ def perform_analysis():
     # In case the created analyzer is activated in test or run mode, add it to the list of analyzers to evaluate
     analyzers_to_evaluate = list()
     for analyzer in analyzers:
-        if analyzer.should_run_model or analyzer.should_test_model:
+        if analyzer.model_settings["run_model"] or analyzer.model_settings["test_model"]:
             analyzers_to_evaluate.append(analyzer)
+
+    housekeeping_job.update_analyzer_list(analyzers_to_evaluate)
 
     # In case a single analyzer is causing issues (for example taking up too much time & resources), then a naive
     # shuffle will prevent this analyzer from blocking all the analyzers from running that come after it.
@@ -298,7 +299,7 @@ def perform_analysis():
                                 '{:.2f}'.format(round((index + 1) / float(len(analyzers_to_evaluate)) * 100, 2)))
         except elasticsearch.exceptions.NotFoundError:
             analyzer.index_not_found_analysis = True
-            logging.logger.warning("index %s does not exist, skipping use case", analyzer.es_index)
+            logging.logger.warning("index %s does not exist, skipping use case", analyzer.model_settings["es_index"])
         except Exception:  # pylint: disable=broad-except
             analyzer.unknown_error_analysis = True
             logging.logger.error("error while analyzing use case", exc_info=True)
