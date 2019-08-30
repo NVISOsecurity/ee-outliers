@@ -242,8 +242,8 @@ class ES:
 
                     outlier = Outlier(outlier_type=outlier_type, outlier_reason=outlier_reason,
                                       outlier_summary=outlier_summary, doc=doc)
-                    if outlier.is_whitelisted(extra_literals_whitelist_value=analyzer.whitelist_literals_per_model,
-                                              extra_regexps_whitelist_value=analyzer.whitelist_regexps_per_model):
+                    if outlier.is_whitelisted(extra_literals_whitelist_value=analyzer.model_whitelist_literals,
+                                              extra_regexps_whitelist_value=analyzer.model_whitelist_regexps):
                         total_whitelisted += 1
 
                 # if all outliers for this document are whitelisted, removed them all. If not, don't touch the document.
