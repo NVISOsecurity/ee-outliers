@@ -52,6 +52,7 @@ class TestHousekeeping(unittest.TestCase):
         doc_with_outlier = copy.deepcopy(doc_with_outlier_test_file)
         self.test_es.add_doc(doc_with_outlier)
 
+        housekeeping.file_mod_watcher._previous_mtimes[test_file_no_whitelist_path_config] = 0
         filecontent = ""
         with open(test_file_no_whitelist_path_config, 'r') as test_file:
             for line in test_file:
