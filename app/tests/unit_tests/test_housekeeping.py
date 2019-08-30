@@ -93,6 +93,9 @@ class TestHousekeeping(unittest.TestCase):
         # Update configuration (create new section and append to default)
         filecontent = "\n\n[dummy_section]\nparam=1"
 
+        # Force the date of the file
+        housekeeping.file_mod_watcher._previous_mtimes[test_file_whitelist_dummy_reason_path_config] = 0
+
         with open(test_file_whitelist_dummy_reason_path_config, 'a') as test_file:
             test_file.write(filecontent)
 
