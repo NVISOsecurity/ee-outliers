@@ -71,7 +71,7 @@ pipeline {
                     env.WORKSPACE = pwd()
                     def version = readFile "${env.WORKSPACE}/VERSION"
                     def full_version = version.trim()
-                    def feature_version = full_version.split("\\.")[1..2].join(".")
+                    def feature_version = full_version.split("\\.")[0..1].join(".")
                     docker.withRegistry('https://localhost:1234/', 'jenkins-nexus') {
                         if(env.BRANCH_NAME == 'master') {
                             app.push("${full_version}")
