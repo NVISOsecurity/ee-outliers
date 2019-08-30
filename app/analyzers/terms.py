@@ -298,7 +298,7 @@ class TermsAnalyzer(Analyzer):
         for ii, term_value in enumerate(batch[aggregator_value]["targets"]):
             outlier = self._create_outlier(non_outlier_values, unique_target_count_across_aggregators,
                                            aggregator_value, term_value, decision_frontier, batch, ii)
-            if not outlier.is_whitelisted(self.whitelist_literals_per_model, self.whitelist_regexps_per_model):
+            if not outlier.is_whitelisted(self.model_whitelist_literals, self.model_whitelist_regexps):
                 list_outliers.append(outlier)
             else:
                 self.nr_whitelisted_elements += 1
@@ -385,7 +385,7 @@ class TermsAnalyzer(Analyzer):
                     term_value_count = counted_targets[term_value]
                     outlier = self._create_outlier(non_outlier_values, term_value_count, aggregator_value,
                                                    term_value, decision_frontier, batch, ii)
-                    if not outlier.is_whitelisted(self.whitelist_literals_per_model, self.whitelist_regexps_per_model):
+                    if not outlier.is_whitelisted(self.model_whitelist_literals, self.model_whitelist_regexps):
                         list_outliers.append(outlier)
                     else:
                         self.nr_whitelisted_elements += 1
@@ -400,7 +400,7 @@ class TermsAnalyzer(Analyzer):
                 if is_outlier:
                     outlier = self._create_outlier(non_outlier_values, term_value_count, aggregator_value,
                                                    term_value, decision_frontier, batch, ii)
-                    if not outlier.is_whitelisted(self.whitelist_literals_per_model, self.whitelist_regexps_per_model):
+                    if not outlier.is_whitelisted(self.model_whitelist_literals, self.model_whitelist_regexps):
                         list_outliers.append(outlier)
                     else:
                         self.nr_whitelisted_elements += 1

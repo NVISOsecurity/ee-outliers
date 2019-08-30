@@ -37,8 +37,8 @@ class Analyzer(abc.ABC):
 
         self.nr_whitelisted_elements = 0
 
-        self.whitelist_literals_per_model = list()
-        self.whitelist_regexps_per_model = list()
+        self.model_whitelist_literals = list()
+        self.model_whitelist_regexps = list()
 
         # extract all settings for this use case
         self.configuration_parsing_error = False
@@ -139,18 +139,18 @@ class Analyzer(abc.ABC):
         """
 
     def extract_whitelist_per_model(self):
-        self.whitelist_literals_per_model = list()
-        self.whitelist_regexps_per_model = list()
+        self.model_whitelist_literals = list()
+        self.model_whitelist_regexps = list()
 
         list_literals_value_in_config = self._get_config_information_based_on_prefix("whitelist_literals_")
         for value in list_literals_value_in_config:
-            self.whitelist_literals_per_model.append(settings.extract_whitelist_literal_from_value(value))
+            self.model_whitelist_literals.append(settings.extract_whitelist_literal_from_value(value))
 
         list_regexps_value_in_config = self._get_config_information_based_on_prefix("whitelist_regexps_")
         for value in list_regexps_value_in_config:
             list_compile_regex_whitelist_value, failing_regular_expressions = \
                 settings.extract_whitelist_regex_from_value(value)
-            self.whitelist_regexps_per_model.append(list_compile_regex_whitelist_value)
+            self.model_whitelist_regexps.append(list_compile_regex_whitelist_value)
 
     def _get_config_information_based_on_prefix(self, prefix):
         set_values_in_config = list()
@@ -260,7 +260,7 @@ class Analyzer(abc.ABC):
         self.total_outliers += 1
         self.outlier_summaries.add(outlier.outlier_dict["summary"])
 
-        if outlier.is_whitelisted(self.whitelist_literals_per_model, self.whitelist_regexps_per_model):
+        if outlier.is_whitelisted(self.model_whitelist_literals, self.model_whitelist_regexps):
             if settings.print_outliers_to_console:
                 logging.logger.info(outlier.outlier_dict["summary"] + " [whitelisted outlier]")
         else:

@@ -116,6 +116,12 @@ class Settings:
             try:
                 list_compile_regex_whitelist_value.add(re.compile(whitelist_val_to_check.strip(), re.IGNORECASE))
             except Exception:
+                # something went wrong compiling the regular expression, probably because of a user error such as
+                # unbalanced escape characters. We should just ignore the regular expression and continue (and let
+                # the user know in the beginning that some could not be compiled).  Even if we check for errors
+                # in the beginning of running outliers, we might still run into issues when the configuration
+                # changes during running of ee-outlies. So this should catch any remaining errors in the
+                # whitelist that could occur with regexps.
                 failing_regular_expressions.add(whitelist_val_to_check)
 
         return list_compile_regex_whitelist_value, failing_regular_expressions

@@ -246,7 +246,7 @@ class MetricsAnalyzer(Analyzer):
                 outlier = self._compute_fields_observation_and_create_outlier(non_outlier_values,
                                                                               metrics_aggregator_value, ii,
                                                                               decision_frontier, metric_value)
-                if not outlier.is_whitelisted(self.whitelist_literals_per_model, self.whitelist_regexps_per_model):
+                if not outlier.is_whitelisted(self.model_whitelist_literals, self.model_whitelist_regexps):
                     list_outliers.append(outlier)
                 else:
                     self.nr_whitelisted_elements += 1

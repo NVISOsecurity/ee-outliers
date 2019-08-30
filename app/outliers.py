@@ -299,7 +299,7 @@ def perform_analysis(housekeeping_job):
                                 '{:.2f}'.format(round((index + 1) / float(len(analyzers_to_evaluate)) * 100, 2)))
         except elasticsearch.exceptions.NotFoundError:
             analyzer.index_not_found_analysis = True
-            logging.logger.warning("index %s does not exist, skipping use case" % analyzer.model_settings["es_index"])
+            logging.logger.warning("index %s does not exist, skipping use case", analyzer.model_settings["es_index"])
         except Exception:  # pylint: disable=broad-except
             analyzer.unknown_error_analysis = True
             logging.logger.error("error while analyzing use case", exc_info=True)
