@@ -84,9 +84,7 @@
             "reason": ["dummy reason"],
             "total_outliers": 1,
             "type": ["dummy type"],
-            "summary": ["dummy summary"],
-            "model_name": ["dummy_test"],
-            "model_type": ["analyzer"]
+            "summary": ["dummy summary"]
         },
         "slave_name": "ee-slave-lab",
         "smoky_filter_name": "OsqueryFilter",

@@ -139,6 +139,66 @@ class TestSimplequeryAnalyzer(unittest.TestCase):
         all_fields_exists = [elem in DEFAULT_OUTLIERS_KEY_FIELDS for elem in result['_source']['outliers']]
         self.assertTrue(all(all_fields_exists))
 
+    def test_whitelist_literal_per_model_match_whitelist(self):
+        doc_generate = DummyDocumentsGenerate()
+
+        # Generate document
+        self.test_es.add_doc(doc_generate.generate_document({"hostname": "HOSTNAME-WHITELISTED"}))
+
+        # Run analyzer
+        self.test_settings.change_configuration_path(
+            "/app/tests/unit_tests/files/whitelist_tests_model_whitelist_01.conf")
+        analyzer = SimplequeryAnalyzer("simplequery_dummy_test")
+        analyzer.evaluate_model()
+
+        result = [elem for elem in es._scan()][0]
+        self.assertFalse("outliers" in result["_source"])
+
+    def test_whitelist_literal_per_model_not_match_whitelist(self):
+        doc_generate = DummyDocumentsGenerate()
+
+        # Generate document
+        self.test_es.add_doc(doc_generate.generate_document({"hostname": "not_whitelist_hostname"}))
+
+        # Run analyzer
+        self.test_settings.change_configuration_path(
+            "/app/tests/unit_tests/files/whitelist_tests_model_whitelist_01.conf")
+        analyzer = SimplequeryAnalyzer("simplequery_dummy_test")
+        analyzer.evaluate_model()
+
+        result = [elem for elem in es._scan()][0]
+        self.assertTrue("outliers" in result["_source"])
+
+    def test_whitelist_regex_per_model_match_whitelist(self):
+        doc_generate = DummyDocumentsGenerate()
+
+        # Generate document
+        self.test_es.add_doc(doc_generate.generate_document({"hostname": "AAA-WHITELISTED"}))
+
+        # Run analyzer
+        self.test_settings.change_configuration_path(
+            "/app/tests/unit_tests/files/whitelist_tests_model_whitelist_02.conf")
+        analyzer = SimplequeryAnalyzer("simplequery_dummy_test")
+        analyzer.evaluate_model()
+
+        result = [elem for elem in es._scan()][0]
+        self.assertFalse("outliers" in result["_source"])
+
+    def test_whitelist_regex_per_model_not_match_whitelist(self):
+        doc_generate = DummyDocumentsGenerate()
+
+        # Generate document
+        self.test_es.add_doc(doc_generate.generate_document({"hostname": "Not-work-WHITELISTED"}))
+
+        # Run analyzer
+        self.test_settings.change_configuration_path(
+            "/app/tests/unit_tests/files/whitelist_tests_model_whitelist_02.conf")
+        analyzer = SimplequeryAnalyzer("simplequery_dummy_test")
+        analyzer.evaluate_model()
+
+        result = [elem for elem in es._scan()][0]
+        self.assertTrue("outliers" in result["_source"])
+
     def test_arbitrary_key_config_present_in_outlier(self):
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/simplequery_test_01.conf")
         analyzer = SimplequeryAnalyzer("simplequery_arbitrary_dummy_test")

@@ -20,7 +20,8 @@ class TemplateAnalyzer(Analyzer):
     def train_model(self):
         train_data = list()
 
-        self.total_events, documents = es.count_and_scan_documents(index=self.es_index, search_query=self.search_query,
+        self.total_events, documents = es.count_and_scan_documents(index=self.model_settings["es_index"],
+                                                                   search_query=self.search_query,
                                                                    model_settings=self.model_settings)
         training_data_size_pct = settings.config.getint("machine_learning", "training_data_size_pct")
         training_data_size = self.total_events / 100 * training_data_size_pct
