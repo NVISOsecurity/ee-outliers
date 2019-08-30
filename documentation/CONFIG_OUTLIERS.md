@@ -115,7 +115,7 @@ One or multiple document fields that will be used to group documents.
 
 ## Arbitrary parameters
 It is also possible to add arbitrary parameters that will simply be copied into the outlier information. Note that these parameters will be taken into account when evaluating the [whitelist](WHITELIST.md).  Also note that placeholders are not supported here.   
-These arbitrary parameters could not start with prefix `whitelist_` (which will be used to process [per model whitelist](WHITELST.md#whitelist-per-model)).
+These arbitrary parameters could not start with prefix `whitelist_` (which will be used to process [per model whitelist](WHITELIST.md#whitelist-per-model)).
 
 <details>
 <summary>Example</summary>
