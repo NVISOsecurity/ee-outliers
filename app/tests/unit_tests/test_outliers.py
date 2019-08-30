@@ -44,6 +44,7 @@ class TestOutlierOperations(unittest.TestCase):
         doc = copy.deepcopy(doc_without_outlier_test_file)
         test_outlier = Outlier(outlier_type="dummy type",
                                outlier_reason="dummy reason", outlier_summary="dummy summary", doc=doc)
+        # Model name, model type are added by analyzer
         test_outlier.outlier_dict["observation"] = "dummy observation"
 
         doc_with_outlier = helpers.es.add_outlier_to_document(test_outlier)

@@ -1,21 +1,33 @@
-from elasticsearch import helpers as eshelpers, Elasticsearch
-import datetime
-import helpers.utils
-import helpers.logging
 import json
 import datetime as dt
-from pygrok import Grok
 import math
+
+from collections import defaultdict
+from itertools import chain
+
+from pygrok import Grok
+from elasticsearch import helpers as eshelpers, Elasticsearch
+from elasticsearch.helpers import ScanError
+
+import helpers.utils
+import helpers.logging
 
 from helpers.singleton import singleton
 from helpers.notifier import Notifier
 from helpers.outlier import Outlier
-from collections import defaultdict
-from itertools import chain
 
 
 @singleton
 class ES:
+    """
+    This is the singleton class that holds the connection object with Elasticsearch.
+    It also serves as the queue for all the queued bulk actions.
+
+    This class is responsible for performing all operations that directly interact with Elasticsearch,
+    or that create the data structures needed to work with Elasticsearch.
+
+    This includes removing all the outliers from Elasticsearch, scanning, counting documents, etc.
+    """
     index = None
     conn = None
     settings = None
@@ -48,11 +60,13 @@ class ES:
         if self.conn.ping():
             self.logging.logger.info("connected to Elasticsearch on host %s" %
                                      (self.settings.config.get("general", "es_url")))
-            return self.conn
+            result = self.conn
         else:
             self.logging.logger.error("could not connect to Elasticsearch on host %s" %
                                       (self.settings.config.get("general", "es_url")))
-            return False
+            result = False
+
+        return result
 
     def _get_history_window(self, model_settings=None):
         """
@@ -77,7 +91,7 @@ class ES:
         Scan and get documents in Elasticsearch
 
         :param index: on which index the request must be done
-        :param search_range: the range of research
+        :param search_range: the range of the search
         :param bool_clause: boolean condition
         :param sort_clause: request to sort results
         :param query_fields: the query field
@@ -121,9 +135,11 @@ class ES:
 
         # Result depend of the version of Elasticsearch (> 7, the result is a dictionary)
         if isinstance(result, dict):
-            return result["value"]
+            return_value = result["value"]
         else:
-            return result
+            return_value = result
+
+        return return_value
 
     def count_and_scan_documents(self, index, bool_clause=None, sort_clause=None, query_fields=None, search_query=None,
                                  model_settings=None):
@@ -303,6 +319,7 @@ class ES:
         :param outlier: the detected outlier
         :param should_notify: True if notification need to be send
         """
+
         if self.settings.es_save_results:
             self.save_outlier(outlier=outlier)
 
@@ -329,6 +346,11 @@ class ES:
         self.add_bulk_action(action)
 
     def add_remove_outlier_bulk_action(self, document):
+        """
+        Creates the bulk action to remove all the outlier traces from all events.
+        Removing an outlier means that the "outlier" tag is removed, as well as the "outlier" dictionary in the event.
+        :param document: the document from which the outlier information should be removed
+        """
         action = {
             '_op_type': 'update',
             '_index': document["_index"],
@@ -363,7 +385,7 @@ class ES:
 
         :param refresh: refresh or not in Elasticsearch
         """
-        if len(self.bulk_actions) == 0:
+        if not self.bulk_actions:
             return
         eshelpers.bulk(self.conn, self.bulk_actions, stats_only=True, refresh=refresh)
         self.bulk_actions = []
@@ -425,8 +447,8 @@ class ES:
         if extract_derived_fields:
             derived_fields = self.extract_derived_fields(doc_fields)
 
-            for k, v in derived_fields.items():
-                doc_fields[k] = v
+            for derived_field_key, derived_field_value in derived_fields.items():
+                doc_fields[derived_field_key] = derived_field_value
 
         return doc_fields
 
@@ -440,8 +462,8 @@ class ES:
         :param timestamp_field: the name of the timestamp field
         :return: the query
         """
-        time_start = (datetime.datetime.now() - datetime.timedelta(days=days, hours=hours)).isoformat()
-        time_stop = datetime.datetime.now().isoformat()
+        time_start = (dt.datetime.now() - dt.timedelta(days=days, hours=hours)).isoformat()
+        time_stop = dt.datetime.now().isoformat()
 
         # Construct absolute time range filter, increases cacheability
         time_filter = {
@@ -453,6 +475,58 @@ class ES:
             }
         }
         return time_filter
+
+    def _verbose_test_scan(
+            self,
+            client, query=None,
+            scroll="5m",
+            raise_on_error=True,
+            preserve_order=False,
+            size=1000,
+            request_timeout=None,
+            clear_scroll=True,
+            scroll_kwargs=None,
+            **kwargs
+    ):
+        scroll_kwargs = scroll_kwargs or {}
+
+        if not preserve_order:
+            query = query.copy() if query else {}
+            query["sort"] = "_doc"
+
+        # initial search
+        resp = client.search(
+            body=query, scroll=scroll, size=size, request_timeout=request_timeout, **kwargs
+        )
+        scroll_id = resp.get("_scroll_id")
+
+        try:
+            while scroll_id and resp["hits"]["hits"]:
+                for hit in resp["hits"]["hits"]:
+                    yield hit
+
+                # check if we have any errors
+                if resp["_shards"]["successful"] < resp["_shards"]["total"]:
+                    self.logging.logger.warning(
+                        "Scroll request has only succeeded on %d shards out of %d.",
+                        resp["_shards"]["successful"],
+                        resp["_shards"]["total"],
+                    )
+                    self.logging.logger.warning(resp)
+                    if raise_on_error:
+                        raise ScanError(
+                            scroll_id,
+                            "Scroll request has only succeeded on %d shards out of %d."
+                            % (resp["_shards"]["successful"], resp["_shards"]["total"]),
+                        )
+                resp = client.scroll(
+                    body={"scroll_id": scroll_id, "scroll": scroll}, **scroll_kwargs
+                )
+                scroll_id = resp.get("_scroll_id")
+
+        finally:
+            if scroll_id and clear_scroll:
+                client.clear_scroll(body={"scroll_id": [scroll_id]}, ignore=(404,))
 
 
 def add_outlier_to_document(outlier):
@@ -467,13 +541,14 @@ def add_outlier_to_document(outlier):
     if "outliers" in doc["_source"]:
         if outlier.outlier_dict["summary"] not in doc["_source"]["outliers"]["summary"]:
             merged_outliers = defaultdict(list)
-            for k, v in chain(doc["_source"]["outliers"].items(), outlier.get_outlier_dict_of_arrays().items()):
+            for outlier_key, outlier_value in chain(doc["_source"]["outliers"].items(),
+                                                    outlier.get_outlier_dict_of_arrays().items()):
 
                 # merge ["reason 1"] and ["reason 2"]] into ["reason 1", "reason 2"]
-                if isinstance(v, list):
-                    merged_outliers[k].extend(v)
+                if isinstance(outlier_value, list):
+                    merged_outliers[outlier_key].extend(outlier_value)
                 else:
-                    merged_outliers[k].append(v)
+                    merged_outliers[outlier_key].append(outlier_value)
 
             merged_outliers["total_outliers"] = doc["_source"]["outliers"]["total_outliers"] + 1
             doc["_source"]["outliers"] = merged_outliers
