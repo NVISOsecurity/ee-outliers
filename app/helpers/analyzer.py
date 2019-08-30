@@ -15,7 +15,6 @@ class Analyzer(abc.ABC):
     This class keeps state around the model type, processed events, identified outliers, etc.
     It is also resposible for extracting the model settings from the configuration files.
     """
-    DEFAULT_CONFIG_KEY = {"run_model", "test_model", "es_index"}
 
     def __init__(self, config_section_name):
         # the configuration file section for the use case, for example [simplequery_test_model]
@@ -38,12 +37,16 @@ class Analyzer(abc.ABC):
 
         self.nr_whitelisted_elements = 0
 
+        self.model_whitelist_literals = list()
+        self.model_whitelist_regexps = list()
+
         # extract all settings for this use case
         self.configuration_parsing_error = False
 
         try:
             self.model_settings = self._extract_model_settings()
             self._extract_additional_model_settings()
+            self.extract_whitelist_per_model()
             self.extra_model_settings = self._extract_arbitrary_config()
         except Exception:  # pylint: disable=broad-except
             logging.logger.error("error while parsing use case configuration for %s", self.config_section_name,
@@ -114,18 +117,18 @@ class Analyzer(abc.ABC):
             model_settings["use_derived_fields"] = False
 
         try:
-            self.es_index = settings.config.get(self.config_section_name, "es_index")
+            model_settings["es_index"] = settings.config.get(self.config_section_name, "es_index")
         except NoOptionError:
-            self.es_index = settings.config.get("general", "es_index_pattern")
+            model_settings["es_index"] = settings.config.get("general", "es_index_pattern")
 
         model_settings["outlier_reason"] = settings.config.get(self.config_section_name, "outlier_reason")
         model_settings["outlier_type"] = settings.config.get(self.config_section_name, "outlier_type")
         model_settings["outlier_summary"] = settings.config.get(self.config_section_name, "outlier_summary")
 
-        self.should_run_model = settings.config.getboolean("general", "run_models") and settings.config.getboolean(
-            self.config_section_name, "run_model")
-        self.should_test_model = settings.config.getboolean("general", "test_models") and settings.config.getboolean(
-            self.config_section_name, "test_model")
+        model_settings["run_model"] = settings.config.getboolean(
+            "general", "run_models") and settings.config.getboolean(self.config_section_name, "run_model")
+        model_settings["test_model"] = settings.config.getboolean(
+            "general", "test_models") and settings.config.getboolean(self.config_section_name, "test_model")
 
         return model_settings
 
@@ -135,6 +138,27 @@ class Analyzer(abc.ABC):
         This method can be overridden by children to load content linked to a specific analyzer
         """
 
+    def extract_whitelist_per_model(self):
+        self.model_whitelist_literals = list()
+        self.model_whitelist_regexps = list()
+
+        list_literals_value_in_config = self._get_config_information_based_on_prefix("whitelist_literals_")
+        for value in list_literals_value_in_config:
+            self.model_whitelist_literals.append(settings.extract_whitelist_literal_from_value(value))
+
+        list_regexps_value_in_config = self._get_config_information_based_on_prefix("whitelist_regexps_")
+        for value in list_regexps_value_in_config:
+            list_compile_regex_whitelist_value, failing_regular_expressions = \
+                settings.extract_whitelist_regex_from_value(value)
+            self.model_whitelist_regexps.append(list_compile_regex_whitelist_value)
+
+    def _get_config_information_based_on_prefix(self, prefix):
+        set_values_in_config = list()
+        for key, value in dict(settings.config.items(self.config_section_name)).items():
+            if key[0:len(prefix)] == prefix and value != "":
+                set_values_in_config.append(value)
+        return set_values_in_config
+
     def _extract_arbitrary_config(self):
         """
         Extract all other key in the model section to copied verbatim to the outlier
@@ -142,10 +166,11 @@ class Analyzer(abc.ABC):
         :return: dictionary with arbitrary key config
         """
         extra_model_settings = dict()
+        prefix_whitelist = "whitelist_"
 
         all_items = settings.config.items(self.config_section_name)
         for key, value in all_items:
-            if key not in self.model_settings and key not in Analyzer.DEFAULT_CONFIG_KEY:
+            if key not in self.model_settings and key[0:len(prefix_whitelist)] != prefix_whitelist:
                 extra_model_settings[key] = value
 
         return extra_model_settings
@@ -216,6 +241,7 @@ class Analyzer(abc.ABC):
         if outlier_assets:
             outlier.outlier_dict["assets"] = outlier_assets
 
+        # This loop add also model_name and model_type to Outlier
         for key, value in self.extra_model_settings.items():
             outlier.outlier_dict[key] = value
 
@@ -234,7 +260,11 @@ class Analyzer(abc.ABC):
         self.total_outliers += 1
         self.outlier_summaries.add(outlier.outlier_dict["summary"])
 
-        es.process_outlier(outlier=outlier, should_notify=self.model_settings["should_notify"])
+        if outlier.is_whitelisted(self.model_whitelist_literals, self.model_whitelist_regexps):
+            if settings.print_outliers_to_console:
+                logging.logger.info(outlier.outlier_dict["summary"] + " [whitelisted outlier]")
+        else:
+            es.process_outlier(outlier=outlier, should_notify=self.model_settings["should_notify"])
 
     def print_analysis_intro(self, event_type, total_events):
         """

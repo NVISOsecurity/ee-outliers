@@ -55,19 +55,11 @@ class Settings:
 
         self.config = config
 
-        self.whitelist_literals_config = self.config.items("whitelist_literals")
-        self.whitelist_regexps_config = self.config.items("whitelist_regexps")
-
-        # Verify that all regular expressions in the whitelist are valid.
-        # If this is not the case, log an error to the user, as these will be ignored.
-        for (_, each_whitelist_configuration_file_value) in self.whitelist_regexps_config:
-            whitelist_values_to_check = each_whitelist_configuration_file_value.split(",")
-
-            for whitelist_val_to_check in whitelist_values_to_check:
-                try:
-                    re.compile(whitelist_val_to_check.strip(), re.IGNORECASE)
-                except Exception:
-                    self.failing_regular_expressions.add(whitelist_val_to_check)
+        # Literal whitelist
+        self.whitelist_literals_config = self._extract_whitelist_literals_from_settings_section("whitelist_literals")
+        # Regex whitelist
+        self.whitelist_regexps_config, self.failing_regular_expressions = \
+            self._extract_whitelist_regex_from_settings_section("whitelist_regexps")
 
         try:
             self.print_outliers_to_console = self.config.getboolean("general", "print_outliers_to_console")
@@ -86,6 +78,53 @@ class Settings:
             self.list_assets = self.config.items("assets")
         except NoSectionError:
             self.list_assets = dict()
+
+    def _extract_whitelist_literals_from_settings_section(self, settings_section):
+        list_whitelist_literals = list()
+        fetch_whitelist_literals_elements = list(dict(self.config.items(settings_section)).values())
+
+        for each_whitelist_configuration_file_value in fetch_whitelist_literals_elements:
+            list_whitelist_literals.append(self.extract_whitelist_literal_from_value(str(
+                each_whitelist_configuration_file_value)))
+        return list_whitelist_literals
+
+    def extract_whitelist_literal_from_value(self, value):
+        list_whitelist_element = set()
+        for one_whitelist_config_file_value in value.split(','):
+            list_whitelist_element.add(one_whitelist_config_file_value.strip())
+        return list_whitelist_element
+
+    def _extract_whitelist_regex_from_settings_section(self, settings_section):
+        whitelist_regexps_config_items = list(dict(self.config.items(settings_section)).values())
+        list_whitelist_regexps = list()
+        failing_regular_expressions = set()
+
+        # Verify that all regular expressions in the whitelist are valid.
+        # If this is not the case, log an error to the user, as these will be ignored.
+        for each_whitelist_configuration_file_value in whitelist_regexps_config_items:
+            new_compile_regex_whitelist_value, value_failing_regular_expressions = \
+                self.extract_whitelist_regex_from_value(each_whitelist_configuration_file_value)
+            list_whitelist_regexps.append(new_compile_regex_whitelist_value)
+            failing_regular_expressions.union(value_failing_regular_expressions)
+
+        return list_whitelist_regexps, failing_regular_expressions
+
+    def extract_whitelist_regex_from_value(self, value):
+        list_compile_regex_whitelist_value = set()
+        failing_regular_expressions = set()
+        for whitelist_val_to_check in value.split(","):
+            try:
+                list_compile_regex_whitelist_value.add(re.compile(whitelist_val_to_check.strip(), re.IGNORECASE))
+            except Exception:
+                # something went wrong compiling the regular expression, probably because of a user error such as
+                # unbalanced escape characters. We should just ignore the regular expression and continue (and let
+                # the user know in the beginning that some could not be compiled).  Even if we check for errors
+                # in the beginning of running outliers, we might still run into issues when the configuration
+                # changes during running of ee-outlies. So this should catch any remaining errors in the
+                # whitelist that could occur with regexps.
+                failing_regular_expressions.add(whitelist_val_to_check)
+
+        return list_compile_regex_whitelist_value, failing_regular_expressions
 
     def check_no_duplicate_key(self):
         """

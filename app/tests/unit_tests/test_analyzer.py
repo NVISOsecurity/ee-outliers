@@ -33,7 +33,8 @@ class TestAnalyzer(unittest.TestCase):
         doc_fields = doc_without_outlier["_source"]
         outlier = analyzer.create_outlier(doc_fields, doc_without_outlier)
         expected_outlier = Outlier(outlier_type=["dummy type"], outlier_reason=['dummy reason'],
-                                   outlier_summary='dummy summary', doc=doc_without_outlier)
+                                   outlier_summary='dummy summary',
+                                   doc=doc_without_outlier)
         expected_outlier.outlier_dict['model_name'] = 'dummy_test'
         expected_outlier.outlier_dict['model_type'] = 'analyzer'
         self.assertTrue(outlier.outlier_dict == expected_outlier.outlier_dict)
@@ -58,3 +59,9 @@ class TestAnalyzer(unittest.TestCase):
         analyzer = TestStubAnalyzer("analyzer_arbitrary_dummy_test")
 
         self.assertDictEqual(analyzer.extra_model_settings, {"test_arbitrary_key": "arbitrary_value"})
+
+    def test_arbitrary_key_config_with_whitelist_prefix_not_present_in_analyzer(self):
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/analyzer_test_01.conf")
+        analyzer = TestStubAnalyzer("analyzer_arbitrary_whitelist_prefix_dummy_test")
+
+        self.assertDictEqual(analyzer.extra_model_settings, {})
