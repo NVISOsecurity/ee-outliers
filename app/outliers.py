@@ -22,7 +22,7 @@ from analyzers.terms import TermsAnalyzer
 from analyzers.word2vec import Word2VecAnalyzer
 
 
-EE_OUTLIERS_VERSIONS = "0.2.7"
+EE_OUTLIERS_VERSIONS = "0.2.8"
 
 
 def run_outliers():
