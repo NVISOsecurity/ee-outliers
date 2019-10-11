@@ -22,7 +22,7 @@ from analyzers.terms import TermsAnalyzer
 from analyzers.word2vec import Word2VecAnalyzer
 
 
-EE_OUTLIERS_VERSIONS = "0.2.7"
+EE_OUTLIERS_VERSIONS = "0.2.8"
 
 
 def run_outliers():
@@ -261,7 +261,7 @@ def perform_analysis(housekeeping_job):
                 analyzers.append(_analyzer)
 
             elif config_section_name.startswith("beaconing_"):
-                logging.logger.error("use of the beaconing model is deprecated, please use the terms model using "
+                logging.logger.warning("use of the beaconing model is deprecated, please use the terms model using "
                                      "coeff_of_variation trigger method to convert use case %s ", config_section_name)
 
             elif config_section_name.startswith("word2vec_"):
