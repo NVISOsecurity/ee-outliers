@@ -261,7 +261,7 @@ def perform_analysis(housekeeping_job):
                 analyzers.append(_analyzer)
 
             elif config_section_name.startswith("beaconing_"):
-                logging.logger.error("use of the beaconing model is deprecated, please use the terms model using "
+                logging.logger.warning("use of the beaconing model is deprecated, please use the terms model using "
                                      "coeff_of_variation trigger method to convert use case %s ", config_section_name)
 
             elif config_section_name.startswith("word2vec_"):
