@@ -1,4 +1,16 @@
 pipeline {
+
+    options {
+	    office365ConnectorWebhooks([[
+		notifyBackToNormal: true,
+		notifyFailure: true,
+		notifyRepeatedFailure: true,
+		notifySuccess: false,
+		notifyUnstable: true,
+		url: "${env.TEAMS_WEBHOOK}"
+	    ]])
+    }
+	
     agent {
         label 'docker'
     }
