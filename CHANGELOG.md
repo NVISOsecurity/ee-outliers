@@ -1,5 +1,8 @@
 # Changelog
 
+# Unreleased
+- Changed FileHandler to WatchedFilterHandler to support copytruncate log rotation
+
 ## [Version 0.2.5](https://github.com/NVISO-BE/ee-outliers/releases/tag/0.2.5) (August 26, 2019)
 - Add arbitrary config
 - Enhance settings performance: store value when the configuration is parse
