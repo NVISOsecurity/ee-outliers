@@ -1,4 +1,16 @@
 pipeline {
+
+    options {
+	    office365ConnectorWebhooks([[
+		notifyBackToNormal: true,
+		notifyFailure: true,
+		notifyRepeatedFailure: true,
+		notifySuccess: false,
+		notifyUnstable: true,
+		url: "${env.TEAMS_WEBHOOK}"
+	    ]])
+    }
+	
     agent {
         label 'docker'
     }
@@ -41,11 +53,10 @@ pipeline {
             }
             steps {
                 script{
-                    withCredentials([string(credentialsId: 'sonar-login-key', variable: 'LOGIN')]) {
-                        sh '''
-                            /opt/sonar-scanner -Dsonar.login=$LOGIN
-                        '''
-                    }
+                	def scannerHome = tool 'sonarscanner';
+				    withSonarQubeEnv('Sonar') { 
+				      sh "${scannerHome}/bin/sonar-scanner"
+				    }
                 }
             }
         }
@@ -72,7 +83,7 @@ pipeline {
                     def version = readFile "${env.WORKSPACE}/VERSION"
                     def full_version = version.trim()
                     def feature_version = full_version.split("\\.")[0..1].join(".")
-                    docker.withRegistry('https://localhost:1234/', 'jenkins-nexus') {
+                    docker.withRegistry("${env.DOCKER_REGISTRY_URL}", 'jenkins-nexus') {
                         if(env.BRANCH_NAME == 'master') {
                             app.push("${full_version}")
                             app.push("${feature_version}")
@@ -82,17 +93,6 @@ pipeline {
                         }
                     }
                 }
-            }
-        }
-    }
-
-    post {
-        always {
-            script {
-                sh 'docker run -v $WORKSPACE:/workspace --rm alpine/flake8 --exit-zero --ignore=E501 --output-file=/workspace/flake8.xml /workspace/app'
-                def flake8 = scanForIssues filters: [], tool: flake8(pattern: 'flake8.xml')
-                archiveArtifacts 'flake8.xml'
-                publishIssues issues: [flake8]
             }
         }
     }

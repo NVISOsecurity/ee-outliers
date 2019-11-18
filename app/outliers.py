@@ -21,8 +21,7 @@ from analyzers.simplequery import SimplequeryAnalyzer
 from analyzers.terms import TermsAnalyzer
 from analyzers.word2vec import Word2VecAnalyzer
 
-
-EE_OUTLIERS_VERSIONS = "0.2.8"
+EE_OUTLIERS_VERSIONS = "0.2.9"
 
 
 def run_outliers():
@@ -142,7 +141,7 @@ def run_daemon_mode():
         should_schedule_next_run = False
 
         # This loop will run for as long we don't need to perform an analysis
-        while (next_run is None or datetime.now() < next_run) and first_run is False and  \
+        while (next_run is None or datetime.now() < next_run) and first_run is False and \
                 run_succeeded_without_errors is True:
 
             # Check if we already know when to perform the analysis next; if not, we need to schedule it
@@ -262,7 +261,7 @@ def perform_analysis(housekeeping_job):
 
             elif config_section_name.startswith("beaconing_"):
                 logging.logger.warning("use of the beaconing model is deprecated, please use the terms model using "
-                                     "coeff_of_variation trigger method to convert use case %s ", config_section_name)
+                                       "coeff_of_variation trigger method to convert use case %s ", config_section_name)
 
             elif config_section_name.startswith("word2vec_"):
                 _analyzer = Word2VecAnalyzer(config_section_name=config_section_name)
@@ -303,8 +302,6 @@ def perform_analysis(housekeeping_job):
         except Exception:  # pylint: disable=broad-except
             analyzer.unknown_error_analysis = True
             logging.logger.error("error while analyzing use case", exc_info=True)
-        finally:
-            es.flush_bulk_actions(refresh=True)
 
     return analyzers_to_evaluate
 
