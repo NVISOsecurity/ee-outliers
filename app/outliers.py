@@ -21,7 +21,7 @@ from analyzers.simplequery import SimplequeryAnalyzer
 from analyzers.terms import TermsAnalyzer
 from analyzers.word2vec import Word2VecAnalyzer
 
-EE_OUTLIERS_VERSIONS = "0.2.8"
+EE_OUTLIERS_VERSIONS = "0.2.9"
 
 
 def run_outliers():
