@@ -2,6 +2,7 @@
 
 # Unreleased
 - Changed FileHandler to WatchedFilterHandler to support copytruncate log rotation
+- Removed flush clause in finally statement in perform_analysis, which could cause outliers to crash in case Elasticsearch is down
 
 ## [Version 0.2.5](https://github.com/NVISO-BE/ee-outliers/releases/tag/0.2.5) (August 26, 2019)
 - Add arbitrary config
