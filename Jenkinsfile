@@ -27,6 +27,8 @@ pipeline {
         stage('Build docker image') {
             steps {
                 script {
+                    def version = readFile("${env.WORKSPACE}/VERSION").trim()
+                    sh "grep \"^EE_OUTLIERS_VERSIONS = \\\"${version}\\\"\" \"${env.WORKSPACE}/app/outliers.py\""
                     if(env.NO_CACHE == "1") {
                         app = docker.build("eagleeye/outliers", "--no-cache .")
                     } else {
