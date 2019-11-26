@@ -235,7 +235,7 @@ class ES:
                     model_type = doc["_source"]["outliers"]["model_type"][i]
                     config_section_name = model_type + "_" + model_name
                     if config_section_name not in dict_with_analyzer:
-                        self.logging.logger.warning("Outlier '" + config_section_name + "' " +
+                        self.logging.logger.debug("Outlier '" + config_section_name + "' " +
                                                     " haven't been found in configuration, could not check whitelist")
                         break  # If one outlier is not whitelisted, we keep all other outliers
                     analyzer = dict_with_analyzer[config_section_name]
