@@ -244,4 +244,4 @@ class TestOutlierOperations(unittest.TestCase):
                                outlier_summary="dummy summary", doc=orig_doc)
 
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/whitelist_tests_09_ticket_1933.conf")
-        self.assertFalse(test_outlier.is_whitelisted())
+        self.assertTrue(test_outlier.is_whitelisted())
