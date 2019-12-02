@@ -166,7 +166,6 @@ class TestOutlierOperations(unittest.TestCase):
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/whitelist_tests_08_with_general.conf")
         self.assertTrue(test_outlier.is_whitelisted())
 
-
     def test_single_literal_to_match_in_doc_with_outlier(self):
         orig_doc = copy.deepcopy(doc_with_outlier_test_file)
         test_outlier = Outlier(outlier_type="dummy type", outlier_reason="dummy reason",
@@ -238,3 +237,11 @@ class TestOutlierOperations(unittest.TestCase):
         es.remove_all_whitelisted_outliers({"analyzer_dummy_test": analyzer})
         result = [elem for elem in es._scan()][0]
         self.assertEqual(result, doc_with_outlier)
+
+    def test_test_osquery_ticket_1933_single_regexp_should_not_match(self):
+        orig_doc = copy.deepcopy(doc_with_outlier_test_file)
+        test_outlier = Outlier(outlier_type="dummy type", outlier_reason="dummy reason",
+                               outlier_summary="dummy summary", doc=orig_doc)
+
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/whitelist_tests_09_ticket_1933.conf")
+        self.assertFalse(test_outlier.is_whitelisted())
