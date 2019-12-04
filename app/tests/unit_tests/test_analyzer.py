@@ -37,6 +37,8 @@ class TestAnalyzer(unittest.TestCase):
                                    doc=doc_without_outlier)
         expected_outlier.outlier_dict['model_name'] = 'dummy_test'
         expected_outlier.outlier_dict['model_type'] = 'analyzer'
+        expected_outlier.outlier_dict['elasticsearch_filter'] = 'es_valid_query'
+
         self.assertTrue(outlier.outlier_dict == expected_outlier.outlier_dict)
 
     def test_simple_process_outlier_save_es(self):
@@ -49,6 +51,7 @@ class TestAnalyzer(unittest.TestCase):
 
         doc_fields = doc_without_outlier["_source"]
         outlier = analyzer.create_outlier(doc_fields, doc_without_outlier)
+
         es.save_outlier(outlier)
 
         result = [elem for elem in es._scan()][0]
@@ -58,10 +61,11 @@ class TestAnalyzer(unittest.TestCase):
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/analyzer_test_01.conf")
         analyzer = TestStubAnalyzer("analyzer_arbitrary_dummy_test")
 
-        self.assertDictEqual(analyzer.extra_model_settings, {"test_arbitrary_key": "arbitrary_value"})
+        self.assertDictEqual(analyzer.extra_model_settings, {"test_arbitrary_key": "arbitrary_value",
+                                                             "elasticsearch_filter": "es_valid_query"})
 
     def test_arbitrary_key_config_with_whitelist_prefix_not_present_in_analyzer(self):
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/analyzer_test_01.conf")
         analyzer = TestStubAnalyzer("analyzer_arbitrary_whitelist_prefix_dummy_test")
 
-        self.assertDictEqual(analyzer.extra_model_settings, {})
+        self.assertDictEqual(analyzer.extra_model_settings, {"elasticsearch_filter": "es_valid_query"})

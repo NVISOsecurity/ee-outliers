@@ -80,6 +80,7 @@
             "toolname": "osquery"
         },
         "outliers": {
+            "elasticsearch_filter": ["es_valid_query"],
             "confidence": [11.0], 
             "model_type": ["metrics"], 
             "metric": [12], 

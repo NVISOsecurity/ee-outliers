@@ -23,7 +23,8 @@ LIST_AGGREGATOR_VALUE = ["agg-WIN-EVB-draman", "agg-WIN-DRA-draman"]
 LIST_TARGET_VALUE = ["WIN-DRA-draman", "WIN-EVB-draman", "LINUX-DRA-draman"]
 LIST_DOC = [doc_without_outlier_test_file]
 
-DEFAULT_OUTLIERS_KEY_FIELDS = ["type", "reason", "summary", "model_name", "model_type", "total_outliers"]
+DEFAULT_OUTLIERS_KEY_FIELDS = ["type", "reason", "summary", "model_name", "model_type", "total_outliers",
+                               "elasticsearch_filter"]
 EXTRA_OUTLIERS_KEY_FIELDS = ["term_count", "non_outlier_values_sample", "aggregator", "term", "decision_frontier",
                              "trigger_method"]
 
