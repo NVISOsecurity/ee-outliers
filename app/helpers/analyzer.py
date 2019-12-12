@@ -173,6 +173,11 @@ class Analyzer(abc.ABC):
             if key not in self.model_settings and key[0:len(prefix_whitelist)] != prefix_whitelist:
                 extra_model_settings[key] = value
 
+            # although we don't want to add all model settings, we do want to add the DSL and query filters,
+            # as they can help the analyst to better understand which events are considered for each use case.
+            if key in ("es_dsl_filter", "es_query_filter"):
+                extra_model_settings["elasticsearch_filter"] = value
+
         return extra_model_settings
 
     def print_analysis_summary(self):

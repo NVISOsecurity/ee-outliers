@@ -19,7 +19,8 @@ doc_without_outliers_test_whitelist_03_test_file = json.load(
 doc_without_outliers_test_whitelist_04_test_file = json.load(
     open("/app/tests/unit_tests/files/doc_without_outliers_test_whitelist_04.json"))
 
-DEFAULT_OUTLIERS_KEY_FIELDS = ["type", "reason", "summary", "model_name", "model_type", "total_outliers"]
+DEFAULT_OUTLIERS_KEY_FIELDS = ["type", "reason", "summary", "model_name", "model_type", "total_outliers",
+                               "elasticsearch_filter"]
 EXTRA_OUTLIERS_KEY_FIELDS = ["target", "non_outlier_values_sample", "aggregator", "metric", "decision_frontier",
                              "confidence"]
 

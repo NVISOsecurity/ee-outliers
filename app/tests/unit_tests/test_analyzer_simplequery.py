@@ -13,7 +13,8 @@ doc_without_outlier_test_file = json.load(open("/app/tests/unit_tests/files/doc_
 doc_with_outlier_test_file = json.load(
                         open("/app/tests/unit_tests/files/doc_with_simple_query_outlier.json"))
 
-DEFAULT_OUTLIERS_KEY_FIELDS = ["type", "reason", "summary", "model_name", "model_type", "total_outliers"]
+DEFAULT_OUTLIERS_KEY_FIELDS = ["type", "reason", "summary", "model_name", "model_type", "total_outliers",
+                               "elasticsearch_filter"]
 
 
 class TestSimplequeryAnalyzer(unittest.TestCase):
@@ -61,6 +62,7 @@ class TestSimplequeryAnalyzer(unittest.TestCase):
         # Make test (supposed all doc work)
         self._get_simplequery_analyzer("/app/tests/unit_tests/files/simplequery_test_01.conf",
                                        "simplequery_dummy_test").evaluate_model()
+
         # Fetch result to check if it is correct
         result = [elem for elem in es._scan()][0]
         self.assertEqual(result, doc_with_outlier)
