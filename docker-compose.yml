@@ -1,0 +1,16 @@
+version: '3'
+services:
+  outliers:
+    build: .
+    container_name: outliers_dev
+    command: "python3 outliers.py daemon --config /mappedvolumes/config/outliers.conf"
+    volumes:
+      - ./defaults/outliers.conf:/mappedvolumes/config/outliers.conf
+    networks:
+      - sensor_network
+    restart: always
+
+networks:
+  sensor_network:
+    external:
+      name: sensor_network
