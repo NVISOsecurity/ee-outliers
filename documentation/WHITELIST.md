@@ -42,25 +42,7 @@ autorun_user_specific=^.*rare autorun:.*-.*-.*-.*-.*$
 
 It is possible to define whitelist entries per model.  This option is possible with literal or regex whitelist.
 
-To define a model whitelist entry, a new key need to be added in the model section. This entry need to begin with `whitelist_literals` or `whitelist_regexps` (depending if it is literal or regex whitelist).
-
-For instance, the following configuration define a literal whitelist for the simplequery model:
-```
-##############################
-# SIMPLEQUERY - DUMMY TEST
-##############################
-[simplequery_dummy_test]
-es_query_filter=es_valid_query
-
-outlier_type=dummy type
-outlier_reason=dummy reason
-outlier_summary=dummy summary
-
-whitelist_literals_hostname_whitelist=HOSTNAME-WHITELISTED
-
-run_model=1
-test_model=1
-```
+To define a model whitelist entry, the `whitelist_literals` and/or the `whitelist_regexps` sections can be added to the use cases' configuration file.
 
 
 <p align="right"><a href="NOTIFICATIONS.md">Notification system &#8594;</a></p>
