@@ -42,7 +42,7 @@ pipeline {
             steps {
                 script {
                     app.inside {
-                        sh 'python3 /app/outliers.py tests --config /defaults/outliers.conf'
+                        sh 'python3 /app/outliers.py tests --config /defaults/outliers.conf --use-cases /app/tests/files/use_cases/*.conf'
                     }
                 }
             }
