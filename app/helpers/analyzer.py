@@ -48,6 +48,12 @@ class Analyzer(abc.ABC):
             logging.logger.error("error while parsing use case configuration for %s", self.model_name, exc_info=True)
             self.configuration_parsing_error = True
 
+    def add_whitelist_literal(self, s):
+        self.model_whitelist_literals.append(s)
+
+    def add_whitelist_regexp(self, s):
+        self.model_whitelist_regexps.append(s)
+
     @property
     def analysis_time_seconds(self):
         """

@@ -238,7 +238,10 @@ def load_analyzers():
     for use_case_arg in settings.args.use_cases:
         for use_case_file in glob.glob(use_case_arg):
             logging.logger.debug("Loading use case %s" % use_case_file)
-            analyzers.append(AnalyzerFactory.create(use_case_file))
+            try:
+                analyzers.append(AnalyzerFactory.create(use_case_file))
+            except ValueError as e:
+                logging.logger.error("An error occured when loading %s: %s" % (use_case_file, str(e)))
 
     return analyzers
 
@@ -248,6 +251,7 @@ def perform_analysis(housekeeping_job):
     :return: List of analyzers that have been processed and analyzed
     """
     analyzers = load_analyzers()
+    housekeeping_job.update_analyzer_list(analyzers)
 
     # In case the created analyzer is activated in test or run mode, add it to the list of analyzers to evaluate
     analyzers_to_evaluate = list()

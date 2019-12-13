@@ -302,7 +302,7 @@ class MetricsAnalyzer(Analyzer):
         self.model_settings["process_documents_chronologically"] = self.config_section.getboolean("process_documents_chronologically", False)
 
         # remove unnecessary whitespace, split fields
-        self.model_settings["target"] = self.config_section["target"].replace(' ', '').split(",")
+        self.model_settings["target"] = self.config_section["target"]
 
         # remove unnecessary whitespace, split fields
         self.model_settings["aggregator"] = self.config_section["aggregator"].replace(' ', '').split(",")

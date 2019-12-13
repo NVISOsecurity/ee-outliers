@@ -1,5 +1,6 @@
 import configparser
 import os
+import re
 
 from analyzers.metrics import MetricsAnalyzer
 from analyzers.simplequery import SimplequeryAnalyzer
@@ -44,11 +45,10 @@ class AnalyzerFactory:
 
         if "whitelist_literals" in config.sections():
             for _, value in config["whitelist_literals"].items():
-                analyzer.add_whitelist_literal(set(value.split(",")))
+                analyzer.add_whitelist_literal(set([x.strip() for x in value.split(",")]))
         
         if "whitelist_regexps" in config.sections():
             for _, value in config["whitelist_regexps"].items():
-                # TODO validate regex
-                analyzer.add_whitelist_regexp(set(value.split(",")))
+                analyzer.add_whitelist_regexp(set([re.compile(x.strip(), re.IGNORECASE) for x in value.split(",")]))
 
         return analyzer
