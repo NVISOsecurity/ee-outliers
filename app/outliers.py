@@ -5,6 +5,7 @@ import time
 import os
 import sys
 import unittest
+import glob
 
 from croniter import croniter
 
@@ -15,11 +16,7 @@ import helpers.utils
 from helpers.singletons import settings, logging, es
 from helpers.watchers import FileModificationWatcher
 from helpers.housekeeping import HousekeepingJob
-
-from analyzers.metrics import MetricsAnalyzer
-from analyzers.simplequery import SimplequeryAnalyzer
-from analyzers.terms import TermsAnalyzer
-from analyzers.word2vec import Word2VecAnalyzer
+from helpers.analyzerfactory import AnalyzerFactory
 
 EE_OUTLIERS_VERSIONS = "0.2.10"
 
@@ -235,47 +232,28 @@ def run_interactive_mode():
 
     logging.logger.info("finished performing outlier detection")
 
+def load_analyzers():
+    analyzers = list()
+    
+    for use_case_arg in settings.args.use_cases:
+        for use_case_file in glob.glob(use_case_arg):
+            logging.logger.debug("Loading use case %s" % use_case_file)
+            analyzers.append(AnalyzerFactory.create(use_case_file))
+
+    return analyzers
 
 # pylint: disable=too-many-branches
 def perform_analysis(housekeeping_job):
     """ The entrypoint for analysis
     :return: List of analyzers that have been processed and analyzed
     """
-    analyzers = list()
-
-    # Create all the analyzer objects based on the models defined in the configuration file
-    for config_section_name in settings.config.sections():
-        _analyzer = None
-        try:
-            if config_section_name.startswith("simplequery_"):
-                _analyzer = SimplequeryAnalyzer(config_section_name=config_section_name)
-                analyzers.append(_analyzer)
-
-            elif config_section_name.startswith("metrics_"):
-                _analyzer = MetricsAnalyzer(config_section_name=config_section_name)
-                analyzers.append(_analyzer)
-
-            elif config_section_name.startswith("terms_"):
-                _analyzer = TermsAnalyzer(config_section_name=config_section_name)
-                analyzers.append(_analyzer)
-
-            elif config_section_name.startswith("beaconing_"):
-                logging.logger.warning("use of the beaconing model is deprecated, please use the terms model using "
-                                       "coeff_of_variation trigger method to convert use case %s ", config_section_name)
-
-            elif config_section_name.startswith("word2vec_"):
-                _analyzer = Word2VecAnalyzer(config_section_name=config_section_name)
-                analyzers.append(_analyzer)
-        except Exception:  # pylint: disable=broad-except
-            logging.logger.error("error while initializing analyzer %s", config_section_name, exc_info=True)
+    analyzers = load_analyzers()
 
     # In case the created analyzer is activated in test or run mode, add it to the list of analyzers to evaluate
     analyzers_to_evaluate = list()
     for analyzer in analyzers:
         if analyzer.model_settings["run_model"] or analyzer.model_settings["test_model"]:
             analyzers_to_evaluate.append(analyzer)
-
-    housekeeping_job.update_analyzer_list(analyzers_to_evaluate)
 
     # In case a single analyzer is causing issues (for example taking up too much time & resources), then a naive
     # shuffle will prevent this analyzer from blocking all the analyzers from running that come after it.
@@ -358,7 +336,7 @@ def print_analysis_summary(analyzed_models):
         completed_models_with_events_taking_most_time = completed_models_with_events[:10]
 
         for model in completed_models_with_events_taking_most_time:
-            logging.logger.info("\t+ %s - %s events - %s outliers - %s", model.config_section_name,
+            logging.logger.info("\t+ %s - %s events - %s outliers - %s", model.model_type + "_" + model.model_name,
                                 "{:,}".format(model.total_events),
                                 "{:,}".format(model.total_outliers),
                                 helpers.utils.seconds_to_pretty_str(round(model.analysis_time_seconds)))
@@ -368,14 +346,14 @@ def print_analysis_summary(analyzed_models):
         logging.logger.info("models for which the configuration parsing failed:")
 
         for model in configuration_parsing_error_models:
-            logging.logger.info("\t+ %s", model.config_section_name)
+            logging.logger.info("\t+ %s", model.model_type + "_" + model.model_name)
 
     if unknown_error_models:
         logging.logger.info("")
         logging.logger.info("models for which an unexpected error was encountered:")
 
         for model in unknown_error_models:
-            logging.logger.info("\t+ %s", model.config_section_name)
+            logging.logger.info("\t+ %s", model.model_type + "_" + model.model_name)
 
     if not analyzed_models:
         logging.logger.warning("no use cases were analyzed. are you sure your configuration file contains use "

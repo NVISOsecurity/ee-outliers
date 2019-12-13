@@ -21,6 +21,9 @@ class MetricsAnalyzer(Analyzer):
     # even the ones for which the number of documents is less than MIN_EVALUATE_BATCH.
     MIN_EVALUATE_BATCH = 100
 
+    def __init__(self, model_name, config_section):
+        super(MetricsAnalyzer, self).__init__("metrics", model_name, config_section)
+
     def evaluate_model(self):
         batch = defaultdict()  # Contain the current batch information
         remaining_metrics = defaultdict()
@@ -30,7 +33,7 @@ class MetricsAnalyzer(Analyzer):
                                                                    search_query=self.search_query,
                                                                    model_settings=self.model_settings)
 
-        self.print_analysis_intro(event_type="evaluating " + self.config_section_name, total_events=self.total_events)
+        self.print_analysis_intro(event_type="evaluating " + self.model_name, total_events=self.total_events)
 
         logging.init_ticker(total_steps=self.total_events,
                             desc=self.model_name + " - evaluating " + self.model_type + " model")
@@ -296,21 +299,18 @@ class MetricsAnalyzer(Analyzer):
         """
         Override method from Analyzer
         """
-        try:
-            self.model_settings["process_documents_chronologically"] = settings.config.getboolean(
-                self.config_section_name, "process_documents_chronologically")
-        except NoOptionError:
-            self.model_settings["process_documents_chronologically"] = False
+        self.model_settings["process_documents_chronologically"] = self.config_section.getboolean("process_documents_chronologically", False)
 
-        self.model_settings["target"] = settings.config.get(self.config_section_name, "target")
-        self.model_settings["aggregator"] = settings.config.get(self.config_section_name, "aggregator")\
-            .replace(' ', '').split(",")
+        # remove unnecessary whitespace, split fields
+        self.model_settings["target"] = self.config_section["target"].replace(' ', '').split(",")
 
-        self.model_settings["metric"] = settings.config.get(self.config_section_name, "metric")
-        self.model_settings["trigger_on"] = settings.config.get(self.config_section_name, "trigger_on")
-        self.model_settings["trigger_method"] = settings.config.get(self.config_section_name, "trigger_method")
-        self.model_settings["trigger_sensitivity"] = settings.config.getint(self.config_section_name,
-                                                                            "trigger_sensitivity")
+        # remove unnecessary whitespace, split fields
+        self.model_settings["aggregator"] = self.config_section["aggregator"].replace(' ', '').split(",")
+
+        self.model_settings["trigger_on"] = self.config_section["trigger_on"]
+        self.model_settings["trigger_method"] = self.config_section["trigger_method"]
+        self.model_settings["trigger_sensitivity"] = float(self.config_section["trigger_sensitivity"])
+        self.model_settings["metric"] = self.config_section["metric"]
 
         if self.model_settings["metric"] not in SUPPORTED_METRICS:
             raise ValueError("Unsupported metric " + self.model_settings["metric"])

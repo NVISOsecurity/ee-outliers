@@ -15,7 +15,7 @@ class TemplateAnalyzer(Analyzer):
         """
         Override method from Analyzer
         """
-        self.model_settings["train_model"] = settings.config.getboolean(self.config_section_name, "train_model")
+        self.model_settings["train_model"] = self.config_section.getboolean("train_model")
 
     def train_model(self):
         train_data = list()
