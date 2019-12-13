@@ -9,7 +9,7 @@ class FileModificationWatcher:
 
     def add_files(self, files):
         """
-        Aff multiple file to the watcher
+        Add multiple file to the watcher
 
         :param files: list of files
         """
@@ -18,7 +18,7 @@ class FileModificationWatcher:
 
     def files_changed(self):
         """
-        Check and update if file linked to this watcher have been modified (since de last call of this function)
+        Check and update if file linked to this watcher have been modified (since the last call of this function)
 
         :return: True if modified, False otherwise
         """

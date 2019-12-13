@@ -10,6 +10,9 @@ from helpers.analyzer import Analyzer
 
 class TermsAnalyzer(Analyzer):
 
+    def __init__(self, model_name, config_section):
+        super(TermsAnalyzer, self).__init__("terms", model_name, config_section)
+
     def evaluate_model(self):
         self.total_events, documents = es.count_and_scan_documents(index=self.model_settings["es_index"],
                                                                    search_query=self.search_query,
@@ -452,36 +455,25 @@ class TermsAnalyzer(Analyzer):
         """
         Override method from Analyzer
         """
-        try:
-            self.model_settings["process_documents_chronologically"] = settings.config.getboolean(
-                self.config_section_name, "process_documents_chronologically")
-        except NoOptionError:
-            self.model_settings["process_documents_chronologically"] = True
+        
+        self.model_settings["process_documents_chronologically"] = self.config_section.getboolean("process_documents_chronologically", True)
 
         # remove unnecessary whitespace, split fields
-        self.model_settings["target"] = settings.config.get(self.config_section_name,
-                                                            "target").replace(' ', '').split(",")
+        self.model_settings["target"] = self.config_section["target"].replace(' ', '').split(",")
 
         # remove unnecessary whitespace, split fields
-        self.model_settings["aggregator"] = settings.config.get(self.config_section_name,
-                                                                "aggregator").replace(' ', '').split(",")
+        self.model_settings["aggregator"] = self.config_section["aggregator"].replace(' ', '').split(",")
 
-        self.model_settings["trigger_on"] = settings.config.get(self.config_section_name, "trigger_on")
-        self.model_settings["trigger_method"] = settings.config.get(self.config_section_name, "trigger_method")
-        self.model_settings["trigger_sensitivity"] = settings.config.getfloat(self.config_section_name,
-                                                                              "trigger_sensitivity")
+        self.model_settings["trigger_on"] = self.config_section["trigger_on"]
+        self.model_settings["trigger_method"] = self.config_section["trigger_method"]
+        self.model_settings["trigger_sensitivity"] = float(self.config_section["trigger_sensitivity"])
 
-        self.model_settings["target_count_method"] = settings.config.get(self.config_section_name,
-                                                                         "target_count_method")
+        self.model_settings["target_count_method"] = self.config_section["target_count_method"]
 
-        try:
-            self.model_settings["min_target_buckets"] = settings.config.getint(self.config_section_name,
-                                                                               "min_target_buckets")
-            if self.model_settings["target_count_method"] != "within_aggregator":
-                logging.logger.warning("'min_target_buckets' is only useful when 'target_count_method' is set " +
-                                       "to 'within_aggregator'")
-        except NoOptionError:
-            self.model_settings["min_target_buckets"] = None
+        self.model_settings["min_target_buckets"] = self.config_section.getint("min_target_buckets", None)
+        if self.model_settings["target_count_method"] != "within_aggregator":
+            logging.logger.warning("'min_target_buckets' is only useful when 'target_count_method' is set " +
+                                    "to 'within_aggregator'")
 
         # Validate model settings
         if self.model_settings["target_count_method"] not in {"within_aggregator", "across_aggregators"}:

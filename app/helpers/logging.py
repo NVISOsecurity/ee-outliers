@@ -14,7 +14,7 @@ class Logging:
     start_time = None
     total_steps = None
     desc = None
-    verbosity = None
+    verbosity = 0
 
     def __init__(self, logger_name):
         # disable HTTPS warnings

@@ -8,20 +8,23 @@ from helpers.analyzer import Analyzer
 
 class Word2VecAnalyzer(Analyzer):
 
+    def __init__(self, model_name, config_section):
+        super(Word2VecAnalyzer, self).__init__("word2vec", model_name, config_section)
+
+
     def _extract_additional_model_settings(self):
         """
         Override method from Analyzer
         """
-        self.model_settings["sentence_format"] = settings.config.get(self.config_section_name, "sentence_format")\
-            .replace(' ', '').split(",")  # remove unnecessary whitespace, split fields
+        self.model_settings["sentence_format"] = self.config_section["sentence_format"].replace(' ', '').split(",")  # remove unnecessary whitespace, split fields
         logging.logger.debug("using word2vec sentence format " + ','.join(self.model_settings["sentence_format"]))
 
-        self.model_settings["train_model"] = settings.config.getboolean(self.config_section_name, "train_model")
+        self.model_settings["train_model"] = self.config_section.getboolean("train_model")
 
-        self.model_settings["trigger_on"] = settings.config.get(self.config_section_name, "trigger_on")
-        self.model_settings["trigger_method"] = settings.config.get(self.config_section_name, "trigger_method")
-        self.model_settings["trigger_sensitivity"] = settings.config.getint(self.config_section_name,
-                                                                            "trigger_sensitivity")
+        self.model_settings["trigger_on"] = self.config_section["trigger_on"]
+        self.model_settings["trigger_method"] = self.config_section["trigger_method"]
+        self.model_settings["trigger_sensitivity"] = int(self.config_section["trigger_sensitivity"])
+
 
     def train_model(self):
         w2v_model = word2vec.Word2Vec(name=self.model_name)

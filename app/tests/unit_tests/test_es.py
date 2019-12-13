@@ -8,9 +8,12 @@ from tests.unit_tests.utils.update_settings import UpdateSettings
 from tests.unit_tests.utils.dummy_documents_generate import DummyDocumentsGenerate
 from helpers.singletons import es
 import helpers.es
+import helpers.analyzerfactory
+from helpers.analyzerfactory import AnalyzerFactory
 
 test_file_whitelist_path_config = "/app/tests/unit_tests/files/whitelist_tests_01_with_general.conf"
 
+helpers.analyzerfactory.class_mapping["analyzer"] = TestStubAnalyzer
 
 class TestEs(unittest.TestCase):
 
@@ -64,10 +67,10 @@ class TestEs(unittest.TestCase):
         result = [doc for doc in es._scan()][0]
         self.assertTrue("outliers" in result["_source"])
 
-        stub_analyzer = TestStubAnalyzer("analyzer_dummy_test")
+        analyzer = AnalyzerFactory.create("/app/tests/unit_tests/files/use_cases/analyzer/analyzer_dummy_test.conf")
 
         # Remove whitelisted outlier
-        es.remove_all_whitelisted_outliers({"analyzer_dummy_test": stub_analyzer})
+        es.remove_all_whitelisted_outliers({"analyzer_dummy_test": analyzer})
 
         # Check that outlier is correctly remove
         result = [doc for doc in es._scan()][0]

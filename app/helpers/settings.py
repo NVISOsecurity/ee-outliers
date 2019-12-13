@@ -15,12 +15,15 @@ tests_parser = subparsers.add_parser('tests')
 
 # Interactive mode - options
 interactive_parser.add_argument("--config", action='append', help="Configuration file location", required=True)
+interactive_parser.add_argument("--use-cases", action='append', help="Additional use cases location", required=True)
 
 # Daemon mode - options
 daemon_parser.add_argument("--config", action='append', help="Configuration file location", required=True)
+daemon_parser.add_argument("--use-cases", action='append', help="Additional use cases location", required=True)
 
 # Tests mode - options
 tests_parser.add_argument("--config", action='append', help="Configuration file location", required=True)
+tests_parser.add_argument("--use-cases", action='append', help="Additional use cases location", required=True)
 
 
 @singleton

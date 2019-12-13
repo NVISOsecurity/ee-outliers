@@ -11,6 +11,8 @@ from tests.unit_tests.test_stubs.test_stub_es import TestStubEs
 from tests.unit_tests.test_stubs.test_stub_analyzer import TestStubAnalyzer
 from tests.unit_tests.utils.update_settings import UpdateSettings
 from tests.unit_tests.utils.dummy_documents_generate import DummyDocumentsGenerate
+from helpers.analyzerfactory import AnalyzerFactory
+import helpers.analyzerfactory
 
 doc_without_outlier_test_file = json.load(open("/app/tests/unit_tests/files/doc_without_outlier.json"))
 doc_with_outlier_test_file = json.load(open("/app/tests/unit_tests/files/doc_with_outlier.json"))
@@ -29,6 +31,8 @@ nested_doc_for_whitelist_test = {'169.254.184.188', 'fe80::491a:881a:b1bf:b539',
                                  r'C:\Windows\system32\msfeedssync.exe sync',
                                  r'\User_Feed_Synchronization-{9CD0CFAD-350E-46BA-8338-932284EF7332}'}
 
+# Monkey patch the test stub analyzer mapping in the AnalyzerFactory
+helpers.analyzerfactory.class_mapping["analyzer"] = TestStubAnalyzer
 
 class TestOutlierOperations(unittest.TestCase):
     def setUp(self):
@@ -221,7 +225,7 @@ class TestOutlierOperations(unittest.TestCase):
         self.test_es.add_doc(doc_with_outlier)
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/whitelist_tests_01_with_general.conf")
 
-        analyzer = TestStubAnalyzer("analyzer_dummy_test")
+        analyzer = AnalyzerFactory.create("/app/tests/unit_tests/files/use_cases/analyzer/analyzer_dummy_test.conf")
         es.remove_all_whitelisted_outliers({"analyzer_dummy_test": analyzer})
 
         result = [elem for elem in es._scan()][0]
@@ -232,7 +236,7 @@ class TestOutlierOperations(unittest.TestCase):
         self.test_es.add_doc(doc_with_outlier)
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/whitelist_tests_03_with_general.conf")
 
-        analyzer = TestStubAnalyzer("analyzer_dummy_test")
+        analyzer = AnalyzerFactory.create("/app/tests/unit_tests/files/use_cases/analyzer/analyzer_dummy_test.conf")
 
         es.remove_all_whitelisted_outliers({"analyzer_dummy_test": analyzer})
         result = [elem for elem in es._scan()][0]
