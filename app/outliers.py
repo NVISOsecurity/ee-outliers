@@ -292,7 +292,7 @@ def perform_analysis(housekeeping_job):
             analyzer.evaluate_model()
             analyzer.analysis_end_time = datetime.today().timestamp()
             analyzer.completed_analysis = True
-
+            es.flush_bulk_actions()
             logging.logger.info("finished processing use case - %d / %d [%s%% done]", index + 1,
                                 len(analyzers_to_evaluate),
                                 '{:.2f}'.format(round((index + 1) / float(len(analyzers_to_evaluate)) * 100, 2)))
