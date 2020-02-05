@@ -62,21 +62,6 @@ pipeline {
                 }
             }
         }
-        
-        stage('Official release') {
-            steps {
-                script {
-                    if (env.BRANCH_NAME == 'master') {
-                        sshagent (credentials: ['GithubSSHKey']) {
-                            sh '''
-                                git tag $(cat VERSION)
-                                git push origin --tags
-                            '''
-                        }
-                    }
-                }
-            }
-        }
 
         stage('Push image') {
             steps {
@@ -94,10 +79,38 @@ pipeline {
                             app.push("devlatest")
                         }
                     }
+                    if(env.BRANCH_NAME == 'master') {
+                        withCredentials([usernamePassword(credentialsId: 'dockerhub', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
+                            sh """
+                                docker tag eagleeye/outliers:latest nvisobe/ee-outliers:latest;
+                                docker tag eagleeye/outliers:latest nvisobe/ee-outliers:${full_version};
+                                docker tag eagleeye/outliers:latest nvisobe/ee-outliers:${feature_version};
+                                docker login --username=$USERNAME --password=$PASSWORD;
+                                docker push nvisobe/ee-outliers:latest;
+                                docker push nvisobe/ee-outliers:${full_version};
+                                docker push nvisobe/ee-outliers:${feature_version};
+                            """
+                        }
+                        
+                    }
+                }
+            }
+        }
+
+        stage('Official release') {
+            steps {
+                script {
+                    if (env.BRANCH_NAME == 'master') {
+                        sshagent (credentials: ['GithubSSHKey']) {
+                            sh '''
+                                git tag $(cat VERSION)
+                                git push origin --tags
+                            '''
+                        }
+                    }
                 }
             }
         }
     }
     
 }
-
