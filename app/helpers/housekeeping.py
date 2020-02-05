@@ -15,6 +15,7 @@ class HousekeepingJob(threading.Thread):
         # The shutdown_flag is a threading.Event object that
         # indicates whether the thread should be terminated.
         self.shutdown_flag = threading.Event()
+        self.analyzers_updated = False
 
         self.dict_analyzer = dict()
 
@@ -35,23 +36,21 @@ class HousekeepingJob(threading.Thread):
         """
         Execute the housekeeping
         """
-        if self.file_mod_watcher.files_changed():
+        if self.file_mod_watcher.files_changed() or self.analyzers_updated:
+            self.analyzers_updated = False
             # reload configuration file, in case new whitelisted items were added by the analyst, they
             # should be processed!
             settings.process_configuration_files()
 
-            for analyzer in self.dict_analyzer.values():
-                analyzer.extract_whitelist_per_model()
-
-            settings.process_configuration_files()
             logging.logger.info("housekeeping - changes detected, process again housekeeping")
             self.remove_all_whitelisted_outliers()
 
     def update_analyzer_list(self, list_analyzer):
         self.dict_analyzer = dict()  # Reset list
         for analyzer in list_analyzer:
-            self.dict_analyzer[analyzer.config_section_name] = analyzer
+            self.dict_analyzer[analyzer.model_type + "_" + analyzer.model_name] = analyzer
         logging.logger.info("housekeeping - list analyzer have been updated")
+        self.analyzers_updated = True
 
     def stop_housekeeping(self):
         self.shutdown_flag.set()
@@ -61,6 +60,7 @@ class HousekeepingJob(threading.Thread):
         """
         Try to remove all whitelist outliers that are already in Elasticsearch
         """
+
         if settings.config.getboolean("general", "es_wipe_all_whitelisted_outliers"):
             try:
                 logging.logger.info("housekeeping - going to remove all whitelisted outliers")

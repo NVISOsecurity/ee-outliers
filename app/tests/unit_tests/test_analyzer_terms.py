@@ -10,6 +10,7 @@ from analyzers.terms import TermsAnalyzer
 from helpers.singletons import logging, es
 from tests.unit_tests.utils.update_settings import UpdateSettings
 from tests.unit_tests.utils.dummy_documents_generate import DummyDocumentsGenerate
+from helpers.analyzerfactory import AnalyzerFactory
 
 doc_without_outliers_test_whitelist_02_test_file = json.load(
     open("/app/tests/unit_tests/files/doc_without_outliers_test_whitelist_02.json"))
@@ -23,7 +24,8 @@ LIST_AGGREGATOR_VALUE = ["agg-WIN-EVB-draman", "agg-WIN-DRA-draman"]
 LIST_TARGET_VALUE = ["WIN-DRA-draman", "WIN-EVB-draman", "LINUX-DRA-draman"]
 LIST_DOC = [doc_without_outlier_test_file]
 
-DEFAULT_OUTLIERS_KEY_FIELDS = ["type", "reason", "summary", "model_name", "model_type", "total_outliers"]
+DEFAULT_OUTLIERS_KEY_FIELDS = ["type", "reason", "summary", "model_name", "model_type", "total_outliers",
+                               "elasticsearch_filter"]
 EXTRA_OUTLIERS_KEY_FIELDS = ["term_count", "non_outlier_values_sample", "aggregator", "term", "decision_frontier",
                              "trigger_method"]
 
@@ -82,7 +84,7 @@ class TestTermsAnalyzer(unittest.TestCase):
 
         # Run analyzer
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_with_whitelist.conf")
-        analyzer = TermsAnalyzer("terms_dummy_test")
+        analyzer = AnalyzerFactory.create("/app/tests/unit_tests/files/use_cases/terms/terms_dummy_test.conf")
         analyzer.evaluate_model()
 
         nbr_outliers = 0
@@ -103,7 +105,7 @@ class TestTermsAnalyzer(unittest.TestCase):
 
         # Run analyzer
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_01.conf")
-        analyzer = TermsAnalyzer("terms_dummy_test_float")
+        analyzer = AnalyzerFactory.create("/app/tests/unit_tests/files/use_cases/terms/terms_dummy_test_float.conf")
         analyzer.evaluate_model()
 
         nbr_outliers = 0
@@ -124,7 +126,7 @@ class TestTermsAnalyzer(unittest.TestCase):
 
         # Run analyzer
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_01.conf")
-        analyzer = TermsAnalyzer("terms_dummy_test_float")
+        analyzer = AnalyzerFactory.create("/app/tests/unit_tests/files/use_cases/terms/terms_dummy_test_float.conf")
         analyzer.evaluate_model()
 
         self.assertEqual(analyzer.total_outliers, 5)
@@ -144,7 +146,7 @@ class TestTermsAnalyzer(unittest.TestCase):
 
         # Run analyzer
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_small_batch_eval.conf")
-        analyzer = TermsAnalyzer("terms_dummy_test_float")
+        analyzer = AnalyzerFactory.create("/app/tests/unit_tests/files/use_cases/terms/terms_dummy_test_float.conf")
         analyzer.evaluate_model()
 
         self.assertEqual(analyzer.total_outliers, nbr_doc_per_hours*nbr_hours)
@@ -163,14 +165,14 @@ class TestTermsAnalyzer(unittest.TestCase):
 
         # Run analyzer
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_small_batch_eval.conf")
-        analyzer = TermsAnalyzer("terms_dummy_test_float")
+        analyzer = AnalyzerFactory.create("/app/tests/unit_tests/files/use_cases/terms/terms_dummy_test_float.conf")
         analyzer.evaluate_model()
 
         self.assertEqual(analyzer.total_outliers, 4)
 
     def test_evaluate_batch_for_outliers_not_enough_target_buckets_one_doc_max_two(self):
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_01.conf")
-        analyzer = TermsAnalyzer("terms_dummy_test")
+        analyzer = AnalyzerFactory.create("/app/tests/unit_tests/files/use_cases/terms/terms_dummy_test_2.conf")
 
         aggregator_value = LIST_AGGREGATOR_VALUE[0]
         target_value = random.choice(LIST_TARGET_VALUE)
@@ -182,7 +184,7 @@ class TestTermsAnalyzer(unittest.TestCase):
 
     def test_evaluate_batch_for_outliers_limit_target_buckets_two_doc_max_two(self):
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_01.conf")
-        analyzer = TermsAnalyzer("terms_dummy_test")
+        analyzer = AnalyzerFactory.create("/app/tests/unit_tests/files/use_cases/terms/terms_dummy_test_2.conf")
 
         # Create one document with one aggregator
         aggregator_value = LIST_AGGREGATOR_VALUE[0]
@@ -202,7 +204,7 @@ class TestTermsAnalyzer(unittest.TestCase):
     # coeff_of_variation
     def test_terms_evaluate_coeff_of_variation_like_expected_document(self):
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_01.conf")
-        analyzer = TermsAnalyzer("terms_dummy_test_no_bucket")
+        analyzer = AnalyzerFactory.create("/app/tests/unit_tests/files/use_cases/terms/terms_dummy_test_no_bucket.conf")
 
         doc_without_outlier = copy.deepcopy(doc_without_outlier_test_file)
         expected_doc = copy.deepcopy(doc_with_terms_outlier_coeff_of_variation_no_score_sort)
@@ -217,7 +219,7 @@ class TestTermsAnalyzer(unittest.TestCase):
 
     def test_terms_generated_document_coeff_of_variation_not_respect_min(self):
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_01.conf")
-        analyzer = TermsAnalyzer("terms_dummy_test_no_bucket")
+        analyzer = AnalyzerFactory.create("/app/tests/unit_tests/files/use_cases/terms/terms_dummy_test_no_bucket.conf")
 
         doc_generator = DummyDocumentsGenerate()
         nbr_val = 24  # Like 24 hours
@@ -237,7 +239,7 @@ class TestTermsAnalyzer(unittest.TestCase):
 
     def test_terms_generated_document_coeff_of_variation_respect_min(self):
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_01.conf")
-        analyzer = TermsAnalyzer("terms_dummy_test_no_bucket")
+        analyzer = AnalyzerFactory.create("/app/tests/unit_tests/files/use_cases/terms/terms_dummy_test_no_bucket.conf")
 
         doc_generator = DummyDocumentsGenerate()
         nbr_val = 24  # Like 24 hours
@@ -261,7 +263,7 @@ class TestTermsAnalyzer(unittest.TestCase):
         self.test_es.add_doc(dummy_doc_generate.generate_document())
 
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_01.conf")
-        analyzer = TermsAnalyzer("terms_dummy_test_derived")
+        analyzer = AnalyzerFactory.create("/app/tests/unit_tests/files/use_cases/terms/terms_dummy_test_derived.conf")
         analyzer.evaluate_model()
 
         result = [elem for elem in es._scan()][0]
@@ -272,7 +274,7 @@ class TestTermsAnalyzer(unittest.TestCase):
         self.test_es.add_doc(dummy_doc_generate.generate_document({"user_id": 11}))
 
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_01.conf")
-        analyzer = TermsAnalyzer("terms_dummy_test_derived")
+        analyzer = AnalyzerFactory.create("/app/tests/unit_tests/files/use_cases/terms/terms_dummy_test_derived.conf")
         analyzer.evaluate_model()
 
         result = [elem for elem in es._scan()][0]
@@ -283,7 +285,7 @@ class TestTermsAnalyzer(unittest.TestCase):
         self.test_es.add_doc(dummy_doc_generate.generate_document())
 
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_01.conf")
-        analyzer = TermsAnalyzer("terms_dummy_test_not_derived")
+        analyzer = AnalyzerFactory.create("/app/tests/unit_tests/files/use_cases/terms/terms_dummy_test_not_derived.conf")
         analyzer.evaluate_model()
 
         result = [elem for elem in es._scan()][0]
@@ -294,7 +296,7 @@ class TestTermsAnalyzer(unittest.TestCase):
         self.test_es.add_doc(dummy_doc_generate.generate_document({"user_id": 11}))
 
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_01.conf")
-        analyzer = TermsAnalyzer("terms_dummy_test_not_derived")
+        analyzer = AnalyzerFactory.create("/app/tests/unit_tests/files/use_cases/terms/terms_dummy_test_not_derived.conf")
         analyzer.evaluate_model()
 
         result = [elem for elem in es._scan()][0]
@@ -309,7 +311,7 @@ class TestTermsAnalyzer(unittest.TestCase):
 
         # Run analyzer
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_01.conf")
-        analyzer = TermsAnalyzer("terms_dummy_test_float_low")
+        analyzer = AnalyzerFactory.create("/app/tests/unit_tests/files/use_cases/terms/terms_dummy_test_float_low.conf")
         analyzer.evaluate_model()
 
         result = [elem for elem in es._scan()][0]
@@ -324,7 +326,7 @@ class TestTermsAnalyzer(unittest.TestCase):
 
         # Run analyzer
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_02.conf")
-        analyzer = TermsAnalyzer("terms_dummy_test_float_low")
+        analyzer = AnalyzerFactory.create("/app/tests/unit_tests/files/use_cases/terms/terms_dummy_test_float_low.conf")
         analyzer.evaluate_model()
 
         result = [elem for elem in es._scan()][0]
@@ -339,7 +341,7 @@ class TestTermsAnalyzer(unittest.TestCase):
 
         # Run analyzer
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_02.conf")
-        analyzer = TermsAnalyzer("terms_dummy_test_float_low")
+        analyzer = AnalyzerFactory.create("/app/tests/unit_tests/files/use_cases/terms/terms_dummy_test_float_low.conf")
         analyzer.evaluate_model()
 
         result = [elem for elem in es._scan()][0]
@@ -382,7 +384,7 @@ class TestTermsAnalyzer(unittest.TestCase):
 
     def test_min_target_buckets_detect_outlier(self):
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_whitelist_batch.conf")
-        analyzer = TermsAnalyzer("terms_dummy_test_batch_whitelist_within_float")
+        analyzer = AnalyzerFactory.create("/app/tests/unit_tests/files/use_cases/terms/terms_dummy_test_batch_whitelist_within_float.conf")
         # Recap:
         # min_target_buckets=4
         # trigger_sensitivity=5
@@ -443,7 +445,7 @@ class TestTermsAnalyzer(unittest.TestCase):
 
     def test_min_target_buckets_dont_detect_outlier(self):
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_whitelist_batch.conf")
-        analyzer = TermsAnalyzer("terms_dummy_test_batch_whitelist_within_float")
+        analyzer = AnalyzerFactory.create("/app/tests/unit_tests/files/use_cases/terms/terms_dummy_test_batch_whitelist_within_float.conf")
         # Recap:
         # min_target_buckets=4
         # trigger_sensitivity=5
@@ -490,7 +492,7 @@ class TestTermsAnalyzer(unittest.TestCase):
 
     def test_batch_whitelist_work_with_min_target_bucket(self):
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_whitelist_batch.conf")
-        analyzer = TermsAnalyzer("terms_dummy_test_batch_whitelist_within_float")
+        analyzer = AnalyzerFactory.create("/app/tests/unit_tests/files/use_cases/terms/terms_dummy_test_batch_whitelist_within_float.conf")
         # Recap:
         # min_target_buckets=4
         # trigger_sensitivity=5
@@ -564,7 +566,7 @@ class TestTermsAnalyzer(unittest.TestCase):
 
     def test_batch_whitelist_work_doent_match_outlier_in_across(self):
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_whitelist_batch.conf")
-        analyzer = TermsAnalyzer("terms_dummy_test_batch_whitelist_across_float")
+        analyzer = AnalyzerFactory.create("/app/tests/unit_tests/files/use_cases/terms/terms_dummy_test_batch_whitelist_across_float.conf")
 
         doc_to_generate = [
             # agg1 (0, 1, 2) -> 3 but with whitelist: (0, 2) -> 2
@@ -601,11 +603,14 @@ class TestTermsAnalyzer(unittest.TestCase):
         self.assertEqual(list_outliers, [("agg2", "0"), ("agg2", "0"), ("agg2", "3"), ("agg2", "4")])
 
     def test_extract_additional_model_settings_no_terms_section(self):
-        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_no_terms_section.conf")
         # Terms section not define produce a warning
-        with self.assertLogs(logging.logger, level='ERROR'):
-            analyzer = TermsAnalyzer("terms_dummy_test")
-            self.assertTrue(analyzer.configuration_parsing_error)
+        with self.assertRaises(ValueError):
+            AnalyzerFactory.create("/app/tests/unit_tests/files/use_cases/terms/terms_test_no_terms_section.conf")
+
+    def test_extract_additional_model_settings_too_many_terms_section(self):
+        # Terms section not define produce a warning
+        with self.assertRaises(ValueError):
+            AnalyzerFactory.create("/app/tests/unit_tests/files/use_cases/terms/terms_test_too_many_terms_section.conf")
 
     def test_non_outlier_values_not_present_in_terms_for_first(self):
         dummy_doc_generate = DummyDocumentsGenerate()
@@ -624,7 +629,7 @@ class TestTermsAnalyzer(unittest.TestCase):
 
         # Run analyzer
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_01.conf")
-        analyzer = TermsAnalyzer("terms_dummy_test_float_low")
+        analyzer = AnalyzerFactory.create("/app/tests/unit_tests/files/use_cases/terms/terms_dummy_test_float_low.conf")
         analyzer.evaluate_model()
 
         result = [elem for elem in es._scan()][0]
@@ -651,7 +656,7 @@ class TestTermsAnalyzer(unittest.TestCase):
 
         # Run analyzer
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_01.conf")
-        analyzer = TermsAnalyzer("terms_dummy_test_float_low")
+        analyzer = AnalyzerFactory.create("/app/tests/unit_tests/files/use_cases/terms/terms_dummy_test_float_low.conf")
         analyzer.evaluate_model()
 
         result = [elem for elem in es._scan()][4]
@@ -679,7 +684,7 @@ class TestTermsAnalyzer(unittest.TestCase):
 
         # Run analyzer
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_01.conf")
-        analyzer = TermsAnalyzer("terms_across_dummy_test_float_low")
+        analyzer = AnalyzerFactory.create("/app/tests/unit_tests/files/use_cases/terms/terms_across_dummy_test_float_low.conf")
         analyzer.evaluate_model()
 
         result = [elem for elem in es._scan()][4]

@@ -4,20 +4,23 @@ from helpers.analyzer import Analyzer
 
 class SimplequeryAnalyzer(Analyzer):
 
+    def __init__(self, model_name, config_section):
+        super(SimplequeryAnalyzer, self).__init__("simplequery", model_name, config_section)
+
     def evaluate_model(self):
 
         model_filter = {
             "bool": {
                 "filter": [{
                     "term": {
-                        "outliers.model_name.raw": {
+                        "outliers.model_name.keyword": {
                             "value": self.model_name
                         }
                     }
                 },
                     {
                     "term": {
-                        "outliers.model_type.raw": {
+                        "outliers.model_type.keyword": {
                             "value": "simplequery"
                         }
                     }
@@ -41,7 +44,7 @@ class SimplequeryAnalyzer(Analyzer):
         self.total_events, documents = es.count_and_scan_documents(index=self.model_settings["es_index"],
                                                                    search_query=query,
                                                                    model_settings=self.model_settings)
-        self.print_analysis_intro(event_type="evaluating " + self.config_section_name,
+        self.print_analysis_intro(event_type="evaluating " + self.model_type + "_" + self.model_name,
                                   total_events=self.total_events)
 
         logging.init_ticker(total_steps=self.total_events,

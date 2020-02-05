@@ -25,6 +25,7 @@ all_outlier_summary = ["dummy summary"]
 all_outlier_observation = ["dummy observation"]
 all_outlier_model_name = ["dummy_test", "dummy_test_high_pct_of_med_value_within", "base64_encoded_cmdline"]
 all_outlier_model_type = ["dummy_type", "terms", "metrics", "simplequery"]
+all_outlier_elasticsearch_filter_types = ["es_valid_query"]
 
 
 class DummyDocumentsGenerate:
@@ -188,7 +189,11 @@ class DummyDocumentsGenerate:
         if "outlier.model_type" not in specific_value:
             specific_value["outlier.model_type"] = random.choice(all_outlier_model_type)
 
+        if "outlier.elasticsearch_filter" not in specific_value:
+            specific_value["outlier.elasticsearch_filter"] = random.choice(all_outlier_elasticsearch_filter_types)
+
         return {
+            "elasticsearch_filter": [specific_value["outlier.elasticsearch_filter"]],
             "observation": [specific_value["outlier.observation"]],
             "reason": ["dummy reason"],
             "summary": [specific_value["outlier.summary"]],

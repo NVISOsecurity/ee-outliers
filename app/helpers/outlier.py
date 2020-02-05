@@ -69,7 +69,7 @@ class Outlier:
         :return: True if whitelisted, False otherwise
         """
         dict_values_to_check = set()
-
+        
         for dict_val in helpers.utils.nested_dict_values(dict_to_check):
             if isinstance(dict_val, list):
                 for dict_val_item in dict_val:
@@ -77,7 +77,6 @@ class Outlier:
                     dict_values_to_check.add(str(dict_val_item).strip())
             else:
                 dict_values_to_check.add(str(dict_val).strip())
-
         # Check if value is whitelisted as literal
         for list_whitelist_elements in (helpers.singletons.settings.whitelist_literals_config +
                                         extra_literals_whitelist_value):

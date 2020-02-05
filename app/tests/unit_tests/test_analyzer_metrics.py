@@ -9,6 +9,7 @@ from helpers.singletons import logging, es
 from tests.unit_tests.utils.update_settings import UpdateSettings
 from tests.unit_tests.utils.dummy_documents_generate import DummyDocumentsGenerate
 import helpers.utils
+from helpers.analyzerfactory import AnalyzerFactory
 
 from collections import defaultdict
 
@@ -19,7 +20,8 @@ doc_without_outliers_test_whitelist_03_test_file = json.load(
 doc_without_outliers_test_whitelist_04_test_file = json.load(
     open("/app/tests/unit_tests/files/doc_without_outliers_test_whitelist_04.json"))
 
-DEFAULT_OUTLIERS_KEY_FIELDS = ["type", "reason", "summary", "model_name", "model_type", "total_outliers"]
+DEFAULT_OUTLIERS_KEY_FIELDS = ["type", "reason", "summary", "model_name", "model_type", "total_outliers",
+                               "elasticsearch_filter"]
 EXTRA_OUTLIERS_KEY_FIELDS = ["target", "non_outlier_values_sample", "aggregator", "metric", "decision_frontier",
                              "confidence"]
 
@@ -54,8 +56,8 @@ class TestMetricsAnalyzer(unittest.TestCase):
                                                                    "command_query": command_query}))
 
         # Run analyzer
-        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/metrics_test_with_whitelist.conf")
-        analyzer = MetricsAnalyzer("metrics_length_dummy_test")
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/metrics_test_01.conf")
+        analyzer = AnalyzerFactory.create("/app/tests/unit_tests/files/use_cases/metrics/metrics_length_dummy_test.conf")
         analyzer.evaluate_model()
 
         nbr_outliers = 0
@@ -76,7 +78,7 @@ class TestMetricsAnalyzer(unittest.TestCase):
 
         # Run analyzer
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/metrics_test_01.conf")
-        analyzer = MetricsAnalyzer("metrics_numerical_value_dummy_test")
+        analyzer = AnalyzerFactory.create("/app/tests/unit_tests/files/use_cases/metrics/metrics_numerical_value_dummy_test.conf")
         analyzer.evaluate_model()
 
         nbr_outliers = 0
@@ -97,7 +99,7 @@ class TestMetricsAnalyzer(unittest.TestCase):
 
         # Run analyzer
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/metrics_test_01.conf")
-        analyzer = MetricsAnalyzer("metrics_numerical_value_dummy_test")
+        analyzer = AnalyzerFactory.create("/app/tests/unit_tests/files/use_cases/metrics/metrics_numerical_value_dummy_test.conf")
         analyzer.evaluate_model()
 
         self.assertEqual(analyzer.total_outliers, 1)
@@ -116,7 +118,7 @@ class TestMetricsAnalyzer(unittest.TestCase):
 
         # Run analyzer
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/metrics_test_small_batch_eval.conf")
-        analyzer = MetricsAnalyzer("metrics_numerical_value_dummy_test")
+        analyzer = AnalyzerFactory.create("/app/tests/unit_tests/files/use_cases/metrics/metrics_numerical_value_dummy_test.conf")
         analyzer.evaluate_model()
 
         self.assertEqual(analyzer.total_outliers, number_of_user)
@@ -137,7 +139,7 @@ class TestMetricsAnalyzer(unittest.TestCase):
 
         # Run analyzer
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/metrics_test_small_batch_eval.conf")
-        analyzer = MetricsAnalyzer("metrics_numerical_value_dummy_test")
+        analyzer = AnalyzerFactory.create("/app/tests/unit_tests/files/use_cases/metrics/metrics_numerical_value_dummy_test.conf")
         analyzer.evaluate_model()
 
         self.assertEqual(analyzer.total_outliers, 1)
@@ -147,7 +149,7 @@ class TestMetricsAnalyzer(unittest.TestCase):
         self.test_es.add_doc(dummy_doc_generate.generate_document())
 
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/metrics_test_01.conf")
-        analyzer = MetricsAnalyzer("metrics_dummy_test_derived")
+        analyzer = AnalyzerFactory.create("/app/tests/unit_tests/files/use_cases/metrics/metrics_dummy_test_derived.conf")
         analyzer.evaluate_model()
 
         result = [elem for elem in es._scan()][0]
@@ -158,7 +160,7 @@ class TestMetricsAnalyzer(unittest.TestCase):
         self.test_es.add_doc(dummy_doc_generate.generate_document({"user_id": 11}))
 
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/metrics_test_01.conf")
-        analyzer = MetricsAnalyzer("metrics_dummy_test_derived")
+        analyzer = AnalyzerFactory.create("/app/tests/unit_tests/files/use_cases/metrics/metrics_dummy_test_derived.conf")
         analyzer.evaluate_model()
 
         result = [elem for elem in es._scan()][0]
@@ -169,7 +171,7 @@ class TestMetricsAnalyzer(unittest.TestCase):
         self.test_es.add_doc(dummy_doc_generate.generate_document())
 
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/metrics_test_01.conf")
-        analyzer = MetricsAnalyzer("metrics_dummy_test_not_derived")
+        analyzer = AnalyzerFactory.create("/app/tests/unit_tests/files/use_cases/metrics/metrics_dummy_test_not_derived.conf")
         analyzer.evaluate_model()
 
         result = [elem for elem in es._scan()][0]
@@ -180,7 +182,7 @@ class TestMetricsAnalyzer(unittest.TestCase):
         self.test_es.add_doc(dummy_doc_generate.generate_document({"user_id": 11}))
 
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/metrics_test_01.conf")
-        analyzer = MetricsAnalyzer("metrics_dummy_test_not_derived")
+        analyzer = AnalyzerFactory.create("/app/tests/unit_tests/files/use_cases/metrics/metrics_dummy_test_not_derived.conf")
         analyzer.evaluate_model()
 
         result = [elem for elem in es._scan()][0]
@@ -189,7 +191,7 @@ class TestMetricsAnalyzer(unittest.TestCase):
 
     def test_whitelist_batch_document_not_process_all(self):
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/metrics_test_with_whitelist.conf")
-        analyzer = MetricsAnalyzer("metrics_length_dummy_test")
+        analyzer = AnalyzerFactory.create("/app/tests/unit_tests/files/use_cases/metrics/metrics_length_dummy_test.conf")
 
         # Not whitelisted (add)
         doc2_without_outlier = copy.deepcopy(doc_without_outliers_test_whitelist_02_test_file)
@@ -221,7 +223,7 @@ class TestMetricsAnalyzer(unittest.TestCase):
 
     def test_metrics_batch_whitelist_three_outliers_one_whitelist(self):
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/metrics_test_whitelist_batch.conf")
-        analyzer = MetricsAnalyzer("metrics_dummy_test_batch_whitelist_float")
+        analyzer = AnalyzerFactory.create("/app/tests/unit_tests/files/use_cases/metrics/metrics_dummy_test_batch_whitelist_float.conf")
         backup_min_eval_batch = MetricsAnalyzer.MIN_EVALUATE_BATCH
         MetricsAnalyzer.MIN_EVALUATE_BATCH = 5
 
@@ -258,7 +260,8 @@ class TestMetricsAnalyzer(unittest.TestCase):
 
     def test_metrics_batch_whitelist_outlier_detect_after_process_all_and_remove_whitelist(self):
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/metrics_test_whitelist_batch.conf")
-        analyzer = MetricsAnalyzer("metrics_dummy_test_batch_whitelist_avg")
+        analyzer = AnalyzerFactory.create("/app/tests/unit_tests/files/use_cases/metrics/metrics_dummy_test_batch_whitelist_avg.conf")
+
         backup_min_eval_batch = MetricsAnalyzer.MIN_EVALUATE_BATCH
         MetricsAnalyzer.MIN_EVALUATE_BATCH = 5
 
@@ -295,7 +298,7 @@ class TestMetricsAnalyzer(unittest.TestCase):
 
         # Run analyzer
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/metrics_test_02.conf")
-        analyzer = MetricsAnalyzer("metrics_dummy_test_no_derived")
+        analyzer = AnalyzerFactory.create("/app/tests/unit_tests/files/use_cases/metrics/metrics_dummy_test_not_derived.conf")
         analyzer.evaluate_model()
 
         result = [elem for elem in es._scan()][0]
@@ -310,7 +313,7 @@ class TestMetricsAnalyzer(unittest.TestCase):
 
         # Run analyzer
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/metrics_test_02.conf")
-        analyzer = MetricsAnalyzer("metrics_dummy_test_no_derived")
+        analyzer = AnalyzerFactory.create("/app/tests/unit_tests/files/use_cases/metrics/metrics_dummy_test_not_derived.conf")
         analyzer.evaluate_model()
 
         result = [elem for elem in es._scan()][0]
@@ -325,7 +328,7 @@ class TestMetricsAnalyzer(unittest.TestCase):
 
         # Run analyzer
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/metrics_test_02.conf")
-        analyzer = MetricsAnalyzer("metrics_dummy_test_no_derived")
+        analyzer = AnalyzerFactory.create("/app/tests/unit_tests/files/use_cases/metrics/metrics_dummy_test_not_derived.conf")
         analyzer.evaluate_model()
 
         result = [elem for elem in es._scan()][0]
@@ -429,7 +432,7 @@ class TestMetricsAnalyzer(unittest.TestCase):
 
     def test_evaluate_batch_for_outliers_fetch_remain_metrics(self):
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/metrics_test_01.conf")
-        analyzer = MetricsAnalyzer("metrics_dummy_test")
+        analyzer = AnalyzerFactory.create("/app/tests/unit_tests/files/use_cases/metrics/metrics_dummy_test.conf")
 
         eval_metrics_array, aggregator_value, target_value, metrics_value, observations = \
             self._preperate_data_terms_with_doc()
@@ -443,7 +446,7 @@ class TestMetricsAnalyzer(unittest.TestCase):
 
     def test_evaluate_batch_for_outliers_add_outlier(self):
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/metrics_test_02.conf")
-        analyzer = MetricsAnalyzer("metrics_dummy_test")
+        analyzer = AnalyzerFactory.create("/app/tests/unit_tests/files/use_cases/metrics/metrics_dummy_test_2.conf")
 
         eval_metrics_array, aggregator_value, target_value, metrics_value, observations = \
             self._preperate_data_terms_with_doc(metrics_value=12)
@@ -456,7 +459,7 @@ class TestMetricsAnalyzer(unittest.TestCase):
         analyzer.process_outlier(outliers[0])
         result = [elem for elem in es._scan()][0]
         doc_with_outlier = copy.deepcopy(doc_with_outlier_test_file)
-
+        self.maxDiff = None
         self.assertEqual(result, doc_with_outlier)
 
     def test_extract_additional_model_settings_no_metrics_section(self):
@@ -464,7 +467,7 @@ class TestMetricsAnalyzer(unittest.TestCase):
 
         # Metrics section not define produce an error
         with self.assertLogs(logging.logger, level='ERROR'):
-            analyzer = MetricsAnalyzer("metrics_dummy_test")
+            analyzer = AnalyzerFactory.create("/app/tests/unit_tests/files/use_cases/metrics/metrics_dummy_test.conf")
             # Check that we detect a problem in configuration
             self.assertTrue(analyzer.configuration_parsing_error)
 
@@ -499,7 +502,7 @@ class TestMetricsAnalyzer(unittest.TestCase):
 
         # Run analyzer
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/metrics_test_02.conf")
-        analyzer = MetricsAnalyzer("metrics_dummy_test_no_derived")
+        analyzer = AnalyzerFactory.create("/app/tests/unit_tests/files/use_cases/metrics/metrics_dummy_test_not_derived.conf")
         analyzer.evaluate_model()
 
         result = [elem for elem in es._scan()][0]
@@ -519,7 +522,7 @@ class TestMetricsAnalyzer(unittest.TestCase):
 
         # Run analyzer
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/metrics_test_02.conf")
-        analyzer = MetricsAnalyzer("metrics_dummy_test_no_derived")
+        analyzer = AnalyzerFactory.create("/app/tests/unit_tests/files/use_cases/metrics/metrics_dummy_test_not_derived.conf")
         analyzer.evaluate_model()
 
         result = [elem for elem in es._scan()][2]
