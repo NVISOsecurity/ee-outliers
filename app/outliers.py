@@ -18,7 +18,7 @@ from helpers.watchers import FileModificationWatcher
 from helpers.housekeeping import HousekeepingJob
 from helpers.analyzerfactory import AnalyzerFactory
 
-EE_OUTLIERS_VERSIONS = "0.2.10"
+EE_OUTLIERS_VERSIONS = "0.2.11"
 
 
 def run_outliers():
