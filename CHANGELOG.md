@@ -1,5 +1,8 @@
 # Changelog
 
+## Unreleased
+- Changed logging level on some warnings
+
 ## [Version 0.2.11](https://github.com/NVISO-BE/ee-outliers/releases/tag/0.2.11) (February 6, 2020)
 - Detection use cases are now stored in individual config files, rather than all in the main config file
 
