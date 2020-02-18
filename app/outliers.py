@@ -18,7 +18,12 @@ from helpers.watchers import FileModificationWatcher
 from helpers.housekeeping import HousekeepingJob
 from helpers.analyzerfactory import AnalyzerFactory
 
-EE_OUTLIERS_VERSIONS = "0.2.11"
+def get_version():
+    try:
+        with open("/VERSION") as f:
+            return f.read().strip()
+    except (FileNotFoundError, PermissionError):
+        return "Unknown"
 
 
 def run_outliers():
@@ -85,7 +90,7 @@ def print_intro():
     Print the banner information including version, loaded configuration files and any parsing errors
     that might have occurred when loading them.
     """
-    logging.logger.info("outliers.py - version %s - contact: research@nviso.be", EE_OUTLIERS_VERSIONS)
+    logging.logger.info("outliers.py - version %s - contact: research@nviso.be", get_version())
     logging.logger.info("run mode: %s", settings.args.run_mode)
 
     logging.print_generic_intro("initializing")

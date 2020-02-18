@@ -32,6 +32,8 @@ RUN sudo pip3 install -r /app/requirements.txt
 ADD ./defaults /defaults
 ADD ./app/ /app
 
+ADD ./VERSION /VERSION
+
 # Let world write to unit test files so Jenkins and other tools can run and manipulate them
 RUN chmod a+w -R /app/tests/unit_tests/files
 
