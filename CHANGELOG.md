@@ -2,6 +2,7 @@
 
 ## Unreleased
 - Changed logging level on some warnings
+- Outliers version printed at startup is now read from VERSION file instead of being hardcoded
 
 ## [Version 0.2.11](https://github.com/NVISO-BE/ee-outliers/releases/tag/0.2.11) (February 6, 2020)
 - Detection use cases are now stored in individual config files, rather than all in the main config file
