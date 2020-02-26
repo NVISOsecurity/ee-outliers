@@ -75,6 +75,9 @@ pipeline {
                             app.push("latest")
                         } else if(env.BRANCH_NAME == 'development') {
                             app.push("devlatest")
+                        } else if (env.BRANCH_NAME == 'hotfix-bulk-flush') {
+                            app.push("${full_version}")
+                            app.push("${feature_version}")
                         }
                     }
                 }
