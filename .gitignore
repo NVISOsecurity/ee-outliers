@@ -7,5 +7,6 @@ venv
 .DS_Store
 scripts/output
 tmp/
+use_cases/
 .coverage
 .mypy_cache/

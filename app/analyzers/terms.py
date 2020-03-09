@@ -14,8 +14,12 @@ from typing import Set, Dict, Tuple, List, DefaultDict, Any, Union, Optional
 
 class TermsAnalyzer(Analyzer):
 
+    def __init__(self, model_name, config_section):
+        super(TermsAnalyzer, self).__init__("terms", model_name, config_section)
+
     def evaluate_model(self) -> None:
-        self.total_events, documents = es.count_and_scan_documents(index=self.es_index, search_query=self.search_query,
+        self.total_events, documents = es.count_and_scan_documents(index=self.model_settings["es_index"],
+                                                                   search_query=self.search_query,
                                                                    model_settings=self.model_settings)
 
         self.print_analysis_intro(event_type="evaluating " + self.model_name, total_events=self.total_events)
@@ -306,7 +310,7 @@ class TermsAnalyzer(Analyzer):
         for ii, term_value in enumerate(batch[aggregator_value]["targets"]):
             outlier: Outlier = self._create_outlier(non_outlier_values, unique_target_count_across_aggregators,
                                                     aggregator_value, term_value, decision_frontier, batch, ii)
-            if not outlier.is_whitelisted():
+            if not outlier.is_whitelisted(self.model_whitelist_literals, self.model_whitelist_regexps):
                 list_outliers.append(outlier)
             else:
                 self.nr_whitelisted_elements += 1
@@ -398,7 +402,7 @@ class TermsAnalyzer(Analyzer):
                     term_value_count = counted_targets[term_value]
                     outlier: Outlier = self._create_outlier(non_outlier_values, term_value_count, aggregator_value,
                                                             term_value, decision_frontier, batch, ii)
-                    if not outlier.is_whitelisted():
+                    if not outlier.is_whitelisted(self.model_whitelist_literals, self.model_whitelist_regexps):
                         list_outliers.append(outlier)
                     else:
                         self.nr_whitelisted_elements += 1
@@ -413,7 +417,7 @@ class TermsAnalyzer(Analyzer):
                 if is_outlier:
                     outlier = self._create_outlier(non_outlier_values, term_value_count, aggregator_value,
                                                    term_value, decision_frontier, batch, ii)
-                    if not outlier.is_whitelisted():
+                    if not outlier.is_whitelisted(self.model_whitelist_literals, self.model_whitelist_regexps):
                         list_outliers.append(outlier)
                     else:
                         self.nr_whitelisted_elements += 1
@@ -465,36 +469,25 @@ class TermsAnalyzer(Analyzer):
         """
         Override method from Analyzer
         """
-        try:
-            self.model_settings["process_documents_chronologically"] = settings.config.getboolean(
-                self.config_section_name, "process_documents_chronologically")
-        except NoOptionError:
-            self.model_settings["process_documents_chronologically"] = True
+        
+        self.model_settings["process_documents_chronologically"] = self.config_section.getboolean("process_documents_chronologically", True)
 
         # remove unnecessary whitespace, split fields
-        self.model_settings["target"] = settings.config.get(self.config_section_name,
-                                                            "target").replace(' ', '').split(",")
+        self.model_settings["target"] = self.config_section["target"].replace(' ', '').split(",")
 
         # remove unnecessary whitespace, split fields
-        self.model_settings["aggregator"] = settings.config.get(self.config_section_name,
-                                                                "aggregator").replace(' ', '').split(",")
+        self.model_settings["aggregator"] = self.config_section["aggregator"].replace(' ', '').split(",")
 
-        self.model_settings["trigger_on"] = settings.config.get(self.config_section_name, "trigger_on")
-        self.model_settings["trigger_method"] = settings.config.get(self.config_section_name, "trigger_method")
-        self.model_settings["trigger_sensitivity"] = settings.config.getfloat(self.config_section_name,
-                                                                              "trigger_sensitivity")
+        self.model_settings["trigger_on"] = self.config_section["trigger_on"]
+        self.model_settings["trigger_method"] = self.config_section["trigger_method"]
+        self.model_settings["trigger_sensitivity"] = float(self.config_section["trigger_sensitivity"])
 
-        self.model_settings["target_count_method"] = settings.config.get(self.config_section_name,
-                                                                         "target_count_method")
+        self.model_settings["target_count_method"] = self.config_section["target_count_method"]
 
-        try:
-            self.model_settings["min_target_buckets"] = settings.config.getint(self.config_section_name,
-                                                                               "min_target_buckets")
-            if self.model_settings["target_count_method"] != "within_aggregator":
-                logging.logger.warning("'min_target_buckets' is only useful when 'target_count_method' is set " +
-                                       "to 'within_aggregator'")
-        except NoOptionError:
-            self.model_settings["min_target_buckets"] = None
+        self.model_settings["min_target_buckets"] = self.config_section.getint("min_target_buckets", None)
+        if self.model_settings["target_count_method"] != "within_aggregator":
+            logging.logger.warning("'min_target_buckets' is only useful when 'target_count_method' is set " +
+                                    "to 'within_aggregator'")
 
         # Validate model settings
         if self.model_settings["target_count_method"] not in {"within_aggregator", "across_aggregators"}:

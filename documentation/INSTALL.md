@@ -30,7 +30,7 @@ Running ee-outliers in interactive mode:
 docker build -t "outliers-dev" .
 
 # Run the image
-docker run --network=sensor_network -v "$PWD/defaults:/mappedvolumes/config" -i  outliers-dev:latest python3 outliers.py interactive --config /mappedvolumes/config/outliers.conf
+docker run --network=sensor_network -v "$PWD/defaults:/mappedvolumes/config" -i  outliers-dev:latest python3 outliers.py interactive --config /mappedvolumes/config/outliers.conf --use-cases /my/usecase/folder/*.conf
 ```
 
 ## Running in daemon mode
@@ -50,7 +50,7 @@ Running ee-outliers in daemon mode:
 docker build -t "outliers-dev" .
 
 # Run the image
-docker run --network=sensor_network -v "$PWD/defaults:/mappedvolumes/config" -d outliers-dev:latest python3 outliers.py daemon --config /mappedvolumes/config/outliers.conf
+docker run --network=sensor_network -v "$PWD/defaults:/mappedvolumes/config" -d outliers-dev:latest python3 outliers.py daemon --config /mappedvolumes/config/outliers.conf --use-cases /my/usecase/folder/*.conf
 ```
 
 ## Customizing your Docker run parameters
@@ -59,6 +59,7 @@ The following modifications might need to be made to the above commands for your
 - The name of the docker network through which the Elasticsearch cluster is reachable (``--network``)
 - The mapped volumes so that your configuration file can be found (``-v``). By default, the default configuration file in ``/defaults`` is mapped to ``/mappedvolumes/config``
 - The path of the configuration file (``--config``)
+- One or more paths to use case config files (``--use-cases``)
 
 
 <p align="right"><a href="CONFIG_OUTLIERS.md">Building detection use cases &#8594;</a></p>

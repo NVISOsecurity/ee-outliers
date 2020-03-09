@@ -13,7 +13,7 @@
 
 
 ## Existing detection models
-The different detection use cases can be configured in the configuration file, passed to ee-outliers. In this section we discuss all the different detection mechanisms that are available, and the options they provide to the analyst.
+Each different detection use case lives in its own configuration file. In this section we discuss all the different detection mechanisms that are available, and the options they provide to the analyst.
 
 The different types of detection models that can be configured are listed below.
 
@@ -114,7 +114,8 @@ One or multiple document fields that will be used to group documents.
 
 
 ## Arbitrary parameters
-It is also possible to add arbitrary parameters that will simply be copied into the outlier information. Note that these parameters will be taken into account when evaluating the [whitelist](WHITELIST.md).  Also note that placeholders are not supported here.
+It is also possible to add arbitrary parameters that will simply be copied into the outlier information. Note that these parameters will be taken into account when evaluating the [whitelist](WHITELIST.md).  Also note that placeholders are not supported here.   
+These arbitrary parameters could not start with prefix `whitelist_` (which will be used to process [per model whitelist](WHITELIST.md#whitelist-per-model)).
 
 <details>
 <summary>Example</summary>

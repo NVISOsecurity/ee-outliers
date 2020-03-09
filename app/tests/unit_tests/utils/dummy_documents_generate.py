@@ -23,6 +23,9 @@ all_test_url_values = ["http://google.be", "This is a test without URL", "Exampl
                        "http://nviso.be", "http://long-url-example-to-test.brussels"]
 all_outlier_summary = ["dummy summary"]
 all_outlier_observation = ["dummy observation"]
+all_outlier_model_name = ["dummy_test", "dummy_test_high_pct_of_med_value_within", "base64_encoded_cmdline"]
+all_outlier_model_type = ["dummy_type", "terms", "metrics", "simplequery"]
+all_outlier_elasticsearch_filter_types = ["es_valid_query"]
 
 
 class DummyDocumentsGenerate:
@@ -61,6 +64,8 @@ class DummyDocumentsGenerate:
         - command_name
         - outlier.summary
         - outlier.observation
+        - outlier.model_name
+        - outlier.model_type
 
         :param specific_value: dictionary where value can be setup
         :return: the document
@@ -178,13 +183,23 @@ class DummyDocumentsGenerate:
         if "outlier.observation" not in specific_value:
             specific_value["outlier.observation"] = random.choice(all_outlier_observation)
 
+        if "outlier.model_name" not in specific_value:
+            specific_value["outlier.model_name"] = random.choice(all_outlier_model_name)
+
+        if "outlier.model_type" not in specific_value:
+            specific_value["outlier.model_type"] = random.choice(all_outlier_model_type)
+
+        if "outlier.elasticsearch_filter" not in specific_value:
+            specific_value["outlier.elasticsearch_filter"] = random.choice(all_outlier_elasticsearch_filter_types)
+
         return {
-            "observation": specific_value["outlier.observation"],
-            "reason": "dummy reason",
-            "summary": specific_value["outlier.summary"],
-            "type": "dummy type",
-            "model_name": "dummy test",
-            "model_type": "dummy type",
+            "elasticsearch_filter": [specific_value["outlier.elasticsearch_filter"]],
+            "observation": [specific_value["outlier.observation"]],
+            "reason": ["dummy reason"],
+            "summary": [specific_value["outlier.summary"]],
+            "type": ["dummy type"],
+            "model_name": [specific_value["outlier.model_name"]],
+            "model_type": [specific_value["outlier.model_type"]],
             "total_outliers": "1"
         }
 

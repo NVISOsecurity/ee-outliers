@@ -19,7 +19,7 @@ Running outliers in tests mode:
 docker build -t "outliers-dev" .
 
 # Run the image
-docker run -v "$PWD/defaults:/mappedvolumes/config" -i outliers-dev:latest python3 outliers.py tests --config /mappedvolumes/config/outliers.conf
+docker run -v "$PWD/defaults:/mappedvolumes/config" -i outliers-dev:latest python3 outliers.py tests --config /mappedvolumes/config/outliers.conf  --use-cases /my/usecase/folder/*.conf
 ```
 
 ## Running in profiler mode
@@ -32,7 +32,7 @@ Running outliers in profiler mode:
 docker build -t "outliers-dev" .
 
 # Run the image
-docker run --cap-add SYS_PTRACE -t --network=sensor_network -v "$PWD/defaults:/mappedvolumes/config" -i  outliers-dev:latest py-spy -- python3 outliers.py interactive --config /mappedvolumes/config/outliers.conf
+docker run --cap-add SYS_PTRACE -t --network=sensor_network -v "$PWD/defaults:/mappedvolumes/config" -i  outliers-dev:latest py-spy -- python3 outliers.py interactive --config /mappedvolumes/config/outliers.conf --use-cases /my/usecase/folder/*.conf
 ```
 
 ## Checking code style, PEP8 compliance & dead code

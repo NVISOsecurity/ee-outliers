@@ -1,4 +1,16 @@
 pipeline {
+
+    options {
+	    office365ConnectorWebhooks([[
+		notifyBackToNormal: true,
+		notifyFailure: true,
+		notifyRepeatedFailure: true,
+		notifySuccess: false,
+		notifyUnstable: true,
+		url: "${env.TEAMS_WEBHOOK}"
+	    ]])
+    }
+	
     agent {
         label 'docker'
     }
@@ -15,6 +27,8 @@ pipeline {
         stage('Build docker image') {
             steps {
                 script {
+                    def version = readFile("${env.WORKSPACE}/VERSION").trim()
+                    sh "grep \"^EE_OUTLIERS_VERSIONS = \\\"${version}\\\"\" \"${env.WORKSPACE}/app/outliers.py\""
                     if(env.NO_CACHE == "1") {
                         app = docker.build("eagleeye/outliers", "--no-cache .")
                     } else {
@@ -28,7 +42,7 @@ pipeline {
             steps {
                 script {
                     app.inside {
-                        sh 'python3 /app/outliers.py tests --config /defaults/outliers.conf'
+                        sh 'python3 /app/outliers.py tests --config /defaults/outliers.conf --use-cases /app/tests/files/use_cases/*.conf'
                     }
                 }
             }
@@ -41,15 +55,48 @@ pipeline {
             }
             steps {
                 script{
-                    withCredentials([string(credentialsId: 'sonar-login-key', variable: 'LOGIN')]) {
-                        sh '''
-                            /opt/sonar-scanner -Dsonar.login=$LOGIN
-                        '''
+                	def scannerHome = tool 'sonarscanner';
+				    withSonarQubeEnv('Sonar') { 
+				      sh "${scannerHome}/bin/sonar-scanner"
+				    }
+                }
+            }
+        }
+
+        stage('Push image') {
+            steps {
+                script {
+                    env.WORKSPACE = pwd()
+                    def version = readFile "${env.WORKSPACE}/VERSION"
+                    def full_version = version.trim()
+                    def feature_version = full_version.split("\\.")[0..1].join(".")
+                    docker.withRegistry("${env.DOCKER_REGISTRY_URL}", 'jenkins-nexus') {
+                        if(env.BRANCH_NAME == 'master') {
+                            app.push("${full_version}")
+                            app.push("${feature_version}")
+                            app.push("latest")
+                        } else if(env.BRANCH_NAME == 'development') {
+                            app.push("devlatest")
+                        }
+                    }
+                    if(env.BRANCH_NAME == 'master') {
+                        withCredentials([usernamePassword(credentialsId: 'dockerhub', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
+                            sh """
+                                docker tag eagleeye/outliers:latest nvisobe/ee-outliers:latest;
+                                docker tag eagleeye/outliers:latest nvisobe/ee-outliers:${full_version};
+                                docker tag eagleeye/outliers:latest nvisobe/ee-outliers:${feature_version};
+                                docker login --username=$USERNAME --password=$PASSWORD;
+                                docker push nvisobe/ee-outliers:latest;
+                                docker push nvisobe/ee-outliers:${full_version};
+                                docker push nvisobe/ee-outliers:${feature_version};
+                            """
+                        }
+                        
                     }
                 }
             }
         }
-        
+
         stage('Official release') {
             steps {
                 script {
@@ -64,38 +111,6 @@ pipeline {
                 }
             }
         }
-
-        stage('Push image') {
-            steps {
-                script {
-                    env.WORKSPACE = pwd()
-                    def version = readFile "${env.WORKSPACE}/VERSION"
-                    def full_version = version.trim()
-                    def feature_version = full_version.split("\\.")[0..1].join(".")
-                    docker.withRegistry('https://localhost:1234/', 'jenkins-nexus') {
-                        if(env.BRANCH_NAME == 'master') {
-                            app.push("${full_version}")
-                            app.push("${feature_version}")
-                            app.push("latest")
-                        } else if(env.BRANCH_NAME == 'development') {
-                            app.push("devlatest")
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    post {
-        always {
-            script {
-                sh 'docker run -v $WORKSPACE:/workspace --rm alpine/flake8 --exit-zero --ignore=E501 --output-file=/workspace/flake8.xml /workspace/app'
-                def flake8 = scanForIssues filters: [], tool: flake8(pattern: 'flake8.xml')
-                archiveArtifacts 'flake8.xml'
-                publishIssues issues: [flake8]
-            }
-        }
     }
     
 }
-

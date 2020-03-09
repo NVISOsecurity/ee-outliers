@@ -5,6 +5,7 @@ import time
 import os
 import sys
 import unittest
+import glob
 
 from typing import List, Optional, cast
 
@@ -19,14 +20,9 @@ from helpers.singletons import settings, logging, es
 from helpers.watchers import FileModificationWatcher
 from helpers.housekeeping import HousekeepingJob
 from helpers.analyzer import Analyzer
+from helpers.analyzerfactory import AnalyzerFactory
 
-from analyzers.metrics import MetricsAnalyzer
-from analyzers.simplequery import SimplequeryAnalyzer
-from analyzers.terms import TermsAnalyzer
-from analyzers.word2vec import Word2VecAnalyzer
-
-
-EE_OUTLIERS_VERSIONS = "0.2.6"
+EE_OUTLIERS_VERSIONS = "0.2.11"
 
 def run_outliers() -> None:
     """
@@ -144,7 +140,7 @@ def run_daemon_mode() -> None:
         should_schedule_next_run: bool = False
 
         # This loop will run for as long we don't need to perform an analysis
-        while (next_run is None or datetime.now() < next_run) and first_run is False and  \
+        while (next_run is None or datetime.now() < next_run) and first_run is False and \
                 run_succeeded_without_errors is True:
 
             # Check if we already know when to perform the analysis next; if not, we need to schedule it
@@ -191,7 +187,7 @@ def run_daemon_mode() -> None:
 
         # Perform analysis and print the analysis summary at the end
         logging.print_generic_intro("starting outlier detection")
-        analyzed_models: List[Analyzer] = perform_analysis()
+        analyzed_models: List[Analyzer] = perform_analysis(housekeeping_job)
         print_analysis_summary(analyzed_models)
 
         errored_models: List[Analyzer] = [analyzer for analyzer in analyzed_models if analyzer.unknown_error_analysis]
@@ -228,55 +224,41 @@ def run_interactive_mode() -> None:
     # The difference with daemon mode is that in interactive mode, we want to allow the user to stop execution on the
     # command line, interactively.
     try:
-        analyzed_models: List[Analyzer] = perform_analysis()
+        analyzed_models: List[Analyzer] = perform_analysis(housekeeping_job)
         print_analysis_summary(analyzed_models)
     except KeyboardInterrupt:
         logging.logger.info("keyboard interrupt received, stopping housekeeping thread")
     finally:
         logging.logger.info("asking housekeeping jobs to shutdown after finishing")
-        housekeeping_job.shutdown_flag.set()
-        housekeeping_job.join()
+        housekeeping_job.stop_housekeeping()
 
     logging.logger.info("finished performing outlier detection")
 
+def load_analyzers():
+    analyzers: List[Analyzer] = list()
+    
+    for use_case_arg in settings.args.use_cases:
+        for use_case_file in glob.glob(use_case_arg):
+            logging.logger.debug("Loading use case %s" % use_case_file)
+            try:
+                analyzers.append(AnalyzerFactory.create(use_case_file))
+            except ValueError as e:
+                logging.logger.error("An error occured when loading %s: %s" % (use_case_file, str(e)))
+
+    return analyzers
 
 # pylint: disable=too-many-branches
-def perform_analysis() -> List[Analyzer]:
+def perform_analysis(housekeeping_job):
     """ The entrypoint for analysis
     :return: List of analyzers that have been processed and analyzed
     """
-    analyzers: List[Analyzer] = list()
-
-    # Create all the analyzer objects based on the models defined in the configuration file
-    for config_section_name in settings.config.sections():
-        _analyzer: Optional[Analyzer] = None
-        try:
-            if config_section_name.startswith("simplequery_"):
-                _analyzer = SimplequeryAnalyzer(config_section_name=config_section_name)
-                analyzers.append(_analyzer)
-
-            elif config_section_name.startswith("metrics_"):
-                _analyzer = MetricsAnalyzer(config_section_name=config_section_name)
-                analyzers.append(_analyzer)
-
-            elif config_section_name.startswith("terms_"):
-                _analyzer = TermsAnalyzer(config_section_name=config_section_name)
-                analyzers.append(_analyzer)
-
-            elif config_section_name.startswith("beaconing_"):
-                logging.logger.error("use of the beaconing model is deprecated, please use the terms model using "
-                                     "coeff_of_variation trigger method to convert use case %s ", config_section_name)
-
-            elif config_section_name.startswith("word2vec_"):
-                _analyzer = Word2VecAnalyzer(config_section_name=config_section_name)
-                analyzers.append(_analyzer)
-        except Exception:  # pylint: disable=broad-except
-            logging.logger.error("error while initializing analyzer %s", config_section_name, exc_info=True)
+    analyzers: List[Analyzer] = load_analyzers()
+    housekeeping_job.update_analyzer_list(analyzers)
 
     # In case the created analyzer is activated in test or run mode, add it to the list of analyzers to evaluate
     analyzers_to_evaluate: List[Analyzer] = list()
     for analyzer in analyzers:
-        if analyzer.should_run_model or analyzer.should_test_model:
+        if analyzer.model_settings["run_model"] or analyzer.model_settings["test_model"]:
             analyzers_to_evaluate.append(analyzer)
 
     # In case a single analyzer is causing issues (for example taking up too much time & resources), then a naive
@@ -294,18 +276,17 @@ def perform_analysis() -> List[Analyzer]:
             analyzer.evaluate_model()
             analyzer.analysis_end_time = datetime.today().timestamp()
             analyzer.completed_analysis = True
+            es.flush_bulk_actions()
 
             logging.logger.info("finished processing use case - %d / %d [%s%% done]", index + 1,
                                 len(analyzers_to_evaluate),
                                 '{:.2f}'.format(round((index + 1) / float(len(analyzers_to_evaluate)) * 100, 2)))
         except elasticsearch.exceptions.NotFoundError:
             analyzer.index_not_found_analysis = True
-            logging.logger.warning("index %s does not exist, skipping use case", analyzer.es_index)
+            logging.logger.warning("index %s does not exist, skipping use case", analyzer.model_settings["es_index"])
         except Exception:  # pylint: disable=broad-except
             analyzer.unknown_error_analysis = True
             logging.logger.error("error while analyzing use case", exc_info=True)
-        finally:
-            es.flush_bulk_actions(refresh=True)
 
     return analyzers_to_evaluate
 
@@ -362,7 +343,7 @@ def print_analysis_summary(analyzed_models: List[Analyzer]) -> None:
         completed_models_with_events_taking_most_time = completed_models_with_events[:10]
 
         for model in completed_models_with_events_taking_most_time:
-            logging.logger.info("\t+ %s - %s events - %s outliers - %s", model.config_section_name,
+            logging.logger.info("\t+ %s - %s events - %s outliers - %s", model.model_type + "_" + model.model_name,
                                 "{:,}".format(model.total_events),
                                 "{:,}".format(model.total_outliers),
                                 helpers.utils.seconds_to_pretty_str(round(cast(float, model.analysis_time_seconds))))
@@ -372,14 +353,14 @@ def print_analysis_summary(analyzed_models: List[Analyzer]) -> None:
         logging.logger.info("models for which the configuration parsing failed:")
 
         for model in configuration_parsing_error_models:
-            logging.logger.info("\t+ %s", model.config_section_name)
+            logging.logger.info("\t+ %s", model.model_type + "_" + model.model_name)
 
     if unknown_error_models:
         logging.logger.info("")
         logging.logger.info("models for which an unexpected error was encountered:")
 
         for model in unknown_error_models:
-            logging.logger.info("\t+ %s", model.config_section_name)
+            logging.logger.info("\t+ %s", model.model_type + "_" + model.model_name)
 
     if not analyzed_models:
         logging.logger.warning("no use cases were analyzed. are you sure your configuration file contains use "

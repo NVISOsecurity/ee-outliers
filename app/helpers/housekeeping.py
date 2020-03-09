@@ -3,7 +3,8 @@ import threading
 from helpers.singletons import logging, settings, es
 from helpers.watchers import FileModificationWatcher
 
-from typing import Dict, Any
+from typing import Dict, List, Any
+from helpers.analyzer import Analyzer
 
 
 class HousekeepingJob(threading.Thread):
@@ -14,37 +15,23 @@ class HousekeepingJob(threading.Thread):
         self.file_mod_watcher: FileModificationWatcher = FileModificationWatcher()
         self.file_mod_watcher.add_files(settings.args.config)
 
-        self.last_config_parameters: Dict[str, Any] = self._get_config_whitelist_parameters()
-
         # The shutdown_flag is a threading.Event object that
         # indicates whether the thread should be terminated.
         self.shutdown_flag: threading.Event = threading.Event()
+        self.analyzers_updated: bool = False
 
-    @staticmethod
-    def _get_config_whitelist_parameters() -> Dict[str, Any]:
-        """
-        Get parameters linked to the whitelist
-
-        :return: dictionary with whitelist parameters
-        """
-        return {
-            'whitelist_literals': settings.config.items("whitelist_literals"),
-            'whitelist_regexps': settings.config.items("whitelist_regexps"),
-            'es_wipe_all_whitelisted_outliers': settings.config.getboolean("general",
-                                                                           "es_wipe_all_whitelisted_outliers")
-        }
+        self.dict_analyzer: Dict = dict()
 
     def run(self) -> None:
         """
         Task to launch the housekeeping
         """
         logging.logger.info('housekeeping thread #%s started' % self.ident)
-        self.remove_all_whitelisted_outliers()
 
         # Remove all existing whitelisted items if needed
         while not self.shutdown_flag.is_set():
-            self.shutdown_flag.wait(5)
-            self.execute_housekeeping()
+            if not self.shutdown_flag.wait(5):  # Return True if flag was set by outliers
+                self.execute_housekeeping()
 
         logging.logger.info('housekeeping thread #%s stopped' % self.ident)
 
@@ -52,25 +39,35 @@ class HousekeepingJob(threading.Thread):
         """
         Execute the housekeeping
         """
-        if len(self.file_mod_watcher.files_changed()) > 0:
+        if self.file_mod_watcher.files_changed() or self.analyzers_updated:
+            self.analyzers_updated = False
             # reload configuration file, in case new whitelisted items were added by the analyst, they
             # should be processed!
             settings.process_configuration_files()
 
-            if self.last_config_parameters != self._get_config_whitelist_parameters():
-                self.last_config_parameters = self._get_config_whitelist_parameters()
-                logging.logger.info("housekeeping - changes detected in the whitelist configuration")
-                self.remove_all_whitelisted_outliers()
+            logging.logger.info("housekeeping - changes detected, process again housekeeping")
+            self.remove_all_whitelisted_outliers()
 
-    @staticmethod
-    def remove_all_whitelisted_outliers() -> None:
+    def update_analyzer_list(self, list_analyzer: List[Analyzer]) -> None:
+        self.dict_analyzer: Dict[str, Analyzer] = dict()  # Reset list
+        for analyzer in list_analyzer:
+            self.dict_analyzer[analyzer.model_type + "_" + analyzer.model_name] = analyzer
+        logging.logger.info("housekeeping - list analyzer have been updated")
+        self.analyzers_updated = True
+
+    def stop_housekeeping(self) -> None:
+        self.shutdown_flag.set()
+        self.join()
+
+    def remove_all_whitelisted_outliers(self) -> None:
         """
         Try to remove all whitelist outliers that are already in Elasticsearch
         """
+
         if settings.config.getboolean("general", "es_wipe_all_whitelisted_outliers"):
             try:
                 logging.logger.info("housekeeping - going to remove all whitelisted outliers")
-                total_docs_whitelisted: int = es.remove_all_whitelisted_outliers()
+                total_docs_whitelisted: int = es.remove_all_whitelisted_outliers(self.dict_analyzer)
 
                 if total_docs_whitelisted > 0:
                     logging.logger.info(

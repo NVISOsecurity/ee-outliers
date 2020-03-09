@@ -4,15 +4,18 @@ import logging
 import datetime as dt
 
 from helpers.singleton import singleton  # type: ignore
-
+from logging.handlers import WatchedFileHandler
 
 @singleton
 class Logging:
     # start_time = None"""
     logger: logging.Logger
 
-    current_step: int
-
+    #TODO define type
+    current_step = None
+    start_time = None
+    total_steps = None
+    desc = None
     verbosity: int = 0
 
     def __init__(self, logger_name: str) -> None:
@@ -32,7 +35,7 @@ class Logging:
         self.logger.addHandler(ch)
 
     def add_file_handler(self, log_file: str) -> None:
-        ch: logging.FileHandler = logging.FileHandler(log_file)
+        ch: logging.FileHandler = WatchedFileHandler(log_file)
         ch.setLevel(self.logger.level)
         formatter: logging.Formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s',
                                                          "%Y-%m-%d %H:%M:%S")

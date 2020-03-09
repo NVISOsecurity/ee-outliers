@@ -17,13 +17,14 @@ class TemplateAnalyzer(Analyzer):
         """
         Override method from Analyzer
         """
-        self.model_settings["train_model"] = settings.config.getboolean(self.config_section_name, "train_model")
+        self.model_settings["train_model"] = self.config_section.getboolean("train_model")
 
     def train_model(self) -> None:
         train_data: List[Dict] = list()
 
         documents: List[Dict[str, Any]]
-        self.total_events, documents = es.count_and_scan_documents(index=self.es_index, search_query=self.search_query,
+        self.total_events, documents = es.count_and_scan_documents(index=self.model_settings["es_index"],
+                                                                   search_query=self.search_query,
                                                                    model_settings=self.model_settings)
         training_data_size_pct: int = settings.config.getint("machine_learning", "training_data_size_pct")
         training_data_size: float = self.total_events / 100 * training_data_size_pct

@@ -5,6 +5,7 @@
 **Table of contents**
 - [Literals whitelist](#literals-whitelist)
 - [Regular expression whitelist](#regular-expression-whitelist)
+- [Whitelist per model](#whitelist-per-model)
 
 ee-outliers provides support for whitelisting of certain outliers. By whitelisting an outlier, you prevent them from being tagged and stored in Elasticsearch.
 
@@ -35,5 +36,13 @@ Example:
 scheduled_task_user_specific_2=^.*rare scheduled task:.*-.*-.*-.*-.*$
 autorun_user_specific=^.*rare autorun:.*-.*-.*-.*-.*$
 ```
+
+
+## Whitelist per model
+
+It is possible to define whitelist entries per model.  This option is possible with literal or regex whitelist.
+
+To define a model whitelist entry, the `whitelist_literals` and/or the `whitelist_regexps` sections can be added to the use cases' configuration file.
+
 
 <p align="right"><a href="NOTIFICATIONS.md">Notification system &#8594;</a></p>

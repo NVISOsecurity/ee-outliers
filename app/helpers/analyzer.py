@@ -1,7 +1,7 @@
 import abc
-from configparser import NoOptionError
-
 import dateutil
+
+from configparser import NoOptionError
 
 from helpers.singletons import settings, es, logging
 import helpers.utils
@@ -17,15 +17,11 @@ class Analyzer(abc.ABC):
     This class keeps state around the model type, processed events, identified outliers, etc.
     It is also resposible for extracting the model settings from the configuration files.
     """
-    DEFAULT_CONFIG_KEY = {"run_model", "test_model", "es_index"}
 
-    def __init__(self, config_section_name: str) -> None:
-        # the configuration file section for the use case, for example [simplequery_test_model]
-        self.config_section_name: str = config_section_name
-
-        # split the configuration section into the model type ("simplequery") and the model name ("test_model")
-        self.model_type: str = self.config_section_name.split("_")[0]
-        self.model_name: str = "_".join((self.config_section_name.split("_")[1:]))
+    def __init__(self, model_type: str, model_name: str, config_section):
+        self.model_type: str = model_type
+        self.model_name: str = model_name
+        self.config_section = config_section
 
         self.total_events: int = 0
         self.total_outliers: int = 0
@@ -40,6 +36,9 @@ class Analyzer(abc.ABC):
 
         self.nr_whitelisted_elements: int = 0
 
+        self.model_whitelist_literals = list()
+        self.model_whitelist_regexps = list()
+
         # extract all settings for this use case
         self.configuration_parsing_error: bool = False
 
@@ -48,9 +47,14 @@ class Analyzer(abc.ABC):
             self._extract_additional_model_settings()
             self.extra_model_settings = self._extract_arbitrary_config()
         except Exception:  # pylint: disable=broad-except
-            logging.logger.error("error while parsing use case configuration for %s", self.config_section_name,
-                                 exc_info=True)
+            logging.logger.error("error while parsing use case configuration for %s", self.model_name, exc_info=True)
             self.configuration_parsing_error = True
+
+    def add_whitelist_literal(self, s):
+        self.model_whitelist_literals.append(s)
+
+    def add_whitelist_regexp(self, s):
+        self.model_whitelist_regexps.append(s)
 
     @property
     def analysis_time_seconds(self) -> Optional[float]:
@@ -72,64 +76,49 @@ class Analyzer(abc.ABC):
         # has a high impact on performance when scanning in Elasticsearch
         model_settings["process_documents_chronologically"] = True
 
-        try:
-            model_settings["es_query_filter"] = settings.config.get(self.config_section_name, "es_query_filter")
-            self.search_query = es.filter_by_query_string(cast(str, model_settings["es_query_filter"]))
+        model_settings["es_query_filter"] = self.config_section.get("es_query_filter")
+        if model_settings["es_query_filter"]:
+            self.search_query = es.filter_by_query_string(model_settings["es_query_filter"])
+        
+        model_settings["es_dsl_filter"] = self.config_section.get("es_dsl_filter")
+        if model_settings["es_dsl_filter"]:
+            self.search_query = es.filter_by_dsl_query(model_settings["es_dsl_filter"])
 
-        except NoOptionError:
-            model_settings["es_query_filter"] = None
-
-        try:
-            model_settings["es_dsl_filter"] = settings.config.get(self.config_section_name, "es_dsl_filter")
-            self.search_query = es.filter_by_dsl_query(cast(str, model_settings["es_dsl_filter"]))
-
-        except NoOptionError:
-            model_settings["es_dsl_filter"] = None
-
-        try:
-            model_settings["timestamp_field"] = settings.config.get(self.config_section_name, "timestamp_field")
-        except NoOptionError:
+        model_settings["timestamp_field"] = self.config_section.get("timestamp_field")
+        if not model_settings["timestamp_field"]:
             model_settings["timestamp_field"] = settings.config.get("general", "timestamp_field", fallback="timestamp")
 
-        try:
-            model_settings["history_window_days"] = settings.config.getint(self.config_section_name,
-                                                                           "history_window_days")
-        except NoOptionError:
+
+        model_settings["history_window_days"] = self.config_section.getint("history_window_days")
+        if not model_settings["history_window_days"]:
             model_settings["history_window_days"] = settings.config.getint("general", "history_window_days")
 
-        try:
-            model_settings["history_window_hours"] = settings.config.getint(self.config_section_name,
-                                                                            "history_window_hours")
-        except NoOptionError:
+        model_settings["history_window_hours"] = self.config_section.getint("history_window_hours")
+        if not model_settings["history_window_hours"]:
             model_settings["history_window_hours"] = settings.config.getint("general", "history_window_hours")
 
         try:
             model_settings["should_notify"] = settings.config.getboolean("notifier", "email_notifier") and \
-                                              settings.config.getboolean(self.config_section_name, "should_notify")
+                                              self.config_section.getboolean("should_notify")
         except NoOptionError:
             model_settings["should_notify"] = False
 
-        try:
-            model_settings["use_derived_fields"] = settings.config.getboolean(self.config_section_name,
-                                                                              "use_derived_fields")
-        except NoOptionError:
-            model_settings["use_derived_fields"] = False
 
-        try:
-            self.es_index = settings.config.get(self.config_section_name, "es_index")
-        except NoOptionError:
-            self.es_index = settings.config.get("general", "es_index_pattern")
+        model_settings["use_derived_fields"] = self.config_section.getboolean("use_derived_fields")
 
-        model_settings["outlier_reason"] = settings.config.get(self.config_section_name, "outlier_reason")
-        model_settings["outlier_type"] = settings.config.get(self.config_section_name, "outlier_type")
-        model_settings["outlier_summary"] = settings.config.get(self.config_section_name, "outlier_summary")
+        model_settings["es_index"] = self.config_section.get("es_index")
+        if not model_settings["es_index"]:
+            model_settings["es_index"] = settings.config.get("general", "es_index_pattern")
 
-        self.should_run_model: bool = settings.config.getboolean("general",
-                                                                 "run_models") and settings.config.getboolean(
-            self.config_section_name, "run_model")
-        self.should_test_model: bool = settings.config.getboolean("general",
-                                                                  "test_models") and settings.config.getboolean(
-            self.config_section_name, "test_model")
+        model_settings["outlier_reason"] = self.config_section.get("outlier_reason")
+        model_settings["outlier_type"] = self.config_section.get("outlier_type")
+        model_settings["outlier_summary"] = self.config_section.get("outlier_summary")
+
+        model_settings["run_model"] = settings.config.getboolean(
+            "general", "run_models") and self.config_section.getboolean("run_model")
+        model_settings["test_model"] = settings.config.getboolean(
+            "general", "test_models") and self.config_section.getboolean("test_model")
+
         return model_settings
 
     def _extract_additional_model_settings(self) -> None:
@@ -137,6 +126,8 @@ class Analyzer(abc.ABC):
         Method call in the construction to load all parameters of this analyzer
         This method can be overridden by children to load content linked to a specific analyzer
         """
+        pass
+
 
     def _extract_arbitrary_config(self) -> Dict[str, Any]:
         """
@@ -146,10 +137,14 @@ class Analyzer(abc.ABC):
         """
         extra_model_settings: Dict[str, Any] = dict()
 
-        all_items = settings.config.items(self.config_section_name)
-        for key, value in all_items:
-            if key not in self.model_settings and key not in Analyzer.DEFAULT_CONFIG_KEY:
+        for key, value in self.config_section.items():
+            if key not in self.model_settings:
                 extra_model_settings[key] = value
+
+            # although we don't want to add all model settings, we do want to add the DSL and query filters,
+            # as they can help the analyst to better understand which events are considered for each use case.
+            if key in ("es_dsl_filter", "es_query_filter"):
+                extra_model_settings["elasticsearch_filter"] = value
 
         return extra_model_settings
 
@@ -221,6 +216,7 @@ class Analyzer(abc.ABC):
         if outlier_assets:
             outlier.outlier_dict["assets"] = outlier_assets
 
+        # This loop add also model_name and model_type to Outlier
         for key, value in self.extra_model_settings.items():
             outlier.outlier_dict[key] = value
 
@@ -239,7 +235,11 @@ class Analyzer(abc.ABC):
         self.total_outliers += 1
         self.outlier_summaries.add(outlier.outlier_dict["summary"])
 
-        es.process_outlier(outlier=outlier, should_notify=self.model_settings["should_notify"])
+        if outlier.is_whitelisted(self.model_whitelist_literals, self.model_whitelist_regexps):
+            if settings.print_outliers_to_console:
+                logging.logger.info(outlier.outlier_dict["summary"] + " [whitelisted outlier]")
+        else:
+            es.process_outlier(outlier=outlier, should_notify=self.model_settings["should_notify"])
 
     def print_analysis_intro(self, event_type: str, total_events: int) -> None:
         """

@@ -8,11 +8,16 @@ import helpers.es
 from helpers.outlier import Outlier
 from helpers.singletons import es
 from tests.unit_tests.test_stubs.test_stub_es import TestStubEs
+from tests.unit_tests.test_stubs.test_stub_analyzer import TestStubAnalyzer
 from tests.unit_tests.utils.update_settings import UpdateSettings
 from tests.unit_tests.utils.dummy_documents_generate import DummyDocumentsGenerate
+from helpers.analyzerfactory import AnalyzerFactory
+import helpers.analyzerfactory
 
 doc_without_outlier_test_file = json.load(open("/app/tests/unit_tests/files/doc_without_outlier.json"))
 doc_with_outlier_test_file = json.load(open("/app/tests/unit_tests/files/doc_with_outlier.json"))
+doc_with_outlier_without_model_info_test_file = json.load(open(
+    "/app/tests/unit_tests/files/doc_with_outlier_without_model_info.json"))
 doc_with_two_outliers_test_file = json.load(open("/app/tests/unit_tests/files/doc_with_two_outliers.json"))
 doc_with_three_outliers_test_file = json.load(open("/app/tests/unit_tests/files/doc_with_three_outliers.json"))
 
@@ -26,6 +31,8 @@ nested_doc_for_whitelist_test = {'169.254.184.188', 'fe80::491a:881a:b1bf:b539',
                                  r'C:\Windows\system32\msfeedssync.exe sync',
                                  r'\User_Feed_Synchronization-{9CD0CFAD-350E-46BA-8338-932284EF7332}'}
 
+# Monkey patch the test stub analyzer mapping in the AnalyzerFactory
+helpers.analyzerfactory.class_mapping["analyzer"] = TestStubAnalyzer
 
 class TestOutlierOperations(unittest.TestCase):
     def setUp(self):
@@ -39,18 +46,18 @@ class TestOutlierOperations(unittest.TestCase):
 
     def test_add_outlier_to_doc(self):
         doc = copy.deepcopy(doc_without_outlier_test_file)
-        test_outlier = Outlier(outlier_type="dummy type", outlier_reason="dummy reason",
-                               outlier_summary="dummy summary", doc=doc)
-        # Model name, model type and obseration are added by analyzer
-        test_outlier.outlier_dict["observation"] = ["dummy observation"]
+        test_outlier = Outlier(outlier_type="dummy type",
+                               outlier_reason="dummy reason", outlier_summary="dummy summary", doc=doc)
+        # Model name, model type are added by analyzer
+        test_outlier.outlier_dict["observation"] = "dummy observation"
 
         doc_with_outlier = helpers.es.add_outlier_to_document(test_outlier)
-        self.assertDictEqual(doc_with_outlier_test_file, doc_with_outlier)
+        self.assertDictEqual(doc_with_outlier_without_model_info_test_file, doc_with_outlier)
 
     def test_remove_outlier_from_doc(self):
         doc = copy.deepcopy(doc_without_outlier_test_file)
-        test_outlier = Outlier(outlier_type="dummy type", outlier_reason="dummy reason",
-                               outlier_summary="dummy summary", doc=doc)
+        test_outlier = Outlier(outlier_type="dummy type",
+                               outlier_reason="dummy reason", outlier_summary="dummy summary", doc=doc)
         test_outlier.outlier_dict["observation"] = "dummy observation"
 
         doc_with_outlier = helpers.es.add_outlier_to_document(test_outlier)
@@ -60,8 +67,8 @@ class TestOutlierOperations(unittest.TestCase):
 
     def test_add_duplicate_outlier_to_doc(self):
         doc = copy.deepcopy(doc_without_outlier_test_file)
-        test_outlier = Outlier(outlier_type="dummy type", outlier_reason="dummy reason",
-                               outlier_summary="dummy summary", doc=doc)
+        test_outlier = Outlier(outlier_type="dummy type",
+                               outlier_reason="dummy reason", outlier_summary="dummy summary", doc=doc)
 
         doc_with_outlier = helpers.es.add_outlier_to_document(test_outlier)
         doc_with_outlier = helpers.es.add_outlier_to_document(test_outlier)
@@ -70,8 +77,8 @@ class TestOutlierOperations(unittest.TestCase):
 
     def test_add_two_outliers_to_doc(self):
         doc = copy.deepcopy(doc_without_outlier_test_file)
-        test_outlier = Outlier(outlier_type="dummy type",  outlier_reason="dummy reason",
-                               outlier_summary="dummy summary", doc=doc)
+        test_outlier = Outlier(outlier_type="dummy type",
+                               outlier_reason="dummy reason", outlier_summary="dummy summary", doc=doc)
         test_outlier.outlier_dict["observation"] = "dummy observation"
 
         test_outlier_2 = Outlier(outlier_type="dummy type 2", outlier_reason="dummy reason 2",
@@ -155,6 +162,14 @@ class TestOutlierOperations(unittest.TestCase):
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/whitelist_tests_01_with_general.conf")
         self.assertTrue(test_outlier.is_whitelisted())
 
+    def test_whitelist_config_file_multi_item_match_with_whitelist_element_part_of_list_in_event(self):
+        orig_doc = copy.deepcopy(doc_with_outlier_test_file)
+        test_outlier = Outlier(outlier_type="dummy type", outlier_reason="dummy reason",
+                               outlier_summary="dummy summary", doc=orig_doc)
+
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/whitelist_tests_08_with_general.conf")
+        self.assertTrue(test_outlier.is_whitelisted())
+
     def test_single_literal_to_match_in_doc_with_outlier(self):
         orig_doc = copy.deepcopy(doc_with_outlier_test_file)
         test_outlier = Outlier(outlier_type="dummy type", outlier_reason="dummy reason",
@@ -170,6 +185,22 @@ class TestOutlierOperations(unittest.TestCase):
 
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/whitelist_tests_03_with_general.conf")
         self.assertFalse(test_outlier.is_whitelisted())
+
+    def test_single_regex_to_match_in_doc_with_outlier(self):
+        orig_doc = copy.deepcopy(doc_with_outlier_test_file)
+        test_outlier = Outlier(outlier_type="dummy type", outlier_reason="dummy reason",
+                               outlier_summary="dummy summary", doc=orig_doc)
+
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/whitelist_tests_06_with_general.conf")
+        self.assertTrue(test_outlier.is_whitelisted())
+
+    def test_single_regex_not_to_match_in_doc_with_outlier(self):
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/whitelist_tests_07_with_general.conf")
+        orig_doc = copy.deepcopy(doc_with_outlier_test_file)
+        test_outlier = Outlier(outlier_type="dummy type", outlier_reason="dummy reason",
+                               outlier_summary="dummy summary", doc=orig_doc)
+        result = test_outlier.is_whitelisted()
+        self.assertFalse(result)
 
     def test_whitelist_config_file_multi_item_match_with_three_fields_and_whitespace(self):
         orig_doc = copy.deepcopy(doc_with_outlier_test_file)
@@ -193,14 +224,28 @@ class TestOutlierOperations(unittest.TestCase):
         doc_without_outlier = copy.deepcopy(doc_without_outlier_test_file)
         self.test_es.add_doc(doc_with_outlier)
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/whitelist_tests_01_with_general.conf")
-        es.remove_all_whitelisted_outliers()
+
+        analyzer = AnalyzerFactory.create("/app/tests/unit_tests/files/use_cases/analyzer/analyzer_dummy_test.conf")
+        es.remove_all_whitelisted_outliers({"analyzer_dummy_test": analyzer})
+
         result = [elem for elem in es._scan()][0]
-        self.assertEqual(result, doc_without_outlier)
+        self.assertDictEqual(result, doc_without_outlier)
 
     def test_whitelist_config_change_single_literal_not_to_match_in_doc_with_outlier(self):
         doc_with_outlier = copy.deepcopy(doc_with_outlier_test_file)
         self.test_es.add_doc(doc_with_outlier)
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/whitelist_tests_03_with_general.conf")
-        es.remove_all_whitelisted_outliers()
+
+        analyzer = AnalyzerFactory.create("/app/tests/unit_tests/files/use_cases/analyzer/analyzer_dummy_test.conf")
+
+        es.remove_all_whitelisted_outliers({"analyzer_dummy_test": analyzer})
         result = [elem for elem in es._scan()][0]
         self.assertEqual(result, doc_with_outlier)
+
+    def test_test_osquery_ticket_1933_single_regexp_should_not_match(self):
+        orig_doc = copy.deepcopy(doc_with_outlier_test_file)
+        test_outlier = Outlier(outlier_type="dummy type", outlier_reason="dummy reason",
+                               outlier_summary="dummy summary", doc=orig_doc)
+
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/whitelist_tests_09_ticket_1933.conf")
+        self.assertTrue(test_outlier.is_whitelisted())
