@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Update ElasticSearch library to 7.5.1
 - Changed logging level on some warnings
 - Outliers version printed at startup is now read from VERSION file instead of being hardcoded
 
