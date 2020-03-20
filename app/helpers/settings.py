@@ -107,8 +107,13 @@ class Settings:
         for each_whitelist_configuration_file_value in whitelist_regexps_config_items:
             new_compile_regex_whitelist_value, value_failing_regular_expressions = \
                 self.extract_whitelist_regex_from_value(each_whitelist_configuration_file_value)
-            list_whitelist_regexps.append(new_compile_regex_whitelist_value)
-            failing_regular_expressions.union(value_failing_regular_expressions)
+
+            # Fixes bug #462
+            if len(new_compile_regex_whitelist_value) > 0:
+                list_whitelist_regexps.append(new_compile_regex_whitelist_value)
+
+            if len(value_failing_regular_expressions) > 0:
+                failing_regular_expressions.union(value_failing_regular_expressions)
 
         return list_whitelist_regexps, failing_regular_expressions
 
