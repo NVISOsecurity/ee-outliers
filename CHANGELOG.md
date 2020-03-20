@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Fixed a bug where a malformed regular expression in the whitelist configuration file caused all events to match (fixes issues #462)
 - Update Elasticsearch library to 7.5.1
 - Changed logging level on some warnings
 - Outliers version printed at startup is now read from VERSION file instead of being hardcoded
