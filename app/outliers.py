@@ -230,6 +230,7 @@ def run_interactive_mode():
 
     logging.logger.info("finished performing outlier detection")
 
+
 def load_analyzers():
     analyzers = list()
 
@@ -244,6 +245,7 @@ def load_analyzers():
 
     return analyzers
 
+
 # pylint: disable=too-many-branches
 def perform_analysis(housekeeping_job):
     """ The entrypoint for analysis
@@ -255,6 +257,10 @@ def perform_analysis(housekeeping_job):
     # In case the created analyzer is activated in test or run mode, add it to the list of analyzers to evaluate
     analyzers_to_evaluate = list()
     for analyzer in analyzers:
+        # Analyzers that produced an error during configuration parsing should not be processed
+        if analyzer.configuration_parsing_error:
+            continue
+
         if analyzer.model_settings["run_model"] or analyzer.model_settings["test_model"]:
             analyzers_to_evaluate.append(analyzer)
 
@@ -265,9 +271,6 @@ def perform_analysis(housekeeping_job):
     # Now it's time actually evaluate all the models. We also make sure to add some information that will be useful
     # in the summary presented to the user at the end of running all the models.
     for index, analyzer in enumerate(analyzers_to_evaluate):
-        if analyzer.configuration_parsing_error:
-            continue
-
         try:
             analyzer.analysis_start_time = datetime.today().timestamp()
             analyzer.evaluate_model()
