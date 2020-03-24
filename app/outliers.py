@@ -241,12 +241,13 @@ def load_analyzers():
     analyzers = list()
     
     for use_case_arg in settings.args.use_cases:
-        for use_case_file in glob.glob(use_case_arg):
-            logging.logger.debug("Loading use case %s" % use_case_file)
-            try:
-                analyzers.append(AnalyzerFactory.create(use_case_file))
-            except ValueError as e:
-                logging.logger.error("An error occured when loading %s: %s" % (use_case_file, str(e)))
+        for use_case_file in glob.glob(use_case_arg, recursive=True):
+            if not os.path.isdir(use_case_file):
+                logging.logger.debug("Loading use case %s" % use_case_file)
+                try:
+                    analyzers.append(AnalyzerFactory.create(use_case_file))
+                except ValueError as e:
+                    logging.logger.error("An error occured when loading %s: %s" % (use_case_file, str(e)))
 
     return analyzers
 
