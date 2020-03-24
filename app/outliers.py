@@ -18,13 +18,6 @@ from helpers.watchers import FileModificationWatcher
 from helpers.housekeeping import HousekeepingJob
 from helpers.analyzerfactory import AnalyzerFactory
 
-def get_version():
-    try:
-        with open("/VERSION") as f:
-            return f.read().strip()
-    except (FileNotFoundError, PermissionError):
-        return "Unknown"
-
 
 def run_outliers():
     """
@@ -90,7 +83,7 @@ def print_intro():
     Print the banner information including version, loaded configuration files and any parsing errors
     that might have occurred when loading them.
     """
-    logging.logger.info("outliers.py - version %s - contact: research@nviso.be", get_version())
+    logging.logger.info("outliers.py - version %s - contact: research@nviso.be", helpers.utils.get_version())
     logging.logger.info("run mode: %s", settings.args.run_mode)
 
     logging.print_generic_intro("initializing")
@@ -239,7 +232,7 @@ def run_interactive_mode():
 
 def load_analyzers():
     analyzers = list()
-    
+
     for use_case_arg in settings.args.use_cases:
         for use_case_file in glob.glob(use_case_arg, recursive=True):
             if not os.path.isdir(use_case_file):

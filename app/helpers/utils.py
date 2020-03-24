@@ -12,6 +12,19 @@ from collections import Counter
 import helpers.singletons
 
 
+def get_version():
+    """
+    Get the version of ee-outliers by reading out the VERSION file in the root directory.
+
+    :return: the version number or Unknown if the VERSION file can't be found
+    """
+    try:
+        with open("/VERSION") as version_file:
+            return version_file.read().strip()
+    except (FileNotFoundError, PermissionError):
+        return "Unknown"
+
+
 def flatten_dict(d, parent_key='', sep='.'):
     """
     Remove the deep of a dictionary. All value are referenced by a key composed of all parent key (join by a dot).
