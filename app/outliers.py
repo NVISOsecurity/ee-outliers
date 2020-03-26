@@ -284,6 +284,10 @@ def perform_analysis(housekeeping_job):
         except elasticsearch.exceptions.NotFoundError:
             analyzer.index_not_found_analysis = True
             logging.logger.warning("index %s does not exist, skipping use case", analyzer.model_settings["es_index"])
+        except elasticsearch.helpers.BulkIndexError as e:
+            analyzer.unknown_error_analysis = True
+            logging.logger.error(f"BulkIndexError while analyzing use case: {e.args[0]}", exc_info=False)
+            logging.logger.debug("Full stack trace and error message of BulkIndexError", exc_info=True)
         except Exception:  # pylint: disable=broad-except
             analyzer.unknown_error_analysis = True
             logging.logger.error("error while analyzing use case", exc_info=True)
