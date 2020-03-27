@@ -7,7 +7,6 @@ from itertools import chain
 
 from pygrok import Grok
 from elasticsearch import helpers as eshelpers, Elasticsearch
-from elasticsearch.helpers import ScanError
 
 import helpers.utils
 import helpers.logging
@@ -474,58 +473,6 @@ class ES:
             }
         }
         return time_filter
-
-    def _verbose_test_scan(
-            self,
-            client, query=None,
-            scroll="5m",
-            raise_on_error=True,
-            preserve_order=False,
-            size=1000,
-            request_timeout=None,
-            clear_scroll=True,
-            scroll_kwargs=None,
-            **kwargs
-    ):
-        scroll_kwargs = scroll_kwargs or {}
-
-        if not preserve_order:
-            query = query.copy() if query else {}
-            query["sort"] = "_doc"
-
-        # initial search
-        resp = client.search(
-            body=query, scroll=scroll, size=size, request_timeout=request_timeout, **kwargs
-        )
-        scroll_id = resp.get("_scroll_id")
-
-        try:
-            while scroll_id and resp["hits"]["hits"]:
-                for hit in resp["hits"]["hits"]:
-                    yield hit
-
-                # check if we have any errors
-                if resp["_shards"]["successful"] < resp["_shards"]["total"]:
-                    self.logging.logger.warning(
-                        "Scroll request has only succeeded on %d shards out of %d.",
-                        resp["_shards"]["successful"],
-                        resp["_shards"]["total"],
-                    )
-                    self.logging.logger.warning(resp)
-                    if raise_on_error:
-                        raise ScanError(
-                            scroll_id,
-                            "Scroll request has only succeeded on %d shards out of %d."
-                            % (resp["_shards"]["successful"], resp["_shards"]["total"]),
-                        )
-                resp = client.scroll(
-                    body={"scroll_id": scroll_id, "scroll": scroll}, **scroll_kwargs
-                )
-                scroll_id = resp.get("_scroll_id")
-
-        finally:
-            if scroll_id and clear_scroll:
-                client.clear_scroll(body={"scroll_id": [scroll_id]}, ignore=(404,))
 
 
 def add_outlier_to_document(outlier):
