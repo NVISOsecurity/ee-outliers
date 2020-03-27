@@ -125,19 +125,11 @@ class ES:
         :param search_query: the search query
         :return: number of document
         """
-        res = self.conn.search(index=index, body=build_search_query(bool_clause=bool_clause, search_range=search_range,
+        res = self.conn.count(index=index, body=build_search_query(bool_clause=bool_clause, search_range=search_range,
                                                                     query_fields=query_fields,
-                                                                    search_query=search_query),
-                               size=self.settings.config.getint("general", "es_scan_size"))
-        result = res["hits"]["total"]
+                                                                    search_query=search_query))
 
-        # Result depend of the version of Elasticsearch (> 7, the result is a dictionary)
-        if isinstance(result, dict):
-            return_value = result["value"]
-        else:
-            return_value = result
-
-        return return_value
+        return res["count"]
 
     def count_and_scan_documents(self, index, bool_clause=None, sort_clause=None, query_fields=None, search_query=None,
                                  model_settings=None):
