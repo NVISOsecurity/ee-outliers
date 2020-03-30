@@ -1,6 +1,7 @@
 import configparser
 import argparse
 import re
+import os
 
 from configparser import NoOptionError, NoSectionError
 
@@ -14,16 +15,37 @@ daemon_parser = subparsers.add_parser('daemon')
 tests_parser = subparsers.add_parser('tests')
 
 # Interactive mode - options
-interactive_parser.add_argument("--config", action='append', help="Configuration file location", required=True)
-interactive_parser.add_argument("--use-cases", action='append', help="Additional use cases location", required=True)
+interactive_parser.add_argument("--config",
+                                action='append',
+                                type=lambda x: file_exists(interactive_parser, x),
+                                help="Configuration file location",
+                                required=True)
+interactive_parser.add_argument("--use-cases",
+                                action='append',
+                                help="Additional use cases location",
+                                required=True)
 
 # Daemon mode - options
-daemon_parser.add_argument("--config", action='append', help="Configuration file location", required=True)
-daemon_parser.add_argument("--use-cases", action='append', help="Additional use cases location", required=True)
+daemon_parser.add_argument("--config",
+                           action='append',
+                           type=lambda x: file_exists(daemon_parser, x),
+                           help="Configuration file location",
+                           required=True)
+daemon_parser.add_argument("--use-cases",
+                           action='append',
+                           help="Additional use cases location",
+                           required=True)
 
 # Tests mode - options
-tests_parser.add_argument("--config", action='append', help="Configuration file location", required=True)
-tests_parser.add_argument("--use-cases", action='append', help="Additional use cases location", required=True)
+tests_parser.add_argument("--config",
+                          action='append',
+                          type=lambda x: file_exists(tests_parser, x),
+                          help="Configuration file location",
+                          required=True)
+tests_parser.add_argument("--use-cases",
+                          action='append',
+                          help="Additional use cases location",
+                          required=True)
 
 
 @singleton
@@ -147,3 +169,20 @@ class Settings:
         except (configparser.DuplicateOptionError, configparser.DuplicateSectionError) as err:
             return err
         return None
+
+
+def file_exists(argument_parser, file_path):
+    """
+    Method to check if the file at file_path exist.
+    If file does not exist, it print a message to the standard error and terminates the program.
+    Otherwise, it returns the file_path.
+
+    :param argument_parser: ArgumentParser that return the error.
+    :param file_path: The file location.
+    :return: If file in file_path exists, it return file_path. Otherwise, it prints a message to the standard error and
+    terminates the program.
+    """
+    if not os.path.isfile(file_path):
+        argument_parser.error("The file %s does not exist." % file_path)
+    else:
+        return file_path
