@@ -173,8 +173,8 @@ class Settings:
 
 def file_exists(argument_parser, file_path):
     """
-    Method to check if the file at file_path exist.
-    If file does not exist, it print a message to the standard error and terminates the program.
+    Method to check if the file at file_path exists.
+    If the file does not exist, it prints a message to the standard error and terminates the program.
     Otherwise, it returns the file_path.
 
     :param argument_parser: ArgumentParser that return the error.
