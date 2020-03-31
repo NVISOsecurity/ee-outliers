@@ -16,6 +16,7 @@ Framework to easily detect outliers in Elasticsearch events.
 
 ### Using ee-outliers
 - [Getting started](documentation/GETTING_STARTED.md)
+- [Configuration parameters](documentation/CONFIG_PARAMETERS.md)
 - [Example use cases](examples)
 - [Building detection use cases](documentation/CONFIG_OUTLIERS.md)
 - [Whitelisting outliers](documentation/WHITELIST.md)
