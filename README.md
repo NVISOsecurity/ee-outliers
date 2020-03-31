@@ -85,10 +85,6 @@ at [research@nviso.be](mailto:research@nviso.be).
 We write about our research on our blog: https://blog.nviso.eu  
 You can follow us on twitter: https://twitter.com/NVISO_Labs
 
-<p align="left"> 
-<img alt="NVISO Labs logo" src="documentation/images/NVISO%20Labs%20standard%20logo.png?raw=true" width="200"/><br/>
-</p>
-
 Thank you for using ee-outliers and we look forward to your feedback! 🐀
 
 ## License
@@ -102,3 +98,7 @@ We are grateful for the support received by
 funding our Research & Development activities. 
 
 <p align="right"><a href="documentation/GETTING_STARTED.md">Getting started &#8594;</a></p>
+
+<p align="left"> 
+<img alt="NVISO Labs logo" src="documentation/images/NVISO%20Labs%20standard%20logo.png?raw=true" width="200"/><br/>
+</p>
