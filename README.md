@@ -9,20 +9,19 @@ Framework to easily detect outliers in Elasticsearch events.
 
 ## Documentation
 
+### Introduction
 - [What is ee-outliers?](#what-is-ee-outliers)
 - [Why ee-outliers?](#why-ee-outliers)
-- [Getting started](documentation/GETTING_STARTED.md)
 - [How it works](#how-it-works)
 
-
-
+### Using ee-outliers
+- [Getting started](documentation/GETTING_STARTED.md)
 - [Building detection use cases](documentation/CONFIG_OUTLIERS.md)
 - [Whitelisting outliers](documentation/WHITELIST.md)
 - [Notifications](documentation/NOTIFICATIONS.md)
 - [Information for developers](documentation/DEVELOPMENT.md)
 
-
-
+### Misc.
 - [Contact](#contact)
 - [Acknowledgements](#acknowledgements)
 - [License](#license)
