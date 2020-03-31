@@ -79,11 +79,11 @@ For any other communication, you can reach out by sending us an e-mail at [resea
 We write about our research on our blog: https://blog.nviso.be  
 You can follow us on twitter: https://twitter.com/NVISO_Labs
 
-Thank you for using ee-outliers and we look forward to your feedback! 🐀
-
 <p align="left"> 
 <img alt="NVISO Labs logo" src="documentation/images/NVISO%20Labs%20standard%20logo.png?raw=true" width="200"/><br/>
 </p>
+
+Thank you for using ee-outliers and we look forward to your feedback! 🐀
 
 ## License
 
