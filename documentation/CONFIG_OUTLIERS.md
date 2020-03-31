@@ -13,7 +13,7 @@
 
 
 ## Existing detection models
-The different detection use cases can be configured in the configuration file, passed to ee-outliers. In this section we discuss all the different detection mechanisms that are available, and the options they provide to the analyst.
+Each different detection use case lives in its own configuration file. In this section we discuss all the different detection mechanisms that are available, and the options they provide to the analyst.
 
 The different types of detection models that can be configured are listed below.
 

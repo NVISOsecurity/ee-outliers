@@ -15,12 +15,15 @@ tests_parser = subparsers.add_parser('tests')
 
 # Interactive mode - options
 interactive_parser.add_argument("--config", action='append', help="Configuration file location", required=True)
+interactive_parser.add_argument("--use-cases", action='append', help="Additional use cases location", required=True)
 
 # Daemon mode - options
 daemon_parser.add_argument("--config", action='append', help="Configuration file location", required=True)
+daemon_parser.add_argument("--use-cases", action='append', help="Additional use cases location", required=True)
 
 # Tests mode - options
 tests_parser.add_argument("--config", action='append', help="Configuration file location", required=True)
+tests_parser.add_argument("--use-cases", action='append', help="Additional use cases location", required=True)
 
 
 @singleton
@@ -104,8 +107,13 @@ class Settings:
         for each_whitelist_configuration_file_value in whitelist_regexps_config_items:
             new_compile_regex_whitelist_value, value_failing_regular_expressions = \
                 self.extract_whitelist_regex_from_value(each_whitelist_configuration_file_value)
-            list_whitelist_regexps.append(new_compile_regex_whitelist_value)
-            failing_regular_expressions.union(value_failing_regular_expressions)
+
+            # Fixes bug #462
+            if len(new_compile_regex_whitelist_value) > 0:
+                list_whitelist_regexps.append(new_compile_regex_whitelist_value)
+
+            if len(value_failing_regular_expressions) > 0:
+                failing_regular_expressions.union(value_failing_regular_expressions)
 
         return list_whitelist_regexps, failing_regular_expressions
 

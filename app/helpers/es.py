@@ -7,7 +7,6 @@ from itertools import chain
 
 from pygrok import Grok
 from elasticsearch import helpers as eshelpers, Elasticsearch
-from elasticsearch.helpers import ScanError
 
 import helpers.utils
 import helpers.logging
@@ -126,20 +125,11 @@ class ES:
         :param search_query: the search query
         :return: number of document
         """
-        res = self.conn.search(index=index, body=build_search_query(bool_clause=bool_clause, search_range=search_range,
+        res = self.conn.count(index=index, body=build_search_query(bool_clause=bool_clause, search_range=search_range,
                                                                     query_fields=query_fields,
-                                                                    search_query=search_query),
-                               size=self.settings.config.getint("general", "es_scan_size"),
-                               scroll=self.settings.config.get("general", "es_scroll_time"))
-        result = res["hits"]["total"]
+                                                                    search_query=search_query))
 
-        # Result depend of the version of Elasticsearch (> 7, the result is a dictionary)
-        if isinstance(result, dict):
-            return_value = result["value"]
-        else:
-            return_value = result
-
-        return return_value
+        return res["count"]
 
     def count_and_scan_documents(self, index, bool_clause=None, sort_clause=None, query_fields=None, search_query=None,
                                  model_settings=None):
@@ -235,8 +225,8 @@ class ES:
                     model_type = doc["_source"]["outliers"]["model_type"][i]
                     config_section_name = model_type + "_" + model_name
                     if config_section_name not in dict_with_analyzer:
-                        self.logging.logger.warning("Outlier '" + config_section_name + "' " +
-                                                    " haven't been found in configuration, could not check whitelist")
+                        self.logging.logger.debug("Outlier '" + config_section_name + "' " +
+                                                    " was not found in configuration, could not check whitelist")
                         break  # If one outlier is not whitelisted, we keep all other outliers
                     analyzer = dict_with_analyzer[config_section_name]
 
@@ -475,58 +465,6 @@ class ES:
             }
         }
         return time_filter
-
-    def _verbose_test_scan(
-            self,
-            client, query=None,
-            scroll="5m",
-            raise_on_error=True,
-            preserve_order=False,
-            size=1000,
-            request_timeout=None,
-            clear_scroll=True,
-            scroll_kwargs=None,
-            **kwargs
-    ):
-        scroll_kwargs = scroll_kwargs or {}
-
-        if not preserve_order:
-            query = query.copy() if query else {}
-            query["sort"] = "_doc"
-
-        # initial search
-        resp = client.search(
-            body=query, scroll=scroll, size=size, request_timeout=request_timeout, **kwargs
-        )
-        scroll_id = resp.get("_scroll_id")
-
-        try:
-            while scroll_id and resp["hits"]["hits"]:
-                for hit in resp["hits"]["hits"]:
-                    yield hit
-
-                # check if we have any errors
-                if resp["_shards"]["successful"] < resp["_shards"]["total"]:
-                    self.logging.logger.warning(
-                        "Scroll request has only succeeded on %d shards out of %d.",
-                        resp["_shards"]["successful"],
-                        resp["_shards"]["total"],
-                    )
-                    self.logging.logger.warning(resp)
-                    if raise_on_error:
-                        raise ScanError(
-                            scroll_id,
-                            "Scroll request has only succeeded on %d shards out of %d."
-                            % (resp["_shards"]["successful"], resp["_shards"]["total"]),
-                        )
-                resp = client.scroll(
-                    body={"scroll_id": scroll_id, "scroll": scroll}, **scroll_kwargs
-                )
-                scroll_id = resp.get("_scroll_id")
-
-        finally:
-            if scroll_id and clear_scroll:
-                client.clear_scroll(body={"scroll_id": [scroll_id]}, ignore=(404,))
 
 
 def add_outlier_to_document(outlier):

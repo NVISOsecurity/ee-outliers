@@ -5,6 +5,7 @@ import time
 import os
 import sys
 import unittest
+import glob
 
 from croniter import croniter
 
@@ -15,14 +16,7 @@ import helpers.utils
 from helpers.singletons import settings, logging, es
 from helpers.watchers import FileModificationWatcher
 from helpers.housekeeping import HousekeepingJob
-
-from analyzers.metrics import MetricsAnalyzer
-from analyzers.simplequery import SimplequeryAnalyzer
-from analyzers.terms import TermsAnalyzer
-from analyzers.word2vec import Word2VecAnalyzer
-
-
-EE_OUTLIERS_VERSIONS = "0.2.8"
+from helpers.analyzerfactory import AnalyzerFactory
 
 
 def run_outliers():
@@ -89,7 +83,7 @@ def print_intro():
     Print the banner information including version, loaded configuration files and any parsing errors
     that might have occurred when loading them.
     """
-    logging.logger.info("outliers.py - version %s - contact: research@nviso.be", EE_OUTLIERS_VERSIONS)
+    logging.logger.info("outliers.py - version %s - contact: research@nviso.be", helpers.utils.get_version())
     logging.logger.info("run mode: %s", settings.args.run_mode)
 
     logging.print_generic_intro("initializing")
@@ -142,7 +136,7 @@ def run_daemon_mode():
         should_schedule_next_run = False
 
         # This loop will run for as long we don't need to perform an analysis
-        while (next_run is None or datetime.now() < next_run) and first_run is False and  \
+        while (next_run is None or datetime.now() < next_run) and first_run is False and \
                 run_succeeded_without_errors is True:
 
             # Check if we already know when to perform the analysis next; if not, we need to schedule it
@@ -237,46 +231,38 @@ def run_interactive_mode():
     logging.logger.info("finished performing outlier detection")
 
 
+def load_analyzers():
+    analyzers = list()
+
+    for use_case_arg in settings.args.use_cases:
+        for use_case_file in glob.glob(use_case_arg, recursive=True):
+            if not os.path.isdir(use_case_file):
+                logging.logger.debug("Loading use case %s" % use_case_file)
+                try:
+                    analyzers.append(AnalyzerFactory.create(use_case_file))
+                except ValueError as e:
+                    logging.logger.error("An error occured when loading %s: %s" % (use_case_file, str(e)))
+
+    return analyzers
+
+
 # pylint: disable=too-many-branches
 def perform_analysis(housekeeping_job):
     """ The entrypoint for analysis
     :return: List of analyzers that have been processed and analyzed
     """
-    analyzers = list()
-
-    # Create all the analyzer objects based on the models defined in the configuration file
-    for config_section_name in settings.config.sections():
-        _analyzer = None
-        try:
-            if config_section_name.startswith("simplequery_"):
-                _analyzer = SimplequeryAnalyzer(config_section_name=config_section_name)
-                analyzers.append(_analyzer)
-
-            elif config_section_name.startswith("metrics_"):
-                _analyzer = MetricsAnalyzer(config_section_name=config_section_name)
-                analyzers.append(_analyzer)
-
-            elif config_section_name.startswith("terms_"):
-                _analyzer = TermsAnalyzer(config_section_name=config_section_name)
-                analyzers.append(_analyzer)
-
-            elif config_section_name.startswith("beaconing_"):
-                logging.logger.warning("use of the beaconing model is deprecated, please use the terms model using "
-                                     "coeff_of_variation trigger method to convert use case %s ", config_section_name)
-
-            elif config_section_name.startswith("word2vec_"):
-                _analyzer = Word2VecAnalyzer(config_section_name=config_section_name)
-                analyzers.append(_analyzer)
-        except Exception:  # pylint: disable=broad-except
-            logging.logger.error("error while initializing analyzer %s", config_section_name, exc_info=True)
+    analyzers = load_analyzers()
+    housekeeping_job.update_analyzer_list(analyzers)
 
     # In case the created analyzer is activated in test or run mode, add it to the list of analyzers to evaluate
     analyzers_to_evaluate = list()
     for analyzer in analyzers:
+        # Analyzers that produced an error during configuration parsing should not be processed
+        if analyzer.configuration_parsing_error:
+            continue
+
         if analyzer.model_settings["run_model"] or analyzer.model_settings["test_model"]:
             analyzers_to_evaluate.append(analyzer)
-
-    housekeeping_job.update_analyzer_list(analyzers_to_evaluate)
 
     # In case a single analyzer is causing issues (for example taking up too much time & resources), then a naive
     # shuffle will prevent this analyzer from blocking all the analyzers from running that come after it.
@@ -285,14 +271,12 @@ def perform_analysis(housekeeping_job):
     # Now it's time actually evaluate all the models. We also make sure to add some information that will be useful
     # in the summary presented to the user at the end of running all the models.
     for index, analyzer in enumerate(analyzers_to_evaluate):
-        if analyzer.configuration_parsing_error:
-            continue
-
         try:
             analyzer.analysis_start_time = datetime.today().timestamp()
             analyzer.evaluate_model()
             analyzer.analysis_end_time = datetime.today().timestamp()
             analyzer.completed_analysis = True
+            es.flush_bulk_actions()
 
             logging.logger.info("finished processing use case - %d / %d [%s%% done]", index + 1,
                                 len(analyzers_to_evaluate),
@@ -300,11 +284,13 @@ def perform_analysis(housekeeping_job):
         except elasticsearch.exceptions.NotFoundError:
             analyzer.index_not_found_analysis = True
             logging.logger.warning("index %s does not exist, skipping use case", analyzer.model_settings["es_index"])
+        except elasticsearch.helpers.BulkIndexError as e:
+            analyzer.unknown_error_analysis = True
+            logging.logger.error(f"BulkIndexError while analyzing use case: {e.args[0]}", exc_info=False)
+            logging.logger.debug("Full stack trace and error message of BulkIndexError", exc_info=True)
         except Exception:  # pylint: disable=broad-except
             analyzer.unknown_error_analysis = True
             logging.logger.error("error while analyzing use case", exc_info=True)
-        finally:
-            es.flush_bulk_actions(refresh=True)
 
     return analyzers_to_evaluate
 
@@ -361,7 +347,7 @@ def print_analysis_summary(analyzed_models):
         completed_models_with_events_taking_most_time = completed_models_with_events[:10]
 
         for model in completed_models_with_events_taking_most_time:
-            logging.logger.info("\t+ %s - %s events - %s outliers - %s", model.config_section_name,
+            logging.logger.info("\t+ %s - %s events - %s outliers - %s", model.model_type + "_" + model.model_name,
                                 "{:,}".format(model.total_events),
                                 "{:,}".format(model.total_outliers),
                                 helpers.utils.seconds_to_pretty_str(round(model.analysis_time_seconds)))
@@ -371,14 +357,14 @@ def print_analysis_summary(analyzed_models):
         logging.logger.info("models for which the configuration parsing failed:")
 
         for model in configuration_parsing_error_models:
-            logging.logger.info("\t+ %s", model.config_section_name)
+            logging.logger.info("\t+ %s", model.model_type + "_" + model.model_name)
 
     if unknown_error_models:
         logging.logger.info("")
         logging.logger.info("models for which an unexpected error was encountered:")
 
         for model in unknown_error_models:
-            logging.logger.info("\t+ %s", model.config_section_name)
+            logging.logger.info("\t+ %s", model.model_type + "_" + model.model_name)
 
     if not analyzed_models:
         logging.logger.warning("no use cases were analyzed. are you sure your configuration file contains use "

@@ -4,7 +4,7 @@ import logging
 import datetime as dt
 
 from helpers.singleton import singleton
-
+from logging.handlers import WatchedFileHandler
 
 @singleton
 class Logging:
@@ -14,7 +14,7 @@ class Logging:
     start_time = None
     total_steps = None
     desc = None
-    verbosity = None
+    verbosity = 0
 
     def __init__(self, logger_name):
         # disable HTTPS warnings
@@ -32,7 +32,7 @@ class Logging:
         self.logger.addHandler(ch)
 
     def add_file_handler(self, log_file):
-        ch = logging.FileHandler(log_file)
+        ch = WatchedFileHandler(log_file)
         ch.setLevel(self.logger.level)
         formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s', "%Y-%m-%d %H:%M:%S")
         ch.setFormatter(formatter)

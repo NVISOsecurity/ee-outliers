@@ -77,7 +77,6 @@ class Outlier:
                     dict_values_to_check.add(str(dict_val_item).strip())
             else:
                 dict_values_to_check.add(str(dict_val).strip())
-
         # Check if value is whitelisted as literal
         for list_whitelist_elements in (helpers.singletons.settings.whitelist_literals_config +
                                         extra_literals_whitelist_value):
