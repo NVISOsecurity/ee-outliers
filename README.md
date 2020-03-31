@@ -76,7 +76,7 @@ detection in Elasticsearch yourself!
 
 ee-outliers is developed & maintained by NVISO Labs.
 
-You can reach out to the developers of ee-outliers by creating an issue in github.
+You can reach out to the developers of ee-outliers by creating an issue in github.  
 For any other communication, you can reach out by sending us an e-mail at [research@nviso.be](mailto:research@nviso.be).
 
 We write about our research on our blog: https://blog.nviso.be  
