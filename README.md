@@ -8,7 +8,7 @@ Framework to easily detect outliers in Elasticsearch events.
 ![tests badge](https://img.shields.io/badge/unit_tests-216-orange "216 unit tests")
 
 
-## Table of contents
+## On this page
 
 - [What is ee-outliers?](#what-is-ee-outliers)
 - [Why ee-outliers?](#why-ee-outliers)
@@ -16,13 +16,15 @@ Framework to easily detect outliers in Elasticsearch events.
 - [Contact](#contact)
 - [Acknowledgements](#acknowledgements)
 - [License](#license)
-- [Screenshots](documentation/SCREENSHOTS.md)
+
+## Documentation
 - [Getting started](documentation/INSTALL.md)
 - [Building detection use cases](documentation/CONFIG_OUTLIERS.md)
 - [Whitelisting outliers](documentation/WHITELIST.md)
 - [Notification system](documentation/NOTIFICATIONS.md)
 - [Information for developers](documentation/DEVELOPMENT.md)
     - [UML](documentation/UML.md)
+- [Screenshots](documentation/SCREENSHOTS.md)
 
 
 ## What is ee-outliers?
