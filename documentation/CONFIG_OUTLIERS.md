@@ -1,4 +1,4 @@
-<p align="left"><a href="INSTALL.md">&#8592; Getting started</a></p>
+<p align="left"><a href="GETTING_STARTED.md">&#8592; Getting started</a></p>
 
 # Building detection use cases
 
