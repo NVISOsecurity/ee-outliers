@@ -15,10 +15,12 @@ Framework to easily detect outliers in Elasticsearch events.
 - [How it works](#how-it-works)
 
 
+
 - [Building detection use cases](documentation/CONFIG_OUTLIERS.md)
 - [Whitelisting outliers](documentation/WHITELIST.md)
 - [Notifications](documentation/NOTIFICATIONS.md)
 - [Information for developers](documentation/DEVELOPMENT.md)
+
 
 
 - [Contact](#contact)
