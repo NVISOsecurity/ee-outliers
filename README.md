@@ -49,7 +49,7 @@ Checkout the screenshots at the end of this readme for a few examples.
 Visit the page [Getting started](documentation/INSTALL.md) to get started with outlier 
 detection in Elasticsearch yourself!
 
-##Table of contents
+## Table of contents
 - [Introduction](#introduction)
 - [Getting started](documentation/INSTALL.md)
 - [Building detection use cases](documentation/CONFIG_OUTLIERS.md)
