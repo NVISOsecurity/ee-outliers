@@ -49,7 +49,7 @@ features we came to love while using other tools such as Splunk.
  
 This framework tries to solve these limitations by allowing the user to write 
 simple use cases that can help in spotting outliers in your data using statistical 
-and machine learning models.
+and models. Machine learning models are under development.
 
 ## How it works
 
