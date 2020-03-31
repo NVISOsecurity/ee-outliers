@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+- Fixed a bug where a malformed regular expression in the whitelist configuration file caused all events to match (fixes issues #462)
+- Update Elasticsearch library to 7.5.1
+- Changed logging level on some warnings
+- Outliers version printed at startup is now read from VERSION file instead of being hardcoded
+
 ## [Version 0.2.11](https://github.com/NVISO-BE/ee-outliers/releases/tag/0.2.11) (February 6, 2020)
 - Detection use cases are now stored in individual config files, rather than all in the main config file
 
@@ -42,7 +48,7 @@
 
 ## Version 0.2.0 (August 2, 2019)
 - Move Docker image from "debian" to "python 3.6"
-- Update ElasticSearch library to 6.4.0 (and also sentry to the version 0.10.2)
+- Update Elasticsearch library to 6.4.0 (and also sentry to the version 0.10.2)
 - Update Documentation (and add UML schema)
 - Remove Beaconing (use metrics)
 - Respect PEP8 (including max line size)

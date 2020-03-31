@@ -18,8 +18,6 @@ from helpers.watchers import FileModificationWatcher
 from helpers.housekeeping import HousekeepingJob
 from helpers.analyzerfactory import AnalyzerFactory
 
-EE_OUTLIERS_VERSIONS = "0.2.11"
-
 
 def run_outliers():
     """
@@ -85,7 +83,7 @@ def print_intro():
     Print the banner information including version, loaded configuration files and any parsing errors
     that might have occurred when loading them.
     """
-    logging.logger.info("outliers.py - version %s - contact: research@nviso.be", EE_OUTLIERS_VERSIONS)
+    logging.logger.info("outliers.py - version %s - contact: research@nviso.be", helpers.utils.get_version())
     logging.logger.info("run mode: %s", settings.args.run_mode)
 
     logging.print_generic_intro("initializing")
@@ -232,18 +230,21 @@ def run_interactive_mode():
 
     logging.logger.info("finished performing outlier detection")
 
+
 def load_analyzers():
     analyzers = list()
-    
+
     for use_case_arg in settings.args.use_cases:
-        for use_case_file in glob.glob(use_case_arg):
-            logging.logger.debug("Loading use case %s" % use_case_file)
-            try:
-                analyzers.append(AnalyzerFactory.create(use_case_file))
-            except ValueError as e:
-                logging.logger.error("An error occured when loading %s: %s" % (use_case_file, str(e)))
+        for use_case_file in glob.glob(use_case_arg, recursive=True):
+            if not os.path.isdir(use_case_file):
+                logging.logger.debug("Loading use case %s" % use_case_file)
+                try:
+                    analyzers.append(AnalyzerFactory.create(use_case_file))
+                except ValueError as e:
+                    logging.logger.error("An error occured when loading %s: %s" % (use_case_file, str(e)))
 
     return analyzers
+
 
 # pylint: disable=too-many-branches
 def perform_analysis(housekeeping_job):
@@ -256,6 +257,10 @@ def perform_analysis(housekeeping_job):
     # In case the created analyzer is activated in test or run mode, add it to the list of analyzers to evaluate
     analyzers_to_evaluate = list()
     for analyzer in analyzers:
+        # Analyzers that produced an error during configuration parsing should not be processed
+        if analyzer.configuration_parsing_error:
+            continue
+
         if analyzer.model_settings["run_model"] or analyzer.model_settings["test_model"]:
             analyzers_to_evaluate.append(analyzer)
 
@@ -266,9 +271,6 @@ def perform_analysis(housekeeping_job):
     # Now it's time actually evaluate all the models. We also make sure to add some information that will be useful
     # in the summary presented to the user at the end of running all the models.
     for index, analyzer in enumerate(analyzers_to_evaluate):
-        if analyzer.configuration_parsing_error:
-            continue
-
         try:
             analyzer.analysis_start_time = datetime.today().timestamp()
             analyzer.evaluate_model()
@@ -282,6 +284,10 @@ def perform_analysis(housekeeping_job):
         except elasticsearch.exceptions.NotFoundError:
             analyzer.index_not_found_analysis = True
             logging.logger.warning("index %s does not exist, skipping use case", analyzer.model_settings["es_index"])
+        except elasticsearch.helpers.BulkIndexError as e:
+            analyzer.unknown_error_analysis = True
+            logging.logger.error(f"BulkIndexError while analyzing use case: {e.args[0]}", exc_info=False)
+            logging.logger.debug("Full stack trace and error message of BulkIndexError", exc_info=True)
         except Exception:  # pylint: disable=broad-except
             analyzer.unknown_error_analysis = True
             logging.logger.error("error while analyzing use case", exc_info=True)

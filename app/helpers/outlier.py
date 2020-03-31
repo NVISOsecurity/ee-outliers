@@ -69,7 +69,7 @@ class Outlier:
         :return: True if whitelisted, False otherwise
         """
         dict_values_to_check = set()
-        
+
         for dict_val in helpers.utils.nested_dict_values(dict_to_check):
             if isinstance(dict_val, list):
                 for dict_val_item in dict_val:
