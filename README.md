@@ -64,7 +64,6 @@ types of outliers we have detected ourselves using ee-outliers during threat hun
 -	Detect malicious persistence mechanisms (scheduled tasks, auto-runs, etc.)
 -	…
 
-Checkout the screenshots at the end of this readme for a few examples.
 Visit the page [Getting started](documentation/INSTALL.md) to get started with outlier 
 detection in Elasticsearch yourself!
 
