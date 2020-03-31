@@ -2,7 +2,7 @@
 
 # Getting started
 
-**Table of contents:**
+## Table of contents
 - [Requirements](#requirements)
 - [Configuring ee-outliers](#configuring-ee-outliers)
 - [Running in interactive mode](#running-in-interactive-mode)
@@ -11,7 +11,7 @@
 
 ## Requirements
 - Docker to build and run ee-outliers
-- Internet connectivity to build ee-outliers (internet is not required to run ee-outliers)
+- Access to an Elasticsearch cluster
 
 ## Configuring ee-outliers
 

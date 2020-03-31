@@ -17,8 +17,8 @@ Framework to easily detect outliers in Elasticsearch events.
 - [Acknowledgements](#acknowledgements)
 - [License](#license)
 
-## Documentation
-- [Getting started](documentation/INSTALL.md)
+## Other documentation
+- [Installation](documentation/GETTING_STARTED.md)
 - [Building detection use cases](documentation/CONFIG_OUTLIERS.md)
 - [Whitelisting outliers](documentation/WHITELIST.md)
 - [Notification system](documentation/NOTIFICATIONS.md)
@@ -44,18 +44,21 @@ Although we love Elasticsearch, its search language is still lacking support
 for complex queries that allow for advanced analysis and detection of outliers -
 features we came to love while using other tools such as Splunk.
  
-This framework tries to solve these limitations by allowing the user to write simple use cases
-that can help in spotting outliers in your data using statistical and machine 
-learning models.
+This framework tries to solve these limitations by allowing the user to write 
+simple use cases that can help in spotting outliers in your data using statistical 
+and machine learning models.
 
 ## How it works
 
-The framework makes use of statistical models that are easily defined by the user in a configuration file. In case the 
-models detect an outlier, the relevant Elasticsearch events are enriched with additional outlier fields. These fields 
-can then be dashboarded and visualized using the tools of your choice (Kibana or Grafana for example).
+The framework makes use of statistical models that are easily defined by the user 
+in a configuration file. In case the models detect an outlier, the relevant 
+Elasticsearch events are enriched with additional outlier fields. These fields 
+can then be dashboarded and visualized using the tools of your choice 
+(Kibana or Grafana for example).
 
-The possibilities of the type of anomalies you can spot using ee-outliers is virtually limitless. A few examples of 
-types of outliers we have detected ourselves using ee-outliers during threat hunting activities include:
+The possibilities of the type of anomalies you can spot using ee-outliers 
+is virtually limitless. A few examples of types of outliers we have detected
+ourselves using ee-outliers during threat hunting activities include:
 
 -	Detect beaconing (DNS, TLS, HTTP, etc.)
 -	Detect geographical improbable activity
@@ -66,15 +69,16 @@ types of outliers we have detected ourselves using ee-outliers during threat hun
 -	Detect malicious persistence mechanisms (scheduled tasks, auto-runs, etc.)
 -	…
 
-Visit the page [Getting started](documentation/INSTALL.md) to get started with outlier 
-detection in Elasticsearch yourself!
+Visit the page [Getting started](documentation/GETTING_STARTED.md) to get 
+started with outlier detection in Elasticsearch yourself!
 
 ## Contact
 
 ee-outliers is developed & maintained by NVISO Labs.
 
 You can reach out to the developers of ee-outliers by creating an issue in github.  
-For any other communication, you can reach out by sending us an e-mail at [research@nviso.be](mailto:research@nviso.be).
+For any other communication, you can reach out by sending us an e-mail 
+at [research@nviso.be](mailto:research@nviso.be).
 
 We write about our research on our blog: https://blog.nviso.be  
 You can follow us on twitter: https://twitter.com/NVISO_Labs
@@ -91,8 +95,8 @@ ee-outliers is released under the GNU GENERAL PUBLIC LICENSE v3 (GPL-3).
 [LICENSE](LICENSE)
 
 ## Acknowledgements
-We are grateful for the support received by [INNOVIRIS](https://innoviris.brussels/) and the Brussels region in 
+We are grateful for the support received by 
+[INNOVIRIS](https://innoviris.brussels/) and the Brussels region in 
 funding our Research & Development activities. 
 
-
-<p align="right"><a href="documentation/INSTALL.md">Getting started &#8594;</a></p>
+<p align="right"><a href="documentation/GETTING_STARTED.md">Getting started &#8594;</a></p>
