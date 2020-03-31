@@ -1,10 +1,14 @@
 # Changelog
 
-## Unreleased
-- Fixed a bug where a malformed regular expression in the whitelist configuration file caused all events to match (fixes issues #462)
+## [Version 0.2.12](https://github.com/NVISO-BE/ee-outliers/releases/tag/0.2.12) (March 31, 2020)
+- Fixed a bug where a malformed regular expression in the whitelist configuration 
+file caused all events to match (fixes issues #462)
 - Update Elasticsearch library to 7.5.1
 - Changed logging level on some warnings
-- Outliers version printed at startup is now read from VERSION file instead of being hardcoded
+- Outliers version printed at startup is now read from VERSION file 
+instead of being hardcoded
+- Major updates to documentation, including new example models
+- Minor other bug fixes
 
 ## [Version 0.2.11](https://github.com/NVISO-BE/ee-outliers/releases/tag/0.2.11) (February 6, 2020)
 - Detection use cases are now stored in individual config files, rather than all in the main config file
