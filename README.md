@@ -1,4 +1,5 @@
-# ee-outliers
+
+# ee-outliers 
 Framework to easily detect outliers in Elasticsearch events.
 
 *Developed in Python and fully dockerized!*
@@ -6,14 +7,16 @@ Framework to easily detect outliers in Elasticsearch events.
 ![version badge](https://img.shields.io/badge/version-0.2.11-blue "verion 0.2.11")
 ![tests badge](https://img.shields.io/badge/unit_tests-216-orange "216 unit tests")
 
+
 ## Table of contents
+
 - [What is ee-outliers?](#what-is-ee-outliers)
 - [Why ee-outliers?](#why-ee-outliers)
 - [How it works](#how-it-works)
-- [Screenshots](#screenshots)
 - [Contact](#contact)
 - [Acknowledgements](#acknowledgements)
-- [License](LICENSE)
+- [License](#license)
+- [Screenshots](documentation/SCREENSHOTS.md)
 - [Getting started](documentation/INSTALL.md)
 - [Building detection use cases](documentation/CONFIG_OUTLIERS.md)
 - [Whitelisting outliers](documentation/WHITELIST.md)
@@ -72,6 +75,11 @@ For any other communication, you can reach out by sending us an e-mail at [resea
 
 Thank you for using ee-outliers and we look forward to your feedback! 🐀
 
+## License
+
+ee-outliers is released under the GNU GENERAL PUBLIC LICENSE v3 (GPL-3).
+[LICENSE](LICENSE)
+
 ## Acknowledgements
 
 ee-outliers is developed by NVISO Labs (https://blog.nviso.be - https://twitter.com/NVISO_Labs)
@@ -81,20 +89,3 @@ funding our Research & Development activities.
 
 
 <p align="right"><a href="documentation/INSTALL.md">Getting started &#8594;</a></p>
-
-## Screenshots
-
-<p align="center"> 
-<img alt="Detecting beaconing TLS connections using ee-outliers" src="https://forever.daanraman.com/screenshots/Beaconing%20detection.png?raw=true" width="650"/><br/>
-<i>Detecting beaconing TLS connections using ee-outliers</i>
-</p>
-<br/><br/>  
-<p align="center"> 
-<img alt="Configured use case to detect beaconing TLS connections" src="https://forever.daanraman.com/screenshots/Configuration%20use%20case.png?raw=true" width="450"/><br/>
-<i>Configured use case to detect beaconing TLS connections</i>
-</p>
-<br/><br/>
-<p align="center"> 
-<img alt="Detected outlier events are enriched with new fields in Elasticsearch" src="https://forever.daanraman.com/screenshots/Enriched%20outlier%20event%202.png?raw=true" width="650"/><br/>
-<i>Detected outlier events are enriched with new fields in Elasticsearch</i>
-</p>
