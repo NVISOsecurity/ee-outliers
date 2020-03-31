@@ -70,11 +70,11 @@ detection in Elasticsearch yourself!
 
 ## Contact
 
-ee-outliers is developed & maintained by NVISO Labs.
-
 <p align="left"> 
 <img alt="NVISO Labs logo" src="documentation/images/NVISO%20Labs%20standard%20logo.png?raw=true" width="200"/><br/>
 </p>
+
+ee-outliers is developed & maintained by NVISO Labs.
 
 You can reach out to the developers of ee-outliers by creating an issue in github.
 For any other communication, you can reach out by sending us an e-mail at [research@nviso.be](mailto:research@nviso.be).
