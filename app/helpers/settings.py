@@ -13,38 +13,42 @@ subparsers = parser.add_subparsers(help="Run mode", dest="run_mode")
 interactive_parser = subparsers.add_parser('interactive')
 daemon_parser = subparsers.add_parser('daemon')
 tests_parser = subparsers.add_parser('tests')
+parser_dic = {'interactive': interactive_parser,
+              'daemon': daemon_parser,
+              'tests': tests_parser}
+
+HELP_CONFIG_MESSAGE = "Configuration file location"
+HELP_USE_CASES_MESSAGE = "Additional use cases location"
 
 # Interactive mode - options
 interactive_parser.add_argument("--config",
                                 action='append',
-                                type=lambda x: file_exists(interactive_parser, x),
-                                help="Configuration file location",
+                                help=HELP_CONFIG_MESSAGE,
                                 required=True)
+
 interactive_parser.add_argument("--use-cases",
                                 action='append',
-                                help="Additional use cases location",
+                                help=HELP_USE_CASES_MESSAGE,
                                 required=True)
 
 # Daemon mode - options
 daemon_parser.add_argument("--config",
                            action='append',
-                           type=lambda x: file_exists(daemon_parser, x),
-                           help="Configuration file location",
+                           help=HELP_CONFIG_MESSAGE,
                            required=True)
 daemon_parser.add_argument("--use-cases",
                            action='append',
-                           help="Additional use cases location",
+                           help=HELP_USE_CASES_MESSAGE,
                            required=True)
 
 # Tests mode - options
 tests_parser.add_argument("--config",
                           action='append',
-                          type=lambda x: file_exists(tests_parser, x),
-                          help="Configuration file location",
+                          help=HELP_CONFIG_MESSAGE,
                           required=True)
 tests_parser.add_argument("--use-cases",
                           action='append',
-                          help="Additional use cases location",
+                          help=HELP_USE_CASES_MESSAGE,
                           required=True)
 
 
@@ -62,7 +66,9 @@ class Settings:
         self.whitelist_regexps_config = None
         self.failing_regular_expressions = set()
 
+        self.parser_dic = parser_dic
         self.args = parser.parse_args()
+        self.check_if_config_file_exists()
         self.process_configuration_files()
 
     def process_configuration_files(self):
@@ -170,19 +176,13 @@ class Settings:
             return err
         return None
 
-
-def file_exists(argument_parser, file_path):
-    """
-    Method to check if the file at file_path exists.
-    If the file does not exist, it prints a message to the standard error and terminates the program.
-    Otherwise, it returns the file_path.
-
-    :param argument_parser: ArgumentParser that return the error.
-    :param file_path: The file location.
-    :return: If file in file_path exists, it return file_path. Otherwise, it prints a message to the standard error and
-    terminates the program.
-    """
-    if not os.path.isfile(file_path):
-        argument_parser.error("The file %s does not exist." % file_path)
-    else:
-        return file_path
+    def check_if_config_file_exists(self):
+        """
+        Method to check if the configuration files exist.
+        If one of the files does not exist, it print a message to the standard error and terminates the program.
+        Otherwise, it do nothing.
+        """
+        current_parser = self.parser_dic[self.args.run_mode]
+        for file_path in self.args.config:
+            if not os.path.isfile(file_path):
+                current_parser.error("The file %s does not exist." % file_path)

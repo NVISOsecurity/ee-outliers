@@ -1,7 +1,6 @@
 import unittest
 from configparser import NoSectionError, DuplicateOptionError, DuplicateSectionError
 
-
 from tests.unit_tests.utils.update_settings import UpdateSettings
 from tests.unit_tests.utils.dummy_documents_generate import DummyDocumentsGenerate
 
@@ -13,6 +12,9 @@ test_whitelist_multiple_literal_file = "/app/tests/unit_tests/files/whitelist_te
 test_whitelist_duplicate_option_file = "/app/tests/unit_tests/files/whitelist_tests_duplicate_keys.conf"
 test_whitelist_duplicate_section_file = "/app/tests/unit_tests/files/whitelist_tests_duplicate_section.conf"
 test_config_without_whitelist_file = "/app/tests/unit_tests/files/config_without_whitelist_tests.conf"
+test_config_that_does_not_exist = "/app/tests/unit_tests/files/this_file_does_not_exist.conf"
+test_config_that_exists = "/app/tests/unit_tests/files/this_file_exists.conf"
+test_config_that_is_a_directory = "/app/tests/unit_tests/files"
 
 
 class TestSettings(unittest.TestCase):
@@ -55,3 +57,24 @@ class TestSettings(unittest.TestCase):
         self.test_settings.change_configuration_path(test_whitelist_duplicate_section_file)
         result = settings.check_no_duplicate_key()
         self.assertIsInstance(result, DuplicateSectionError)
+
+    def test_error_when_config_file_does_not_exist(self):
+        settings.args.config = [test_config_that_does_not_exist]
+        with self.assertRaises(SystemExit) as cm:
+            settings.check_if_config_file_exists()
+        self.assertEqual(cm.exception.code, 2)
+
+    def test_error_when_config_file_is_a_directory(self):
+        settings.args.config = [test_config_that_is_a_directory]
+        with self.assertRaises(SystemExit) as cm:
+            settings.check_if_config_file_exists()
+        self.assertEqual(cm.exception.code, 2)
+
+    def test_error_when_config_file_exists(self):
+        settings.args.config = [test_config_that_exists]
+        raised = False
+        try:
+            settings.check_if_config_file_exists()
+        except:
+            raised = True
+        self.assertFalse(raised)
