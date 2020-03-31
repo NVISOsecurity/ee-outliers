@@ -7,10 +7,6 @@ Framework to easily detect outliers in Elasticsearch events.
 ![version badge](https://img.shields.io/badge/version-0.2.11-blue "verion 0.2.11")
 ![tests badge](https://img.shields.io/badge/unit_tests-216-orange "216 unit tests")
 
-<p align="left"> 
-<img alt="NVISO Labs logo" src="documentation/images/NVISO%20Labs%20standard%20logo.png?raw=true" width="200"/><br/>
-</p>
-
 ## On this page
 
 - [What is ee-outliers?](#what-is-ee-outliers)
@@ -85,6 +81,10 @@ at [research@nviso.be](mailto:research@nviso.be).
 
 We write about our research on our blog: https://blog.nviso.be  
 You can follow us on twitter: https://twitter.com/NVISO_Labs
+
+<p align="left"> 
+<img alt="NVISO Labs logo" src="documentation/images/NVISO%20Labs%20standard%20logo.png?raw=true" width="200"/><br/>
+</p>
 
 Thank you for using ee-outliers and we look forward to your feedback! 🐀
 
