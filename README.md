@@ -84,6 +84,11 @@ ee-outliers is released under the GNU GENERAL PUBLIC LICENSE v3 (GPL-3).
 
 ee-outliers is developed by NVISO Labs.
 
+<p align="left"> 
+<img alt="NVISO Labs logo" src="images/NVISO%20Labs%20standard%20logo.png?raw=true" width="200"/><br/>
+</p>
+
+
 We write about our research on our blog: https://blog.nviso.be  
 You can follow us on twitter: https://twitter.com/NVISO_Labs
 
