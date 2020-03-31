@@ -69,6 +69,22 @@ detection in Elasticsearch yourself!
 - Fine-grained control over which historical events are checked for outliers
 - ...and much more!
 
+## Contact
+
+You can reach out to the developers of ee-outliers by creating an issue in github.
+For any other communication, you can reach out by sending us an e-mail at [research@nviso.be](mailto:research@nviso.be).
+
+Thank you for using ee-outliers and we look forward to your feedback! 🐀
+
+## Acknowledgements
+ee-outliers is developed by NVISO Labs (https://blog.nviso.be - https://twitter.com/NVISO_Labs)
+
+We are grateful for the support received by [INNOVIRIS](https://innoviris.brussels/) and the Brussels region in 
+funding our Research & Development activities. 
+
+
+<p align="right"><a href="documentation/INSTALL.md">Getting started &#8594;</a></p>
+
 ## Screenshots
 
 <p align="center"> 
@@ -85,20 +101,3 @@ detection in Elasticsearch yourself!
 <img alt="Detected outlier events are enriched with new fields in Elasticsearch" src="https://forever.daanraman.com/screenshots/Enriched%20outlier%20event%202.png?raw=true" width="650"/><br/>
 <i>Detected outlier events are enriched with new fields in Elasticsearch</i>
 </p>
-
-
-## Contact
-
-You can reach out to the developers of ee-outliers by creating an issue in github.
-For any other communication, you can reach out by sending us an e-mail at [research@nviso.be](mailto:research@nviso.be).
-
-Thank you for using ee-outliers and we look forward to your feedback! 🐀
-
-## Acknowledgements
-ee-outliers is developed by NVISO Labs (https://blog.nviso.be - https://twitter.com/NVISO_Labs)
-
-We are grateful for the support received by [INNOVIRIS](https://innoviris.brussels/) and the Brussels region in 
-funding our Research & Development activities. 
-
-
-<p align="right"><a href="documentation/INSTALL.md">Getting started &#8594;</a></p>
