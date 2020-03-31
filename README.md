@@ -71,10 +71,6 @@ detection in Elasticsearch yourself!
 
 ## Contact
 
-<p align="left"> 
-<img alt="NVISO Labs logo" src="documentation/images/NVISO%20Labs%20standard%20logo.png?raw=true" width="200"/><br/>
-</p>
-
 ee-outliers is developed & maintained by NVISO Labs.
 
 You can reach out to the developers of ee-outliers by creating an issue in github.  
@@ -84,6 +80,10 @@ We write about our research on our blog: https://blog.nviso.be
 You can follow us on twitter: https://twitter.com/NVISO_Labs
 
 Thank you for using ee-outliers and we look forward to your feedback! 🐀
+
+<p align="left"> 
+<img alt="NVISO Labs logo" src="documentation/images/NVISO%20Labs%20standard%20logo.png?raw=true" width="200"/><br/>
+</p>
 
 ## License
 
