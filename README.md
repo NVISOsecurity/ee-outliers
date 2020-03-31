@@ -1,21 +1,31 @@
 # ee-outliers
-Dockerized framework to easily detect outliers in Elasticsearch events.
+Framework to easily detect outliers in Elasticsearch events.
+
+*Developed in Python and fully dockerized!*
+
+![version badge](https://img.shields.io/badge/version-0.2.11-blue "verion 0.2.11")
+![tests badge](https://img.shields.io/badge/unit_tests-216-orange "216 unit tests")
 
 ## What is ee-outliers
-ee-outliers is a framework to detect outliers in events stored in an Elasticsearch 
-cluster. The framework was developed for the purpose of detecting anomalies in 
+ee-outliers is a framework to detect statistical outliers in events stored 
+in an Elasticsearch cluster. It uses easy to write user-defined configuration files 
+to decide which & how events should be analysed for outliers.
+
+The framework was developed for the purpose of detecting anomalies in 
 security events, however it could just as well be used for the detection 
-of outliers in other types of data.
+of outliers in other data.
+
+The only thing you need is Docker and an Elasticsearch cluster and you are
+ready to start using ee-outliers!
 
 ## Why ee-outliers
 Although we love Elasticsearch, its search language is still lacking support 
-for complex queries that allow for advanced analysis and detection of outliers. 
+for complex queries that allow for advanced analysis and detection of outliers -
+features we came to love while using other tools such as Splunk.
+ 
 This framework tries to solve these limitations by allowing the user to write simple use cases
 that can help in spotting outliers in your data using statistical and machine 
 learning models.
-
-The framework was developed to assist security analysts identify outliers in security
-events during Threat Hunting and Security Monitoring activities.
 
 ## How it works
 
