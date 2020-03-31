@@ -7,22 +7,23 @@ Framework to easily detect outliers in Elasticsearch events.
 ![version badge](https://img.shields.io/badge/version-0.2.11-blue "verion 0.2.11")
 ![tests badge](https://img.shields.io/badge/unit_tests-216-orange "216 unit tests")
 
-## On this page
+## Documentation
 
 - [What is ee-outliers?](#what-is-ee-outliers)
 - [Why ee-outliers?](#why-ee-outliers)
+- [Getting started](documentation/GETTING_STARTED.md)
 - [How it works](#how-it-works)
+
+
+- [Building detection use cases](documentation/CONFIG_OUTLIERS.md)
+- [Whitelisting outliers](documentation/WHITELIST.md)
+- [Notifications](documentation/NOTIFICATIONS.md)
+- [Information for developers](documentation/DEVELOPMENT.md)
+
+
 - [Contact](#contact)
 - [Acknowledgements](#acknowledgements)
 - [License](#license)
-
-## Other documentation
-- [Installation](documentation/GETTING_STARTED.md)
-- [Building detection use cases](documentation/CONFIG_OUTLIERS.md)
-- [Whitelisting outliers](documentation/WHITELIST.md)
-- [Notification system](documentation/NOTIFICATIONS.md)
-- [Information for developers](documentation/DEVELOPMENT.md)
-    - [UML](documentation/UML.md)
 - [Screenshots](documentation/SCREENSHOTS.md)
 
 
@@ -79,7 +80,7 @@ You can reach out to the developers of ee-outliers by creating an issue in githu
 For any other communication, you can reach out by sending us an e-mail 
 at [research@nviso.be](mailto:research@nviso.be).
 
-We write about our research on our blog: https://blog.nviso.be  
+We write about our research on our blog: https://blog.nviso.eu  
 You can follow us on twitter: https://twitter.com/NVISO_Labs
 
 <p align="left"> 
