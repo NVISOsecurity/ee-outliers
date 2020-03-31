@@ -26,6 +26,7 @@ along with an explanation, can be found in
 We recommend starting from this file when running ee-outliers yourself.  
 
 A full description of all configuration parameters can be found [here](CONFIG_PARAMETERS.md).        
+
 Visit [Building detection use cases](CONFIG_OUTLIERS.md) for information how 
 to define your own outlier detection use cases.
 
