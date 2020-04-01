@@ -13,7 +13,7 @@ from helpers.analyzerfactory import AnalyzerFactory
 
 test_file_whitelist_path_config = "/app/tests/unit_tests/files/whitelist_tests_01_with_general.conf"
 
-helpers.analyzerfactory.class_mapping["analyzer"] = TestStubAnalyzer
+helpers.analyzerfactory.CLASS_MAPPING["analyzer"] = TestStubAnalyzer
 
 class TestEs(unittest.TestCase):
 

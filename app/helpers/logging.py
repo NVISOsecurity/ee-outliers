@@ -1,13 +1,18 @@
 import math
-import urllib3
 import logging
+from logging.handlers import WatchedFileHandler
+
 import datetime as dt
+import urllib3
 
 from helpers.singleton import singleton
-from logging.handlers import WatchedFileHandler
+
 
 @singleton
 class Logging:
+    """
+    Creates the logger singleton to be used across the entire project
+    """
     logger = None
 
     current_step = None
@@ -25,18 +30,24 @@ class Logging:
         self.logger.propagate = False
 
     def add_stdout_handler(self):
-        ch = logging.StreamHandler()
-        ch.setLevel(self.logger.level)
+        """
+        Create, format & add the handler that will log to standard output
+        """
+        handler = logging.StreamHandler()
+        handler.setLevel(self.logger.level)
         formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s', "%Y-%m-%d %H:%M:%S")
-        ch.setFormatter(formatter)
-        self.logger.addHandler(ch)
+        handler.setFormatter(formatter)
+        self.logger.addHandler(handler)
 
     def add_file_handler(self, log_file):
-        ch = WatchedFileHandler(log_file)
-        ch.setLevel(self.logger.level)
+        """
+        Create, format & add the handler that will log to the log file
+        """
+        handler = WatchedFileHandler(log_file)
+        handler.setLevel(self.logger.level)
         formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s', "%Y-%m-%d %H:%M:%S")
-        ch.setFormatter(formatter)
-        self.logger.addHandler(ch)
+        handler.setFormatter(formatter)
+        self.logger.addHandler(handler)
 
     def init_ticker(self, total_steps=None, desc=None):
         """
