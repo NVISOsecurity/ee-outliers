@@ -66,9 +66,9 @@ class Settings:
         self.whitelist_regexps_config = None
         self.failing_regular_expressions = set()
 
-        self.parser_dic = parser_dic
         self.args = parser.parse_args()
-        self.check_if_config_file_exists()
+        self.parser_dic = parser_dic
+
         self.process_configuration_files()
 
     def process_configuration_files(self):
@@ -83,6 +83,8 @@ class Settings:
 
         self.loaded_config_paths = config.read(config_paths)
         self.failed_config_paths = set(config_paths) - set(self.loaded_config_paths)
+
+        self.check_no_failed_config_paths(self.failed_config_paths, self.parser_dic[self.args.run_mode])
 
         self.config = config
 
@@ -176,13 +178,17 @@ class Settings:
             return err
         return None
 
-    def check_if_config_file_exists(self):
+    def check_no_failed_config_paths(self, failed_config_paths, current_parser):
         """
-        Method to check if the configuration files exist.
-        If one of the files does not exist, it print a message to the standard error and terminates the program.
-        Otherwise, it do nothing.
+        Method to check if failed_config_paths contains some file path that failed to load.
+        If true, it throws an error message with the command-line usage corresponding to current_parser and the list of
+        the failed config paths.
+
+        :param failed_config_paths: Set of string
+        :param current_parser: The ArgumentParser corresponding the the current mode(tests, interactive, daemon)
         """
-        current_parser = self.parser_dic[self.args.run_mode]
-        for file_path in self.args.config:
-            if not os.path.isfile(file_path):
-                current_parser.error("The file %s does not exist." % file_path)
+        if failed_config_paths:
+            err_msg = "Failed to load %d configuration file(s):\n" % len(failed_config_paths)
+            for failed_config_path in self.failed_config_paths:
+                err_msg += "\t - %s" % failed_config_path
+            current_parser.error(err_msg)
