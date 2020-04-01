@@ -13,7 +13,6 @@ test_whitelist_duplicate_option_file = "/app/tests/unit_tests/files/whitelist_te
 test_whitelist_duplicate_section_file = "/app/tests/unit_tests/files/whitelist_tests_duplicate_section.conf"
 test_config_without_whitelist_file = "/app/tests/unit_tests/files/config_without_whitelist_tests.conf"
 test_config_that_does_not_exist = "/app/tests/unit_tests/files/this_file_does_not_exist.conf"
-test_config_that_exists = "/app/tests/unit_tests/files/this_file_exists.conf"
 test_config_that_is_a_directory = "/app/tests/unit_tests/files/"
 
 
