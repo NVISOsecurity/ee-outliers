@@ -65,9 +65,9 @@ class Notifier:
             msg['From'] = self.smtp_user
             msg['To'] = self.notification_email
 
-            s = smtplib.SMTP_SSL(self.smtp_server, self.smtp_port)
-            s.login(self.smtp_user, self.smtp_pass)
-            s.send_message(msg)
-            s.quit()
+            smtp_ssl_con = smtplib.SMTP_SSL(self.smtp_server, self.smtp_port)
+            smtp_ssl_con.login(self.smtp_user, self.smtp_pass)
+            smtp_ssl_con.send_message(msg)
+            smtp_ssl_con.quit()
         except Exception:
             self.logging.logger.error("something went wrong sending notification e-mail", exc_info=True)
