@@ -7,6 +7,8 @@ from tests.unit_tests.utils.dummy_documents_generate import DummyDocumentsGenera
 from helpers.outlier import Outlier
 from helpers.singletons import settings
 
+from helpers.settings import check_no_failed_config_paths as check_no_failed_config_paths
+
 test_whitelist_single_literal_file = "/app/tests/unit_tests/files/whitelist_tests_03_with_general.conf"
 test_whitelist_multiple_literal_file = "/app/tests/unit_tests/files/whitelist_tests_01_with_general.conf"
 test_whitelist_duplicate_option_file = "/app/tests/unit_tests/files/whitelist_tests_duplicate_keys.conf"
@@ -72,25 +74,25 @@ class TestSettings(unittest.TestCase):
     # Test on check_no_failed_config_paths function in tests mode
     def test_error_when_failed_config_file_exists_on_tests_mode(self):
         with self.assertRaises(SystemExit) as cm:
-            settings.check_no_failed_config_paths({test_config_that_does_not_exist}, settings.parser_dic['tests'])
+            check_no_failed_config_paths({test_config_that_does_not_exist}, settings.parser_dic['tests'])
         self.assertEqual(cm.exception.code, 2)
 
     # Test on check_no_failed_config_paths function in interactive mode
     def test_error_when_failed_config_file_exists_on_interactive_mode(self):
         with self.assertRaises(SystemExit) as cm:
-            settings.check_no_failed_config_paths({test_config_that_does_not_exist}, settings.parser_dic['interactive'])
+            check_no_failed_config_paths({test_config_that_does_not_exist}, settings.parser_dic['interactive'])
         self.assertEqual(cm.exception.code, 2)
 
     # Test on check_no_failed_config_paths function in daemon mode
     def test_error_when_failed_config_file_exists_on_daemon_mode(self):
         with self.assertRaises(SystemExit) as cm:
-            settings.check_no_failed_config_paths({test_config_that_does_not_exist}, settings.parser_dic['daemon'])
+            check_no_failed_config_paths({test_config_that_does_not_exist}, settings.parser_dic['daemon'])
         self.assertEqual(cm.exception.code, 2)
 
     def test_error_when_multiple_failed_config_files_exist(self):
         failed_config_files = {test_config_that_does_not_exist, test_config_that_is_a_directory}
         with self.assertRaises(SystemExit) as cm:
-            settings.check_no_failed_config_paths(failed_config_files, settings.parser_dic['interactive'])
+            check_no_failed_config_paths(failed_config_files, settings.parser_dic['interactive'])
         self.assertEqual(cm.exception.code, 2)
 
     # Test on check_no_failed_config_paths function
@@ -98,7 +100,7 @@ class TestSettings(unittest.TestCase):
         failed_config_files = {}
         raised = False
         try:
-            settings.check_no_failed_config_paths(failed_config_files, settings.parser_dic['daemon'])
+            check_no_failed_config_paths(failed_config_files, settings.parser_dic['daemon'])
         except SystemExit:
             raised = True
         self.assertFalse(raised)
