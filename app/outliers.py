@@ -89,13 +89,6 @@ def print_intro():
     logging.print_generic_intro("initializing")
     logging.logger.info("loaded %d configuration files", len(settings.loaded_config_paths))
 
-    if settings.failed_config_paths:
-        logging.logger.error("failed to load %d configuration files that will be "
-                             "ignored", len(settings.failed_config_paths))
-
-        for failed_config_path in settings.failed_config_paths:
-            logging.logger.error("\t+ failed to load configuration file %s", failed_config_path)
-
     if settings.failing_regular_expressions:
         logging.logger.error("failed to parse %d regular expressions in whitelist that "
                              "will be ignored", len(settings.failing_regular_expressions))
