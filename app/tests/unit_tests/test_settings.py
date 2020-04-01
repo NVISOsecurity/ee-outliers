@@ -77,20 +77,8 @@ class TestSettings(unittest.TestCase):
             self.test_settings.change_configuration_path(test_config_that_is_a_directory)
         self.assertEqual(cm.exception.code, 2)
 
-    # Test on check_no_failed_config_paths function in tests mode
-    def test_error_when_failed_config_file_exists_on_tests_mode(self):
-        with self.assertRaises(SystemExit) as cm:
-            print_failed_configs_and_exit({test_config_that_does_not_exist})
-        self.assertEqual(cm.exception.code, 2)
-
-    # Test on check_no_failed_config_paths function in interactive mode
+    # Test on check_no_failed_config_paths function
     def test_error_when_failed_config_file_exists_on_interactive_mode(self):
-        with self.assertRaises(SystemExit) as cm:
-            print_failed_configs_and_exit({test_config_that_does_not_exist})
-        self.assertEqual(cm.exception.code, 2)
-
-    # Test on check_no_failed_config_paths function in daemon mode
-    def test_error_when_failed_config_file_exists_on_daemon_mode(self):
         with self.assertRaises(SystemExit) as cm:
             print_failed_configs_and_exit({test_config_that_does_not_exist})
         self.assertEqual(cm.exception.code, 2)
@@ -100,6 +88,12 @@ class TestSettings(unittest.TestCase):
         with self.assertRaises(SystemExit) as cm:
             print_failed_configs_and_exit(failed_config_files)
         self.assertEqual(cm.exception.code, 2)
+
+    def test_no_exceptions_on_valid_config_file(self):
+        try:
+            self.test_settings.change_configuration_path(test_whitelist_multiple_literal_file)
+        except Exception:
+            self.fail("loading a valid configuration file raised an unexpected exception!")
 
     # Test on check_no_failed_config_paths function
     def test_error_when_no_failed_config_paths_exist(self):
