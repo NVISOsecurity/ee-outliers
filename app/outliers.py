@@ -13,6 +13,7 @@ import numpy as np
 import elasticsearch.exceptions
 
 import helpers.utils
+import logging as base_logging
 from helpers.singletons import settings, logging, es
 from helpers.watchers import FileModificationWatcher
 from helpers.housekeeping import HousekeepingJob
@@ -30,8 +31,10 @@ def run_outliers():
         test_filename = 'test_*.py'
         test_directory = '/app/tests/unit_tests'
 
+        base_logging.disable(base_logging.CRITICAL)
         suite = unittest.TestLoader().discover(test_directory, pattern=test_filename)
         test_result = unittest.TextTestRunner(verbosity=settings.config.getint("general", "log_verbosity")).run(suite)
+        base_logging.disable(base_logging.NOTSET)
         sys.exit(not test_result.wasSuccessful())
 
     # At this point, we know we are not running tests, so we should set up logging,

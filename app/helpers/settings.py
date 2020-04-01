@@ -1,6 +1,7 @@
 import configparser
 from configparser import NoOptionError, NoSectionError
 
+import logging
 import argparse
 import re
 
@@ -51,20 +52,22 @@ TESTS_PARSER.add_argument("--use-cases",
                           required=True)
 
 
-def check_no_failed_config_paths(failed_config_paths, current_parser):
+def print_failed_configs_and_exit(failed_config_paths):
     """
     Method to check if failed_config_paths contains some file path that failed to load.
     If true, it throws an error message with the command-line usage corresponding to current_parser and the list of
     the failed config paths.
 
     :param failed_config_paths: Set of string
-    :param current_parser: The ArgumentParser corresponding the the current mode(tests, interactive, daemon)
     """
     if failed_config_paths:
         err_msg = "Failed to load %d configuration file(s):\n" % len(failed_config_paths)
         for failed_config_path in failed_config_paths:
             err_msg += "\t - %s\n" % failed_config_path
-        current_parser.error(err_msg)
+
+        # logs error message to console and exit
+        logging.error(err_msg)
+        exit(2)
 
 
 def extract_whitelist_literal_from_value(value):
@@ -143,7 +146,10 @@ class Settings:
         self.loaded_config_paths = config.read(config_paths)
         self.failed_config_paths = set(config_paths) - set(self.loaded_config_paths)
 
-        check_no_failed_config_paths(self.failed_config_paths, self.parser_dic[self.args.run_mode])
+        if self.failed_config_paths:
+            print_failed_configs_and_exit(self.failed_config_paths)
+
+        # At this point we know all configuration files can be loaded - let's parse them!
         self.config = config
 
         # Literal whitelist

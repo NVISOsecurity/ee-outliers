@@ -463,6 +463,9 @@ class TestMetricsAnalyzer(unittest.TestCase):
         self.assertEqual(result, doc_with_outlier)
 
     def test_extract_additional_model_settings_no_metrics_section(self):
+        import logging as base_logging
+        base_logging.disable(base_logging.NOTSET)
+
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/metrics_test_no_metrics_section.conf")
 
         # Metrics section not define produce an error
@@ -470,6 +473,8 @@ class TestMetricsAnalyzer(unittest.TestCase):
             analyzer = AnalyzerFactory.create("/app/tests/unit_tests/files/use_cases/metrics/metrics_dummy_test.conf")
             # Check that we detect a problem in configuration
             self.assertTrue(analyzer.configuration_parsing_error)
+
+        base_logging.disable(base_logging.CRITICAL)
 
     def test_remove_metric_from_batch_simple_value(self):
         eval_metrics_array = defaultdict()
