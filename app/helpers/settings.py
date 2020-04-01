@@ -1,6 +1,7 @@
 import configparser
 import argparse
 import re
+import os
 
 from configparser import NoOptionError, NoSectionError
 
@@ -12,18 +13,43 @@ subparsers = parser.add_subparsers(help="Run mode", dest="run_mode")
 interactive_parser = subparsers.add_parser('interactive')
 daemon_parser = subparsers.add_parser('daemon')
 tests_parser = subparsers.add_parser('tests')
+parser_dic = {'interactive': interactive_parser,
+              'daemon': daemon_parser,
+              'tests': tests_parser}
+
+HELP_CONFIG_MESSAGE = "Configuration file location"
+HELP_USE_CASES_MESSAGE = "Additional use cases location"
 
 # Interactive mode - options
-interactive_parser.add_argument("--config", action='append', help="Configuration file location", required=True)
-interactive_parser.add_argument("--use-cases", action='append', help="Additional use cases location", required=True)
+interactive_parser.add_argument("--config",
+                                action='append',
+                                help=HELP_CONFIG_MESSAGE,
+                                required=True)
+
+interactive_parser.add_argument("--use-cases",
+                                action='append',
+                                help=HELP_USE_CASES_MESSAGE,
+                                required=True)
 
 # Daemon mode - options
-daemon_parser.add_argument("--config", action='append', help="Configuration file location", required=True)
-daemon_parser.add_argument("--use-cases", action='append', help="Additional use cases location", required=True)
+daemon_parser.add_argument("--config",
+                           action='append',
+                           help=HELP_CONFIG_MESSAGE,
+                           required=True)
+daemon_parser.add_argument("--use-cases",
+                           action='append',
+                           help=HELP_USE_CASES_MESSAGE,
+                           required=True)
 
 # Tests mode - options
-tests_parser.add_argument("--config", action='append', help="Configuration file location", required=True)
-tests_parser.add_argument("--use-cases", action='append', help="Additional use cases location", required=True)
+tests_parser.add_argument("--config",
+                          action='append',
+                          help=HELP_CONFIG_MESSAGE,
+                          required=True)
+tests_parser.add_argument("--use-cases",
+                          action='append',
+                          help=HELP_USE_CASES_MESSAGE,
+                          required=True)
 
 
 @singleton
@@ -41,6 +67,8 @@ class Settings:
         self.failing_regular_expressions = set()
 
         self.args = parser.parse_args()
+        self.parser_dic = parser_dic
+
         self.process_configuration_files()
 
     def process_configuration_files(self):
@@ -55,6 +83,8 @@ class Settings:
 
         self.loaded_config_paths = config.read(config_paths)
         self.failed_config_paths = set(config_paths) - set(self.loaded_config_paths)
+
+        self.check_no_failed_config_paths(self.failed_config_paths, self.parser_dic[self.args.run_mode])
 
         self.config = config
 
@@ -147,3 +177,18 @@ class Settings:
         except (configparser.DuplicateOptionError, configparser.DuplicateSectionError) as err:
             return err
         return None
+
+    def check_no_failed_config_paths(self, failed_config_paths, current_parser):
+        """
+        Method to check if failed_config_paths contains some file path that failed to load.
+        If true, it throws an error message with the command-line usage corresponding to current_parser and the list of
+        the failed config paths.
+
+        :param failed_config_paths: Set of string
+        :param current_parser: The ArgumentParser corresponding the the current mode(tests, interactive, daemon)
+        """
+        if failed_config_paths:
+            err_msg = "Failed to load %d configuration file(s):\n" % len(failed_config_paths)
+            for failed_config_path in failed_config_paths:
+                err_msg += "\t - %s\n" % failed_config_path
+            current_parser.error(err_msg)
