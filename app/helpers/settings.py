@@ -1,60 +1,122 @@
 import configparser
+from configparser import NoOptionError, NoSectionError
+
+import logging
 import argparse
 import re
-import os
-
-from configparser import NoOptionError, NoSectionError
 
 from helpers.singleton import singleton
 
-parser = argparse.ArgumentParser()
+PARSER = argparse.ArgumentParser()
 
-subparsers = parser.add_subparsers(help="Run mode", dest="run_mode")
-interactive_parser = subparsers.add_parser('interactive')
-daemon_parser = subparsers.add_parser('daemon')
-tests_parser = subparsers.add_parser('tests')
-parser_dic = {'interactive': interactive_parser,
-              'daemon': daemon_parser,
-              'tests': tests_parser}
+SUBPARSERS = PARSER.add_subparsers(help="Run mode", dest="run_mode")
+INTERACTIVE_PARSER = SUBPARSERS.add_parser('interactive')
+DAEMON_PARSER = SUBPARSERS.add_parser('daemon')
+TESTS_PARSER = SUBPARSERS.add_parser('tests')
+PARSER_DIC = {'interactive': INTERACTIVE_PARSER,
+              'daemon': DAEMON_PARSER,
+              'tests': TESTS_PARSER}
 
 HELP_CONFIG_MESSAGE = "Configuration file location"
 HELP_USE_CASES_MESSAGE = "Additional use cases location"
 
 # Interactive mode - options
-interactive_parser.add_argument("--config",
+INTERACTIVE_PARSER.add_argument("--config",
                                 action='append',
                                 help=HELP_CONFIG_MESSAGE,
                                 required=True)
 
-interactive_parser.add_argument("--use-cases",
+INTERACTIVE_PARSER.add_argument("--use-cases",
                                 action='append',
                                 help=HELP_USE_CASES_MESSAGE,
                                 required=True)
 
 # Daemon mode - options
-daemon_parser.add_argument("--config",
+DAEMON_PARSER.add_argument("--config",
                            action='append',
                            help=HELP_CONFIG_MESSAGE,
                            required=True)
-daemon_parser.add_argument("--use-cases",
+DAEMON_PARSER.add_argument("--use-cases",
                            action='append',
                            help=HELP_USE_CASES_MESSAGE,
                            required=True)
 
 # Tests mode - options
-tests_parser.add_argument("--config",
+TESTS_PARSER.add_argument("--config",
                           action='append',
                           help=HELP_CONFIG_MESSAGE,
                           required=True)
-tests_parser.add_argument("--use-cases",
+TESTS_PARSER.add_argument("--use-cases",
                           action='append',
                           help=HELP_USE_CASES_MESSAGE,
                           required=True)
 
 
+def print_failed_configs_and_exit(failed_config_paths):
+    """
+    Method to check if failed_config_paths contains some file path that failed to load.
+    If true, it throws an error message with the command-line usage corresponding to current_parser and the list of
+    the failed config paths.
+
+    :param failed_config_paths: Set of string
+    """
+    if failed_config_paths:
+        err_msg = "Failed to load %d configuration file(s):\n" % len(failed_config_paths)
+        for failed_config_path in failed_config_paths:
+            err_msg += "\t - %s\n" % failed_config_path
+
+        # logs error message to console and exit
+        logging.error(err_msg)
+        exit(2)
+
+
+def extract_whitelist_literal_from_value(value):
+    """
+    Converts a whitelist element from the configuration file into a set of unique elements to check.
+    Example: this converts "a, b, c, d  ,e" into [a, b, c, d, e]. Values are stripped for the case where users
+    include a "space" at the end of a whitelist value which could result in incorrect matching.
+    :param value: the whitelist string
+    :return: the array of whitelist elements
+    """
+    list_whitelist_element = set()
+    for one_whitelist_config_file_value in value.split(','):
+        list_whitelist_element.add(one_whitelist_config_file_value.strip())
+    return list_whitelist_element
+
+
+def extract_whitelist_regex_from_value(value):
+    """
+    Converts a whitelist element from the configuration file into a set of unique elements to check.
+    Values are first checked to see if they are valid regular expressions.
+    Example: this converts "^.*apples$,^apples.*$ into a set of 2 valid regular expresion objects.
+    Values are stripped for the case where users include a "space" at the end of a whitelist value which could
+    result in incorrect matching.
+    :param value: the whitelist string
+    :return: the tuple of correctly parsed & incorrectly parsed regular expressions
+    """
+    list_compile_regex_whitelist_value = set()
+    failing_regular_expressions = set()
+    for whitelist_val_to_check in value.split(","):
+        try:
+            list_compile_regex_whitelist_value.add(re.compile(whitelist_val_to_check.strip(), re.IGNORECASE))
+        except Exception:
+            # something went wrong compiling the regular expression, probably because of a user error such as
+            # unbalanced escape characters. We should just ignore the regular expression and continue (and let
+            # the user know in the beginning that some could not be compiled).  Even if we check for errors
+            # in the beginning of running outliers, we might still run into issues when the configuration
+            # changes during running of ee-outlies. So this should catch any remaining errors in the
+            # whitelist that could occur with regular expressions.
+            failing_regular_expressions.add(whitelist_val_to_check)
+
+    return list_compile_regex_whitelist_value, failing_regular_expressions
+
+
 @singleton
 class Settings:
-
+    """
+    Class to keep track of all configured settings.
+    Includes loading & parsing the configuration file(s) provided as command line arguments.
+    """
     def __init__(self):
         self.args = None
         self.config = None
@@ -66,8 +128,8 @@ class Settings:
         self.whitelist_regexps_config = None
         self.failing_regular_expressions = set()
 
-        self.args = parser.parse_args()
-        self.parser_dic = parser_dic
+        self.args = PARSER.parse_args()
+        self.parser_dic = PARSER_DIC
 
         self.process_configuration_files()
 
@@ -84,8 +146,10 @@ class Settings:
         self.loaded_config_paths = config.read(config_paths)
         self.failed_config_paths = set(config_paths) - set(self.loaded_config_paths)
 
-        self.check_no_failed_config_paths(self.failed_config_paths, self.parser_dic[self.args.run_mode])
+        if self.failed_config_paths:
+            print_failed_configs_and_exit(self.failed_config_paths)
 
+        # At this point we know all configuration files can be loaded - let's parse them!
         self.config = config
 
         # Literal whitelist
@@ -117,15 +181,9 @@ class Settings:
         fetch_whitelist_literals_elements = list(dict(self.config.items(settings_section)).values())
 
         for each_whitelist_configuration_file_value in fetch_whitelist_literals_elements:
-            list_whitelist_literals.append(self.extract_whitelist_literal_from_value(str(
+            list_whitelist_literals.append(extract_whitelist_literal_from_value(str(
                 each_whitelist_configuration_file_value)))
         return list_whitelist_literals
-
-    def extract_whitelist_literal_from_value(self, value):
-        list_whitelist_element = set()
-        for one_whitelist_config_file_value in value.split(','):
-            list_whitelist_element.add(one_whitelist_config_file_value.strip())
-        return list_whitelist_element
 
     def _extract_whitelist_regex_from_settings_section(self, settings_section):
         whitelist_regexps_config_items = list(dict(self.config.items(settings_section)).values())
@@ -136,7 +194,7 @@ class Settings:
         # If this is not the case, log an error to the user, as these will be ignored.
         for each_whitelist_configuration_file_value in whitelist_regexps_config_items:
             new_compile_regex_whitelist_value, value_failing_regular_expressions = \
-                self.extract_whitelist_regex_from_value(each_whitelist_configuration_file_value)
+                extract_whitelist_regex_from_value(each_whitelist_configuration_file_value)
 
             # Fixes bug #462
             if len(new_compile_regex_whitelist_value) > 0:
@@ -146,23 +204,6 @@ class Settings:
                 failing_regular_expressions.union(value_failing_regular_expressions)
 
         return list_whitelist_regexps, failing_regular_expressions
-
-    def extract_whitelist_regex_from_value(self, value):
-        list_compile_regex_whitelist_value = set()
-        failing_regular_expressions = set()
-        for whitelist_val_to_check in value.split(","):
-            try:
-                list_compile_regex_whitelist_value.add(re.compile(whitelist_val_to_check.strip(), re.IGNORECASE))
-            except Exception:
-                # something went wrong compiling the regular expression, probably because of a user error such as
-                # unbalanced escape characters. We should just ignore the regular expression and continue (and let
-                # the user know in the beginning that some could not be compiled).  Even if we check for errors
-                # in the beginning of running outliers, we might still run into issues when the configuration
-                # changes during running of ee-outlies. So this should catch any remaining errors in the
-                # whitelist that could occur with regexps.
-                failing_regular_expressions.add(whitelist_val_to_check)
-
-        return list_compile_regex_whitelist_value, failing_regular_expressions
 
     def check_no_duplicate_key(self):
         """
@@ -177,18 +218,3 @@ class Settings:
         except (configparser.DuplicateOptionError, configparser.DuplicateSectionError) as err:
             return err
         return None
-
-    def check_no_failed_config_paths(self, failed_config_paths, current_parser):
-        """
-        Method to check if failed_config_paths contains some file path that failed to load.
-        If true, it throws an error message with the command-line usage corresponding to current_parser and the list of
-        the failed config paths.
-
-        :param failed_config_paths: Set of string
-        :param current_parser: The ArgumentParser corresponding the the current mode(tests, interactive, daemon)
-        """
-        if failed_config_paths:
-            err_msg = "Failed to load %d configuration file(s):\n" % len(failed_config_paths)
-            for failed_config_path in failed_config_paths:
-                err_msg += "\t - %s\n" % failed_config_path
-            current_parser.error(err_msg)

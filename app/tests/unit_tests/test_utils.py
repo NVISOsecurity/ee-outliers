@@ -300,6 +300,9 @@ class TestUtils(unittest.TestCase):
                 self.assertEqual(res, expected_res)
 
     def test_decision_frontier_pct_of_avg_value(self):
+        import logging as base_logging
+        base_logging.disable(base_logging.NOTSET)
+
         for values_array in list_values_array:
             mean_values_array = mean(values_array)
             for sensitivity in list_sensitivity:
@@ -312,7 +315,12 @@ class TestUtils(unittest.TestCase):
                     res = helpers.utils.get_decision_frontier("pct_of_avg_value", values_array, sensitivity)
                 self.assertEqual(res, expected_res)
 
+        base_logging.disable(base_logging.CRITICAL)
+
     def test_decision_frontier_mad_low(self):
+        import logging as base_logging
+        base_logging.disable(base_logging.NOTSET)
+
         for values_array in list_values_array:
             mad = np.nanmedian(np.absolute(values_array - np.nanmedian(values_array, 0)), 0)
             for sensitivity in list_sensitivity:
@@ -324,6 +332,8 @@ class TestUtils(unittest.TestCase):
                 else:
                     res = helpers.utils.get_decision_frontier("mad", values_array, sensitivity, "low")
                 self.assertEqual(res, expected_res)
+
+        base_logging.disable(base_logging.CRITICAL)
 
     def test_decision_frontier_mad_high(self):
         for values_array in list_values_array:
@@ -404,6 +414,9 @@ class TestUtils(unittest.TestCase):
         self.assertEqual(res, expected_value)
 
     def test_decision_frontier_stdev_low(self):
+        import logging as base_logging
+        base_logging.disable(base_logging.NOTSET)
+
         for values_array in list_values_array:
             nanmean_values_array = np.nanmean(values_array)
             std_values_array = np.std(values_array)
@@ -417,6 +430,8 @@ class TestUtils(unittest.TestCase):
                     res = helpers.utils.get_decision_frontier("stdev", values_array, sensitivity, "low")
 
                 self.assertEqual(res, expected_res)
+
+        base_logging.disable(base_logging.CRITICAL)
 
     def test_decision_frontier_stdev_high(self):
         for values_array in list_values_array:
