@@ -1,10 +1,12 @@
+import textwrap
 import helpers.singletons
 import helpers.utils
-import textwrap
 
 
 class Outlier:
-
+    """
+    Defines an outlier & logic to verify if the outlier is whitelisted or not.
+    """
     def __init__(self, outlier_type, outlier_reason, outlier_summary, doc):
         self.outlier_dict = dict()
         self.outlier_dict["type"] = outlier_type  # can be multiple types, for example: malware, powershell

@@ -126,8 +126,8 @@ class ES:
         :return: number of document
         """
         res = self.conn.count(index=index, body=build_search_query(bool_clause=bool_clause, search_range=search_range,
-                                                                    query_fields=query_fields,
-                                                                    search_query=search_query))
+                                                                   query_fields=query_fields,
+                                                                   search_query=search_query))
 
         return res["count"]
 
@@ -226,7 +226,7 @@ class ES:
                     config_section_name = model_type + "_" + model_name
                     if config_section_name not in dict_with_analyzer:
                         self.logging.logger.debug("Outlier '" + config_section_name + "' " +
-                                                    " was not found in configuration, could not check whitelist")
+                                                  " was not found in configuration, could not check whitelist")
                         break  # If one outlier is not whitelisted, we keep all other outliers
                     analyzer = dict_with_analyzer[config_section_name]
 

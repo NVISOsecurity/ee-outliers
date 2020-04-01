@@ -2,7 +2,10 @@ import os
 
 
 class FileModificationWatcher:
-
+    """
+    Check if files that are added to this watcher have been changed.
+    Use to check if files such as configuration files need to be reloaded once they become dirty.
+    """
     def __init__(self, files=[]):
         self._previous_mtimes = {}
         self.add_files(files)

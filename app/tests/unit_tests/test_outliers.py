@@ -32,7 +32,7 @@ nested_doc_for_whitelist_test = {'169.254.184.188', 'fe80::491a:881a:b1bf:b539',
                                  r'\User_Feed_Synchronization-{9CD0CFAD-350E-46BA-8338-932284EF7332}'}
 
 # Monkey patch the test stub analyzer mapping in the AnalyzerFactory
-helpers.analyzerfactory.class_mapping["analyzer"] = TestStubAnalyzer
+helpers.analyzerfactory.CLASS_MAPPING["analyzer"] = TestStubAnalyzer
 
 class TestOutlierOperations(unittest.TestCase):
     def setUp(self):

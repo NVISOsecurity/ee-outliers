@@ -20,7 +20,7 @@ doc_without_outlier_test_file = json.load(open(
     "/app/tests/unit_tests/files/doc_without_outlier.json"))
 doc_with_outlier_test_file = json.load(open("/app/tests/unit_tests/files/doc_with_outlier.json"))
 
-helpers.analyzerfactory.class_mapping["analyzer"] = TestStubAnalyzer
+helpers.analyzerfactory.CLASS_MAPPING["analyzer"] = TestStubAnalyzer
 
 class TestHousekeeping(unittest.TestCase):
 
