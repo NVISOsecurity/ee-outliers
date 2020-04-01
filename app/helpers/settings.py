@@ -190,5 +190,5 @@ class Settings:
         if failed_config_paths:
             err_msg = "Failed to load %d configuration file(s):\n" % len(failed_config_paths)
             for failed_config_path in failed_config_paths:
-                err_msg += "\t - %s" % failed_config_path
+                err_msg += "\t - %s\n" % failed_config_path
             current_parser.error(err_msg)
