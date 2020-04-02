@@ -99,6 +99,8 @@ def print_intro():
         for failed_regular_expression in settings.failing_regular_expressions:
             logging.logger.error("\t+ failed to parse regular expression %s", failed_regular_expression)
 
+    # Sleep for a few seconds so that anyone live viewing the logs has time to view
+    time.sleep(3)
 
 # pylint: disable=too-many-branches
 def run_daemon_mode():
