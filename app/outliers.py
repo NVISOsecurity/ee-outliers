@@ -102,6 +102,7 @@ def print_intro():
     # Sleep for a few seconds so that anyone live viewing the logs has time to view
     time.sleep(3)
 
+
 # pylint: disable=too-many-branches
 def run_daemon_mode():
     """
