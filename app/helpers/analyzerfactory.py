@@ -42,7 +42,7 @@ class AnalyzerFactory:
             raise ValueError("Use case file %s does not exist" % config_file)
 
         # Read the ini file from disk
-        config = configparser.ConfigParser()
+        config = configparser.RawConfigParser()
         config.read(config_file)
 
         # Create a list of all analyzers found in the config file
