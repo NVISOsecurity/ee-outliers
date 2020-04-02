@@ -140,7 +140,7 @@ class Settings:
         config_paths = self.args.config
 
         # Read configuration files
-        config = configparser.ConfigParser(interpolation=None, strict=False)
+        config = configparser.RawConfigParser(interpolation=None, strict=False)
         config.optionxform = str  # preserve case sensitivity in config keys, important for derived field names
 
         self.loaded_config_paths = config.read(config_paths)
@@ -212,7 +212,7 @@ class Settings:
         :return: the error (that contain message with duplicate), None if no duplicate
         """
         try:
-            config = configparser.ConfigParser(interpolation=None, strict=True)
+            config = configparser.RawConfigParser(interpolation=None, strict=True)
             config.optionxform = str  # preserve case sensitivity in config keys, important for derived field names
             config.read(self.args.config)
         except (configparser.DuplicateOptionError, configparser.DuplicateSectionError) as err:

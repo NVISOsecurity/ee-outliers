@@ -36,6 +36,15 @@ class TestSimplequeryAnalyzer(unittest.TestCase):
         self.test_settings.change_configuration_path(config_file)
         return SimplequeryAnalyzer(config_section_name=config_section)
 
+    # Simply test if use cases containing a % sign also work correctly and don't generate an expcetion when being
+    # parsed by the ConfigParser. This is the reason we use the RawConfigParser.
+    # https://docs.python.org/2/library/configparser.html
+    def test_simplequery_raw_configparser_test_percent_signs_in_query(self):
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/simplequery_test_whitelist.conf")
+        analyzer = AnalyzerFactory.create(
+            "/app/tests/unit_tests/files/use_cases/simplequery/simplequery_raw_configparser_test_percent_signs.conf")
+        analyzer.evaluate_model()
+
     def test_simplequery_whitelist_work_test_es_result(self):
         dummy_doc_generate = DummyDocumentsGenerate()
         nbr_generated_documents = 5
@@ -65,7 +74,6 @@ class TestSimplequeryAnalyzer(unittest.TestCase):
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/simplequery_test_01.conf")
         analyzer = AnalyzerFactory.create("/app/tests/unit_tests/files/use_cases/simplequery/simplequery_dummy_test.conf")
         analyzer.evaluate_model()
-
 
         # Fetch result to check if it is correct
         result = [elem for elem in es._scan()][0]
