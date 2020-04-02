@@ -48,6 +48,9 @@ def run_outliers():
         logging.logger.warning(
             'duplicate value detected in configuration file. Only the last specified value will be used: %s', error)
 
+    # Sleep for a few seconds so that anyone live viewing the logs has time to view the intro
+    time.sleep(10)
+
     # Everything has been setup correctly, we can now start analysis in the correct run mode
     if settings.args.run_mode == "daemon":
         run_daemon_mode()
@@ -98,9 +101,6 @@ def print_intro():
 
         for failed_regular_expression in settings.failing_regular_expressions:
             logging.logger.error("\t+ failed to parse regular expression %s", failed_regular_expression)
-
-    # Sleep for a few seconds so that anyone live viewing the logs has time to view
-    time.sleep(3)
 
 
 # pylint: disable=too-many-branches
