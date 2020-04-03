@@ -30,6 +30,7 @@ ADD ./requirements.txt /app/requirements.txt
 RUN sudo pip3 install -r /app/requirements.txt
 
 ADD ./defaults /defaults
+ADD ./use_cases /use_cases
 ADD ./app/ /app
 
 ADD ./VERSION /VERSION
