@@ -99,8 +99,6 @@ def print_intro():
         for failed_regular_expression in settings.failing_regular_expressions:
             logging.logger.error("\t+ failed to parse regular expression %s", failed_regular_expression)
 
-    # Sleep for a few seconds so that anyone live viewing the logs has time to view
-    time.sleep(3)
 
 # pylint: disable=too-many-branches
 def run_daemon_mode():
@@ -179,6 +177,9 @@ def run_daemon_mode():
         if not housekeeping_job.is_alive():
             housekeeping_job.start()
 
+        # Sleep for a few seconds so that anyone live viewing the logs has time to view the intro
+        time.sleep(8)
+
         # Perform analysis and print the analysis summary at the end
         logging.print_generic_intro("starting outlier detection")
         analyzed_models = perform_analysis(housekeeping_job)
@@ -218,6 +219,8 @@ def run_interactive_mode():
     # The difference with daemon mode is that in interactive mode, we want to allow the user to stop execution on the
     # command line, interactively.
     try:
+        # Sleep for a few seconds so that anyone live viewing the logs has time to view the intro
+        time.sleep(8)
         analyzed_models = perform_analysis(housekeeping_job)
         print_analysis_summary(analyzed_models)
     except KeyboardInterrupt:
