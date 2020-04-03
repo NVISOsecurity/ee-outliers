@@ -7,7 +7,7 @@
 - [Configuring ee-outliers](#configuring-ee-outliers)
 - [Running in interactive mode](#running-in-interactive-mode)
 - [Running in daemon mode](#running-in-daemon-mode)
-- [Customizing your Docker run parameters](#customizing-your-docker-run-parameters)
+- [Customizing your Docker run parameters](#customizing-your-docker-run-parameters) 
 
 ## Requirements
 - [Docker](https://docs.docker.com/get-docker/) and [Docker Compose](https://docs.docker.com/compose/install/) to build and run ee-outliers
@@ -20,6 +20,8 @@ Using ee-outliers is basically a four-step process:
 2. Define your outlier detection use cases.
 3. Define the docker container and the ee-outliers parameters inside a Compose file `docker-compose.yml`.
 4. Build an image and run ee-outliers with `docker-compose up`.
+
+You will then be TODO...
 
 #### Step 1: Configuring ee-outliers
 
@@ -52,15 +54,35 @@ version: '3'
 services:
   outliers:
     build: .
-    container_name: outliers_mroberti_dev
+    container_name: your_outliers_container_name
     command: "python3 outliers.py interactive --config /mappedvolumes/config/outliers.conf --use-cases /use_cases/*.conf"
     volumes:
       - ./defaults/outliers.conf:/mappedvolumes/config/outliers.conf
       - ./use_cases/examples:/use_cases
-    network_mode: 
+    network_mode: network_name
     restart: always
 ```
+It allows you to define the docker container and the ee-outliers parameters for then build and run a ee-outliers image
+in one single command line.
 
+Let's describe each of the Compose file parameters:
+- [`container_name`](https://docs.docker.com/compose/compose-file/#compose-file-structure-and-examples#container_name): 
+Your custom container name
+- `volumes`:
+- `network_mode`:
+- `command`:
+- `restart`:
+
+
+The following modifications might need to be made for your specific situation:
+- The name of the docker network through which the Elasticsearch cluster is reachable (``--network``)
+- The mapped volumes so that your configuration file can be found (``-v``). By default, the default configuration file in ``/defaults`` is mapped to ``/mappedvolumes/config``
+- The path of the configuration file (``--config``)
+- One or more paths to use case config files (``--use-cases``). 
+Path can also contain wildcards, such as ``"/my/usecase/folder/*.conf"``.
+
+For more information about the Compose file, see the 
+[Compose file reference](https://docs.docker.com/compose/compose-file/).
 
 #### Step 4: Build & run ee-outliers
 
@@ -71,25 +93,8 @@ docker-compose up
 ```
 To stop your... TODO
 
-
-## Create use cases
-
-Before running ee-outliers
-
-## Running with docker-compose
-
-Docker-compose will allow you to build and run an image of ee-outliers with one single command:
-
-```
-docker-compose up
-```
-
-The docker and ee-outliers are defined in docker-compose.yml
-
-For convenience, we recommend to use docker-compose for running ee-outliers. 
-If you want to use docker and specify the parameters straight from the command line, please refer to the section [Running with 
-docker](#running-with-docker). 
-
+For convenience, we recommend to use docker-compose but instead, you can docker and specify the parameters straight 
+from the command line, please refer to the section [Running with docker](#running-with-docker). 
 
 
 ## Running with docker
