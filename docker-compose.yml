@@ -3,9 +3,9 @@ services:
   outliers:
     build: .
     container_name: outliers_max_dev
-    command: "python3 outliers.py interactive --config /mappedvolumes/config/outliers.conf --use-cases /use_cases/*.conf"
+    command: "python3 outliers.py interactive --config /mappedvolumes/config/outliers_max.conf --use-cases /use_cases/*.conf"
     volumes:
-      - ./defaults/outliers.conf:/mappedvolumes/config/outliers.conf
+      - ./defaults/outliers_max.conf:/mappedvolumes/config/outliers_max.conf
       - ./use_cases/examples:/use_cases
     network_mode: sensor_network
     restart: always
