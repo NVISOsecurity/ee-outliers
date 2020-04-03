@@ -10,8 +10,89 @@
 - [Customizing your Docker run parameters](#customizing-your-docker-run-parameters)
 
 ## Requirements
-- Docker to build and run ee-outliers
+- [Docker](https://docs.docker.com/get-docker/) and [Docker Compose](https://docs.docker.com/compose/install/) to build and run ee-outliers
 - Access to an Elasticsearch cluster
+
+## Running ee-outliers
+
+Using ee-outliers is basically a four-step process:
+1. Define the ee-outliers configuration file. 
+2. Define your outlier detection use cases.
+3. Define the docker container and the ee-outliers parameters inside a Compose file `docker-compose.yml`.
+4. Build an image and run ee-outliers with `docker-compose up`.
+
+#### Step 1: Configuring ee-outliers
+
+ee-outliers makes use of a single configuration file containing all required parameters such as connectivity 
+with your Elasticsearch cluster, logging, etc.
+
+A default configuration file with all required configuration sections and parameters, along with an explanation, can be
+ found in [`defaults/outliers.conf`](../defaults/outliers.conf). We recommend starting from this file when running 
+ ee-outliers yourself.
+ 
+A full description of all configuration parameters can be found [here](CONFIG_PARAMETERS.md).  
+
+#### Step 2: Define the outlier detection use cases
+
+Each detection use cases has to be defined in a separate .conf file.
+
+TODO small description of what a ee-outliers file is responsible for.
+
+Examples of how we define a use cases file can be found in [use_cases/examples](../use_cases/examples).
+For detailed description of these examples, along with information about each existing detection model and their 
+parameters can be found [here](CONFIG_OUTLIERS.md).
+
+
+#### Step 3: Define docker container & ee-ouliers parameters in a Compose file
+
+The Compose file is located at [`docker-compose.yml`](../docker-compose.yml) and should look like this:
+
+```
+version: '3'
+services:
+  outliers:
+    build: .
+    container_name: outliers_mroberti_dev
+    command: "python3 outliers.py interactive --config /mappedvolumes/config/outliers.conf --use-cases /use_cases/*.conf"
+    volumes:
+      - ./defaults/outliers.conf:/mappedvolumes/config/outliers.conf
+      - ./use_cases/examples:/use_cases
+    network_mode: 
+    restart: always
+```
+
+
+#### Step 4: Build & run ee-outliers
+
+Thanks to docker-compose, we can build and run an image of ee-outliers with the following single command line:
+
+```
+docker-compose up
+```
+To stop your... TODO
+
+
+## Create use cases
+
+Before running ee-outliers
+
+## Running with docker-compose
+
+Docker-compose will allow you to build and run an image of ee-outliers with one single command:
+
+```
+docker-compose up
+```
+
+The docker and ee-outliers are defined in docker-compose.yml
+
+For convenience, we recommend to use docker-compose for running ee-outliers. 
+If you want to use docker and specify the parameters straight from the command line, please refer to the section [Running with 
+docker](#running-with-docker). 
+
+
+
+## Running with docker
 
 ## Configuring ee-outliers
 
