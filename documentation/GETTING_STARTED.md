@@ -8,12 +8,19 @@
 - [Running in interactive mode](#running-in-interactive-mode)
 - [Running in daemon mode](#running-in-daemon-mode)
 - [Customizing your Docker run parameters](#customizing-your-docker-run-parameters) 
+- [Running ee-outliers](#running-ee-outliers)
+    - [Step 1: Configuring ee-outliers](#step-1-configuring-ee-outliers)
+    - [Step 2: Define the outlier detection use cases](#step-2-define-the-outlier-detection-use-cases)
+    - [Step 3: Define docker container & ee-outliers parameters in the Compose file](#step-3-define-docker-container--ee-outliers-parameters-in-the-compose-file)
+    - [Step 4: Build & run ee-outliers with Docker Compose](#step-4-build--run-ee-outliers-with-docker-compose)
+    - [Step 4 bis: Build & run ee-outliers with Docker](#step-4-bis-build--run-ee-outliers-with-docker)
+- [Additionnal Content](#additional-content)
 
 ## Requirements
 - [Docker](https://docs.docker.com/get-docker/) and [Docker Compose](https://docs.docker.com/compose/install/) to build and run ee-outliers
 - Access to an Elasticsearch cluster
 
-## Running ee-outliers with Docker Compose 
+## Running ee-outliers
 
 Using ee-outliers is basically a four-step process:
 1. Define the ee-outliers configuration file. 
@@ -113,13 +120,13 @@ To stop and remove the container use:
 docker-compose down
 ```
 
-## Build & run ee-outliers with Docker
+### Step 4 bis: Build & run ee-outliers with Docker
 
 For convenience, we recommend using Docker Compose but the user can also use Docker and specify the ee-outliers 
 parameters straight from the command line. 
-
-To achieve that, after following [Step 1](#step-1:-configuring-ee-outliers) and 
-[Step 2](#step-2:-define-the-outlier-detection-use-cases), you can enter the following commands:
+ 
+To use Docker, after following [Step 1](#step-1-configuring-ee-outliers) and 
+[Step 2](#step-2-define-the-outlier-detection-use-cases), you can enter the following commands:
 
 ```BASH
 # Build the image
