@@ -49,7 +49,7 @@ class HousekeepingJob(threading.Thread):
         self.dict_analyzer = dict()  # Reset list
         for analyzer in list_analyzer:
             self.dict_analyzer[analyzer.model_type + "_" + analyzer.model_name] = analyzer
-        logging.logger.info("housekeeping - list analyzer have been updated")
+        logging.logger.debug("housekeeping - list analyzer have been updated")
         self.analyzers_updated = True
 
     def stop_housekeeping(self):

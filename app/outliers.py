@@ -18,7 +18,7 @@ from helpers.singletons import settings, logging, es
 from helpers.watchers import FileModificationWatcher
 from helpers.housekeeping import HousekeepingJob
 from helpers.analyzerfactory import AnalyzerFactory
-
+from configparser import MissingSectionHeaderError
 
 def run_outliers():
     """
@@ -241,7 +241,7 @@ def load_analyzers():
                 logging.logger.debug("Loading use case %s" % use_case_file)
                 try:
                     analyzers.append(AnalyzerFactory.create(use_case_file))
-                except ValueError as e:
+                except (ValueError, MissingSectionHeaderError) as e:
                     logging.logger.error("An error occured when loading %s: %s" % (use_case_file, str(e)))
 
     return analyzers
