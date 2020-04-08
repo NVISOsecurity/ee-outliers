@@ -8,4 +8,3 @@ services:
       - ./defaults/outliers.conf:/mappedvolumes/config/outliers.conf
       - ./use_cases/examples:/use_cases
     network_mode: sensor_network
-    restart: always
