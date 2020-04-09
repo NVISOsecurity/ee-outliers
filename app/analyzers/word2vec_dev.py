@@ -4,14 +4,8 @@ from helpers.analyzer import Analyzer
 
 class Word2VecDevAnalyzer(Analyzer):
 
-    def evaluate_model(self):
-        logging.logger.debug("Word2VecDevAnalyzer: evaluate_model")
-
-        if self.model_settings["train_model"]:
-            self.train_model()
-
-        if self.model_settings["run_model"] or self.model_settings["test_model"]:
-            self.run_model()
+    def __init__(self, model_name, config_section):
+        super(Word2VecDevAnalyzer, self).__init__("word2vec_dev", model_name, config_section)
 
     def _extract_additional_model_settings(self):
         """
@@ -20,6 +14,15 @@ class Word2VecDevAnalyzer(Analyzer):
         logging.logger.debug("Word2VecDevAnalyzer: _extract_additional_model_settings")
 
         self.model_settings["train_model"] = self.config_section.getboolean("train_model")
+
+    def evaluate_model(self):
+        logging.logger.debug("Word2VecDevAnalyzer: evaluate_model")
+
+        if self.model_settings["train_model"]:
+            self.train_model()
+
+        if self.model_settings["run_model"] or self.model_settings["test_model"]:
+            self.run_model()
 
     def train_model(self):
         logging.logger.debug("Word2VecDevAnalyzer: train_model")
