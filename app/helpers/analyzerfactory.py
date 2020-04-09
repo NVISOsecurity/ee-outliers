@@ -12,8 +12,8 @@ from analyzers.word2vec_dev import Word2VecDevAnalyzer
 CLASS_MAPPING = {
     "simplequery": SimplequeryAnalyzer,
     "metrics": MetricsAnalyzer,
-    "word2vec": Word2VecAnalyzer,
     "word2vec_dev": Word2VecDevAnalyzer,
+    "word2vec": Word2VecAnalyzer,
     "terms": TermsAnalyzer
 }
 
