@@ -7,7 +7,9 @@ from configparser import NoOptionError
 
 
 class Notifier:
-
+    """
+    Send e-mails containing outlier information
+    """
     settings = None
     smtp_server = None
     smtp_port = None
@@ -35,6 +37,10 @@ class Notifier:
         self.last_seen_ignore_queue = collections.deque(maxlen=nr_max_que_len)
 
     def notify_on_outlier(self, outlier=None):
+        """
+        Checks if an outlier should be reported by e-mail or not, based on the queue content
+        :param outlier: the outlier object to send by e-mail
+        """
         if outlier.outlier_dict["summary"] in self.last_seen_ignore_queue:
             self.logging.logger.debug("not notifying on outlier because it is still in the ignore queue - " +
                                       outlier.outlier_dict["summary"])
@@ -49,15 +55,19 @@ class Notifier:
             self.send_email(email_dict)
 
     def send_email(self, email_dict):
+        """
+        Send a notification e-mail with the content of the dictionary provided as argument
+        :param email_dict: contains all information for the e-mail including body, subject, from, recipient
+        """
         try:
             msg = MIMEText(email_dict["body"])
             msg['Subject'] = email_dict["subject"]
             msg['From'] = self.smtp_user
             msg['To'] = self.notification_email
 
-            s = smtplib.SMTP_SSL(self.smtp_server, self.smtp_port)
-            s.login(self.smtp_user, self.smtp_pass)
-            s.send_message(msg)
-            s.quit()
+            smtp_ssl_con = smtplib.SMTP_SSL(self.smtp_server, self.smtp_port)
+            smtp_ssl_con.login(self.smtp_user, self.smtp_pass)
+            smtp_ssl_con.send_message(msg)
+            smtp_ssl_con.quit()
         except Exception:
             self.logging.logger.error("something went wrong sending notification e-mail", exc_info=True)

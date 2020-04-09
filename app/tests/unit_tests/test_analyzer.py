@@ -12,7 +12,7 @@ from helpers.analyzerfactory import AnalyzerFactory
 import helpers.analyzerfactory
 
 # Monkey patch the test stub analyzer mapping in the AnalyzerFactory
-helpers.analyzerfactory.class_mapping["analyzer"] = TestStubAnalyzer
+helpers.analyzerfactory.CLASS_MAPPING["analyzer"] = TestStubAnalyzer
 
 doc_without_outlier_test_file = json.load(open("/app/tests/unit_tests/files/doc_without_outlier.json"))
 doc_with_outlier_test_file = json.load(open("/app/tests/unit_tests/files/doc_with_analyzer_outlier.json"))
@@ -24,7 +24,7 @@ class TestAnalyzer(unittest.TestCase):
         # "es" use in Analyzer construction and in the method "process_outlier"
         self.test_es = TestStubEs()
         self.test_settings = UpdateSettings()
-        
+
 
     def tearDown(self):
         # restore the default configuration file so we don't influence other unit tests that use the settings singleton

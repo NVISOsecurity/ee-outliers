@@ -13,11 +13,12 @@ import numpy as np
 import elasticsearch.exceptions
 
 import helpers.utils
+import logging as base_logging
 from helpers.singletons import settings, logging, es
 from helpers.watchers import FileModificationWatcher
 from helpers.housekeeping import HousekeepingJob
 from helpers.analyzerfactory import AnalyzerFactory
-
+from configparser import MissingSectionHeaderError
 
 def run_outliers():
     """
@@ -30,8 +31,10 @@ def run_outliers():
         test_filename = 'test_*.py'
         test_directory = '/app/tests/unit_tests'
 
+        base_logging.disable(base_logging.CRITICAL)
         suite = unittest.TestLoader().discover(test_directory, pattern=test_filename)
         test_result = unittest.TextTestRunner(verbosity=settings.config.getint("general", "log_verbosity")).run(suite)
+        base_logging.disable(base_logging.NOTSET)
         sys.exit(not test_result.wasSuccessful())
 
     # At this point, we know we are not running tests, so we should set up logging,
@@ -88,13 +91,6 @@ def print_intro():
 
     logging.print_generic_intro("initializing")
     logging.logger.info("loaded %d configuration files", len(settings.loaded_config_paths))
-
-    if settings.failed_config_paths:
-        logging.logger.error("failed to load %d configuration files that will be "
-                             "ignored", len(settings.failed_config_paths))
-
-        for failed_config_path in settings.failed_config_paths:
-            logging.logger.error("\t+ failed to load configuration file %s", failed_config_path)
 
     if settings.failing_regular_expressions:
         logging.logger.error("failed to parse %d regular expressions in whitelist that "
@@ -181,6 +177,9 @@ def run_daemon_mode():
         if not housekeeping_job.is_alive():
             housekeeping_job.start()
 
+        # Sleep for a few seconds so that anyone live viewing the logs has time to view the intro
+        time.sleep(8)
+
         # Perform analysis and print the analysis summary at the end
         logging.print_generic_intro("starting outlier detection")
         analyzed_models = perform_analysis(housekeeping_job)
@@ -220,6 +219,8 @@ def run_interactive_mode():
     # The difference with daemon mode is that in interactive mode, we want to allow the user to stop execution on the
     # command line, interactively.
     try:
+        # Sleep for a few seconds so that anyone live viewing the logs has time to view the intro
+        time.sleep(8)
         analyzed_models = perform_analysis(housekeeping_job)
         print_analysis_summary(analyzed_models)
     except KeyboardInterrupt:
@@ -240,7 +241,7 @@ def load_analyzers():
                 logging.logger.debug("Loading use case %s" % use_case_file)
                 try:
                     analyzers.append(AnalyzerFactory.create(use_case_file))
-                except ValueError as e:
+                except (ValueError, MissingSectionHeaderError) as e:
                     logging.logger.error("An error occured when loading %s: %s" % (use_case_file, str(e)))
 
     return analyzers

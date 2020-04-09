@@ -455,8 +455,9 @@ class TermsAnalyzer(Analyzer):
         """
         Override method from Analyzer
         """
-        
-        self.model_settings["process_documents_chronologically"] = self.config_section.getboolean("process_documents_chronologically", True)
+
+        self.model_settings["process_documents_chronologically"] = self.config_section.getboolean(
+            "process_documents_chronologically", True)
 
         # remove unnecessary whitespace, split fields
         self.model_settings["target"] = self.config_section["target"].replace(' ', '').split(",")
@@ -471,9 +472,11 @@ class TermsAnalyzer(Analyzer):
         self.model_settings["target_count_method"] = self.config_section["target_count_method"]
 
         self.model_settings["min_target_buckets"] = self.config_section.getint("min_target_buckets", None)
-        if self.model_settings["target_count_method"] != "within_aggregator":
-            logging.logger.warning("'min_target_buckets' is only useful when 'target_count_method' is set " +
-                                    "to 'within_aggregator'")
+
+        if self.model_settings["min_target_buckets"]:
+            if self.model_settings["target_count_method"] != "within_aggregator":
+                logging.logger.warning("'min_target_buckets' is only useful when 'target_count_method' is set "
+                                       "to 'within_aggregator'")
 
         # Validate model settings
         if self.model_settings["target_count_method"] not in {"within_aggregator", "across_aggregators"}:

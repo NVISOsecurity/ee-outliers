@@ -4,8 +4,8 @@ Framework to easily detect outliers in Elasticsearch events.
 
 *Developed in Python and fully dockerized!*
 
-![version badge](https://img.shields.io/badge/version-0.2.12-blue "verion 0.2.12")
-![tests badge](https://img.shields.io/badge/unit_tests-216-orange "216 unit tests")
+![version badge](https://img.shields.io/badge/version-0.2.13-blue "verion 0.2.13")
+![tests badge](https://img.shields.io/badge/unit_tests-223-orange "223 unit tests")
 
 ## Documentation
 
@@ -17,7 +17,7 @@ Framework to easily detect outliers in Elasticsearch events.
 ### Using ee-outliers
 - [Getting started](documentation/GETTING_STARTED.md)
 - [Configuration parameters](documentation/CONFIG_PARAMETERS.md)
-- [Example use cases](examples)
+- [Example use cases](use_cases/examples)
 - [Building detection use cases](documentation/CONFIG_OUTLIERS.md)
 - [Whitelisting outliers](documentation/WHITELIST.md)
 - [Notifications](documentation/NOTIFICATIONS.md)

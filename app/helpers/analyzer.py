@@ -6,7 +6,7 @@ from configparser import NoOptionError
 from helpers.singletons import settings, es, logging
 import helpers.utils
 from helpers.outlier import Outlier
-        
+
 
 # pylint: disable=too-many-instance-attributes
 class Analyzer(abc.ABC):
@@ -48,12 +48,6 @@ class Analyzer(abc.ABC):
             logging.logger.error("error while parsing use case configuration for %s", self.model_name, exc_info=True)
             self.configuration_parsing_error = True
 
-    def add_whitelist_literal(self, s):
-        self.model_whitelist_literals.append(s)
-
-    def add_whitelist_regexp(self, s):
-        self.model_whitelist_regexps.append(s)
-
     @property
     def analysis_time_seconds(self):
         """
@@ -77,7 +71,7 @@ class Analyzer(abc.ABC):
         model_settings["es_query_filter"] = self.config_section.get("es_query_filter")
         if model_settings["es_query_filter"]:
             self.search_query = es.filter_by_query_string(model_settings["es_query_filter"])
-        
+
         model_settings["es_dsl_filter"] = self.config_section.get("es_dsl_filter")
         if model_settings["es_dsl_filter"]:
             self.search_query = es.filter_by_dsl_query(model_settings["es_dsl_filter"])
@@ -85,7 +79,6 @@ class Analyzer(abc.ABC):
         model_settings["timestamp_field"] = self.config_section.get("timestamp_field")
         if not model_settings["timestamp_field"]:
             model_settings["timestamp_field"] = settings.config.get("general", "timestamp_field", fallback="timestamp")
-
 
         model_settings["history_window_days"] = self.config_section.getint("history_window_days")
         if not model_settings["history_window_days"]:
@@ -100,7 +93,6 @@ class Analyzer(abc.ABC):
                                               self.config_section.getboolean("should_notify")
         except NoOptionError:
             model_settings["should_notify"] = False
-
 
         model_settings["use_derived_fields"] = self.config_section.getboolean("use_derived_fields")
 
@@ -125,7 +117,6 @@ class Analyzer(abc.ABC):
         This method can be overridden by children to load content linked to a specific analyzer
         """
         pass
-
 
     def _extract_arbitrary_config(self):
         """
@@ -233,7 +224,7 @@ class Analyzer(abc.ABC):
 
         if outlier.is_whitelisted(self.model_whitelist_literals, self.model_whitelist_regexps):
             if settings.print_outliers_to_console:
-                logging.logger.info(outlier.outlier_dict["summary"] + " [whitelisted outlier]")
+                logging.logger.debug("%s [whitelisted outlier]", outlier.outlier_dict["summary"])
         else:
             es.process_outlier(outlier=outlier, should_notify=self.model_settings["should_notify"])
 
