@@ -1,4 +1,10 @@
 # Changelog
+## [Version 0.2.13](https://github.com/NVISO-BE/ee-outliers/releases/tag/0.2.13) (April 8, 2020)
+- Improved documentation (source code and user documentation)
+- Make parsing of configuration use case files more robust
+- Improved logging
+- PEP8 improvements
+- Minor other bug fixes
 
 ## [Version 0.2.12](https://github.com/NVISO-BE/ee-outliers/releases/tag/0.2.12) (March 31, 2020)
 - Fixed a bug where a malformed regular expression in the whitelist configuration 
