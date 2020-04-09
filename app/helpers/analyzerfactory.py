@@ -1,4 +1,4 @@
-from helpers.singleton import logging
+from helpers.singletons import logging
 import configparser
 import os
 import re
