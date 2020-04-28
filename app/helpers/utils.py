@@ -157,7 +157,7 @@ def extract_outlier_asset_information(fields, settings):
 
 # Convert a sentence value into a flat string, if possible
 # If not, just return None
-def flatten_sentence(sentence=None):
+def flatten_sentence(sentence=None, sep_str=" _ "):
     """
     Convert a sentence value into a flat string
 
@@ -174,7 +174,7 @@ def flatten_sentence(sentence=None):
             return None
         else:
             # We convert a list value such as [1,2,3] into a single string, so the model can use it: 1-2-3
-            field_value = " - ".join(str(x) for x in sentence)
+            field_value = sep_str.join(str(x) for x in sentence)
             return field_value
     elif type(sentence) is dict:
         return None
