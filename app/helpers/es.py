@@ -88,7 +88,7 @@ class ES:
         authentication_url = "%s://%s:%s@%s" % (protocol,
                                                 self.settings.config.get("general", "es_username"),
                                                 self.settings.config.get("general", "es_password"),
-                                         Yes        host_and_port)
+                                                host_and_port)
         return authentication_url
 
     def _get_history_window(self, model_settings=None):
