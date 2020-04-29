@@ -7,6 +7,7 @@ from itertools import chain
 
 from pygrok import Grok
 from elasticsearch import helpers as eshelpers, Elasticsearch
+from elasticsearch.exceptions import AuthenticationException, ConnectionError
 
 import helpers.utils
 import helpers.logging
@@ -52,20 +53,43 @@ class ES:
 
         :return: Connection object if connection with Elasticsearch succeeded, False otherwise
         """
-        self.conn = Elasticsearch([self.settings.config.get("general", "es_url")], use_ssl=False,
+        if self.settings.config.get("general", "es_username") and self.settings.config.get("general", "es_password"):
+            url = self._get_authentication_url()
+        else:
+            url = self.settings.config.get("general", "es_url")
+
+        self.conn = Elasticsearch([url], use_ssl=False,
                                   timeout=self.settings.config.getint("general", "es_timeout"),
                                   verify_certs=False, retry_on_timeout=True)
 
-        if self.conn.ping():
+        try:
+            self.conn.info()
             self.logging.logger.info("connected to Elasticsearch on host %s" %
                                      (self.settings.config.get("general", "es_url")))
             result = self.conn
-        else:
+        except AuthenticationException:
+            self.logging.logger.error("could not connect to Elasticsearch on host %s due to authentication error" %
+                                      (self.settings.config.get("general", "es_url")))
+            result = False
+        except ConnectionError:
             self.logging.logger.error("could not connect to Elasticsearch on host %s" %
                                       (self.settings.config.get("general", "es_url")))
             result = False
 
         return result
+
+    def _get_authentication_url(self):
+        """
+        Get RFC-1738 formatted URL for Elasticsearch authentication.
+
+        :return: RFC-1738 formatted URL for Elasticsearch authentication
+        """
+        protocol, host_and_port = self.settings.config.get("general", "es_url").split("://")
+        authentication_url = "%s://%s:%s@%s" % (protocol,
+                                                self.settings.config.get("general", "es_username"),
+                                                self.settings.config.get("general", "es_password"),
+                                         Yes        host_and_port)
+        return authentication_url
 
     def _get_history_window(self, model_settings=None):
         """

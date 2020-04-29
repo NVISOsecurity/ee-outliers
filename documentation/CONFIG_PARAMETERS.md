@@ -56,6 +56,16 @@
     <td class="tg-0pky">URL to connect to ES</td>
     <td class="tg-0pky"></td>
   </tr>
+   <tr>
+    <td class="tg-0pky">es_username</td>
+    <td class="tg-0pky">Username if ES authentication is required</td>
+    <td class="tg-0pky"></td>
+  </tr>
+   <tr>
+    <td class="tg-0pky">es_password</td>
+    <td class="tg-0pky">Password if ES authentication is required</td>
+    <td class="tg-0pky"></td>
+  </tr>
   <tr>
     <td class="tg-0pky">es_timeout</td>
     <td class="tg-0pky">Integer</td>
