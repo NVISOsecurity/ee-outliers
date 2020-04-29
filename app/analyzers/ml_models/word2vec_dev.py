@@ -66,7 +66,9 @@ class Word2Vec:
 
     def train_model(self, train_data: List[str]) -> List[float]:
         """
-        TODO
+        Train the model self.model with train_data.
+        It will preprocess train_data, create a DataLoader and train a Word2VecModel model on multiple epochs.
+
         :param train_data: List of string representing the phrases that will train the model
         :return total_loss_values: List of loss of each training steps
         """
@@ -93,9 +95,12 @@ class Word2Vec:
 
     def eval_model(self, eval_data: List[str]) -> List[Tuple[int, int, int, float]]:
         """
+        Evaluate eval_data with the model self.model
+        I will preprocess eval_data, create a DataLoader and evaluate the data with the model self.model
 
-        :param eval_data:
-        :return:
+        :param eval_data: List of string representing the phrases that will be evaluated
+        :return: List of tuple. Each element within the tuple represent respectively the center word index, context word
+         index, text index in eval_data and the probability of the context word to appear given the center word.
         """
         center_context_text_idx_list = self._data_preprocessing(data=eval_data)
         # Create dataset
