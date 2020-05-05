@@ -16,13 +16,19 @@ from typing import List, Tuple, Dict, Optional
 
 
 class Word2Vec:
-    def __init__(self, separators: str, size_window: int) -> None:
+    def __init__(self,
+                 separators: str,
+                 size_window: int,
+                 num_epochs: int,
+                 learning_rate: float,
+                 embedding_size: int,
+                 seed: int = 42) -> None:
         # Default parameters
         self.train_batch_size = 16
         self.eval_batch_size = 64
-        self.embedding_size = 50
-        self.epochs = 2  # TODO add early stopping option
-        self.learning_rate = 0.01
+        self.embedding_size = embedding_size
+        self.epochs = num_epochs  # TODO add early stopping option
+        self.learning_rate = learning_rate
         self.device = torch.device("cpu")  # TODO
 
         self.unknown_token = 'UNKNOWN'
@@ -30,7 +36,7 @@ class Word2Vec:
         self.separators = separators
         self.size_window = size_window
 
-        self.seed = 43  # Set in outliers.conf or let here as default? TODO
+        self.seed = seed  # Set in outliers.conf or let here as default? TODO
         torch.manual_seed(self.seed)
 
         self.voc_list: List = list()

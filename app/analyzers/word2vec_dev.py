@@ -37,6 +37,15 @@ class Word2VecDevAnalyzer(Analyzer):
 
         self.model_settings["tensorboard"] = self.config_section.getboolean("tensorboard")
 
+        self.model_settings["num_epochs"] = self.config_section.getint("num_epochs")
+        self.model_settings["learning_rate"] = self.config_section.getfloat("learning_rate")
+        self.model_settings["embedding_size"] = self.config_section.getint("embedding_size")
+        self.model_settings["seed"] = self.config_section.getint("seed")
+
+        self.model_settings["use_prob_model"] = self.config_section.getboolean("use_prob_model")
+
+        logging.logger.debug("Use prob model: " + str(self.model_settings["use_prob_model"]))
+
         self.batch_train_size = settings.config.getint("machine_learning", "word2vec_batch_train_size")
         self.current_batch_num = 0
 
@@ -168,27 +177,30 @@ class Word2VecDevAnalyzer(Analyzer):
     def _evaluate_aggr_for_outliers(self, aggr_elem, aggr_key):
         # Create word2vec model
         w2v_model = word2vec.Word2Vec(self.model_settings["separators"],
-                                      self.model_settings["size_window"])
+                                      self.model_settings["size_window"],
+                                      self.model_settings["num_epochs"],
+                                      self.model_settings["learning_rate"],
+                                      self.model_settings["embedding_size"],
+                                      self.model_settings["seed"])
 
         # Add and prepare vocabulary of word2vec
         w2v_model.update_vocabulary_counter(aggr_elem["targets"])
         w2v_model.prepare_voc()
 
+        if self.model_settings["use_prob_model"]:
+            center_context_text_prob_list = w2v_model.stat_model(aggr_elem["targets"])
+        else:
+            # Train word2vec model
+            loss_values = w2v_model.train_model(aggr_elem["targets"])
 
-        # Train word2vec model
-        loss_values = w2v_model.train_model(aggr_elem["targets"])
+            if self.model_settings["tensorboard"]:
+                test_matplotlib_to_tensorboard(loss_values, aggr_key, self.current_batch_num)
+                # list_to_tensorboard(loss_values, aggr_key, self.current_batch_num)
 
-        if self.model_settings["tensorboard"]:
-            test_matplotlib_to_tensorboard(loss_values, aggr_key, self.current_batch_num)
-            # list_to_tensorboard(loss_values, aggr_key, self.current_batch_num)
+            # Eval word2vec model
+            center_context_text_prob_list = w2v_model.eval_model(aggr_elem["targets"])
 
-        # Find thresholds related to each center word idx
-        # thresholds = w2v_model.prepare_thresholds()
-
-        # Eval word2vec model
-        center_context_text_prob_list = w2v_model.eval_model(aggr_elem["targets"])
-
-        stat_comparison(center_context_text_prob_list, w2v_model, aggr_elem["targets"])
+            stat_comparison(center_context_text_prob_list, w2v_model, aggr_elem["targets"])
 
         # Find outliers from the word2vec model outputs
         # outliers = self._find_outliers(aggr_elem, center_context_text_prob_list, thresholds)
@@ -274,7 +286,7 @@ class Word2VecDevAnalyzer(Analyzer):
                               "][" + "{:.2e}".format(total_score) + "]"
 
                 if is_outlier:
-                    logging.logger.debug(message_log)
+                    logging.logger.debug("\n" + message_log)
                     raw_doc = aggr_elem["raw_docs"][current_text_idx]
                     fields = es.extract_fields_from_document(
                         raw_doc,
