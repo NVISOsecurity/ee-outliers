@@ -12,8 +12,8 @@ class SimplequeryAnalyzer(Analyzer):
         """
         Override method from Analyzer
         """
-        self.model_settings["matched_fields"] = self.config_section.getboolean("matched_fields")
-        self.model_settings["matched_values"] = self.config_section.getboolean("matched_values")
+        self.model_settings["tag_matched_fields"] = self.config_section.getboolean("tag_matched_fields")
+        self.model_settings["tag_matched_values"] = self.config_section.getboolean("tag_matched_values")
 
     def evaluate_model(self):
 
@@ -73,10 +73,10 @@ class SimplequeryAnalyzer(Analyzer):
         :return: the created outlier
         """
         extra_outlier_information = dict()
-        if self.model_settings["matched_fields"]:
+        if self.model_settings["tag_matched_fields"]:
             extra_outlier_information["matched_fields"] = raw_doc["highlight"]
 
-        if self.model_settings["matched_values"]:
+        if self.model_settings["tag_matched_values"]:
             matched_values = dict()
             for key, fields in raw_doc["highlight"].items():
                 matched_values[key] = list()

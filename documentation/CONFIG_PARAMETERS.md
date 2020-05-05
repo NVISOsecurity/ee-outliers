@@ -261,12 +261,12 @@ The following parameters could be used for analyzers `terms` and `metrics`.
     <th class="tg-0pky">Note</th>
   </tr>
   <tr>
-    <td class="tg-0pky">matched_fields</td>
+    <td class="tg-0pky">tag_matched_fields</td>
     <td class="tg-0pky"><code>0</code>, <code>1</code></td>
     <td class="tg-0pky">Default: <code>0</code></td>
   </tr>
   <tr>
-    <td class="tg-0pky">matched_values</td>
+    <td class="tg-0pky">tag_matched_values</td>
     <td class="tg-0pky"><code>0</code>, <code>1</code></td>
     <td class="tg-0pky">Default: <code>0</code></td>
   </tr>
