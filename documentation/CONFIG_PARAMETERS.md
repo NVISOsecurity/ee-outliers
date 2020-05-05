@@ -7,6 +7,7 @@
 - [Analyzers parameters](#analyzers-parameters)
   - [Common analyzers parameters](#common-analyzers-parameters)
   - [Usual model parameters](#usual-model-parameters)
+  - [Simple query parameters](#simple-query-parameters)
   - [Metrics parameters](#metrics-parameters)
   - [Terms parameters](#terms-parameters)
 
@@ -204,7 +205,7 @@ To have more information about the configuration of one analyzer, visit the page
 Any other parameters that are not used by the model will be automatically copy to the outlier parameter. More information [here](CONFIG_OUTLIERS.md#arbitrary-parameters).
 
 
-### Usual model paramters
+### Usual model parameters
 
 The following parameters could be used for analyzers `terms` and `metrics`.
 <table>
@@ -248,6 +249,28 @@ The following parameters could be used for analyzers `terms` and `metrics`.
   </tr>
 </table>
 
+### Simple query parameters
+
+<table>
+  <tr>
+    <th colspan="3">Simple query</th>
+  </tr>
+  <tr>
+    <th class="tg-0pky">Key parameter</th>
+    <th class="tg-0pky">Possible values</th>
+    <th class="tg-0pky">Note</th>
+  </tr>
+  <tr>
+    <td class="tg-0pky">matched_fields</td>
+    <td class="tg-0pky"><code>0</code>, <code>1</code></td>
+    <td class="tg-0pky">Default: <code>0</code></td>
+  </tr>
+  <tr>
+    <td class="tg-0pky">matched_values</td>
+    <td class="tg-0pky"><code>0</code>, <code>1</code></td>
+    <td class="tg-0pky">Default: <code>0</code></td>
+  </tr>
+</table>
 
 ### Metrics parameters
 
