@@ -188,7 +188,7 @@ class Word2VecDevAnalyzer(Analyzer):
         # Eval word2vec model
         center_context_text_prob_list = w2v_model.eval_model(aggr_elem["targets"])
 
-        # stat_comparison(center_context_text_prob_list, w2v_model, aggr_elem["targets"])
+        stat_comparison(center_context_text_prob_list, w2v_model, aggr_elem["targets"])
 
         # Find outliers from the word2vec model outputs
         # outliers = self._find_outliers(aggr_elem, center_context_text_prob_list, thresholds)
@@ -244,6 +244,7 @@ class Word2VecDevAnalyzer(Analyzer):
                     voc_counter_dict = dict(w2v_model.voc_counter)
                     color = '\033[92m' # green
                     if center_score[word_id] < thresholds:
+                        is_outlier = True
                         color = '\033[91m' # red
                     color_context = '\033[92m'
                     if context_score[word_id] < thresholds:
@@ -252,16 +253,13 @@ class Word2VecDevAnalyzer(Analyzer):
                     context_center_score = geo_mean([context_score[word_id], center_score[word_id]])
                     color_context_center = '\033[92m'# green
                     if context_center_score < thresholds:
-                        is_outlier = True
                         color_context_center = '\033[91m'# red
 
                     message_log += word + \
                                    "[" + color_context + "{:.2e}".format(context_score[word_id]) + '\033[0m' + \
                                    "][" + color + "{:.2e}".format(center_score[word_id]) + '\033[0m' + \
                                    "][" + color_context_center + "{:.2e}".format(context_center_score) + '\033[0m' + \
-                                   "][" + str(voc_counter_dict[word]) + "][" + \
-                                   str(len(context_score_list[word_id])) + "," +\
-                                   str(len(center_score_list[word_id])) + "] | "
+                                   "][" + str(voc_counter_dict[word]) + "] | "
 
                     if word not in word_conext_center_score_dict:
                         word_conext_center_score_dict[word] = defaultdict(list)
@@ -277,10 +275,6 @@ class Word2VecDevAnalyzer(Analyzer):
 
                 if is_outlier:
                     logging.logger.debug(message_log)
-                    logging.logger.debug(str(context_score_list))
-                    logging.logger.debug(str(context_score))
-                    logging.logger.debug(str(center_score_list))
-                    logging.logger.debug(str(center_score))
                     raw_doc = aggr_elem["raw_docs"][current_text_idx]
                     fields = es.extract_fields_from_document(
                         raw_doc,
