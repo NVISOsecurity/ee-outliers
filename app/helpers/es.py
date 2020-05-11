@@ -1,7 +1,6 @@
 import json
 import datetime as dt
 import math
-import re
 
 from collections import defaultdict
 from itertools import chain
@@ -9,6 +8,8 @@ from itertools import chain
 from pygrok import Grok
 from elasticsearch import helpers as eshelpers, Elasticsearch
 from elasticsearch.exceptions import AuthenticationException, ConnectionError
+
+from configparser import NoOptionError
 
 import helpers.utils
 import helpers.logging
@@ -54,8 +55,11 @@ class ES:
 
         :return: Connection object if connection with Elasticsearch succeeded, False otherwise
         """
-        http_auth = (self.settings.config.get("general", "es_username"),
-                     self.settings.config.get("general", "es_password"))
+        try:
+            http_auth = (self.settings.config.get("general", "es_username"),
+                         self.settings.config.get("general", "es_password"))
+        except NoOptionError:
+            http_auth = ("", "")
 
         self.conn = Elasticsearch([self.settings.config.get("general", "es_url")],
                                   http_auth=http_auth,
@@ -69,7 +73,7 @@ class ES:
                                      (self.settings.config.get("general", "es_url")))
             result = self.conn
         except AuthenticationException:
-            self.logging.logger.error("could not connect to Elasticsearch on host %s due to authentication error" %
+            self.logging.logger.error("could not connect to Elasticsearch on host %s due to authentication error." %
                                       (self.settings.config.get("general", "es_url")))
             result = False
         except ConnectionError:
