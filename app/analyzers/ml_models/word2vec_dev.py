@@ -32,12 +32,14 @@ class Word2Vec:
         self.device = torch.device("cpu")  # TODO
 
         self.unknown_token = 'UNKNOWN'
+        self.num_unknown_occurrence = 0
 
         self.separators = separators
         self.size_window = size_window
 
-        self.seed = seed  # Set in outliers.conf or let here as default? TODO
-        torch.manual_seed(self.seed)
+        self.seed = seed
+        if self.seed !=0:
+            torch.manual_seed(self.seed)
 
         self.voc_list: List = list()
         self.voc_size: int = 0
@@ -47,28 +49,6 @@ class Word2Vec:
 
         self.model: Optional[nn.Module] = None
 
-    def stat_model(self, train_data: List[str]) -> List[Tuple[int, int, int, float]]:
-        center_context_text_idx_list = self._data_preprocessing(data=train_data)
-        center_to_context_count: Dict[int, Dict[int, float]] = dict()
-        center_total_count = dict()
-        for center_idx, context_idx, text_idx in center_context_text_idx_list:
-            if center_idx not in center_to_context_count.keys():
-                center_to_context_count[center_idx] = dict()
-                center_total_count[center_idx] = 1
-            if context_idx not in center_to_context_count[center_idx].keys():
-                center_to_context_count[center_idx][context_idx] = 1
-            center_to_context_count[center_idx][context_idx] += 1
-            center_total_count[center_idx] += 1
-        center_context_prob = copy.deepcopy(center_to_context_count)
-        for center_idx, context_count in center_context_prob.items():
-            for context_idx, count in context_count.items():
-                center_context_prob[center_idx][context_idx] = count/center_total_count[center_idx]
-
-        center_context_text_prob_list: List[Tuple[int, int, int, float]] = list()
-        for center_idx, context_idx, text_idx in center_context_text_idx_list:
-            prob = center_context_prob[center_idx][context_idx]
-            center_context_text_prob_list.append((center_idx, context_idx, text_idx, prob))
-        return center_context_text_prob_list
 
     def train_model(self, train_data: List[str]) -> List[float]:
         """
@@ -99,12 +79,13 @@ class Word2Vec:
             total_loss_values.extend(loss_values)
         return total_loss_values
 
-    def eval_model(self, eval_data: List[str]) -> List[Tuple[int, int, int, float]]:
+    def eval_model(self, eval_data: List[str], output_prob: bool) -> List[Tuple[int, int, int, float]]:
         """
         Evaluate eval_data with the model self.model
         I will preprocess eval_data, create a DataLoader and evaluate the data with the model self.model
 
         :param eval_data: List of string representing the phrases that will be evaluated
+        :param output_prob: True to have eval_model output in form of probablility
         :return: List of tuple. Each element within the tuple represent respectively the center word index, context word
          index, text index in eval_data and the probability of the context word to appear given the center word.
         """
@@ -115,7 +96,7 @@ class Word2Vec:
         eval_data_loader = torch.utils.data.DataLoader(eval_dataset,
                                                        batch_size=self.eval_batch_size,
                                                        shuffle=False)
-        center_context_text_prob_list = eval_loop(eval_data_loader, self.model, self.device)
+        center_context_text_prob_list = eval_loop(eval_data_loader, self.model, self.device, output_prob)
 
         return center_context_text_prob_list
 
@@ -135,6 +116,11 @@ class Word2Vec:
         :param min_voc_occurrence:
         """
         tmp_voc_dict = dict(self.voc_counter)
+        num_unknown_occurrence = 0
+        for num_occur in tmp_voc_dict.values():
+            if num_occur < min_voc_occurrence:
+                num_unknown_occurrence += num_occur
+        self.num_unknown_occurrence = num_unknown_occurrence
         if min_voc_occurrence > 1:
             tmp_voc_dict = {k: v for k, v in tmp_voc_dict.items() if v >= min_voc_occurrence}
         tmp_voc_list = list(tmp_voc_dict)
@@ -146,33 +132,6 @@ class Word2Vec:
         self.voc_size = tmp_voc_size + 1
         self.word2idx = {w: idx for (idx, w) in enumerate(self.voc_list)}
         self.idx2word = {idx: w for (idx, w) in enumerate(self.voc_list)}
-
-    # def prepare_thresholds(self):
-    #     center_context_text_idx_list = list()
-    #     for center_idx in self.idx2word.keys():
-    #         center_context_text_idx_list.append((center_idx, 0, 0))
-    #
-    #     dataset = Word2VecDataset(center_context_text_idx_list)
-    #     data_loader = torch.utils.data.DataLoader(dataset,
-    #                                               batch_size=self.eval_batch_size,
-    #                                               shuffle=False)
-    #     center_context_text_prob_list = eval_loop(data_loader, self.model, self.device)
-    #
-    #     thresholds = list()
-    #
-    #     # Loop from batch to batch
-    #     for i, (center, context, text, probs) in enumerate(center_context_text_prob_list):
-    #         # Loop within the batch
-    #         for j in range(len(center)):
-    #             center_idx = center[j].item()
-    #             context_tensor = probs[j]
-    #             mean_context = context_tensor.mean()
-    #             median_context = context_tensor.median()
-    #             std_probs = context_tensor.std()
-    #             threshold = mean_context + std_probs
-    #             thresholds.append(mean_context)
-    #
-    #     return thresholds
 
     def _data_preprocessing(self, data: List[str]) -> List[Tuple[int, int, int]]:
         data_tokenized = self._tokenizer(data)
@@ -201,6 +160,36 @@ class Word2Vec:
             return self.word2idx[token]
         else:
             return self.word2idx[self.unknown_token]
+
+    def prob_model(self, train_data: List[str]) -> List[Tuple[int, int, int, float]]:
+        """
+        Compute the true probability of each context word context_idx to appear given the center word center_idx.
+        P(context_idx|center_idx)=(number of time context_idx appear with center_idx)/(number of time center_idx appear)
+
+        :param train_data: List of string representing the phrases that will train the model
+        :return:
+        """
+        center_context_text_idx_list = self._data_preprocessing(data=train_data)
+        center_to_context_count: Dict[int, Dict[int, float]] = dict()
+        center_total_count = dict()
+        for center_idx, context_idx, text_idx in center_context_text_idx_list:
+            if center_idx not in center_to_context_count.keys():
+                center_to_context_count[center_idx] = dict()
+                center_total_count[center_idx] = 1
+            if context_idx not in center_to_context_count[center_idx].keys():
+                center_to_context_count[center_idx][context_idx] = 1
+            center_to_context_count[center_idx][context_idx] += 1
+            center_total_count[center_idx] += 1
+        center_context_prob = copy.deepcopy(center_to_context_count)
+        for center_idx, context_count in center_context_prob.items():
+            for context_idx, count in context_count.items():
+                center_context_prob[center_idx][context_idx] = count/center_total_count[center_idx]
+
+        center_context_text_prob_list: List[Tuple[int, int, int, float]] = list()
+        for center_idx, context_idx, text_idx in center_context_text_idx_list:
+            prob = center_context_prob[center_idx][context_idx]
+            center_context_text_prob_list.append((center_idx, context_idx, text_idx, prob))
+        return center_context_text_prob_list
 
 
 class Word2VecModel(nn.Module):
@@ -264,7 +253,7 @@ def train_loop(data_loader: DataLoader, model: nn.Module, optimizer: Optimizer, 
     return loss_values
 
 
-def eval_loop(data_loader: DataLoader, model: nn.Module, device: torch.device) -> List[Tuple[int, int, int, float]]:
+def eval_loop(data_loader: DataLoader, model: nn.Module, device: torch.device, output_prob: bool) -> List[Tuple[int, int, int, float]]:
     """
     Evaluation loop
     :param data_loader:
@@ -287,13 +276,13 @@ def eval_loop(data_loader: DataLoader, model: nn.Module, device: torch.device) -
         context_idx = context_idx.to(device, dtype=torch.long)
 
         outputs = model(center_idx=center_idx)
-        all_prob = nn.Softmax(dim=1)(outputs)  # shape: [batch_size, vocab_size]
-
-        prob = all_prob[torch.arange(all_prob.size(0)), context_idx]  # shape: [batch_size]
+        if output_prob:
+            outputs = nn.Softmax(dim=1)(outputs)  # shape: [batch_size, vocab_size]
+        output_context = outputs[torch.arange(outputs.size(0)), context_idx]  # shape: [batch_size]
 
         total_center_idx.extend(center_idx.tolist())
         total_context_idx.extend(context_idx.tolist())
         total_text_idx.extend(text_idx.tolist())
-        total_prob.extend(prob.tolist())
+        total_prob.extend(output_context.tolist())
 
     return list(zip(total_center_idx, total_context_idx, total_text_idx, total_prob))
