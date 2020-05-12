@@ -7,6 +7,9 @@ from itertools import chain
 
 from pygrok import Grok
 from elasticsearch import helpers as eshelpers, Elasticsearch
+from elasticsearch.exceptions import AuthenticationException, ConnectionError
+
+from configparser import NoOptionError
 
 import helpers.utils
 import helpers.logging
@@ -52,15 +55,28 @@ class ES:
 
         :return: Connection object if connection with Elasticsearch succeeded, False otherwise
         """
-        self.conn = Elasticsearch([self.settings.config.get("general", "es_url")], use_ssl=False,
-                                  timeout=self.settings.config.getint("general", "es_timeout"),
-                                  verify_certs=False, retry_on_timeout=True)
+        try:
+            http_auth = (self.settings.config.get("general", "es_username"),
+                         self.settings.config.get("general", "es_password"))
+        except NoOptionError:
+            http_auth = ("", "")
 
-        if self.conn.ping():
+        self.conn = Elasticsearch([self.settings.config.get("general", "es_url")],
+                                  http_auth=http_auth,
+                                  use_ssl=False,
+                                  timeout=self.settings.config.getint("general", "es_timeout"),
+                                  verify_certs=False,
+                                  retry_on_timeout=True)
+        try:
+            self.conn.info()
             self.logging.logger.info("connected to Elasticsearch on host %s" %
                                      (self.settings.config.get("general", "es_url")))
             result = self.conn
-        else:
+        except AuthenticationException:
+            self.logging.logger.error("could not connect to Elasticsearch on host %s due to authentication error." %
+                                      (self.settings.config.get("general", "es_url")))
+            result = False
+        except ConnectionError:
             self.logging.logger.error("could not connect to Elasticsearch on host %s" %
                                       (self.settings.config.get("general", "es_url")))
             result = False
