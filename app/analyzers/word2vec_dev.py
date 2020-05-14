@@ -9,9 +9,10 @@ from torch.utils.tensorboard import SummaryWriter
 import matplotlib.pyplot as plt
 import re
 from configparser import SectionProxy
+from tabulate import tabulate
 import numpy as np
 from scipy import spatial
-from prettytable import PrettyTable
+import operator
 
 from typing import List, Tuple, Dict, Optional
 
@@ -38,7 +39,8 @@ class Word2VecDevAnalyzer(Analyzer):
         self.model_settings["aggr_fields"] = self.config_section["aggregator_fields"].replace(' ', '').split(",")
         self.model_settings["min_target_buckets"] = self.config_section.getint("min_target_buckets")
 
-        self.model_settings["separators"] = self.config_section["separators"]
+        self.model_settings["separators"] = re.sub("\'", '', self.config_section["separators"])
+
         self.model_settings["size_window"] = int(self.config_section["size_window"])
         self.model_settings["drop_duplicates"] = self.config_section.getboolean("drop_duplicates")
         self.model_settings["use_derived_fields"] = self.config_section.getboolean("use_derived_fields")
@@ -53,9 +55,6 @@ class Word2VecDevAnalyzer(Analyzer):
 
         self.model_settings["use_geo_mean"] = self.config_section.getboolean("use_geo_mean")
         self.model_settings["use_prob_model"] = self.config_section.getboolean("use_prob_model")
-
-        if not self.model_settings["use_geo_mean"] and self.model_settings["use_prob_model"]:
-            raise ValueError("use_geo_mean=0 and use_prob_model=1 are not compatible")
 
         self.model_settings["trigger_focus"] = self.config_section["trigger_focus"]
         self.model_settings["trigger_score"] = self.config_section["trigger_score"]
@@ -120,7 +119,7 @@ class Word2VecDevAnalyzer(Analyzer):
 
                     if total_docs_removed == 0:
                         # TODO put better comment
-                        raise ValueError("Unable to fill any of the aggregator buckets for this batch.")
+                        logging.logger.warning("Unable to fill any of the aggregator buckets for this batch.")
 
                     # Processing the outliers found
                     self._processing_outliers_in_batch(outliers_in_batch)
@@ -223,7 +222,8 @@ class Word2VecDevAnalyzer(Analyzer):
         w2v_model.prepare_voc(min_voc_occurrence=self.model_settings["min_uniq_word_occurrence"])
 
         if self.model_settings["use_prob_model"]:
-            center_context_text_prob_list = w2v_model.prob_model(aggr_elem["targets"])
+            center_context_text_prob_list = w2v_model.prob_model(aggr_elem["targets"],
+                                                                 self.model_settings["use_geo_mean"])
         else:
             # Train word2vec model
             loss_values = w2v_model.train_model(aggr_elem["targets"])
@@ -249,12 +249,14 @@ class Word2VecDevAnalyzer(Analyzer):
         outliers = list()
 
         voc_counter_dict = dict(w2v_model.voc_counter)
-        text_word_score_dict, word_score_dict, text_score_dict = self._find_all_scores(center_context_text_prob_list)
+        text_word_score_dict, word_score_dict, text_score_dict, word_idx_to_compo_word_in_win_score, compo_word_win_to_word_idx_context_score = self._find_all_scores(
+            center_context_text_prob_list)
 
         word_decision_frontier, text_decision_frontier = self._find_decision_frontier(word_score_dict, text_score_dict)
 
         for text_idx, text_str in enumerate(aggr_elem["targets"]):
-            is_outlier = False
+            dict_outlier_idx_to_list_word_idx_most_prob_compo = dict()
+            find_outlier = False
 
             # tokenize the text
             words = re.split(self.model_settings["separators"], text_str)
@@ -284,16 +286,26 @@ class Word2VecDevAnalyzer(Analyzer):
 
                 if self.model_settings["trigger_focus"] == "text" and \
                         text_score_dict[self.model_settings["trigger_score"]][text_idx] < text_decision_frontier:
-                    is_outlier = True
+                    find_outlier = True
+                # TODO check the think with find_outlier
+                is_outlier, list_word_idx_most_prob_compo = self._fill_score_row_and_find_outlier(text_idx,
+                                                                                                  word_idx,
+                                                                                                  score_rows,
+                                                                                                  text_word_score_dict,
+                                                                                                  word_decision_frontier,
+                                                                                                  word_idx_to_compo_word_in_win_score)
+                if is_outlier:
+                    find_outlier = True
+                    # list_outlier_position.append(w)
+                    dict_outlier_idx_to_list_word_idx_most_prob_compo[w] = (word_idx, list_word_idx_most_prob_compo)
 
-                is_outlier = self._fill_score_row_and_find_outlier(text_idx,
-                                                                   word_idx,
-                                                                   score_rows,
-                                                                   text_word_score_dict,
-                                                                   word_decision_frontier,
-                                                                   is_outlier)
-            if is_outlier:
+            if find_outlier:
                 self._print_score_table(words, occur_word_row, score_rows, text_score_dict, text_idx)
+
+                for i, (outlier_idx, list_word_idx_most_prob_compo) in dict_outlier_idx_to_list_word_idx_most_prob_compo.items():
+                    # outlier_position = list_outlier_position[i]
+                    self._print_most_prob_word(words, i, outlier_idx, compo_word_win_to_word_idx_context_score, w2v_model)
+                    self._print_most_compo_word(list_word_idx_most_prob_compo, outlier_idx, w2v_model)
 
                 raw_doc = aggr_elem["raw_docs"][text_idx]
                 fields = es.extract_fields_from_document(
@@ -307,54 +319,58 @@ class Word2VecDevAnalyzer(Analyzer):
         return outliers
 
     def _find_all_scores(self, center_context_text_prob_list):
-        text_center_word_score_dict = dict()  # {text_idx: {center_idx: score}}
-        text_context_word_score_dict = dict()  # {text_idx: {context_idx: score}}
-        text_total_word_score_dict = dict()  # {text_idx: {word_idx: score}}
+        word_idx_to_compo_word_in_win_score = {"center": dict(),
+                                               "context": dict(),
+                                               "total": dict()}
+        compo_word_in_win_to_word_idx_score = {"center": dict(),
+                                               "context": dict(),
+                                               "total": dict()}
 
-        center_word_score_dict = dict()  # {center_idx: list(scores)}
-        context_word_score_dict = dict()  # {context_idx: list(scores)}
-        total_word_score_dict = dict()  # {word_idx: list(scores)}
-
-        text_center_score_dict = dict()
-        text_context_score_dict = dict()
-        text_total_score_dict = dict()
-        text_geo_mean_score_dict = dict()
-
-        text_word_score_dict = {"center": text_center_word_score_dict,
-                                "context": text_context_word_score_dict,
-                                "total": text_total_word_score_dict}
-        word_score_dict = {"center": center_word_score_dict,
-                           "context": context_word_score_dict,
-                           "total": total_word_score_dict}
-        text_score_dict = {"center": text_center_score_dict,
-                           "context": text_context_score_dict,
-                           "total": text_total_score_dict,
-                           "mean": text_geo_mean_score_dict}
+        text_word_score_dict = {"center": dict(),
+                                "context": dict(),
+                                "total": dict()}
+        word_score_dict = {"center": dict(),
+                           "context": dict(),
+                           "total": dict()}
+        text_score_dict = {"center": dict(),
+                           "context": dict(),
+                           "total": dict(),
+                           "mean": dict()}
 
         current_text_idx = 0
 
+        tmp_word_idx_to_comp_word_in_win_dict = dict()
+
         tmp_center_prob_list = dict()
         tmp_context_prob_list = dict()
-        text_center_word_score_dict[current_text_idx] = dict()
-        text_context_word_score_dict[current_text_idx] = dict()
-        text_total_word_score_dict[current_text_idx] = dict()
+
+        for score_type in text_word_score_dict:
+            text_word_score_dict[score_type][current_text_idx] = dict()
 
         for center_idx, context_idx, text_idx, prob in center_context_text_prob_list:
             if current_text_idx == text_idx:
                 if center_idx not in tmp_center_prob_list:
                     tmp_center_prob_list[center_idx] = list()
+                    tmp_word_idx_to_comp_word_in_win_dict[center_idx] = ""
                 tmp_center_prob_list[center_idx].append(prob)
+                tmp_word_idx_to_comp_word_in_win_dict[center_idx] += str(context_idx) + "|"
 
                 if context_idx not in tmp_context_prob_list:
                     tmp_context_prob_list[context_idx] = list()
                 tmp_context_prob_list[context_idx].append(prob)
             else:
-                self.update_all_score(tmp_center_prob_list,
+                self.update_all_score(tmp_word_idx_to_comp_word_in_win_dict,
+                                      word_idx_to_compo_word_in_win_score,
+                                      compo_word_in_win_to_word_idx_score,
+                                      tmp_center_prob_list,
                                       tmp_context_prob_list,
                                       text_word_score_dict,
                                       word_score_dict,
                                       text_score_dict,
                                       current_text_idx)
+
+                tmp_word_idx_to_comp_word_in_win_dict = dict()
+                tmp_word_idx_to_comp_word_in_win_dict[center_idx] = str(context_idx) + "|"
 
                 tmp_center_prob_list = dict()
                 tmp_center_prob_list[center_idx] = list()
@@ -363,21 +379,26 @@ class Word2VecDevAnalyzer(Analyzer):
                 tmp_context_prob_list[context_idx] = list()
                 tmp_context_prob_list[context_idx].append(prob)
 
-                text_center_word_score_dict[text_idx] = dict()
-                text_context_word_score_dict[text_idx] = dict()
-                text_total_word_score_dict[text_idx] = dict()
+                for score_type in text_word_score_dict:
+                    text_word_score_dict[score_type][text_idx] = dict()
                 current_text_idx = text_idx
 
-        self.update_all_score(tmp_center_prob_list,
+        self.update_all_score(tmp_word_idx_to_comp_word_in_win_dict,
+                              word_idx_to_compo_word_in_win_score,
+                              compo_word_in_win_to_word_idx_score,
+                              tmp_center_prob_list,
                               tmp_context_prob_list,
                               text_word_score_dict,
                               word_score_dict,
                               text_score_dict,
                               current_text_idx)
 
-        return text_word_score_dict, word_score_dict, text_score_dict
+        return text_word_score_dict, word_score_dict, text_score_dict, word_idx_to_compo_word_in_win_score, compo_word_in_win_to_word_idx_score
 
     def update_all_score(self,
+                         tmp_word_idx_to_comp_word_in_win_dict,
+                         word_idx_to_compo_word_in_win_score,
+                         compo_word_in_win_to_word_idx_score,
                          tmp_center_word_prob_list,
                          tmp_context_word_prob_list,
                          text_word_score_dict,
@@ -399,10 +420,28 @@ class Word2VecDevAnalyzer(Analyzer):
             context_word_score = mean(tmp_context_word_prob_list[tmp_word_idx], self.model_settings["use_geo_mean"])
             total_word_score = mean([center_word_score, context_word_score], self.model_settings["use_geo_mean"])
 
+            compo_key = tmp_word_idx_to_comp_word_in_win_dict[tmp_word_idx]
+            if compo_key not in compo_word_in_win_to_word_idx_score["center"]:
+                compo_word_in_win_to_word_idx_score["center"][compo_key] = dict()
+                compo_word_in_win_to_word_idx_score["context"][compo_key] = dict()
+                compo_word_in_win_to_word_idx_score["total"][compo_key] = dict()
+
+            compo_word_in_win_to_word_idx_score["center"][compo_key][tmp_word_idx] = center_word_score
+            compo_word_in_win_to_word_idx_score["context"][compo_key][tmp_word_idx] = context_word_score
+            compo_word_in_win_to_word_idx_score["total"][compo_key][tmp_word_idx] = total_word_score
+
             if tmp_word_idx not in word_score_dict["center"]:
+                word_idx_to_compo_word_in_win_score["center"][tmp_word_idx] = dict()
+                word_idx_to_compo_word_in_win_score["context"][tmp_word_idx] = dict()
+                word_idx_to_compo_word_in_win_score["total"][tmp_word_idx] = dict()
+
                 word_score_dict["center"][tmp_word_idx] = list()
                 word_score_dict["context"][tmp_word_idx] = list()
                 word_score_dict["total"][tmp_word_idx] = list()
+
+            word_idx_to_compo_word_in_win_score["center"][tmp_word_idx][compo_key] = center_word_score
+            word_idx_to_compo_word_in_win_score["context"][tmp_word_idx][compo_key] = context_word_score
+            word_idx_to_compo_word_in_win_score["total"][tmp_word_idx][compo_key] = total_word_score
 
             word_score_dict["center"][tmp_word_idx].append(center_word_score)
             word_score_dict["context"][tmp_word_idx].append(context_word_score)
@@ -449,30 +488,37 @@ class Word2VecDevAnalyzer(Analyzer):
                                          score_rows,
                                          text_word_score_dict,
                                          word_decision_frontier,
-                                         is_outlier):
+                                         word_idx_to_compo_word_in_win_score):
+        list_word_idx_most_prob_compo = list()
+        is_outlier = False
         for score_row_type, score_row in score_rows.items():
             elem_row_score = text_word_score_dict[score_row_type][text_idx][word_idx]
-            if self.model_settings["trigger_focus"] == "word" and score_row_type == self.model_settings["trigger_score"]:
+            if self.model_settings["trigger_focus"] == "word" and score_row_type == self.model_settings[
+                "trigger_score"]:
                 if elem_row_score < word_decision_frontier[word_idx]:
                     is_outlier = True
                     # color in red
                     score_row.append(score_to_table_format(elem_row_score, "red"))
+
+                    most_prob_compo = max(word_idx_to_compo_word_in_win_score[score_row_type][word_idx].items(),
+                                          key=operator.itemgetter(1))[0]
+                    list_word_idx_most_prob_compo = re.split("\|", most_prob_compo)[:-1]
                 else:
                     # color in green
                     score_row.append(score_to_table_format(elem_row_score, "green"))
             else:
                 score_row.append(score_to_table_format(elem_row_score))
-        return is_outlier
+        return is_outlier, list_word_idx_most_prob_compo
 
     def _print_score_table(self, words, occur_word_row, score_rows, text_score_dict, current_text_idx):
-        table = PrettyTable()
+        table = list()
         table_fields_name = [" "]
         table_fields_name.extend(words)
         table_fields_name.append("TOTAL")
-        table.field_names = table_fields_name
+        table.append(table_fields_name)
         occur_word_row.insert(0, "Word batch occurrence")
         occur_word_row.append("")
-        table.add_row(occur_word_row)
+        table.append(occur_word_row)
 
         score_rows["center"].insert(0, "<--Center score-->")
         score_rows["context"].insert(0, "-->Context score<--")
@@ -484,7 +530,7 @@ class Word2VecDevAnalyzer(Analyzer):
                 score_row.append(score_to_table_format(text_score_dict[score_row_type][current_text_idx], "red"))
             else:
                 score_row.append(score_to_table_format(text_score_dict[score_row_type][current_text_idx]))
-            table.add_row(score_row)
+            table.append(score_row)
 
         mean_row = [" " for i in range(len(table_fields_name) - 2)]
         mean_row.insert(0, "MEAN")
@@ -492,9 +538,48 @@ class Word2VecDevAnalyzer(Analyzer):
             mean_row.append(score_to_table_format(text_score_dict["mean"][current_text_idx], "red"))
         else:
             mean_row.append(score_to_table_format(text_score_dict["mean"][current_text_idx]))
-        table.add_row(mean_row)
+        table.append(mean_row)
+        tabulate_table = tabulate(table, headers="firstrow", tablefmt="fancy_grid")
+        logging.logger.debug("Outlier info:\n" + str(tabulate_table))
 
-        logging.logger.debug("Outlier info:\n" + str(table))
+    def _print_most_prob_word(self,
+                              words,
+                              outlier_position,
+                              outlier_idx,
+                              compo_word_win_to_word_idx_context_score,
+                              w2v_model):
+        compo_word_win = ""
+        range_down = max(0, outlier_position - self.model_settings["size_window"])
+        range_up = min(outlier_position + 1 + self.model_settings["size_window"], len(words))
+        for i in range(range_down, range_up):
+            if words[i] in w2v_model.word2idx:
+                word_idx = w2v_model.word2idx[words[i]]
+            else:
+                unknown_token = w2v_model.unknown_token
+                word_idx = w2v_model.word2idx[unknown_token]
+            if i != outlier_position:
+                compo_word_win += str(word_idx) + "|"
+                logging.logger.debug(words[i])
+
+        most_prob_context_word_idx = max(
+            compo_word_win_to_word_idx_context_score[self.model_settings["trigger_score"]][compo_word_win].items(),
+            key=operator.itemgetter(1))[0]
+        if most_prob_context_word_idx != outlier_idx:
+            most_prob_context_word = w2v_model.idx2word[int(most_prob_context_word_idx)]
+            logging.logger.debug("The most probable word within the window of " +
+                                 PRINT_COLORS["red"] +
+                                 w2v_model.idx2word[outlier_idx] +
+                                 PRINT_COLORS["end"] +
+                                 " is: " +
+                                 PRINT_COLORS["green"] + most_prob_context_word + PRINT_COLORS["end"])
+
+    def _print_most_compo_word(self, list_word_idx_most_prob_compo, outlier_idx, w2v_model):
+        list_word_most_prob_compo = [w2v_model.idx2word[int(word_idx_str)] for word_idx_str in
+                                     list_word_idx_most_prob_compo]
+        logging.logger.debug("The most probable composition of words within the window of " +
+                             PRINT_COLORS["red"] + w2v_model.idx2word[outlier_idx] + PRINT_COLORS["end"] +
+                             " is: " + PRINT_COLORS["green"] + str(list_word_most_prob_compo) +
+                             PRINT_COLORS["end"])
 
     def _processing_outliers_in_batch(self, outliers_in_batch):
         if outliers_in_batch:
@@ -545,8 +630,8 @@ def score_to_table_format(score, color=None):
         output = PRINT_COLORS[color] + output + PRINT_COLORS["end"]
     return output
 
-def w2v_and_prob_comparison(w2v_center_context_text_prob_list, prob_center_context_text_prob_list):
 
+def w2v_and_prob_comparison(w2v_center_context_text_prob_list, prob_center_context_text_prob_list):
     _, _, _, prob_w2v = zip(*w2v_center_context_text_prob_list)
     _, _, _, prob_prob = zip(*prob_center_context_text_prob_list)
     cos_sim = 1 - spatial.distance.cosine(prob_w2v, prob_prob)

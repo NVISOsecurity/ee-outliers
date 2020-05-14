@@ -1,4 +1,4 @@
-prettytable
+tabulate
 Pillow
 matplotlib
 torch

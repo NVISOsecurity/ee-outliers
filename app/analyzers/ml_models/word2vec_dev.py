@@ -1,5 +1,6 @@
 from helpers.singletons import logging
 import re
+import math
 
 import copy
 
@@ -161,7 +162,7 @@ class Word2Vec:
         else:
             return self.word2idx[self.unknown_token]
 
-    def prob_model(self, train_data: List[str]) -> List[Tuple[int, int, int, float]]:
+    def prob_model(self, train_data: List[str], output_prob: bool) -> List[Tuple[int, int, int, float]]:
         """
         Compute the true probability of each context word context_idx to appear given the center word center_idx.
         P(context_idx|center_idx)=(number of time context_idx appear with center_idx)/(number of time center_idx appear)
@@ -188,6 +189,8 @@ class Word2Vec:
         center_context_text_prob_list: List[Tuple[int, int, int, float]] = list()
         for center_idx, context_idx, text_idx in center_context_text_idx_list:
             prob = center_context_prob[center_idx][context_idx]
+            if not output_prob:
+                prob = math.log(prob)
             center_context_text_prob_list.append((center_idx, context_idx, text_idx, prob))
         return center_context_text_prob_list
 
