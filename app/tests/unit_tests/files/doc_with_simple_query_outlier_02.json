@@ -86,8 +86,7 @@
             "type": ["dummy type"],
             "summary": ["dummy summary"],
             "model_type": ["simplequery"], 
-            "model_name": ["dummy_test_matched_fields"],
-            "matched_fields": [{"cwd": ["C:\\Program Files (x86)\\Google\\Chrome\\Application\\<value>chrome.exe</value>"]}]
+            "model_name": ["dummy_test_highlight_match_unactivated"]
         },
         "slave_name": "ee-slave-lab",
         "smoky_filter_name": "OsqueryFilter",
@@ -100,11 +99,6 @@
         "type": "eagleeye"
     },
     "_type": "doc",
-    "highlight" : {
-        "cwd": [
-            "C:\\Program Files (x86)\\Google\\Chrome\\Application\\<value>chrome.exe</value>"
-        ]
-    },
     "sort": [
         42153
     ]

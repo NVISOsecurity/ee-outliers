@@ -86,7 +86,8 @@
             "type": ["dummy type"],
             "summary": ["dummy summary"],
             "model_type": ["simplequery"], 
-            "model_name": ["dummy_test_matched_values"],
+            "model_name": ["dummy_test"],
+            "matched_fields": [{"cwd": ["C:\\Program Files (x86)\\Google\\Chrome\\Application\\<value>chrome.exe</value>"]}],
             "matched_values": ["{'cwd': ['chrome.exe']}"]
         },
         "slave_name": "ee-slave-lab",

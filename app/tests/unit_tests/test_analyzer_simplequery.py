@@ -14,12 +14,14 @@ doc_without_outlier_test_file = json.load(
     open("/app/tests/unit_tests/files/doc_without_outlier.json"))
 doc_without_outlier_with_highlight_test_file = json.load(
     open("/app/tests/unit_tests/files/doc_without_outlier_with_highlight.json"))
-doc_with_outlier_with_match_fields_test_file = json.load(
-    open("/app/tests/unit_tests/files/doc_with_simple_query_and_match_fields_outlier.json"))
-doc_with_outlier_with_match_values_test_file = json.load(
-    open("/app/tests/unit_tests/files/doc_with_simple_query_and_match_values_outlier.json"))
-doc_with_outlier_test_file = json.load(
-    open("/app/tests/unit_tests/files/doc_with_simple_query_outlier.json"))
+doc_with_outlier_with_highlight_match_test_file_01 = json.load(
+    open("/app/tests/unit_tests/files/doc_with_simple_query_and_highlight_match_01.json"))
+doc_with_outlier_with_highlight_match_test_file_02 = json.load(
+    open("/app/tests/unit_tests/files/doc_with_simple_query_and_highlight_match_02.json"))
+doc_with_outlier_test_file_01 = json.load(
+    open("/app/tests/unit_tests/files/doc_with_simple_query_outlier_01.json"))
+doc_with_outlier_test_file_02 = json.load(
+    open("/app/tests/unit_tests/files/doc_with_simple_query_outlier_02.json"))
 
 DEFAULT_OUTLIERS_KEY_FIELDS = ["type", "reason", "summary", "model_name", "model_type", "total_outliers",
                                "elasticsearch_filter"]
@@ -28,17 +30,24 @@ use_case_path = "/app/tests/unit_tests/files/use_cases/simplequery/"
 use_case_simplequery_raw_configparser_test_percent_signs = use_case_path + \
                                                            "simplequery_raw_configparser_test_percent_signs.conf"
 use_case_simplequery_dummy_test = use_case_path + "simplequery_dummy_test.conf"
-use_case_simplequery_dummy_test_matched_fields = use_case_path + "simplequery_dummy_test_matched_fields.conf"
-use_case_simplequery_dummy_test_matched_values = use_case_path + "simplequery_dummy_test_matched_values.conf"
+use_case_simplequery_dummy_test_highlight_match_activated = use_case_path + \
+                                                            "simplequery_dummy_test_highlight_match_activated.conf"
+use_case_simplequery_dummy_test_highlight_match_unactivated = use_case_path + \
+                                                            "simplequery_dummy_test_highlight_match_unactivated.conf"
 use_case_simplequery_dummy_test_derived = use_case_path + "simplequery_dummy_test_derived.conf"
 use_case_simplequery_dummy_test_not_derived = use_case_path + "simplequery_dummy_test_not_derived.conf"
 use_case_whitelist_tests_model_whitelist_01 = use_case_path + "whitelist_tests_model_whitelist_01.conf"
 use_case_whitelist_tests_model_whitelist_02 = use_case_path + "whitelist_tests_model_whitelist_02.conf"
 use_case_simplequery_arbitrary_dummy_test = use_case_path + "simplequery_arbitrary_dummy_test.conf"
 
-config_file_simplequery_test_whitelist = "/app/tests/unit_tests/files/simplequery_test_whitelist.conf"
-config_file_simplequery_test_01 = "/app/tests/unit_tests/files/simplequery_test_01.conf"
-config_file_simplequery_test_02 = "/app/tests/unit_tests/files/simplequery_test_02.conf"
+config_file_path = "/app/tests/unit_tests/files/"
+config_file_simplequery_test_whitelist = config_file_path + "simplequery_test_whitelist.conf"
+config_file_simplequery_test_01 = config_file_path + "simplequery_test_01.conf"
+config_file_simplequery_test_02 = config_file_path + "simplequery_test_02.conf"
+config_file_simplequery_test_highlight_match_activated = config_file_path + \
+                                                         "simplequery_test_highlight_match_activated.conf"
+config_file_simplequery_test_highlight_match_unactivated = config_file_path + \
+                                                           "simplequery_test_highlight_match_unactivated.conf"
 
 
 class TestSimplequeryAnalyzer(unittest.TestCase):
@@ -86,30 +95,76 @@ class TestSimplequeryAnalyzer(unittest.TestCase):
                 nbr_outliers += 1
         self.assertEqual(nbr_outliers, nbr_generated_documents)
 
-    def test_one_doc_outlier_with_matched_fields(self):
+    def test_one_doc_outlier_with_highlight_01(self):
+        """
+        Test if a doc is correctly generated with the highlight fields. The use case is with the field
+        highlight_match=1 and there is nothing in related to highlight in configuration file.
+        """
         doc_without_outlier = copy.deepcopy(doc_without_outlier_with_highlight_test_file)
-        doc_with_outlier = copy.deepcopy(doc_with_outlier_with_match_fields_test_file)
+        doc_with_outlier = copy.deepcopy(doc_with_outlier_with_highlight_match_test_file_01)
 
         # Insert value
         self.test_es.add_doc(doc_without_outlier)
         # Make test (supposed all doc work)
         self.test_settings.change_configuration_path(config_file_simplequery_test_01)
-        analyzer = AnalyzerFactory.create(use_case_simplequery_dummy_test_matched_fields)
+        analyzer = AnalyzerFactory.create(use_case_simplequery_dummy_test_highlight_match_activated)
         analyzer.evaluate_model()
 
         # Fetch result to check if it is correct
         result = [elem for elem in es._scan()][0]
         self.assertEqual(result, doc_with_outlier)
 
-    def test_one_doc_outlier_with_matched_values(self):
+    def test_one_doc_outlier_with_highlight_02(self):
+        """
+        Test if a doc is correctly generated with the highlight fields. The use case is with no fields related to
+        highlight and the configuration file has highlight_match=1.
+        """
         doc_without_outlier = copy.deepcopy(doc_without_outlier_with_highlight_test_file)
-        doc_with_outlier = copy.deepcopy(doc_with_outlier_with_match_values_test_file)
+        doc_with_outlier = copy.deepcopy(doc_with_outlier_with_highlight_match_test_file_02)
 
         # Insert value
         self.test_es.add_doc(doc_without_outlier)
         # Make test (supposed all doc work)
-        self.test_settings.change_configuration_path(config_file_simplequery_test_01)
-        analyzer = AnalyzerFactory.create(use_case_simplequery_dummy_test_matched_values)
+        self.test_settings.change_configuration_path(config_file_simplequery_test_highlight_match_activated)
+        analyzer = AnalyzerFactory.create(use_case_simplequery_dummy_test)
+        analyzer.evaluate_model()
+
+        # Fetch result to check if it is correct
+        result = [elem for elem in es._scan()][0]
+        self.assertEqual(result, doc_with_outlier)
+
+    def test_one_doc_outlier_with_highlight_03(self):
+        """
+        Test if a doc is correctly generated with the highlight fields. The use case is with the field
+        highlight_match=1 and the configuration file has highlight_match=0.
+        """
+        doc_without_outlier = copy.deepcopy(doc_without_outlier_with_highlight_test_file)
+        doc_with_outlier = copy.deepcopy(doc_with_outlier_with_highlight_match_test_file_01)
+
+        # Insert value
+        self.test_es.add_doc(doc_without_outlier)
+        # Make test (supposed all doc work)
+        self.test_settings.change_configuration_path(config_file_simplequery_test_highlight_match_unactivated)
+        analyzer = AnalyzerFactory.create(use_case_simplequery_dummy_test_highlight_match_activated)
+        analyzer.evaluate_model()
+
+        # Fetch result to check if it is correct
+        result = [elem for elem in es._scan()][0]
+        self.assertEqual(result, doc_with_outlier)
+
+    def test_one_doc_outlier_with_highlight_04(self):
+        """
+        Test if a doc is correctly generated with the highlight fields. The use case is with the field
+        highlight_match=0 and the configuration file has highlight_match=1.
+        """
+        doc_without_outlier = copy.deepcopy(doc_without_outlier_test_file)
+        doc_with_outlier = copy.deepcopy(doc_with_outlier_test_file_02)
+
+        # Insert value
+        self.test_es.add_doc(doc_without_outlier)
+        # Make test (supposed all doc work)
+        self.test_settings.change_configuration_path(config_file_simplequery_test_highlight_match_activated)
+        analyzer = AnalyzerFactory.create(use_case_simplequery_dummy_test_highlight_match_unactivated)
         analyzer.evaluate_model()
 
         # Fetch result to check if it is correct
@@ -118,7 +173,7 @@ class TestSimplequeryAnalyzer(unittest.TestCase):
 
     def test_one_doc_outlier_correctly_add(self):
         doc_without_outlier = copy.deepcopy(doc_without_outlier_test_file)
-        doc_with_outlier = copy.deepcopy(doc_with_outlier_test_file)
+        doc_with_outlier = copy.deepcopy(doc_with_outlier_test_file_01)
 
         # Insert value
         self.test_es.add_doc(doc_without_outlier)
@@ -136,7 +191,7 @@ class TestSimplequeryAnalyzer(unittest.TestCase):
         self.test_es.add_doc(dummy_doc_generate.generate_document())
 
         self.test_settings.change_configuration_path(config_file_simplequery_test_02)
-        analyzer = AnalyzerFactory.create(use_case_simplequery_dummy_test_matched_fields)
+        analyzer = AnalyzerFactory.create(use_case_simplequery_dummy_test_highlight_match_activated)
         analyzer.evaluate_model()
 
         result = [elem for elem in es._scan()][0]
@@ -147,7 +202,7 @@ class TestSimplequeryAnalyzer(unittest.TestCase):
         self.test_es.add_doc(dummy_doc_generate.generate_document())
 
         self.test_settings.change_configuration_path(config_file_simplequery_test_02)
-        analyzer = AnalyzerFactory.create(use_case_simplequery_dummy_test_matched_fields)
+        analyzer = AnalyzerFactory.create(use_case_simplequery_dummy_test_highlight_match_activated)
         analyzer.evaluate_model()
 
         result = [elem for elem in es._scan()][0]
@@ -158,7 +213,7 @@ class TestSimplequeryAnalyzer(unittest.TestCase):
         self.test_es.add_doc(dummy_doc_generate.generate_document())
 
         self.test_settings.change_configuration_path(config_file_simplequery_test_02)
-        analyzer = AnalyzerFactory.create(use_case_simplequery_dummy_test_matched_values)
+        analyzer = AnalyzerFactory.create(use_case_simplequery_dummy_test_highlight_match_activated)
         analyzer.evaluate_model()
 
         result = [elem for elem in es._scan()][0]

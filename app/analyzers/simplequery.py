@@ -1,6 +1,7 @@
-from helpers.singletons import es, logging
+from helpers.singletons import settings, es, logging
 from helpers.analyzer import Analyzer
 import re
+from configparser import NoSectionError, NoOptionError
 
 
 class SimplequeryAnalyzer(Analyzer):
@@ -12,8 +13,12 @@ class SimplequeryAnalyzer(Analyzer):
         """
         Override method from Analyzer
         """
-        self.model_settings["tag_matched_fields"] = self.config_section.getboolean("tag_matched_fields")
-        self.model_settings["tag_matched_values"] = self.config_section.getboolean("tag_matched_values")
+        self.model_settings["highlight_match"] = self.config_section.getboolean("highlight_match")
+        if self.model_settings["highlight_match"] is None:
+            try:
+                self.model_settings["highlight_match"] = settings.config.get("simplequery", "highlight_match")
+            except (NoSectionError, NoOptionError):
+                self.model_settings["highlight_match"] = False
 
     def evaluate_model(self):
 
@@ -73,10 +78,9 @@ class SimplequeryAnalyzer(Analyzer):
         :return: the created outlier
         """
         extra_outlier_information = dict()
-        if self.model_settings["tag_matched_fields"]:
+        if self.model_settings["highlight_match"]:
             extra_outlier_information["matched_fields"] = raw_doc["highlight"]
 
-        if self.model_settings["tag_matched_values"]:
             matched_values = dict()
             for key, fields in raw_doc["highlight"].items():
                 matched_values[key] = list()

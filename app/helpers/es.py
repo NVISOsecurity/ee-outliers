@@ -481,7 +481,7 @@ class ES:
         :return: highlight_settings: Highlight settings
         """
         highlight_settings = None
-        if model_settings["tag_matched_fields"] or model_settings["tag_matched_values"]:
+        if model_settings["highlight_match"]:
             highlight_settings = dict()
             # Pre and post tag definition
             highlight_settings["pre_tags"] = ["<value>"]
