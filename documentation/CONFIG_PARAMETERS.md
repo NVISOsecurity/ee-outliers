@@ -1,3 +1,5 @@
+<p align="left"><a href="../README.md">&#8592; README</a></p>
+
 # All parameters in configurations
 
 **Table of contents**
@@ -19,6 +21,12 @@
 
 
 ## General configuration
+
+ee-outliers makes use of a single configuration file containing all required parameters such as connectivity with your 
+Elasticsearch cluster, logging, etc.
+
+A default configuration file with all required configuration sections and parameters, along with an explanation, 
+ be found in [`defaults/outliers.conf`](../defaults/outliers.conf).
 
 ### General
 <table class="tg">
