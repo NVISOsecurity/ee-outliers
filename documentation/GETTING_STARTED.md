@@ -4,10 +4,6 @@
 
 ## Table of contents
 - [Requirements](#requirements)
-- [Configuring ee-outliers](#configuring-ee-outliers)
-- [Running in interactive mode](#running-in-interactive-mode)
-- [Running in daemon mode](#running-in-daemon-mode)
-- [Customizing your Docker run parameters](#customizing-your-docker-run-parameters) 
 - [Running ee-outliers](#running-ee-outliers)
     - [Step 1: Configuring ee-outliers](#step-1-configuring-ee-outliers)
     - [Step 2: Define the outlier detection use cases](#step-2-define-the-outlier-detection-use-cases)
