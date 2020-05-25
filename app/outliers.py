@@ -240,7 +240,7 @@ def load_analyzers():
             if not os.path.isdir(use_case_file):
                 logging.logger.debug("Loading use case %s" % use_case_file)
                 try:
-                    analyzers.append(AnalyzerFactory.create(use_case_file))
+                    analyzers.extend(AnalyzerFactory.create_multi(use_case_file))
                 except (ValueError, MissingSectionHeaderError) as e:
                     logging.logger.error("An error occured when loading %s: %s" % (use_case_file, str(e)))
 
