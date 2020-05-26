@@ -86,7 +86,7 @@ Switch to enable / disable testing of the model
 ### Usual model parameters
 **trigger_on**
 
-possible values: ``low``, ``high``.
+Possible values: ``low``, ``high``.
 This parameter defines if the outliers model should trigger whenever the calculated model value of the event is lower or higher than the decision boundary. For example, a model that should trigger on users that log into a statistically high number of workstations should trigger on ``high`` values, whereas a model that should detect processes that rarely communicate on the network should trigger on ``low`` values.
 
 **trigger_method** and **trigger_sensitivity**
@@ -316,7 +316,8 @@ test_model=0
 
 ## Derived fields
 
-Some fields contains multiple information, like timestamp that could be split between year, month... Data extracted with this method could be used into models parameters.
+Some fields contains multiple information, like the timestamp that could be split between year, month, etc..
+Data extracted with this method could be used into models parameters.
 
 For this example, the following configuration allow to extract timestamp information:
 
