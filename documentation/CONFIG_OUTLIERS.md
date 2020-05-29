@@ -439,20 +439,20 @@ used with for example the ``trigger_method``, ``stdev``, to spot if a word or a 
         - If word2vec outputs the probabilities, the **center score** is the geometric mean of all the probability corresponding
          to one **center word** in one specific text. If it outputs the raw values, it use arithmetic mean instead of 
          geometric mean.
-         Following the example above with window size of 2, we have: 
-          - If output probability:  <code>center_score_word<sub>i</sub> = (P<sub>i-2</sub>*P<sub>i-1</sub>*P<sub>i+1</sub>*P<sub>i+2</sub>)<sup>1/4</sup></code>
-          - If output raw values:  or <code>center_score_word<sub>i</sub> = (RV<sub>i-2</sub> + RV<sub>i-1</sub> + RV<sub>i+1</sub> + RV<sub>i+2</sub>)/4</code>
+         Following the example above with window size of 1, we have:
+          - If output probabilities: <code>dir_cntr_scr = (P4 \* P5)<sup>1/2</sup></code>
+          - If output raw values: <code>dir_cntr_scr = (P4 + P5)/2</code>
           
-           The meaning behind this score is TODO
+           If the score is **high**/**low**, it mean that this word **see**/**don't see** often this context.
     - Word context score:
         - If word2vec outputs the probabilities, the **context score** is the geometric mean of all the probability corresponding
-         to one context word in one specific text. If it outputs the raw values, it use arithmetic mean instead of 
+         to one **context word** in one specific text. If it outputs the raw values, it use arithmetic mean instead of 
          geometric mean.
-         Following the example above with window size of 2, we have: 
-          - If output probability:  <code>context_score_word<sub>i</sub> = (P<sub>i-2</sub>*P<sub>i-1</sub>*P<sub>i+1</sub>*P<sub>i+2</sub>)<sup>1/4</sup></code> TODO
-          - If output raw values:  or <code>context_score_word<sub>i</sub> = (RV<sub>i-2</sub> + RV<sub>i-1</sub> + RV<sub>i+1</sub> + RV<sub>i+2</sub>)/4</code> TODO
+         Following the example above with window size of 2, we have:
+          - If output probabilities: <code>dir_cntr_scr = (P3 \* P6)<sup>1/2</sup></code>
+          - If output raw values: <code>dir_cntr_scr = (P3 + P6)/2</code>
           
-           The meaning behind this score is TODO
+           If the score is **high**/**low**, it mean that this word is **seen**/**not seen** often by this context.
     - Word total score:
     - Text center score:
     - Text context score:
