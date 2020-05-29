@@ -9,6 +9,7 @@
 - [simplequery models](#simplequery-models)
 - [metrics models](#metrics-models)
 - [terms models](#terms-models)
+- [word2vec models](#word2vec-models)
 - [Derived fields](#derived-fields)
 
 
@@ -265,7 +266,7 @@ All required options are visible in the example. All possible options are listed
 
 **How it works**
 
-The terms model looks for outliers by calculting rare combinations of a certain field(s) in combination with other field(s).It works as following:
+The terms model looks for outliers by calculting rare combinations of a certain field(s) in combination with other field(s). It works as following:
 
 1. The model starts by taking into account all the events defined in the ``es_query_filter`` parameter. This should be a valid Elasticsearch query. The best way of testing if the query is valid is by copy-pasting it from a working Kibana query.
  
@@ -313,6 +314,153 @@ outlier_summary=terms TLS connection to {BroFilter.server_name}
 run_model=1
 test_model=0
 ```
+
+## Word2vec models
+The word2vec model will take the text of a certain field(s) in each event. Then, these 
+texts will be separated into tokens/words which will be used as input to train a Skip-Gram word2vec model.
+During evaluation time, word2vec will output for each word a score that is dependent to his neighborhood words. 
+More the word score is low and more the word or his neighborhood words can be seen as anomalies. 
+Word2vec can also instead of returning a score on each word, it can output a general score around the entire text.
+
+Example use case: spot processes that are running in an unusual directory.
+
+**Example model**
+```ini
+##############################
+# WORD2VEC - SUSPICIOUS PROCESS DIRECTORY
+##############################
+[word2vec_suspicious_process_directory]
+es_query_filter=Image: *
+target=Image
+aggregator=User
+
+word2vec_batch_eval_size=6000
+min_target_buckets = 1000
+drop_duplicates=0
+
+use_prob_model=0
+output_prob=1
+
+separators="\"
+size_window=1
+min_uniq_word_occurrence=2
+
+num_epochs=2
+learning_rate=0.001
+embedding_size=40
+seed=43
+
+tensorboard=0
+
+trigger_focus=word
+trigger_score=center
+trigger_on=low
+trigger_method=z_score
+trigger_sensitivity=5.0
+
+outlier_type=suspicious process directory
+outlier_reason=suspicious process directory
+outlier_summary=suspicious process directory
+
+run_model=1
+test_model=0
+```
+
+**Parameters**
+
+All required options are visible in the example. All possible options are listed [here](CONFIG_PARAMETERS.md#analyzers-parameters).
+
+**How it works**
+
+The word2vec model look for outliers by analysing weird syntax arrangement of a certain field(s). It works as following:
+
+1. The model starts by taking into account all the events defined in the ``es_query_filter`` parameter. This should be a
+ valid Elasticsearch query. The best way of testing if the query is valid is by copy-pasting it from a working Kibana 
+ query.
+
+2. The model will then take all instances of the ``target`` field and group them into aggregation defined by the 
+parameter ``aggregator``. Each aggregation will create an independent word2vec model. 
+In the example above, the ``Image`` field  is the name of the process executed including the full directory path to the 
+executable when the ``User`` field let you know who created the process in question.
+It will therefore, take the instances of ``Image`` and group them by ``User``.
+
+3. Afterward, each instance of the ``target`` field grouped into aggregation will be tokenized.
+More exactly, it will split the **text** of the ``target`` field into **words** by the occurrence of the 
+``separator`` field.
+If we look at the example above, we know that each instance/text of ``target=Image``  will look like this: 
+    
+    | User | Image |
+    |------|-------|
+    | User1| C:\Windows\dir\sub_dir\program.exe |
+    | User1| C:\Windows\directory2\sub_directory2\program.exe |
+
+    ``C:\Windows\directory1\sub_directory1\program.exe``
+
+    Therefore, with ``separator="\"``, it will split the text as follow:
+
+    | text x |   |
+    |--------|---|
+    | word 1 | C:  |
+    | word 2 | Windows |
+    | word 3 | dir |
+    | word 4 | sub_dir |
+    | word 5 |  program.exe |
+
+4. Then it's gonna train a word2vec neural network to do the following; given a specific **center word** in a 
+text, try to guess which **context word** will appear in his neighborhood (windows distance). 
+In inference, given a certain **center word** as an input, the word2vec network will output the probability or raw value
+ of each word contained in the vocabulary of being a **context word**.
+Which with for instance a window size of 1 can give us the following results:
+    
+    | Center word | Context word | Probability | Raw Value |
+    |-------------|--------------|-------------|-----------|
+    | C:          | Windows      | P1          | RV1
+    | Windows     | C:           | P2          | RV2
+    | Windows     | dir          | P3          | RV3
+    | dir         | Windows      | P4          | RV4
+    | dir         | sub_dir      | P5          | RV5
+    | sub_dir     | dir          | P6          | RV6
+    | sub_dir     | program.exe  | P7          | RV7
+    | program.exe | sub_dir      | P8          | RV8
+    
+5. From those probabilities and raw values multiple scores are developed by word or text. These scores can then be
+used with for example the ``trigger_method``, ``stdev``, to spot if a word or a text is an outlier.
+
+    |                       | C:            | Windows           | dir           | sub_dir           | program.exe           | TOTAL              |
+    |-----------------------|---------------|-------------------|---------------|-------------------|-----------------------|--------------------|
+    | Word batch occurrence | 6000          | 400               | 30            | 10                | 300                   |                    |
+    | <--Center score-->    |  C:_cntr_scr  | Windows_cntr_scr  | dir_cntr_scr  | sub_dir_cntr_scr  | program.exe_cntr_scr  | text_cntr_ttl_scr  |       
+    | -->Context score<--   |  C:_cntxt_scr | Windows_cntxt_scr | dir_cntxt_scr | sub_dir_cntxt_scr | program.exe_cntxt_scr | text_cntxt_ttl_scr |
+    |    Total score        |  C:_ttl_scr   | Windows_ttl_scr   | dir_ttl_scr   | sub_dir_ttl_scr   | program.exe_ttl_scr   | text_ttl_ttl_scr   |
+    | MEAN                  |               |                   |               |                   |                       | text_mean_ttl_scr  |
+
+    The scores are:
+    - Word center score:
+        - If word2vec outputs the probabilities, the **center score** is the geometric mean of all the probability corresponding
+         to one **center word** in one specific text. If it outputs the raw values, it use arithmetic mean instead of 
+         geometric mean.
+         Following the example above with window size of 2, we have: 
+          - If output probability:  <code>center_score_word<sub>i</sub> = (P<sub>i-2</sub>*P<sub>i-1</sub>*P<sub>i+1</sub>*P<sub>i+2</sub>)<sup>1/4</sup></code>
+          - If output raw values:  or <code>center_score_word<sub>i</sub> = (RV<sub>i-2</sub> + RV<sub>i-1</sub> + RV<sub>i+1</sub> + RV<sub>i+2</sub>)/4</code>
+          
+           The meaning behind this score is TODO
+    - Word context score:
+        - If word2vec outputs the probabilities, the **context score** is the geometric mean of all the probability corresponding
+         to one context word in one specific text. If it outputs the raw values, it use arithmetic mean instead of 
+         geometric mean.
+         Following the example above with window size of 2, we have: 
+          - If output probability:  <code>context_score_word<sub>i</sub> = (P<sub>i-2</sub>*P<sub>i-1</sub>*P<sub>i+1</sub>*P<sub>i+2</sub>)<sup>1/4</sup></code> TODO
+          - If output raw values:  or <code>context_score_word<sub>i</sub> = (RV<sub>i-2</sub> + RV<sub>i-1</sub> + RV<sub>i+1</sub> + RV<sub>i+2</sub>)/4</code> TODO
+          
+           The meaning behind this score is TODO
+    - Word total score:
+    - Text center score:
+    - Text context score:
+    - Text total score:
+    - Text mean score:
+    
+
+
 
 ## Derived fields
 

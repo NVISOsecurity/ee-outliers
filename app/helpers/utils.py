@@ -341,7 +341,7 @@ def get_decision_frontier(trigger_method, values_array, trigger_sensitivity, tri
         if trigger_method == "madpos":
             decision_frontier = np.float64(max([decision_frontier, 0]))
 
-    elif trigger_method == "stdev":
+    elif trigger_method == "stdev" or trigger_method == "z_score":
         decision_frontier = get_stdev_decision_frontier(values_array, trigger_sensitivity, trigger_on)
     elif trigger_method == "float":
         decision_frontier = np.float64(trigger_sensitivity)
@@ -393,6 +393,28 @@ def get_stdev_decision_frontier(values_array, trigger_sensitivity, trigger_on):
         raise ValueError("Unexpected trigger condition " + str(trigger_on) + ", could not calculate decision frontier")
 
     return decision_frontier
+
+
+def get_mean_and_stdev(values_array):
+    """
+    Compute the standard deviation and the mean of values_array
+    :param values_array: list of values used to make the computation
+    :return (mean, stdev): standard deviation and mean of values_array
+    """
+    return np.nanmean(values_array), np.std(values_array)
+
+
+def get_z_score(value, mean_and_stdev):
+    """
+    Compute z-score = (value - mean)/stdev.
+    Z-score measure in terms of standard deviations the distance from the mean.
+    Example: if z-score = -3.2 it means that value is smaller than mean and at a distance of 3.2*stdev from the mean.
+    :param value: raw value
+    :param mean_and_stdev: (mean, stdev) mean and standard deviation
+    :return: z_score
+    """
+    mean_val, stdev = mean_and_stdev
+    return (value - mean_val)/stdev
 
 
 def get_mad_decision_frontier(values_array, trigger_sensitivity, trigger_on):

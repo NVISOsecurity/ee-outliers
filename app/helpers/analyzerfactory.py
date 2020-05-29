@@ -7,12 +7,10 @@ from analyzers.metrics import MetricsAnalyzer
 from analyzers.simplequery import SimplequeryAnalyzer
 from analyzers.terms import TermsAnalyzer
 from analyzers.word2vec import Word2VecAnalyzer
-from analyzers.word2vec_dev import Word2VecDevAnalyzer
 
 CLASS_MAPPING = {
     "simplequery": SimplequeryAnalyzer,
     "metrics": MetricsAnalyzer,
-    "word2vec_dev": Word2VecDevAnalyzer,
     "word2vec": Word2VecAnalyzer,
     "terms": TermsAnalyzer
 }
