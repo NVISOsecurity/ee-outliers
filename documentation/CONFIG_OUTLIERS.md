@@ -125,7 +125,7 @@ These arbitrary parameters could not start with prefix `whitelist_` (which will 
 # SIMPLEQUERY - NETWORK TROJAN DETECTED
 ##############################h
 [simplequery_suricata_network_trojan_detected]
-es_query_filter = _exists_:smoky_filter_name AND smoky_filter_name.raw:SuricataFilter  AND  SuricataFilter.event_type.raw:alert AND SuricataFilter.alert.category.raw:"A Network Trojan was detected"
+es_query_filter = _exists_:smoky_filter_name AND smoky_filter_name.keyword:SuricataFilter  AND  SuricataFilter.event_type.keyword:alert AND SuricataFilter.alert.category.keyword:"A Network Trojan was detected"
 
 outlier_type = IDS
 outlier_reason = network trojan detected
@@ -242,7 +242,7 @@ Each metrics model section in the configuration file should be prefixed by ``ter
 # TERMS - RARE PROCESSES WITH OUTBOUND CONNECTIVITY
 ##############################
 [terms_rarely_seen_outbound_connections]
-es_query_filter=tags:endpoint AND meta.command.name:"get_outbound_conns" AND -OsqueryFilter.remote_port.raw:0 AND -OsqueryFilter.remote_address.raw:127.0.0.1 AND -OsqueryFilter.remote_address.raw:"::1"
+es_query_filter=tags:endpoint AND meta.command.name:"get_outbound_conns" AND -OsqueryFilter.remote_port.keyword:0 AND -OsqueryFilter.remote_address.keyword:127.0.0.1 AND -OsqueryFilter.remote_address.keyword:"::1"
 
 aggregator=OsqueryFilter.name
 target=meta.hostname
