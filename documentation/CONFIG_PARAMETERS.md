@@ -253,7 +253,7 @@ If set to <code>1</code>, ee-outliers will use the Elasticsearch highlight mecha
 that matched the search query. The matched fields and values are respectively added to new dictionary fields 
 <code>outliers.matched_fields</code> and <code>outliers.matched_values</code>.
 
-Example: If the search query is <code>es_query_filter=CurrentDirectory : sysmon AND Image: cmd.exe</code> and the log
+Example: If the search query is <code>es_query_filter=CurrentDirectory : sysmon AND Image: System32 AND Image: cmd.exe</code> and the log
 event contains the fields:
 ```
 CurrentDirectory: C:\sysmon\
@@ -262,8 +262,8 @@ Image: C:\Windows\System32\cmd.exe
 It will add the fields:
 ```
 outliers.matched_fields: {"CurrentDirectory": ["C:\\<value>sysmon</value>\\"],
-                         "Image": ["C:\\Windows\\System32\\<value>cmd.exe</value>"]}
-outliers.matched_values: {'CurrentDirectory': ['sysmon'], 'Image': ['cmd.exe']}
+                         "Image": ["C:\\Windows\\<value>System32</value>\\<value>cmd.exe</value>"]}
+outliers.matched_values: {'CurrentDirectory': ['sysmon'], 'Image': ['System32', 'cmd.exe']}
 ```
 Note that in the field <code>outliers.matched_fields</code>, the values that match the search query has been tagged as
 follow: `<value>MACHTED_VALUE</value>`.
