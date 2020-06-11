@@ -334,7 +334,7 @@ Global parameters for all use cases of type word2vec.
     given a certain center word.
     If set to <code>0</code>, and <code>use_prob_model=0</code> it outputs the raw value of word2vec 
     (layer before the softmax).
-    If set to <code>0</code>, and <code>use_prob_model=1</code> it outputs the exponential of the probability.</td>
+    If set to <code>0</code>, and <code>use_prob_model=1</code> it outputs the logarithmic of the probabilities.</td>
   </tr>
   <tr>
     <td class="tg-0pky"><code>separators</code></td>
@@ -376,22 +376,32 @@ Global parameters for all use cases of type word2vec.
     <td class="tg-0pky"><code>seed</code></td>
     <td class="tg-0pky"><code>Int</code></td>
     <td class="tg-0pky">The random seed to make word2vec deterministic. 
-    If set to <code>0</code> it make word2vec non deterministic.</td>
+    If set to <code>0</code> it make word2vec non deterministic.
+    If deterministic, it will also read documents chronologically and therefore reduce Elasticsearch scanning performance.</td>
   </tr>
   <tr>
-    <td class="tg-0pky"><code>tensorboard</code></td>
+    <td class="tg-0pky"><code>print_score_table</code></td>
     <td class="tg-0pky"><code>0</code>, <code>1</code></td>
-    <td class="tg-0pky">TODO</td>
+    <td class="tg-0pky">Print all outlier scores on a table. Set to <code>0</code> by default.</td>
+  </tr>
+  <tr>
+    <td class="tg-0pky"><code>print_confusion_matrix</code></td>
+    <td class="tg-0pky"><code>0</code>, <code>1</code></td>
+    <td class="tg-0pky">Print confusion matrix and precision, recall and F-Measure metrics.
+    Work only if the field "label" (equal to <code>0</code> or <code>1</code>) exist in Elasticsearch events.
+    Set to <code>0</code> by default.</td>
   </tr>
   <tr>
     <td class="tg-0pky"><code>trigger_focus</code></td>
     <td class="tg-0pky"><code>word</code>, <code>text</code></td>
-    <td class="tg-0pky">TODO</td>
+    <td class="tg-0pky">If set to <code>text</code>, it triggers events based on global text score.
+    If set to <code>word</code>, it triggers events based on word score. 
+    Set to <code>word</code> by default.</td>
   </tr>
   <tr>
     <td class="tg-0pky"><code>trigger_score</code></td>
     <td class="tg-0pky"><code>center</code>, <code>context</code>, <code>total</code>, <code>mean</code></td>
-    <td class="tg-0pky">TODO Mean compatible only with <code>trigger_focus=text</code></td>
+    <td class="tg-0pky">Type of score the events are triggered on. Mean compatible only with <code>trigger_focus=text</code></td>
   </tr>
 </table>
 
@@ -807,7 +817,7 @@ More information available [here](CONFIG_OUTLIERS.md#arbitrary-parameters).
   <tr>
     <td class="tg-0pky"><code>learning_rate</code></td>
     <td class="tg-0pky"><code>Float</code></td>
-    <td class="tg-0pky">Override <code>drop_duplicates</code> parameter in 
+    <td class="tg-0pky">Override <code>learning_rate</code> parameter in 
     <a href=#word2vec>word2vec general configuration</a>.</td>
   </tr>
   <tr>
@@ -823,9 +833,15 @@ More information available [here](CONFIG_OUTLIERS.md#arbitrary-parameters).
     <a href=#word2vec>word2vec general configuration</a>.</td>
   </tr>
   <tr>
-    <td class="tg-0pky"><code>tensorboard</code></td>
+    <td class="tg-0pky"><code>print_score_table</code></td>
     <td class="tg-0pky"><code>0</code>, <code>1</code></td>
-    <td class="tg-0pky">Override <code>tensorboard</code> parameter in 
+    <td class="tg-0pky">Override <code>print_score_table</code> parameter in 
+    <a href=#word2vec>word2vec general configuration</a>.</td>
+  </tr>
+  <tr>
+    <td class="tg-0pky"><code>print_confusion_matrix</code></td>
+    <td class="tg-0pky"><code>0</code>, <code>1</code></td>
+    <td class="tg-0pky">Override <code>print_confusion_matrix</code> parameter in 
     <a href=#word2vec>word2vec general configuration</a>.</td>
   </tr>
   <tr>

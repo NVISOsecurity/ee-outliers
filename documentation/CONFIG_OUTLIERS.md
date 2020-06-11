@@ -22,9 +22,12 @@ The different types of detection models that can be configured are listed below.
 
 - **metrics models**: the metrics model looks for outliers based on a calculated metric of a specific field of events. These metrics include the length of a field, its entropy, and more. Example use case: tag all events that represent Windows processes that were launched using a high number of base64 encoded parameters in order to detect obfuscated fileless malware.
 
-- **terms models**:  the terms model looks for outliers by calculting rare combinations of a certain field(s) in combination with other field(s). Example use case: tag all events that represent Windows network processes that are rarely observed across all reporting endpoints in order to detect C2 phone home activity.
+- **terms models**:  the terms model looks for outliers by calculating rare combinations of a certain field(s) in combination with other field(s). Example use case: tag all events that represent Windows network processes that are rarely observed across all reporting endpoints in order to detect C2 phone home activity.
 
-- **word2vec models (BETA)**: the word2vec model is the first Machine Learning model defined in ee-outliers. It allows the analyst to train a model based on a set of features that are expected to appear in the same context. After initial training, the model is then able to spot anomalies in unexected combinations of the trained features. Exampleuse case: train a model to learn which usernames, workstations and user roles are expected to appear together in order to alert on breached Windows accounts that are used to laterally move in the network.
+- **word2vec models (BETA)**: the word2vec model is the first Machine Learning model defined in ee-outliers. It allows 
+the analyst to train a model based on a set of features that are expected to appear in the same context. After initial 
+training, the model is then able to spot anomalies in unexpected combinations of the trained features. 
+Example use case: train a model to spot usernames that doesn't respect the convention of your enterprise.
 
 
 ## General model parameters
@@ -316,11 +319,12 @@ test_model=0
 ```
 
 ## Word2vec models
-The word2vec model will take the text of a certain field(s) in each event. Then, these 
-texts will be separated into tokens/words which will be used as input to train a Skip-Gram word2vec model.
-During evaluation time, word2vec will output for each word a score that is dependent to his neighborhood words. 
-More the word score is low and more the word or his neighborhood words can be seen as anomalies. 
-Word2vec can also instead of returning a score on each word, it can output a general score around the entire text.
+The word2vec model looks for outliers by analysing weird syntactic and semantic arrangement in an event text field(s).
+More precisely, in each evnet, it will take the text of a certain field(s). 
+Then, these texts will be separated into tokens/words which will be used as input to train a Skip-Gram word2vec model.
+During evaluation time, word2vec will output for each word, a score that is dependent to his neighborhood words. 
+More the word score is low and more the word or his neighborhood words can be seen as anomalies.
+Word2vec can also return a general score around the entire text.
 
 Example use case: spot processes that are running in an unusual directory.
 
@@ -341,7 +345,7 @@ drop_duplicates=0
 use_prob_model=0
 output_prob=1
 
-separators="\"
+separators="\\\\"
 size_window=1
 min_uniq_word_occurrence=2
 
@@ -372,7 +376,7 @@ All required options are visible in the example. All possible options are listed
 
 **How it works**
 
-The word2vec model look for outliers by analysing weird syntax arrangement of a certain field(s). It works as following:
+The word2vec model looks for outliers by analysing weird syntax arrangement of a certain field(s). It works as following:
 
 1. The model starts by taking into account all the events defined in the ``es_query_filter`` parameter. This should be a
  valid Elasticsearch query. The best way of testing if the query is valid is by copy-pasting it from a working Kibana 
@@ -389,14 +393,9 @@ More exactly, it will split the **text** of the ``target`` field into **words** 
 ``separator`` field.
 If we look at the example above, we know that each instance/text of ``target=Image``  will look like this: 
     
-    | User | Image |
-    |------|-------|
-    | User1| C:\Windows\dir\sub_dir\program.exe |
-    | User1| C:\Windows\directory2\sub_directory2\program.exe |
+    ``C:\Windows\dir\sub_dir\program.exe``
 
-    ``C:\Windows\directory1\sub_directory1\program.exe``
-
-    Therefore, with ``separator="\"``, it will split the text as follow:
+    Therefore, with ``separator="\\\\"``, it will split the text as follow:
 
     | text x |   |
     |--------|---|
@@ -406,11 +405,14 @@ If we look at the example above, we know that each instance/text of ``target=Ima
     | word 4 | sub_dir |
     | word 5 |  program.exe |
 
-4. Then it's gonna train a word2vec neural network to do the following; given a specific **center word** in a 
-text, try to guess which **context word** will appear in his neighborhood (windows distance). 
-In inference, given a certain **center word** as an input, the word2vec network will output the probability or raw value
- of each word contained in the vocabulary of being a **context word**.
-Which with for instance a window size of 1 can give us the following results:
+4. Then it will train a word2vec neural network to do the following; given a specific **center word** in a 
+text, try to guess which **context word** will appear in his neighborhood. The **context words** of a **center word** are 
+ words contained inside the **center word** window defined by the parameter ``size_window``. 
+In inference, given as input a certain **center word** and **context word**, the word2vec network will output a
+probability (``output_prob=1``) or a raw value (``output_prob=0``). 
+
+    Given the text example above and a size window of 1, the outputs of the word2vec neural network will give us the 
+    following results:
     
     | Center word | Context word | Probability | Raw Value |
     |-------------|--------------|-------------|-----------|
@@ -423,8 +425,16 @@ Which with for instance a window size of 1 can give us the following results:
     | sub_dir     | program.exe  | P7          | RV7
     | program.exe | sub_dir      | P8          | RV8
     
-5. From those probabilities and raw values multiple scores are developed by word or text. These scores can then be
-used with for example the ``trigger_method``, ``stdev``, to spot if a word or a text is an outlier.
+    Note, that it is also possible to use the true probability of ``P(context_word|center_word)`` by setting the 
+    parameter ``use_prob_model`` to ``1``. This algorithm has less computational complexity than Word2Vec but gives
+    sometimes results with more False Positive. It could be due to the fact that true probabilities will have a good 
+    estimation of the syntactic rules between words but not in of the semantic. It will not understand the similarity
+    between the meaning of two words.
+    
+5. From those probabilities/raw values, multiple scores are developed by words or texts. These scores can then be
+evaluated with for example ``trigger_method=stdev``, to classify text instances as outlier or not.
+
+    The following table resume all type of scores available:
 
     |                       | C:            | Windows           | dir           | sub_dir           | program.exe           | TOTAL              |
     |-----------------------|---------------|-------------------|---------------|-------------------|-----------------------|--------------------|
@@ -434,32 +444,96 @@ used with for example the ``trigger_method``, ``stdev``, to spot if a word or a 
     |    Total score        |  C:_ttl_scr   | Windows_ttl_scr   | dir_ttl_scr   | sub_dir_ttl_scr   | program.exe_ttl_scr   | text_ttl_ttl_scr   |
     | MEAN                  |               |                   |               |                   |                       | text_mean_ttl_scr  |
 
-    The scores are:
-    - Word center score:
-        - If word2vec outputs the probabilities, the **center score** is the geometric mean of all the probability corresponding
-         to one **center word** in one specific text. If it outputs the raw values, it use arithmetic mean instead of 
-         geometric mean.
-         Following the example above with window size of 1, we have:
-          - If output probabilities: <code>dir_cntr_scr = (P4 \* P5)<sup>1/2</sup></code>
-          - If output raw values: <code>dir_cntr_scr = (P4 + P5)/2</code>
-          
-           If the score is **high**/**low**, it mean that this word **see**/**don't see** often this context.
-    - Word context score:
-        - If word2vec outputs the probabilities, the **context score** is the geometric mean of all the probability corresponding
-         to one **context word** in one specific text. If it outputs the raw values, it use arithmetic mean instead of 
-         geometric mean.
-         Following the example above with window size of 2, we have:
-          - If output probabilities: <code>dir_cntr_scr = (P3 \* P6)<sup>1/2</sup></code>
-          - If output raw values: <code>dir_cntr_scr = (P3 + P6)/2</code>
-          
-           If the score is **high**/**low**, it mean that this word is **seen**/**not seen** often by this context.
-    - Word total score:
-    - Text center score:
-    - Text context score:
-    - Text total score:
-    - Text mean score:
+    The type of scores are:
+    - Center word score:
     
+         If word2vec outputs probabilities, the **center word score** is the geometric mean of all the probability corresponding
+         to one **center word** in one specific text. If it outputs the raw values, it uses arithmetic mean instead of 
+         geometric mean.
+         Following the example above with window size of 1, we have for example:
+         - If output probabilities: <code>dir_cntr_scr = (P4 \* P5)<sup>1/2</sup></code>
+         - If output raw values: <code>dir_cntr_scr = (RV4 + RV5)/2</code>
+         
+        If the score is **high**/**low**, it means that this word **see**/**don't see** often by the current context
+        words.
+    - Context word score:
+    
+         If word2vec outputs the probabilities, the **context word score** is the geometric mean of all the probability corresponding
+         to one **context word** in one specific text. If it outputs the raw values, it uses arithmetic mean instead of 
+         geometric mean.
+         Following the example above with window size of 2, we have for example:
+         - If output probabilities: <code>dir_cntxt_scr = (P3 \* P6)<sup>1/2</sup></code>
+         - If output raw values: <code>dir_cntxt_scr = (RV3 + RV6)/2</code>
+          
+       If the score is **high**/**low**, it means that this word is **seen**/**not seen** often by the current context
+       words.
+    - Total word score:
+    
+        If word2vec outputs the probabilities, the **total word score** is the geometric mean of the 
+        **center word score** and the **context word score** of one specific word. If it outputs the raw values, it uses 
+        arithmetic mean instead of geometric mean. Following the examples above, we have:
+        - If output probabilities: <code>dir_ttl_scr = (dir_cntr_scr * dir_cntxt_scr)<sup>1/2</sup></code>
+        - If output raw values: <code>dir_ttl_scr = (dir_cntr_scr + dir_cntxt_scr)/2 </code>
+        
+        It expresses the combination of the both scores **center & context word scores**. Therefore, if a word score is 
+        low, it means that this word **don't see** or/and **is not seen** often by the context words.
+    - Center text score:
+    
+        If word2vec outputs probabilities, the **center text score** is the geometric mean of all the 
+        **center word scores** for one specific text. If it outputs the raw values, it uses arithmetic mean instead of 
+        geometric mean. Following the examples above, we have:
+        - If output probabilities: <code> text_cntr_ttl_scr = (C:_cntr_scr  * Windows_cntr_scr  * dir_cntr_scr  * sub_dir_cntr_scr  * program.exe_cntr_scr)<sup>1/5</sup></code>
+        - If output raw values: <code> text_cntr_ttl_scr = (C:_cntr_scr  + Windows_cntr_scr  + dir_cntr_scr  + sub_dir_cntr_scr  + program.exe_cntr_scr)/5</code>
+    - Context test score:
+    
+        If word2vec outputs probabilities, the **context text score** is the geometric mean of all the 
+        **context word scores** for one specific text. If it outputs the raw values, it uses arithmetic mean instead of 
+        geometric mean. Following the examples above, we have:
+        - If output probabilities: <code> text_cntxt_ttl_scr = (C:_cntxt_scr * Windows_cntxt_scr * dir_cntxt_scr * sub_dir_cntxt_scr * program.exe_cntxt_scr)<sup>1/5</sup></code>
+        - If output raw values: <code> text_cntxt_ttl_scr = (C:_cntxt_scr + Windows_cntxt_scr + dir_cntxt_scr + sub_dir_cntxt_scr + program.exe_cntxt_scr)/5</code>
+    - Total text score:
+    
+        If word2vec outputs probabilities, the **total text score** is the geometric mean of all the 
+        **total word scores** for one specific text. If it outputs the raw values, it uses arithmetic mean instead of 
+        geometric mean. Following the examples above, we have:
+        - If output probabilities: <code> text_ttl_ttl_scr = (C:_ttl_scr * Windows_ttl_scr * dir_ttl_scr * sub_dir_ttl_scr * program.exe_ttl_scr)<sup>1/5</sup></code>
+        - If output raw values: <code> text_ttl_ttl_scr = (C:_ttl_scr + Windows_ttl_scr + dir_ttl_scr + sub_dir_ttl_scr + program.exe_ttl_scr)/5</code>
+      
+    - Mean text score:
+    
+        If word2vec outputs probabilities, the **mean text score** is the geometric mean of all the 
+        word2vec outputs for one specific text. If it outputs the raw values, it uses arithmetic mean instead of 
+        geometric mean. Following the examples above, we have:
+        - If output probabilities: <code> text_mean_ttl_scr = (P1 * P2 * P3 * P4 * P5 * P6 * P7 * P8)<sup>1/8</sup></code>
+        - If output raw values: <code> text_mean_ttl_scr = (P1 + P2 + P3 + P4 + P5 + P6 + P7 + P8)/8</code>
+    
+    Note that, by experience, all this scores are able to find outliers but gives better F-score while it outputs 
+    probabilities (vs raw values) are used combined with word scores (vs text scores). We still give for analyst the 
+    possibility to use the alternatives because they could be benefic in other data distribution.
+    
+6. If in texts, semantic and syntactic rules are respected, we will expect for each unique word a similar score in each 
+of the text it will appear. At he opposite, if in one text, semantic and syntactic rules are not respected, the score 
+should be lower and very different compared to the score of that word in other texts. Taking this assumption, you can 
+spot outliers by simply using basic statistic/trigger methods like the Standard Deviation or the Median Average Deviation which
+should spot a word that return an abnormal score. This is the parameters ``trigger_on``, ``trigger_method``, and 
+``trigger_sensitivity`` that will be in charge of that action.
+ 
+7. As a last step, outlier events are tagged with a range of new fields, all prefixed with 
+``outliers.<outlier_field_name>``.
 
+
+
+**Remarks**
+
+- It is recommended to put ``num_epoch`` between ``1`` and ``3`` not higher.
+- The default value of ``learning_rate=0.001`` gives generaly good results.
+- If you want to analyse outliers directly on the standard output, you 
+can put the parameter ``print_score_table`` to ``1``. It will print all outlier socres on a table and hiligh in red
+word scores that or out of their normal distribution.
+- For development purpose, it is possible to use Elasticsearch labeled data and then print on the standard output a 
+confusion matrix along with Precision, recall and F-score metrics. 
+To do so, you will have to create a special field ``label`` for each event where each outliers are set to ``1``. 
+The parameter ``print_confusion_matrix`` has to be also set to ``1``.
 
 
 ## Derived fields

@@ -1,5 +1,5 @@
 import abc
-import dateutil
+from dateutil import parser
 
 from configparser import NoOptionError
 
@@ -261,8 +261,8 @@ class Analyzer(abc.ABC):
         search_range_end = search_range["range"][str(settings.config.get("general", "timestamp_field",
                                                                          fallback="timestamp"))]["lte"]
 
-        search_start_range_printable = dateutil.parser.parse(search_range_start).strftime('%Y-%m-%d %H:%M:%S')
-        search_end_range_printable = dateutil.parser.parse(search_range_end).strftime('%Y-%m-%d %H:%M:%S')
+        search_start_range_printable = parser.parse(search_range_start).strftime('%Y-%m-%d %H:%M:%S')
+        search_end_range_printable = parser.parse(search_range_end).strftime('%Y-%m-%d %H:%M:%S')
         return "processing events between " + search_start_range_printable + " and " + search_end_range_printable
 
     @abc.abstractmethod
@@ -273,3 +273,38 @@ class Analyzer(abc.ABC):
         detection of outliers.
         """
         raise NotImplementedError()
+
+    def extract_parameter(self, param_name, param_type=None, default=None):
+        """
+        Extract parameter in general or use-case conf file.
+
+        :param param_name: Name of the parameter to extract in general or use-case conf file
+        :param param_type: Type of conversion of the parameter. string, int, float, boolean or None.
+        :param default: default value if parameter is not found.
+        :return: the parameter converted into param_type
+        """
+        config_section_get = {"string": self.config_section.get,
+                              "int": self.config_section.getint,
+                              "float": self.config_section.getfloat,
+                              "boolean": self.config_section.getboolean}
+
+        settings_config_get = {"string": settings.config.get,
+                               "int": settings.config.getint,
+                               "float": settings.config.getfloat,
+                               "boolean": settings.config.getboolean}
+        try:
+            if param_type is None:
+                param_value = config_section_get["string"](param_name)
+                if param_value is None:
+                    param_value = settings_config_get["string"](self.model_type, param_name)
+            else:
+                param_value = config_section_get[param_type](param_name)
+                if param_value is None:
+                    param_value = settings_config_get[param_type](self.model_type, param_name)
+        except NoOptionError as e:
+            if default is not None:
+                param_value = default
+            else:
+                raise ValueError(e)
+
+        return param_value

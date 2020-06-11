@@ -1,9 +1,7 @@
 tabulate
 Pillow
-matplotlib
 torch
 scikit-learn
-tensorflow<2
 certifi
 chardet
 configparser

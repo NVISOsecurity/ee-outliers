@@ -1,20 +1,17 @@
 import helpers.utils
 
-from helpers.singletons import settings, es, logging
+from helpers.singletons import es, logging
 from helpers.analyzer import Analyzer
 import analyzers.ml_models.word2vec as word2vec
 from collections import defaultdict
 
-from torch.utils.tensorboard import SummaryWriter
-import matplotlib.pyplot as plt
 import re
 from configparser import SectionProxy
 from tabulate import tabulate
 import numpy as np
-from scipy import spatial
 import operator
 
-from typing import List, Tuple, Dict, Optional
+from typing import List, Tuple, Optional
 
 PRINT_COLORS = {"red": "\033[91m",
                 "green": "\033[92m",
@@ -31,10 +28,6 @@ class Word2VecAnalyzer(Analyzer):
         """
         Override method from Analyzer
         """
-        # TODO something odd about this parameter!
-        self.model_settings["process_documents_chronologically"] = self.config_section.getboolean(
-            "process_documents_chronologically", True)
-
         self.model_settings["target"] = self.config_section["target"].replace(' ', '').split(",")
 
         self.model_settings["aggregator"] = self.config_section["aggregator"].replace(' ', '').split(",")
@@ -42,104 +35,106 @@ class Word2VecAnalyzer(Analyzer):
         self.model_settings["use_derived_fields"] = self.config_section.getboolean("use_derived_fields")
 
         # word2vec_batch_eval_size parameter
-        self.model_settings["word2vec_batch_eval_size"] = self._extract_parameter("word2vec_batch_eval_size",
-                                                                                  param_type="int")
+        self.model_settings["word2vec_batch_eval_size"] = self.extract_parameter("word2vec_batch_eval_size",
+                                                                                 param_type="int")
 
         # min_target_buckets parameter
-        self.model_settings["min_target_buckets"] = self._extract_parameter("min_target_buckets", param_type="int")
+        self.model_settings["min_target_buckets"] = self.extract_parameter("min_target_buckets", param_type="int")
 
         # drop_duplicates parameter
-        self.model_settings["drop_duplicates"] = self._extract_parameter("drop_duplicates",
-                                                                         param_type="boolean")
+        self.model_settings["drop_duplicates"] = self.extract_parameter("drop_duplicates",
+                                                                        param_type="boolean",
+                                                                        default=False)
 
         # use_prob_model parameter
-        self.model_settings["use_prob_model"] = self._extract_parameter("use_prob_model",
-                                                                        param_type="boolean")
+        self.model_settings["use_prob_model"] = self.extract_parameter("use_prob_model",
+                                                                       param_type="boolean",
+                                                                       default=False)
 
         # separators parameter
-        self.model_settings["separators"] = self._extract_parameter("separators")
+        self.model_settings["separators"] = self.extract_parameter("separators")
         self.model_settings["separators"] = self.model_settings["separators"].strip('"')
 
         # size_window parameter
-        self.model_settings["size_window"] = self._extract_parameter("size_window", param_type="int")
+        self.model_settings["size_window"] = self.extract_parameter("size_window", param_type="int")
 
         # min_uniq_word_occurrence parameter
-        self.model_settings["min_uniq_word_occurrence"] = self._extract_parameter("min_uniq_word_occurrence",
-                                                                                  param_type="int")
-        
+        self.model_settings["min_uniq_word_occurrence"] = self.extract_parameter("min_uniq_word_occurrence",
+                                                                                 param_type="int",
+                                                                                 default=1)
+
         # output_prob parameters
-        self.model_settings["output_prob"] = self._extract_parameter("output_prob", param_type="boolean")
+        self.model_settings["output_prob"] = self.extract_parameter("output_prob",
+                                                                    param_type="boolean",
+                                                                    default=True)
         # use_geo_mean parameter
         self.model_settings["use_geo_mean"] = self.model_settings["output_prob"]
 
         # num_epochs parameter
-        self.model_settings["num_epochs"] = self._extract_parameter("num_epochs", param_type="int")
+        self.model_settings["num_epochs"] = self.extract_parameter("num_epochs",
+                                                                   param_type="int",
+                                                                   default=1)
 
         # learning_rate parameter
-        self.model_settings["learning_rate"] = self._extract_parameter("learning_rate", param_type="float")
+        self.model_settings["learning_rate"] = self.extract_parameter("learning_rate",
+                                                                      param_type="float",
+                                                                      default=0.001)
 
         # embedding_size parameter
-        self.model_settings["embedding_size"] = self._extract_parameter("embedding_size", param_type="int")
-        
+        self.model_settings["embedding_size"] = self.extract_parameter("embedding_size",
+                                                                       param_type="int",
+                                                                       default=40)
+
         # seed parameter
-        self.model_settings["seed"] = self._extract_parameter("seed", param_type="int")
+        self.model_settings["seed"] = self.extract_parameter("seed",
+                                                             param_type="int",
+                                                             default=0)
 
-        # print_score_table parameter TODO
+        # document need to be read chronologically if random seed is activated
+        if self.model_settings["seed"] != 0:
+            self.model_settings["process_documents_chronologically"] = True
+        else:
+            self.model_settings["process_documents_chronologically"] = self.config_section.getboolean(
+                "process_documents_chronologically", False)
 
-        # tensorboard parameter TODO
-        self.model_settings["tensorboard"] = self._extract_parameter("tensorboard", param_type="boolean")
+        # print_score_table parameter
+        self.model_settings["print_score_table"] = self.extract_parameter("print_score_table",
+                                                                          param_type="boolean",
+                                                                          default=0)
+
+        # print_confusion_matrix parameter
+        self.model_settings["print_confusion_matrix"] = self.extract_parameter("print_confusion_matrix",
+                                                                               param_type="boolean",
+                                                                               default=0)
 
         # trigger_focus parameter
-        self.model_settings["trigger_focus"] = self._extract_parameter("trigger_focus")
+        self.model_settings["trigger_focus"] = self.extract_parameter("trigger_focus", default="word")
         if self.model_settings["trigger_focus"] not in {"word", "text"}:
             raise ValueError("Unexpected outlier trigger focus " + str(self.model_settings["trigger_focus"]))
 
         # trigger_score parameter
-        self.model_settings["trigger_score"] = self._extract_parameter("trigger_score")
+        self.model_settings["trigger_score"] = self.extract_parameter("trigger_score")
         if self.model_settings["trigger_score"] not in {"center", "context", "total", "mean"}:
             raise ValueError("Unexpected outlier trigger score " + str(self.model_settings["trigger_score"]))
         if self.model_settings["trigger_score"] == "mean" and self.model_settings["trigger_focus"] == "word":
             raise ValueError("trigger_focus=word is not compatible with trigger_score=mean")
 
         # trigger_on parameter
-        self.model_settings["trigger_on"] = self._extract_parameter("trigger_on")
+        self.model_settings["trigger_on"] = self.extract_parameter("trigger_on", default="low")
         if self.model_settings["trigger_on"] not in {"high", "low"}:
             raise ValueError("Unexpected outlier trigger condition " + str(self.model_settings["trigger_on"]))
 
         # trigger_method parameter
-        self.model_settings["trigger_method"] = self._extract_parameter("trigger_method")
+        self.model_settings["trigger_method"] = self.extract_parameter("trigger_method")
         if self.model_settings["trigger_method"] not in {"percentile", "pct_of_max_value", "pct_of_median_value",
                                                          "pct_of_avg_value", "mad", "madpos", "stdev", "float",
-                                                         "coeff_of_variation", "z_score"}:
+                                                         "coeff_of_variation"}:
             raise ValueError("Unexpected outlier trigger method " + str(self.model_settings["trigger_method"]))
 
         # trigger_sensitivity parameter
-        self.model_settings["trigger_sensitivity"] = self._extract_parameter("trigger_sensitivity", param_type="float")
+        self.model_settings["trigger_sensitivity"] = self.extract_parameter("trigger_sensitivity", param_type="float")
 
         self.current_batch_num = 0
-
-    def _extract_parameter(self, param_name, param_type=None):
-        param_value = None
-        if param_type is None or param_type == "string":
-            param_value = self.config_section.get(param_name)
-            if param_value is None:
-                param_value = settings.config.get("word2vec", param_name)
-        elif param_type == "int":
-            param_value = self.config_section.getint(param_name)
-            if param_value is None:
-                param_value = settings.config.getint("word2vec", param_name)
-        elif param_type == "float":
-            self.model_settings[param_name] = self.config_section.getfloat(param_name)
-            if param_value is None:
-                param_value = settings.config.getfloat("word2vec", param_name)
-        elif param_type == "boolean":
-            param_value = self.config_section.getboolean(param_name)
-            if param_value is None:
-                param_value = settings.config.getboolean("word2vec", param_name, fallback=False)
-        else:
-            raise ValueError("Unexpected outlier trigger focus " + str(self.model_settings["trigger_focus"]))
-
-        return param_value
 
     def evaluate_model(self):
 
@@ -180,8 +175,7 @@ class Word2VecAnalyzer(Analyzer):
                     outliers_in_batch, total_docs_removed = self._evaluate_batch_for_outliers(batch=batch)
 
                     if total_docs_removed == 0:
-                        # TODO put better comment
-                        logging.logger.warning("Unable to fill any of the aggregator buckets for this batch.")
+                        logging.logger.warning("Unable to fill the aggregator buckets for this batch.")
 
                     # Processing the outliers found
                     self._processing_outliers_in_batch(outliers_in_batch)
@@ -192,7 +186,6 @@ class Word2VecAnalyzer(Analyzer):
 
                 logging.tick()
 
-    # TODO function from terms.py --> should transfer it to utils?
     def _extract_target_and_aggr_sentences(self,
                                            doc: dict,
                                            target_fields: List[str],
@@ -293,7 +286,7 @@ class Word2VecAnalyzer(Analyzer):
         for aggr_key, aggr_elem in batch.items():
             num_targets = len(aggr_elem["targets"])
             if num_targets >= self.model_settings["min_target_buckets"]:
-                agrr_outliers = self._evaluate_aggr_for_outliers(aggr_elem, aggr_key)
+                agrr_outliers = self._evaluate_aggr_for_outliers(aggr_elem)
 
                 outliers_in_batch.extend(agrr_outliers)
 
@@ -304,14 +297,13 @@ class Word2VecAnalyzer(Analyzer):
 
         return outliers_in_batch, total_targets_removed
 
-    def _evaluate_aggr_for_outliers(self, aggr_elem, aggr_key):
+    def _evaluate_aggr_for_outliers(self, aggr_elem):
         """
         Evaluates if the aggregation contains outliers.
         Creates a word2vec model, prepares the model by creating the vocabulary, trains the model, evaluates the events
         and finally finds the outliers.
 
         :param aggr_elem: aggregator element
-        :param aggr_key: aggregator key
         :return: List of outliers
         """
         # Create word2vec model
@@ -330,12 +322,7 @@ class Word2VecAnalyzer(Analyzer):
             model_eval_outputs = w2v_model.prob_model(aggr_elem["targets"], self.model_settings["output_prob"])
         else:
             # Train word2vec model
-            loss_values = w2v_model.train_model(aggr_elem["targets"])
-
-            # TODO remove tensorboard?
-            if self.model_settings["tensorboard"]:
-                matplotlib_to_tensorboard(loss_values, aggr_key, self.current_batch_num)
-                # list_to_tensorboard(loss_values, aggr_key, self.current_batch_num)
+            w2v_model.train_model(aggr_elem["targets"])
 
             output_raw = not self.model_settings["output_prob"]
             # Eval word2vec model
@@ -361,11 +348,10 @@ class Word2VecAnalyzer(Analyzer):
         :param w2v_model: word2vec model
         :return: list of outlier
         """
-        num_tp = 0  # Number of True Positive
-        num_tn = 0  # Number of False Positive
-        num_fp = 0  # Number of False Positive
-        num_fn = 0  # Number of False Negative
-        print_precision_recall_metric = False
+        confusion_matrix_val = {"TP": 0,
+                                "TN": 0,
+                                "FP": 0,
+                                "FN": 0}
         outliers = list()
 
         # Find all type of metrics concerning the text and the words
@@ -378,117 +364,53 @@ class Word2VecAnalyzer(Analyzer):
         word_id_to_decision_frontier, text_decision_frontier = self._find_decision_frontier(
             score_type_to_word_id_to_scores_list, score_type_to_text_idx_to_score)
 
-        score_type_to_word_id_to_mean_stdev, score_type_to_text_mean_stdev = self._find_mean_and_stdev(
-            score_type_to_word_id_to_scores_list, score_type_to_text_idx_to_score)
-
         for text_idx, text_str in enumerate(aggr_elem["targets"]):
-
-            list_info_outliers = list()
-            find_outlier = False
-
             # tokenize the text
-            word_list = re.split(self.model_settings["separators"], text_str)
+            word_list = helpers.utils.split_text_by_separator(text_str, self.model_settings["separators"])
 
-            # rows for printing the table
-            occur_word_list = list()
-            score_type_to_word_score_list = {"center": list(),
-                                             "context": list(),
-                                             "total": list()}
+            text_analyzer = TextAnalyzer(text_idx,
+
+                                         word_list,
+                                         self.model_settings["trigger_focus"],
+                                         self.model_settings["trigger_score"],
+                                         self.model_settings["trigger_on"],
+                                         self.model_settings["size_window"])
+            text_analyzer.extract_text_scores(score_type_to_text_idx_to_score)
+            text_analyzer.text_find_outlier(text_decision_frontier)
 
             for word_idx, word in enumerate(word_list):
-                # find word id and compute word occurrence
-                word_id = self._find_word_id_and_fill_occur_word_row(word, occur_word_list, w2v_model, word_list,
-                                                                     word_idx)
-
-                # find outliers if "trigger_focus=text"
-                text_score = score_type_to_text_idx_to_score[self.model_settings["trigger_score"]][text_idx]
-                if self.model_settings["trigger_focus"] == "text" and text_score < text_decision_frontier:
-                    find_outlier = True
-
-                # fill score rows for table and find outliers if "trigger_focus=word"
+                word_id = text_analyzer.find_word_id_and_fill_occur_word_row(word_idx, word, w2v_model)
                 word_key = (word_idx, word_id)
-                is_outlier, list_word_id_most_prob_compo = self._fill_score_row_and_find_outlier(
-                    text_idx,
-                    word_key,
-                    score_type_to_word_score_list,
-                    score_type_to_text_idx_to_word_key_to_score,
-                    word_id_to_decision_frontier,
-                    score_type_to_word_id_to_compo_word_to_score,
-                    score_type_to_word_id_to_mean_stdev)
-                if is_outlier:
-                    find_outlier = True
-                    list_info_outliers.append((word_idx, word_id, list_word_id_most_prob_compo))
+                text_analyzer.fill_score_row_and_find_word_outlier(word_key,
+                                                                   w2v_model,
+                                                                   score_type_to_text_idx_to_word_key_to_score,
+                                                                   word_id_to_decision_frontier,
+                                                                   score_type_to_word_id_to_compo_word_to_score,
+                                                                   score_type_to_compo_word_to_word_id_to_score)
 
             raw_doc = aggr_elem["raw_docs"][text_idx]
             fields = es.extract_fields_from_document(raw_doc,
                                                      extract_derived_fields=self.model_settings["use_derived_fields"])
-            if "label" in fields:
-                print_precision_recall_metric = True
-                if find_outlier:
-                    if fields["label"] is 0:
-                        num_tp += 1
-                    else:
-                        num_fp += 1
-                else:
-                    if fields["label"] is 0:
-                        num_fn += 1
-                    else:
-                        num_tn += 1
+            if "label" not in fields:
+                self.model_settings["print_confusion_matrix"] = False
+            if self.model_settings["print_confusion_matrix"]:
+                confusion_matrix_val = self._update_confusion_matrix_val(text_analyzer.find_outlier,
+                                                                         fields["label"],
+                                                                         confusion_matrix_val)
+            if text_analyzer.find_outlier:
+                if self.model_settings["print_score_table"]:
+                    text_analyzer.print_score_table()
+                    text_analyzer.print_most_expected_words()
+                    text_analyzer.print_most_expected_window_words()
 
-            if find_outlier:
-                score_info = score_type_to_word_score_list, occur_word_list
-                self._print_score_table(word_list,
-                                        score_info,
-                                        score_type_to_text_idx_to_score,
-                                        text_idx,
-                                        score_type_to_text_mean_stdev)
-
-                observations = dict()
-                if self.model_settings["trigger_focus"] == "text":
-                    text_idx_to_score = score_type_to_text_idx_to_score[self.model_settings["trigger_score"]]
-                    observations["score"] = text_idx_to_score[text_idx]
-                    observations["decision_frontier"] = text_decision_frontier
-                    observations["confidence"] = np.abs(text_decision_frontier - text_idx_to_score[text_idx])
-                else:
-                    observations["score"] = dict()
-                    observations["decision_frontier"] = dict()
-                    observations["confidence"] = dict()
-                    observations["expected_word"] = dict()
-                    observations["expected_window_words"] = dict()
-                    for outlier_idx, outlier_id, list_word_id_most_prob_compo in list_info_outliers:
-                        most_prob_word = self._print_most_prob_word(word_list,
-                                                                    outlier_idx,
-                                                                    outlier_id,
-                                                                    score_type_to_compo_word_to_word_id_to_score,
-                                                                    w2v_model)
-                        expected_window_words = self._print_most_compo_word(list_word_id_most_prob_compo,
-                                                                            outlier_id,
-                                                                            w2v_model)
-                        text_idx_to_word_key_to_score = score_type_to_text_idx_to_word_key_to_score[
-                            self.model_settings["trigger_score"]]
-                        word_key_to_score = text_idx_to_word_key_to_score[text_idx]
-                        outlier_key = (outlier_idx, outlier_id)
-
-                        outlier_word = w2v_model.id2word[outlier_id]
-                        observations["expected_word"][outlier_word] = most_prob_word
-                        observations["expected_window_words"][outlier_word] = expected_window_words
-                        observations["score"][outlier_word] = word_key_to_score[outlier_key]
-                        observations["decision_frontier"][outlier_word] = word_id_to_decision_frontier[outlier_id]
-                        confidence = np.abs(word_key_to_score[outlier_key] - word_id_to_decision_frontier[outlier_id])
-                        observations["confidence"][outlier_word] = confidence
-
-                # raw_doc = aggr_elem["raw_docs"][text_idx]
-                # fields = es.extract_fields_from_document(
-                #     raw_doc,
-                #     extract_derived_fields=self.model_settings["use_derived_fields"])
+                observations = text_analyzer.get_observations()
 
                 outlier = self.create_outlier(fields,
                                               raw_doc,
                                               extra_outlier_information=observations)
                 outliers.append(outlier)
-        if print_precision_recall_metric:
-            self._print_confusion_matrix(num_tp, num_fn, num_fp, num_tn)
-            self._print_precision_recall_metric(num_tp, num_fn, num_fp, num_tn)
+
+        self._print_confusion_matrix_and_metrics(confusion_matrix_val, self.model_settings["print_confusion_matrix"])
 
         return outliers
 
@@ -620,18 +542,18 @@ class Word2VecAnalyzer(Analyzer):
         :param score_type_to_word_id_to_compo_word_to_score: Dict[score_type][word_id][compo_word] = word_score
         :param score_type_to_compo_word_to_word_id_to_score: Dict[scoe_type][compo_word][word_id] = word_score
         """
-        current_text_idx, tmp_center_key_to_val_list, tmp_context_key_to_val_list, tmp_word_key_to_compo_word = tmp_inputs
+        current_text_idx, tmp_cntr_key_to_val_list, tmp_cntxt_key_to_val_list, tmp_word_key_to_compo_word = tmp_inputs
 
         center_word_score_list = list()
         context_word_score_list = list()
         total_word_score_list = list()
 
         total_val_list = list()
-        for tmp_word_key in tmp_center_key_to_val_list:
-            total_val_list.extend(tmp_center_key_to_val_list[tmp_word_key])
+        for tmp_word_key in tmp_cntr_key_to_val_list:
+            total_val_list.extend(tmp_cntr_key_to_val_list[tmp_word_key])
 
-            center_word_score = mean(tmp_center_key_to_val_list[tmp_word_key], self.model_settings["use_geo_mean"])
-            context_word_score = mean(tmp_context_key_to_val_list[tmp_word_key], self.model_settings["use_geo_mean"])
+            center_word_score = mean(tmp_cntr_key_to_val_list[tmp_word_key], self.model_settings["use_geo_mean"])
+            context_word_score = mean(tmp_cntxt_key_to_val_list[tmp_word_key], self.model_settings["use_geo_mean"])
             total_word_score = mean([center_word_score, context_word_score], self.model_settings["use_geo_mean"])
 
             compo_key = tmp_word_key_to_compo_word[tmp_word_key]
@@ -708,257 +630,61 @@ class Word2VecAnalyzer(Analyzer):
                     self.model_settings["trigger_on"])
         return word_id_to_decision_frontier, text_decision_frontier
 
-    def _find_mean_and_stdev(self,  score_type_to_word_id_to_scores_list, score_type_to_text_idx_to_score):
-        """
-        Find (mean, stdev) tuple for each word_id and all the text scores.
-
-        :param score_type_to_word_id_to_scores_list: Dict[score_type][word_id] = List[word_score]
-        :param score_type_to_text_idx_to_score: Dict[score_type][text_idx] = text_score
-        :return (score_type_to_word_id_to_mean_stdev, score_type_to_text_mean_stdev):
-            - score_type_to_word_id_to_mean_stdev: Dict[score_type][word_id] = (mean, stdev)
-            - score_type_to_text_mean_stdev: Dict[score_type] = (mean, stdev)
-        """
-        score_type_to_word_id_to_mean_stdev = None
-        score_type_to_text_mean_stdev = None
-        if self.model_settings["trigger_method"] == "z_score":
-            score_type_to_word_id_to_mean_stdev = dict()
-            for score_type in score_type_to_word_id_to_scores_list:
-                score_type_to_word_id_to_mean_stdev[score_type] = dict()
-                for word_id, list_score in score_type_to_word_id_to_scores_list[score_type].items():
-                    word_mean_stdev = helpers.utils.get_mean_and_stdev(list_score)
-                    score_type_to_word_id_to_mean_stdev[score_type][word_id] = word_mean_stdev
-
-            score_type_to_text_mean_stdev = dict()
-            for score_type in score_type_to_text_idx_to_score:
-                text_mean_stdev = helpers.utils.get_mean_and_stdev(
-                    list(score_type_to_text_idx_to_score[score_type].values()))
-                score_type_to_text_mean_stdev[score_type] = text_mean_stdev
-
-        return score_type_to_word_id_to_mean_stdev, score_type_to_text_mean_stdev
-
-    def _find_word_id_and_fill_occur_word_row(self, word, occur_word_list, w2v_model, word_list, word_idx):
-        """
-        Find word_id from word and fill the list of word occurrence occur_word_row
-
-        :param word: string that represent a word
-        :param occur_word_list: list of occurrence of each word
-        :param w2v_model: word2vec model object
-        :param word_list: list of words in current text
-        :param word_idx: word index in text
-        :return: word_id
-        """
-        voc_counter_dict = dict(w2v_model.voc_counter)
-        # if word is not in w2v_model.wor2id it means it's a unknown word.
-        if word in w2v_model.word2id:
-            word_id = w2v_model.word2id[word]
-
-            occur_word_list.append(voc_counter_dict[word])
-        else:
-            unknown_token = w2v_model.unknown_token
-            word_id = w2v_model.word2id[unknown_token]
-            # color in blue unknown words
-            word_list[word_idx] = PRINT_COLORS["blue"] + word + PRINT_COLORS["end"]
-            occurrence_text = str(voc_counter_dict[word]) + \
-                              "(" + PRINT_COLORS["blue"] + \
-                              str(w2v_model.num_unknown_occurrence) + \
-                              PRINT_COLORS["end"] + ")"
-            occur_word_list.append(occurrence_text)
-        return word_id
-
-    def _fill_score_row_and_find_outlier(self,
-                                         text_idx,
-                                         word_key,
-                                         score_type_to_word_score_list,
-                                         score_type_to_text_idx_to_word_key_to_score,
-                                         word_id_to_decision_frontier,
-                                         score_type_to_word_id_to_compo_word_to_score,
-                                         score_type_to_word_id_to_mean_stdev):
-        """
-        Format and add the current word score/metric to all word score lists. Word score/metric is formatted in
-         two-decimal scientific annotation and colored in red or green if he is considered as an outlier/anomaly or not.
-
-        :param text_idx: Current text index
-        :param word_key: Current word key. word_key = (word_idx, word_id).
-        :param score_type_to_word_score_list: Dict[score_type] = List[word_score]; where word_score is formatted into
-        String  two-decimal scientific annotation. Depending on the trigger_focus, the trigger_score parameters and if
-         the word score is considered as anomaly, word_score will be colored in green or red.
-        :param score_type_to_text_idx_to_word_key_to_score: Dict[score_type][text_idx][word_key] = word_score
-        :param word_id_to_decision_frontier: Dict[word_id] = decision frontier value
-        :param score_type_to_word_id_to_compo_word_to_score: Dict[score_type][word_id][compo_word] = word_score
-        :param score_type_to_word_id_to_mean_stdev: TODO
-        :return: (is_outlier, list_word_id_most_prob_compo):
-            - is_outlier: Boolean set to true if at least one of the word score has a score smaller than the
-            word decision frontier.
-            - list_word_id_most_prob_compo: list of word_id representing the most probable combination of word within
-            the window of the current word represented by word_key.
-        """
-        list_word_id_most_prob_compo = list()
-        is_outlier = False
-        _, word_id = word_key
-        for score_row_type, score_list in score_type_to_word_score_list.items():
-            elem_row_score = score_type_to_text_idx_to_word_key_to_score[score_row_type][text_idx][word_key]
-            decision_frontier = word_id_to_decision_frontier[word_id]
-            if self.model_settings["trigger_method"] == "z_score":
-                word_mean_stdev = score_type_to_word_id_to_mean_stdev[score_row_type][word_id]
-                elem_row_score = helpers.utils.get_z_score(elem_row_score, word_mean_stdev)
-                decision_frontier = helpers.utils.get_z_score(decision_frontier, word_mean_stdev)
-
-            if self.model_settings["trigger_focus"] == "word" and score_row_type == self.model_settings[
-                "trigger_score"]:
-                if elem_row_score < decision_frontier:
-                    is_outlier = True
-                    # color in red
-                    score_list.append(score_to_table_format(elem_row_score, "red"))
-
-                    most_prob_compo = max(score_type_to_word_id_to_compo_word_to_score[score_row_type][word_id].items(),
-                                          key=operator.itemgetter(1))[0]
-                    list_word_id_most_prob_compo = re.split("\|", most_prob_compo)[:-1]
-                else:
-                    # color in green
-                    score_list.append(score_to_table_format(elem_row_score, "green"))
-            else:
-                score_list.append(score_to_table_format(elem_row_score))
-        return is_outlier, list_word_id_most_prob_compo
-
-    def _print_score_table(self,
-                           word_list,
-                           score_info,
-                           score_type_to_text_idx_to_score,
-                           current_text_idx,
-                           score_type_to_text_mean_stdev):
-        """
-        Print on stdout if log_level=DEBUG a table with all the metric scores. Color scores in red when they are
-        considered as outlier/anomaly.
-
-        :param word_list: list of words of the current text
-        :param score_info: (score_type_to_word_score_list, occur_word_list)
-            - score_type_to_word_score_list: Dict[score_type] = List[word_score]; where word_score is formatted into
-        String  two-decimal scientific annotation. Depending on the trigger_focus, the trigger_score parameters and if
-         the word score is considered as anomaly, word_score will be colored in green or red.
-            - occur_word_list: list of occurrence of each word.
-        :param score_type_to_text_idx_to_score: Dict[score_type][text_idx] = text_score
-        :param current_text_idx: Current text index
-        :param score_type_to_text_mean_stdev: Dict[score_type] = (mean, stdev)
-        """
-        # words, score_rows, score_type_to_text_idx_to_score, text_idx
-        score_type_to_word_score_list, occur_word_list = score_info
-        table = list()
-        table_fields_name = [" "]
-        table_fields_name.extend(word_list)
-        table_fields_name.append("TOTAL")
-        table.append(table_fields_name)
-        occur_word_list.insert(0, "Word batch occurrence")
-        occur_word_list.append("")
-        table.append(occur_word_list)
-
-        score_type_to_word_score_list["center"].insert(0, "<--Center score-->")
-        score_type_to_word_score_list["context"].insert(0, "-->Context score<--")
-        score_type_to_word_score_list["total"].insert(0, "Total score")
-
-        for score_row_type, score_row in score_type_to_word_score_list.items():
-            text_score = score_type_to_text_idx_to_score[score_row_type][current_text_idx]
-            if self.model_settings["trigger_method"] == "z_score":
-                text_score = helpers.utils.get_z_score(text_score, score_type_to_text_mean_stdev[score_row_type])
-
-            if self.model_settings["trigger_focus"] == "text" and \
-                    self.model_settings["trigger_score"] == score_row_type:
-                score_row.append(score_to_table_format(text_score, "red"))
-            else:
-                score_row.append(score_to_table_format(text_score))
-            table.append(score_row)
-
-        mean_row = [" " for _ in range(len(table_fields_name) - 2)]
-        mean_row.insert(0, "MEAN")
-        text_score = score_type_to_text_idx_to_score["mean"][current_text_idx]
-        if self.model_settings["trigger_method"] == "z_score":
-            text_score = helpers.utils.get_z_score(text_score, score_type_to_text_mean_stdev["mean"])
-        if self.model_settings["trigger_score"] == "mean":
-            mean_row.append(score_to_table_format(text_score, "red"))
-        else:
-            mean_row.append(score_to_table_format(text_score))
-        table.append(mean_row)
-        tabulate_table = tabulate(table, headers="firstrow", tablefmt="fancy_grid")
-        logging.logger.debug("Outlier info:\n" + str(tabulate_table))
-
-    def _print_most_prob_word(self,
-                              word_list,
-                              outlier_idx,
-                              outlier_id,
-                              score_type_to_compo_word_to_word_id_to_score,
-                              w2v_model):
-        """
-        Print on stdout if log_level=DEBUG the most expected words in place of the current outlier word.
-
-        :param word_list: list of words in the current text.
-        :param outlier_idx: outlier word index in current text.
-        :param outlier_id: outlier word id
-        :param score_type_to_compo_word_to_word_id_to_score: Dict[scoe_type][compo_word][word_id] = word_score
-        :param w2v_model: word2vec model object
-        :return: the most likely word in place of outlier_id
-        """
-        most_prob_word = None
-        compo_word_win = ""
-        range_down = max(0, outlier_idx - self.model_settings["size_window"])
-        range_up = min(outlier_idx + 1 + self.model_settings["size_window"], len(word_list))
-        for i in range(range_down, range_up):
-            if word_list[i] in w2v_model.word2id:
-                word_id = w2v_model.word2id[word_list[i]]
-            else:
-                unknown_token = w2v_model.unknown_token
-                word_id = w2v_model.word2id[unknown_token]
-            if i != outlier_idx:
-                compo_word_win += str(word_id) + "|"
-
-        most_prob_word_id = max(
-            score_type_to_compo_word_to_word_id_to_score[self.model_settings["trigger_score"]][compo_word_win].items(),
-            key=operator.itemgetter(1))[0]
-        if most_prob_word_id != outlier_id:
-            most_prob_word = w2v_model.id2word[int(most_prob_word_id)]
-            logging.logger.debug("The most likely word in place of " +
-                                 PRINT_COLORS["red"] +
-                                 w2v_model.id2word[outlier_id] +
-                                 PRINT_COLORS["end"] +
-                                 " is: " +
-                                 PRINT_COLORS["green"] + most_prob_word + PRINT_COLORS["end"])
-
-        return most_prob_word
+    def _print_confusion_matrix_and_metrics(self, confusion_matrix_val, label_field_exist):
+        if label_field_exist:
+            self._print_confusion_matrix(confusion_matrix_val)
+            self._print_precision_recall_metrics(confusion_matrix_val)
 
     @staticmethod
-    def _print_most_compo_word(list_word_id_most_prob_compo, outlier_id, w2v_model):
-        """
-        Print on stdout if log_level=DEBUG the most expected composition of word within the window of the outlier
-        word represented by outlier_id.
-
-        :param list_word_id_most_prob_compo: list of word_id representing the most probable combination of word within
-         the window of the current word represented by word_key.
-        :param outlier_id: current outlier word id
-        :param w2v_model: word2vec model object
-        :return: string format of the most probable composition of words within the window or outlier_id.
-        """
-        list_word_most_prob_compo = [w2v_model.id2word[int(word_id_str)] for word_id_str in
-                                     list_word_id_most_prob_compo]
-        logging.logger.debug("The most probable context words within the window of " +
-                             PRINT_COLORS["red"] + w2v_model.id2word[outlier_id] + PRINT_COLORS["end"] +
-                             " are: " + PRINT_COLORS["green"] + str(list_word_most_prob_compo) +
-                             PRINT_COLORS["end"])
-        return str(list_word_most_prob_compo)
+    def _update_confusion_matrix_val(find_outlier, label_value, confusion_matrix_val):
+        if find_outlier:
+            if label_value is 1:
+                confusion_matrix_val["TP"] += 1
+            else:
+                confusion_matrix_val["FP"] += 1
+        else:
+            if label_value is 1:
+                confusion_matrix_val["FN"] += 1
+            else:
+                confusion_matrix_val["TN"] += 1
+        return confusion_matrix_val
 
     @staticmethod
-    def _print_confusion_matrix(num_tp, num_fn, num_fp, num_tn):
+    def _print_confusion_matrix(confusion_matrix_val):
+        """
+        Print confusion matrix table on stdout.
+
+        :param confusion_matrix_val:
+        """
         table = list()
         title_row = ["", "Positive Prediciton", "Negative Prediction"]
+        num_tp = confusion_matrix_val["TP"]
+        num_fn = confusion_matrix_val["FN"]
+        num_fp = confusion_matrix_val["FP"]
+        num_tn = confusion_matrix_val["TN"]
         positive_class_row = ["Positive Class", "TP = " + str(num_tp), "FN = " + str(num_fn)]
         negative_class_row = ["Negative Class", "FP = " + str(num_fp), "TN = " + str(num_tn)]
         table.append(title_row)
         table.append(positive_class_row)
         table.append(negative_class_row)
-        tabulate_table = tabulate(table, headers="firstrow", tablefmt="fancy_grid")
-        logging.logger.debug("Confusion matrix:\n" + str(tabulate_table))
+        tabulate_table = tabulate(table, headers="firstrow", tablefmt="grid")
+        logging.logger.info("Confusion matrix:\n" + str(tabulate_table))
 
     @staticmethod
-    def _print_precision_recall_metric(num_tp, num_fn, num_fp, num_tn):
+    def _print_precision_recall_metrics(confusion_matrix_val):
+        """
+        Print precision, racall and F-Measure metrics.
+
+        :param confusion_matrix_val:
+        """
+        num_tp = confusion_matrix_val["TP"]
+        num_fn = confusion_matrix_val["FN"]
+        num_fp = confusion_matrix_val["FP"]
         num_pos_class = num_tp + num_fn
-        recall = num_tp / num_pos_class
+        if num_pos_class > 0:
+            recall = num_tp / num_pos_class
+        else:
+            recall = None
         num_pos_pred = num_tp + num_fp
         if num_pos_pred > 0 and num_tp > 0:
             precision = num_tp / num_pos_pred
@@ -966,9 +692,9 @@ class Word2VecAnalyzer(Analyzer):
         else:
             precision = None
             f_measure = None
-        logging.logger.debug("Precision: " + str(precision))
-        logging.logger.debug("Recall: " + str(recall))
-        logging.logger.debug("F-Measure: " + str(f_measure))
+        logging.logger.info("Precision: " + str(precision))
+        logging.logger.info("Recall: " + str(recall))
+        logging.logger.info("F-Measure: " + str(f_measure))
 
     def _processing_outliers_in_batch(self, outliers_in_batch):
         """
@@ -990,29 +716,231 @@ class Word2VecAnalyzer(Analyzer):
             logging.logger.info("no outliers processed in batch")
 
 
-def matplotlib_to_tensorboard(list_elem, aggr_key, current_batch_num):
-    """
-    Plot graph
+class TextAnalyzer:
+    def __init__(self, text_idx, word_list, trigger_focus, trigger_score, trigger_on, size_window):
+        self.text_idx = text_idx
+        self.word_list = word_list
+        self.trigger_focus = trigger_focus
+        self.trigger_score = trigger_score
+        self.trigger_on = trigger_on
+        self.size_window = size_window
 
-    :param list_elem: list of float
-    :param aggr_key: Aggregator key name
-    :param current_batch_num: Current batch number
-    """
-    writer = SummaryWriter('TensorBoard')
-    tag = "BATCH " + str(current_batch_num) + " - Aggregator: " + aggr_key
-    figure = plt.figure()
-    plt.plot(list_elem)
-    plt.title(tag)
-    writer.add_figure(tag=tag, figure=figure)
-    writer.close()
+        self.find_outlier = False
+        self.score_type_to_text_score = dict()
+        self.score_type_to_word_score_list = {"center": list(),
+                                              "context": list(),
+                                              "total": list()}
+        self.occur_word_list = list()
 
+        self.text_observations = dict()
+        self.word_observations = {"score": dict(),
+                                  "decision_frontier": dict(),
+                                  "confidence": dict(),
+                                  "expected_words": dict(),
+                                  "expected_window_words": dict()}
 
-def list_to_tensorboard(list_elem, aggr_key, current_batch_num):
-    writer = SummaryWriter('TensorBoard')
-    tag = "BATCH " + str(current_batch_num) + " - Aggregator: " + aggr_key
-    for i, elem in enumerate(list_elem):
-        writer.add_scalar(tag, elem, i)
-    writer.close()
+    def extract_text_scores(self, score_type_to_text_idx_to_score):
+        for score_type, text_idx_to_score in score_type_to_text_idx_to_score.items():
+            self.score_type_to_text_score[score_type] = text_idx_to_score[self.text_idx]
+
+    def text_find_outlier(self, text_decision_frontier):
+        """
+        if self.trigger_focus == "text", check if the text is outlier and update outlier information with
+        self.text_observations.
+
+        :param text_decision_frontier: Decision frontier of the current text.
+        """
+        text_score = self.score_type_to_text_score[self.trigger_score]
+        if self.trigger_focus == "text" and self.is_outlier(text_score, text_decision_frontier):
+            self.find_outlier = True
+            self.text_observations["score"] = text_score
+            self.text_observations["decision_frontier"] = text_decision_frontier
+            self.text_observations["confidence"] = np.abs(text_decision_frontier - text_score)
+
+    def find_word_id_and_fill_occur_word_row(self, word_idx, word, w2v_model):
+        """
+        Find word_id from word and fill the list of word occurrence self.occur_word_list
+
+        :param word_idx: word index in text
+        :param word: string that represent a word
+        :param w2v_model: word2vec model object
+        :return: word_id
+        """
+        voc_counter_dict = dict(w2v_model.voc_counter)
+        # if word is not in w2v_model.wor2id it means it's a unknown word.
+        if word in w2v_model.word2id:
+            word_id = w2v_model.word2id[word]
+
+            self.occur_word_list.append(voc_counter_dict[word])
+        else:
+            unknown_token = w2v_model.unknown_token
+            word_id = w2v_model.word2id[unknown_token]
+            # color in blue unknown words
+            self.word_list[word_idx] = PRINT_COLORS["blue"] + word + PRINT_COLORS["end"]
+            occurrence_text = str(voc_counter_dict[word])
+            occurrence_text += "(" + PRINT_COLORS["blue"] + str(w2v_model.num_unknown_occurrence)
+            occurrence_text += PRINT_COLORS["end"] + ")"
+            self.occur_word_list.append(occurrence_text)
+        return word_id
+
+    def fill_score_row_and_find_word_outlier(self,
+                                             word_key,
+                                             w2v_model,
+                                             score_type_to_text_idx_to_word_key_to_score,
+                                             word_id_to_decision_frontier,
+                                             score_type_to_word_id_to_compo_word_to_score,
+                                             score_type_to_compo_word_to_word_id_to_score):
+        """
+        Format and add the current word score/metric to all word score lists. Word score/metric is formatted in
+        two-decimal scientific annotation and colored in red or green if he is considered as an outlier/anomaly or not.
+        It also add outlier information to self.word_observations.
+
+        :param word_key: Current word key. word_key = (word_idx, word_id).
+        :param w2v_model: word2vec model object.
+        :param score_type_to_text_idx_to_word_key_to_score: Dict[score_type][text_idx][word_key] = word_score
+        :param word_id_to_decision_frontier: Dict[word_id] = decision frontier value
+        :param score_type_to_word_id_to_compo_word_to_score: Dict[score_type][word_id][compo_word] = word_score
+        :param score_type_to_compo_word_to_word_id_to_score: Dict[scoe_type][compo_word][word_id] = word_score
+        """
+        for score_row_type, score_list in self.score_type_to_word_score_list.items():
+            word_score = score_type_to_text_idx_to_word_key_to_score[score_row_type][self.text_idx][word_key]
+
+            if self.trigger_focus == "word" and score_row_type == self.trigger_score:
+                _, word_id = word_key
+                word_decision_frontier = word_id_to_decision_frontier[word_id]
+                if self.is_outlier(word_score, word_decision_frontier):
+                    self.find_outlier = True
+
+                    word = w2v_model.id2word[word_id]
+                    self.word_observations["score"][word] = word_score
+                    self.word_observations["decision_frontier"][word] = word_decision_frontier
+                    confidence = np.abs(word_decision_frontier - word_score)
+                    self.word_observations["confidence"][word] = confidence
+
+                    # color in red
+                    score_list.append(score_to_table_format(word_score, "red"))
+
+                    most_prob_compo = max(score_type_to_word_id_to_compo_word_to_score[score_row_type][word_id].items(),
+                                          key=operator.itemgetter(1))[0]
+                    list_word_id_most_prob_compo = re.split("\|", most_prob_compo)[:-1]
+                    list_word_most_prob_compo = [w2v_model.id2word[int(word_id_str)] for word_id_str in
+                                                 list_word_id_most_prob_compo]
+                    self.word_observations["expected_window_words"][word] = str(list_word_most_prob_compo)
+
+                    most_prob_word = self._find_most_prob_word(word_key,
+                                                               score_type_to_compo_word_to_word_id_to_score,
+                                                               w2v_model)
+                    if most_prob_word is not None:
+                        self.word_observations["expected_words"][word] = most_prob_word
+                else:
+                    # color in green
+                    score_list.append(score_to_table_format(word_score, "green"))
+            else:
+                score_list.append(score_to_table_format(word_score))
+
+    def _find_most_prob_word(self, outlier_key, score_type_to_compo_word_to_word_id_to_score, w2v_model):
+        """
+        Find the most expected words in place of the outlier word represented by outlier_key.
+
+        :param outlier_key: Current word key. word_key = (word_idx, word_id).
+        :param score_type_to_compo_word_to_word_id_to_score: Dict[scoe_type][compo_word][word_id] = word_score
+        :param w2v_model: word2vec model object.
+        :return most_prob_word: String representation of the most likely word in place of the word represented by
+        outlier_key.
+        """
+        most_prob_word = None
+        outlier_idx, outlier_id = outlier_key
+        compo_word_win = ""
+        range_down = max(0, outlier_idx - self.size_window)
+        range_up = min(outlier_idx + 1 + self.size_window, len(self.word_list))
+        for i in range(range_down, range_up):
+            if self.word_list[i] in w2v_model.word2id:
+                word_id = w2v_model.word2id[self.word_list[i]]
+            else:
+                unknown_token = w2v_model.unknown_token
+                word_id = w2v_model.word2id[unknown_token]
+            if i != outlier_idx:
+                compo_word_win += str(word_id) + "|"
+
+        most_prob_word_id = max(
+            score_type_to_compo_word_to_word_id_to_score[self.trigger_score][compo_word_win].items(),
+            key=operator.itemgetter(1))[0]
+        if most_prob_word_id != outlier_id:
+            most_prob_word = w2v_model.id2word[most_prob_word_id]
+        return most_prob_word
+
+    def print_score_table(self):
+        """
+        Print on stdout a table with all the metric scores. Color scores in red when they are
+        considered as outlier/anomaly.
+        """
+        table = list()
+        table_fields_name = [" "]
+        table_fields_name.extend(self.word_list)
+        table_fields_name.append("TOTAL")
+        table.append(table_fields_name)
+        self.occur_word_list.insert(0, "Word batch occurrence")
+        self.occur_word_list.append("")
+        table.append(self.occur_word_list)
+
+        self.score_type_to_word_score_list["center"].insert(0, "<--Center score-->")
+        self.score_type_to_word_score_list["context"].insert(0, "-->Context score<--")
+        self.score_type_to_word_score_list["total"].insert(0, "Total score")
+
+        for score_row_type, score_row in self.score_type_to_word_score_list.items():
+            text_score = self.score_type_to_text_score[score_row_type]
+
+            if self.trigger_focus == "text" and self.trigger_score == score_row_type:
+                score_row.append(score_to_table_format(text_score, "red"))
+            else:
+                score_row.append(score_to_table_format(text_score))
+            table.append(score_row)
+
+        mean_row = [" " for _ in range(len(table_fields_name) - 2)]
+        mean_row.insert(0, "MEAN")
+        text_score = self.score_type_to_text_score["mean"]
+        if self.trigger_score == "mean":
+            mean_row.append(score_to_table_format(text_score, "red"))
+        else:
+            mean_row.append(score_to_table_format(text_score))
+        table.append(mean_row)
+        tabulate_table = tabulate(table, headers="firstrow", tablefmt="grid")
+        logging.logger.info("Outlier info:\n" + str(tabulate_table))
+
+    def print_most_expected_words(self):
+        """
+        Print on stdout the most expected word in place of the outlier words.
+        """
+        for word, expected_word in self.word_observations["expected_words"].items():
+            logging.logger.info("The most likely word in place of " +
+                                PRINT_COLORS["red"] +
+                                word +
+                                PRINT_COLORS["end"] +
+                                " is: " +
+                                PRINT_COLORS["green"] + expected_word + PRINT_COLORS["end"])
+
+    def print_most_expected_window_words(self):
+        """
+        Print on stdout if the most expected composition of words within the window of the outlier words.
+        """
+        for word, expected_window_words in self.word_observations["expected_window_words"].items():
+            logging.logger.info("The most probable context words within the window of " +
+                                PRINT_COLORS["red"] + word + PRINT_COLORS["end"] +
+                                " are: " + PRINT_COLORS["green"] + expected_window_words +
+                                PRINT_COLORS["end"])
+
+    def get_observations(self):
+        if self.trigger_focus == "text":
+            return self.text_observations
+        else:
+            return self.word_observations
+
+    def is_outlier(self, score, decision_frontier):
+        if self.trigger_on == "low":
+            is_outlier = score < decision_frontier
+        else:
+            is_outlier = score > decision_frontier
+        return is_outlier
 
 
 def mean(iterable, use_geo_mean):
@@ -1031,11 +959,3 @@ def score_to_table_format(score, color=None):
     if color:
         output = PRINT_COLORS[color] + output + PRINT_COLORS["end"]
     return output
-
-
-def w2v_and_prob_comparison(w2v_center_context_text_prob_list, prob_center_context_text_prob_list):
-    _, _, _, prob_w2v = zip(*w2v_center_context_text_prob_list)
-    _, _, _, prob_prob = zip(*prob_center_context_text_prob_list)
-    cos_sim = 1 - spatial.distance.cosine(prob_w2v, prob_prob)
-
-    logging.logger.debug("Cos similarity:" + str(cos_sim))

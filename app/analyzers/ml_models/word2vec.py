@@ -12,7 +12,7 @@ from torch.utils.data import Dataset, DataLoader
 from torch.optim import Adam
 from torch.optim.optimizer import Optimizer
 
-from typing import List, Tuple, Dict, Optional
+from typing import List, Tuple, Dict, Any
 
 
 class Word2Vec:
@@ -32,7 +32,7 @@ class Word2Vec:
 
         self.separators = separators
         self.size_window = size_window
-        self.epochs = num_epochs  # TODO add early stopping option
+        self.epochs = num_epochs
         self.learning_rate = learning_rate
         self.embedding_size = embedding_size
         self.seed = seed
@@ -45,7 +45,7 @@ class Word2Vec:
         self.id2word: Dict[int, str] = dict()
         self.word2id: Dict[str, int] = dict()
 
-        self.model: Optional[nn.Module] = None
+        self.model: Any = None
 
     def train_model(self, train_data: List[str]) -> List[float]:
         """
@@ -69,14 +69,13 @@ class Word2Vec:
         adam_optimizer = Adam(self.model.parameters(), lr=self.learning_rate)
 
         total_loss_values = list()
-        # TODO early stopping
         for i in range(self.epochs):
             logging.logger.debug("Train epoch " + str(i))
             loss_values = train_loop(train_data_loader, self.model, adam_optimizer, self.device)
             total_loss_values.extend(loss_values)
         return total_loss_values
 
-    def eval_model(self, eval_data: List[str], output_raw: bool) -> List[Tuple[int, int, int, int, int, float]]:
+    def eval_model(self, eval_data: List[str], output_raw: bool) -> List[Tuple[Any, ...]]:
         """
         Evaluate eval_data with the model self.model.
         It will preprocess eval_data, create a DataLoader and evaluate the data with the model self.model.
@@ -165,10 +164,14 @@ class Word2Vec:
         :param data: List of string representing texts.
         :return: List of list of string representing lists of words in a list of texts.
         """
-        tokens = [re.split(self.separators, x) for x in data]
+        if self.separators == "":
+            tokens = [list(x) for x in data]
+        else:
+            tokens = [re.split(self.separators, x) for x in data]
         return tokens
 
-    def _tokenized_texts_to_model_inputs(self, tokenized_texts: List[List[str]]) -> List[Tuple[int, int, int, int, int]]:
+    def _tokenized_texts_to_model_inputs(self, tokenized_texts: List[List[str]]) \
+            -> List[Tuple[int, int, int, int, int]]:
         """
         Convert tokenized text to word2vec model input format.
 
@@ -250,7 +253,7 @@ class Word2Vec:
         eval_outputs: List[Tuple[int, int, int, int, int, float]] = list()
         for center_idx, center_id, context_idx, context_id, text_idx in model_inputs:
             prob = center_id_to_context_id_to_prob[center_id][context_id]
-            if output_log_prob:
+            if not output_log_prob:
                 prob = math.log(prob)
             eval_outputs.append((center_idx, center_id, context_idx, context_id, text_idx, prob))
         return eval_outputs
@@ -343,7 +346,7 @@ def train_loop(data_loader: DataLoader, model: nn.Module, optimizer: Optimizer, 
 def eval_loop(data_loader: DataLoader,
               model: nn.Module,
               device: torch.device,
-              output_raw: bool) -> List[Tuple[int, int, int, int, int, float]]:
+              output_raw: bool) -> List[Tuple[Any, ...]]:
     """
     Evaluation loop.
     Loop in model over batches.

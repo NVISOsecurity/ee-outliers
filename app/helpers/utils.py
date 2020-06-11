@@ -341,7 +341,7 @@ def get_decision_frontier(trigger_method, values_array, trigger_sensitivity, tri
         if trigger_method == "madpos":
             decision_frontier = np.float64(max([decision_frontier, 0]))
 
-    elif trigger_method == "stdev" or trigger_method == "z_score":
+    elif trigger_method == "stdev":
         decision_frontier = get_stdev_decision_frontier(values_array, trigger_sensitivity, trigger_on)
     elif trigger_method == "float":
         decision_frontier = np.float64(trigger_sensitivity)
@@ -402,19 +402,6 @@ def get_mean_and_stdev(values_array):
     :return (mean, stdev): standard deviation and mean of values_array
     """
     return np.nanmean(values_array), np.std(values_array)
-
-
-def get_z_score(value, mean_and_stdev):
-    """
-    Compute z-score = (value - mean)/stdev.
-    Z-score measure in terms of standard deviations the distance from the mean.
-    Example: if z-score = -3.2 it means that value is smaller than mean and at a distance of 3.2*stdev from the mean.
-    :param value: raw value
-    :param mean_and_stdev: (mean, stdev) mean and standard deviation
-    :return: z_score
-    """
-    mean_val, stdev = mean_and_stdev
-    return (value - mean_val)/stdev
 
 
 def get_mad_decision_frontier(values_array, trigger_sensitivity, trigger_on):
@@ -531,3 +518,17 @@ def strfdelta(tdelta, fmt='{D:02}d {H:02}h {M:02}m {S:02}s', inputtype='timedelt
         if field in desired_fields and field in constants:
             values[field], remainder = divmod(remainder, constants[field])
     return f.format(fmt, **values)
+
+def split_text_by_separator(text, separators):
+    """
+    Split the text by separators.
+
+    :param text: text string
+    :param separators: separators in regex format
+    :return word_list: list of words
+    """
+    if separators == "":
+        word_list = list(text)
+    else:
+        word_list = re.split(separators, text)
+    return word_list
