@@ -70,3 +70,53 @@ class TestAnalyzer(unittest.TestCase):
 
         self.assertDictEqual(analyzer.extra_model_settings, {"test_arbitrary_key": "arbitrary_value",
                                                              "elasticsearch_filter": "es_valid_query"})
+
+    def test_create_multi_with_empty_config(self):
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/analyzer_test_01.conf")
+        analyzers = AnalyzerFactory.create_multi("/app/tests/unit_tests/files/analyzer_test_01.conf")
+
+        self.assertTrue(len(analyzers) == 0)
+    
+    def test_create_multi_with_single(self):
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/analyzer_test_01.conf")
+        analyzers = AnalyzerFactory.create_multi("/app/tests/unit_tests/files/use_cases/analyzer/analyzer_arbitrary_dummy_test.conf")
+
+        self.assertTrue(len(analyzers) == 1)
+    
+    def test_create_multi_with_malformed(self):
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/analyzer_test_01.conf")
+        analyzers = AnalyzerFactory.create_multi("/app/tests/unit_tests/files/use_cases/analyzer/analyzer_multi_malformed.conf")
+
+        self.assertTrue(len(analyzers) == 2)
+
+    def test_create_multi_mixed_types(self):
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/analyzer_test_01.conf")
+        analyzers = AnalyzerFactory.create_multi("/app/tests/unit_tests/files/use_cases/analyzer/analyzer_multi_mixed_types.conf")
+
+        simplequery_doc_without_outlier = copy.deepcopy(doc_without_outlier_test_file)
+        simplequery_doc_fields = simplequery_doc_without_outlier["_source"]
+        simplequery_outlier = analyzers[0].create_outlier(simplequery_doc_fields, simplequery_doc_without_outlier)
+        simplequery_expected_outlier = Outlier(outlier_type=["dummy type"], outlier_reason=['dummy reason'],
+                                   outlier_summary='dummy summary',
+                                   doc=simplequery_doc_without_outlier)
+        simplequery_expected_outlier.outlier_dict['model_type'] = 'simplequery'
+
+        metrics_doc_without_outlier = copy.deepcopy(doc_without_outlier_test_file)
+        metrics_doc_fields = simplequery_doc_without_outlier["_source"]
+        metrics_outlier = analyzers[1].create_outlier(metrics_doc_fields, metrics_doc_without_outlier)
+        metrics_expected_outlier = Outlier(outlier_type=["dummy type"], outlier_reason=['dummy reason'],
+                                   outlier_summary='dummy summary',
+                                   doc=simplequery_doc_without_outlier)
+        metrics_expected_outlier.outlier_dict['model_type'] = 'metrics'
+
+        terms_doc_without_outlier = copy.deepcopy(doc_without_outlier_test_file)
+        terms_doc_fields = simplequery_doc_without_outlier["_source"]
+        terms_outlier = analyzers[2].create_outlier(terms_doc_fields, terms_doc_without_outlier)
+        terms_expected_outlier = Outlier(outlier_type=["dummy type"], outlier_reason=['dummy reason'],
+                                   outlier_summary='dummy summary',
+                                   doc=simplequery_doc_without_outlier)
+        terms_expected_outlier.outlier_dict['model_type'] = 'terms'
+
+        self.assertTrue(simplequery_outlier.outlier_dict == simplequery_expected_outlier.outlier_dict)
+        self.assertTrue(metrics_outlier.outlier_dict == metrics_expected_outlier.outlier_dict)
+        self.assertTrue(terms_outlier.outlier_dict == terms_expected_outlier.outlier_dict)
