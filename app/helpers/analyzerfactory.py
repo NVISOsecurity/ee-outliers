@@ -50,7 +50,7 @@ class AnalyzerFactory:
         return analyzer
 
     @staticmethod
-    def create_multi(config_file):
+    def create_multi(config_file, configparser_options={}):
         """
         Creates a list of analyzers based on a configuration file
         :param config_file: configuration file containing one or multiple analyzers
@@ -60,7 +60,7 @@ class AnalyzerFactory:
             raise ValueError("Use case file %s does not exist" % config_file)
 
         # Read the ini file from disk
-        config = configparser.RawConfigParser()
+        config = configparser.RawConfigParser(**configparser_options)
         config.read(config_file)
 
         # Create a list of all analyzers found in the config file

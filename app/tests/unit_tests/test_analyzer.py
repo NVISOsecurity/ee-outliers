@@ -10,6 +10,7 @@ from tests.unit_tests.utils.update_settings import UpdateSettings
 from helpers.outlier import Outlier
 from helpers.analyzerfactory import AnalyzerFactory
 import helpers.analyzerfactory
+import configparser
 
 # Monkey patch the test stub analyzer mapping in the AnalyzerFactory
 helpers.analyzerfactory.CLASS_MAPPING["analyzer"] = TestStubAnalyzer
@@ -85,38 +86,24 @@ class TestAnalyzer(unittest.TestCase):
     
     def test_create_multi_with_malformed(self):
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/analyzer_test_01.conf")
-        analyzers = AnalyzerFactory.create_multi("/app/tests/unit_tests/files/use_cases/analyzer/analyzer_multi_malformed.conf")
+        analyzers = AnalyzerFactory.create_multi("/app/tests/unit_tests/files/use_cases/analyzer/analyzer_multi_malformed.conf", {'strict': False})
 
-        self.assertTrue(len(analyzers) == 2)
+        self.assertTrue(len(analyzers) == 3)
+    
+    def test_create_multi_with_malformed_strict(self):
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/analyzer_test_01.conf")
+
+        with self.assertRaises(configparser.DuplicateOptionError):
+            AnalyzerFactory.create_multi("/app/tests/unit_tests/files/use_cases/analyzer/analyzer_multi_malformed.conf")
 
     def test_create_multi_mixed_types(self):
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/analyzer_test_01.conf")
         analyzers = AnalyzerFactory.create_multi("/app/tests/unit_tests/files/use_cases/analyzer/analyzer_multi_mixed_types.conf")
 
-        simplequery_doc_without_outlier = copy.deepcopy(doc_without_outlier_test_file)
-        simplequery_doc_fields = simplequery_doc_without_outlier["_source"]
-        simplequery_outlier = analyzers[0].create_outlier(simplequery_doc_fields, simplequery_doc_without_outlier)
-        simplequery_expected_outlier = Outlier(outlier_type=["dummy type"], outlier_reason=['dummy reason'],
-                                   outlier_summary='dummy summary',
-                                   doc=simplequery_doc_without_outlier)
-        simplequery_expected_outlier.outlier_dict['model_type'] = 'simplequery'
+        simplequery_analyzer = analyzers[0]
+        metrics_analyzer = analyzers[1]
+        terms_analyzer = analyzers[2]
 
-        metrics_doc_without_outlier = copy.deepcopy(doc_without_outlier_test_file)
-        metrics_doc_fields = simplequery_doc_without_outlier["_source"]
-        metrics_outlier = analyzers[1].create_outlier(metrics_doc_fields, metrics_doc_without_outlier)
-        metrics_expected_outlier = Outlier(outlier_type=["dummy type"], outlier_reason=['dummy reason'],
-                                   outlier_summary='dummy summary',
-                                   doc=simplequery_doc_without_outlier)
-        metrics_expected_outlier.outlier_dict['model_type'] = 'metrics'
-
-        terms_doc_without_outlier = copy.deepcopy(doc_without_outlier_test_file)
-        terms_doc_fields = simplequery_doc_without_outlier["_source"]
-        terms_outlier = analyzers[2].create_outlier(terms_doc_fields, terms_doc_without_outlier)
-        terms_expected_outlier = Outlier(outlier_type=["dummy type"], outlier_reason=['dummy reason'],
-                                   outlier_summary='dummy summary',
-                                   doc=simplequery_doc_without_outlier)
-        terms_expected_outlier.outlier_dict['model_type'] = 'terms'
-
-        self.assertTrue(simplequery_outlier.outlier_dict == simplequery_expected_outlier.outlier_dict)
-        self.assertTrue(metrics_outlier.outlier_dict == metrics_expected_outlier.outlier_dict)
-        self.assertTrue(terms_outlier.outlier_dict == terms_expected_outlier.outlier_dict)
+        self.assertTrue(simplequery_analyzer.model_type == 'simplequery')
+        self.assertTrue(metrics_analyzer.model_type == 'metrics')
+        self.assertTrue(terms_analyzer.model_type == 'terms')
