@@ -808,7 +808,8 @@ class TextAnalyzer:
             if self.trigger_focus == "word" and score_row_type == self.trigger_score:
                 _, word_id = word_key
                 word_decision_frontier = word_id_to_decision_frontier[word_id]
-                if self.is_outlier(word_score, word_decision_frontier):
+                compo_word_to_score = score_type_to_word_id_to_compo_word_to_score[score_row_type][word_id]
+                if self.is_outlier(word_score, word_decision_frontier) and len(compo_word_to_score) > 1:
                     self.find_outlier = True
 
                     word = w2v_model.id2word[word_id]
@@ -820,8 +821,7 @@ class TextAnalyzer:
                     # color in red
                     score_list.append(score_to_table_format(word_score, "red"))
 
-                    most_prob_compo = max(score_type_to_word_id_to_compo_word_to_score[score_row_type][word_id].items(),
-                                          key=operator.itemgetter(1))[0]
+                    most_prob_compo = max(compo_word_to_score.items(), key=operator.itemgetter(1))[0]
                     list_word_id_most_prob_compo = re.split("\|", most_prob_compo)[:-1]
                     list_word_most_prob_compo = [w2v_model.id2word[int(word_id_str)] for word_id_str in
                                                  list_word_id_most_prob_compo]

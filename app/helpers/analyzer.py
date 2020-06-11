@@ -1,7 +1,7 @@
 import abc
 from dateutil import parser
 
-from configparser import NoOptionError
+from configparser import NoOptionError, NoSectionError
 
 from helpers.singletons import settings, es, logging
 import helpers.utils
@@ -301,7 +301,7 @@ class Analyzer(abc.ABC):
                 param_value = config_section_get[param_type](param_name)
                 if param_value is None:
                     param_value = settings_config_get[param_type](self.model_type, param_name)
-        except NoOptionError as e:
+        except (NoOptionError, NoSectionError) as e:
             if default is not None:
                 param_value = default
             else:
