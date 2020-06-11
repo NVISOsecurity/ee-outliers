@@ -157,7 +157,7 @@ def extract_outlier_asset_information(fields, settings):
 
 # Convert a sentence value into a flat string, if possible
 # If not, just return None
-def flatten_sentence(sentence=None, sep_str=" _ "):
+def flatten_sentence(sentence=None, sep_str=" - "):
     """
     Convert a sentence value into a flat string
 
