@@ -54,6 +54,7 @@ class AnalyzerFactory:
         """
         Creates a list of analyzers based on a configuration file
         :param config_file: configuration file containing one or multiple analyzers
+        :param configparser_options: Optional parameters to configparser.RawConfigParser(...)
         :return: returns the analyzer objects in a list
         """
         if not os.path.isfile(config_file):

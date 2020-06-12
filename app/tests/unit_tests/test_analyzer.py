@@ -84,17 +84,29 @@ class TestAnalyzer(unittest.TestCase):
 
         self.assertTrue(len(analyzers) == 1)
     
-    def test_create_multi_with_malformed(self):
+    def test_create_multi_with_malformed_duplicate_option(self):
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/analyzer_test_01.conf")
-        analyzers = AnalyzerFactory.create_multi("/app/tests/unit_tests/files/use_cases/analyzer/analyzer_multi_malformed.conf", {'strict': False})
+        analyzers = AnalyzerFactory.create_multi("/app/tests/unit_tests/files/use_cases/analyzer/analyzer_multi_malformed_duplicate_option.conf", {'strict': False})
 
         self.assertTrue(len(analyzers) == 3)
+
+    def test_create_multi_with_malformed_duplicate_section(self):
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/analyzer_test_01.conf")
+        analyzers = AnalyzerFactory.create_multi("/app/tests/unit_tests/files/use_cases/analyzer/analyzer_multi_malformed_duplicate_section.conf", {'strict': False})
+
+        self.assertTrue(len(analyzers) == 2)
     
-    def test_create_multi_with_malformed_strict(self):
+    def test_create_multi_with_malformed_duplicate_option_strict(self):
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/analyzer_test_01.conf")
 
         with self.assertRaises(configparser.DuplicateOptionError):
-            AnalyzerFactory.create_multi("/app/tests/unit_tests/files/use_cases/analyzer/analyzer_multi_malformed.conf")
+            AnalyzerFactory.create_multi("/app/tests/unit_tests/files/use_cases/analyzer/analyzer_multi_malformed_duplicate_option.conf")
+
+    def test_create_multi_with_malformed_duplicate_section_strict(self):
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/analyzer_test_01.conf")
+
+        with self.assertRaises(configparser.DuplicateSectionError):
+            AnalyzerFactory.create_multi("/app/tests/unit_tests/files/use_cases/analyzer/analyzer_multi_malformed_duplicate_section.conf")
 
     def test_create_multi_mixed_types(self):
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/analyzer_test_01.conf")
