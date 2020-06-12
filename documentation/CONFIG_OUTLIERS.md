@@ -13,7 +13,7 @@
 
 
 ## Existing detection models
-Each different detection use case lives in its own configuration file. In this section we discuss all the different detection mechanisms that are available, and the options they provide to the analyst.
+In this section we discuss all the different detection mechanisms that are available, and the options they provide to the analyst.
 
 The different types of detection models that can be configured are listed below.
 
@@ -25,7 +25,8 @@ The different types of detection models that can be configured are listed below.
 
 - **word2vec models (BETA)**: the word2vec model is the first Machine Learning model defined in ee-outliers. It allows the analyst to train a model based on a set of features that are expected to appear in the same context. After initial training, the model is then able to spot anomalies in unexected combinations of the trained features. Exampleuse case: train a model to learn which usernames, workstations and user roles are expected to appear together in order to alert on breached Windows accounts that are used to laterally move in the network.
 
-
+The different use cases are defined in configuration files.
+Note that one or multiple different detection use cases can be specified in one configuration file.
 ## General model parameters
 **es_query_filter**
 
