@@ -313,7 +313,7 @@ Global parameters for all use cases of type word2vec.
     <td class="tg-0pky"><code>0</code>, <code>1</code></td>
     <td class="tg-0pky">If set to <code>1</code>, drops duplicate <code>target</code> elements within each 
     aggregation.
-    If set to <code>0</code>, do nothing.
+    If set to <code>0</code>, do nothing. Set to <code>0</code> by default.
     Note that when activated, <code>dorp_duplicates</code> can increase the memory size. The reason is that it generally 
     increase the size of the vocabulary and therefore the size of the word2vec model.</td>
   </tr>
@@ -324,7 +324,8 @@ Global parameters for all use cases of type word2vec.
     If set to <code>0</code>, use word2vec model. 
     Used mainly to evaluate the performance of word2vec. 
     The probabilistic model will compute the true probability that a context word to appear given a certain center word.
-    <code>P(context_word|center_word) = (num. of time the pair context_word-center_word appears)/(num. of time center_word appears)</code>
+    <code>P(context_word|center_word) = (num. of time the pair context_word-center_word appears)/(num. of time center_word appears)</code>.
+    Set to <code>0</code> by default.
     </td>
   </tr>
   <tr>
@@ -334,7 +335,8 @@ Global parameters for all use cases of type word2vec.
     given a certain center word.
     If set to <code>0</code>, and <code>use_prob_model=0</code> it outputs the raw value of word2vec 
     (layer before the softmax).
-    If set to <code>0</code>, and <code>use_prob_model=1</code> it outputs the logarithmic of the probabilities.</td>
+    If set to <code>0</code>, and <code>use_prob_model=1</code> it outputs the logarithmic of the probabilities.
+    Set to <code>1</code> by default.</td>
   </tr>
   <tr>
     <td class="tg-0pky"><code>separators</code></td>
@@ -354,30 +356,34 @@ Global parameters for all use cases of type word2vec.
     <td class="tg-0pky"><code>min_uniq_word_occurrence</code></td>
     <td class="tg-0pky"><code>Int</code></td>
     <td class="tg-0pky">If a word appears less than <code>min_uniq_word_occurrence</code> value, it will be replaced by 
-    the 'UNKNOWN' word. 
+    the 'UNKNOWN' word. Set to <code>1</code> by default.
     Note that as it reduces the vocabulary size of the model, it reduce the memory size.</td>
   </tr>
   <tr>
     <td class="tg-0pky"><code>num_epoch</code></td>
     <td class="tg-0pky"><code>Int</code></td>
-    <td class="tg-0pky">Number of times word2vec model train on all events within one aggregation.</td>
+    <td class="tg-0pky">Number of times word2vec model train on all events within one aggregation.
+    Set to <code>1</code> by default.</td>
   </tr>
   <tr>
     <td class="tg-0pky"><code>learning_rate</code></td>
     <td class="tg-0pky"><code>Float</code></td>
-    <td class="tg-0pky">The learning rate of the word2vec model.</td>
+    <td class="tg-0pky">The learning rate of the word2vec model.
+    Set to <code>0.001</code> by default.</td>
   </tr>
   <tr>
     <td class="tg-0pky"><code>embedding_size</code></td>
     <td class="tg-0pky"><code>Int</code></td>
-    <td class="tg-0pky">Embedding size of the word2vec model.</td>
+    <td class="tg-0pky">Embedding size of the word2vec model.
+    Set to <code>40</code> by default.</td>
   </tr>
   <tr>
     <td class="tg-0pky"><code>seed</code></td>
     <td class="tg-0pky"><code>Int</code></td>
     <td class="tg-0pky">The random seed to make word2vec deterministic. 
     If set to <code>0</code> it make word2vec non deterministic.
-    If deterministic, it will also read documents chronologically and therefore reduce Elasticsearch scanning performance.</td>
+    If deterministic, it will also read documents chronologically and therefore reduce Elasticsearch scanning performance.
+    Set to <code>0</code> by default.</td>
   </tr>
   <tr>
     <td class="tg-0pky"><code>print_score_table</code></td>

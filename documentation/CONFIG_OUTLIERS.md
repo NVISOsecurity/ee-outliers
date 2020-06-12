@@ -525,11 +525,27 @@ should spot a word that return an abnormal score. This is the parameters ``trigg
 
 **Remarks**
 
-- It is recommended to put ``num_epoch`` between ``1`` and ``3`` not higher.
+- It is recommended to put ``num_epoch`` between ``1`` and ``3`` not higher. 
 - The default value of ``learning_rate=0.001`` gives generaly good results.
 - If you want to analyse outliers directly on the standard output, you 
-can put the parameter ``print_score_table`` to ``1``. It will print all outlier socres on a table and hiligh in red
+can put the parameter ``print_score_table`` to ``1``. It will print all outlier scores on a table and highlight in red
 word scores that or out of their normal distribution.
+```
++-----------------------+----------+---------------+-------------+--------------------+------------+-----------------+--------------+----------+
+|                       | C:       | ProgramData   | Microsoft   | Windows Defender   | Platform   | 4.18.1908.7-0   | NisSrv.exe   | TOTAL    |
++=======================+==========+===============+=============+====================+============+=================+==============+==========+
+| Word batch occurrence | 10000    | 1045          | 1189        | 1044               | 1044       | 971             | 3            |          |
++-----------------------+----------+---------------+-------------+--------------------+------------+-----------------+--------------+----------+
+| <--Center score-->    | 5.76e-02 | 3.21e-01      | 2.17e-01    | 2.24e-01           | 3.68e-02   | 1.67e-02        | 1.35e-03     | 4.97e-02 |
++-----------------------+----------+---------------+-------------+--------------------+------------+-----------------+--------------+----------+
+| -->Context score<--   | 2.83e-01 | 1.66e-01      | 1.96e-01    | 2.43e-01           | 7.32e-02   | 3.10e-02        | 7.72e-05     | 4.53e-02 |
++-----------------------+----------+---------------+-------------+--------------------+------------+-----------------+--------------+----------+
+| Total score           | 1.28e-01 | 2.31e-01      | 2.06e-01    | 2.33e-01           | 5.19e-02   | 2.28e-02        | 3.22e-04     | 4.74e-02 |
++-----------------------+----------+---------------+-------------+--------------------+------------+-----------------+--------------+----------+
+| MEAN                  |          |               |             |                    |            |                 |              | 6.57e-02 |
++-----------------------+----------+---------------+-------------+--------------------+------------+-----------------+--------------+----------+
+
+```
 - For development purpose, it is possible to use Elasticsearch labeled data and then print on the standard output a 
 confusion matrix along with Precision, recall and F-score metrics. 
 To do so, you will have to create a special field ``label`` for each event where each outliers are set to ``1``. 

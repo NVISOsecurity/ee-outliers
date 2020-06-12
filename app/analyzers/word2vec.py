@@ -369,7 +369,6 @@ class Word2VecAnalyzer(Analyzer):
             word_list = helpers.utils.split_text_by_separator(text_str, self.model_settings["separators"])
 
             text_analyzer = TextAnalyzer(text_idx,
-
                                          word_list,
                                          self.model_settings["trigger_focus"],
                                          self.model_settings["trigger_score"],
@@ -657,7 +656,7 @@ class Word2VecAnalyzer(Analyzer):
         :param confusion_matrix_val:
         """
         table = list()
-        title_row = ["", "Positive Prediciton", "Negative Prediction"]
+        title_row = ["", "Positive Prediction", "Negative Prediction"]
         num_tp = confusion_matrix_val["TP"]
         num_fn = confusion_matrix_val["FN"]
         num_fp = confusion_matrix_val["FP"]
@@ -673,7 +672,7 @@ class Word2VecAnalyzer(Analyzer):
     @staticmethod
     def _print_precision_recall_metrics(confusion_matrix_val):
         """
-        Print precision, racall and F-Measure metrics.
+        Print precision, recall and F-Measure metrics.
 
         :param confusion_matrix_val:
         """
@@ -694,7 +693,7 @@ class Word2VecAnalyzer(Analyzer):
             f_measure = None
         logging.logger.info("Precision: " + str(precision))
         logging.logger.info("Recall: " + str(recall))
-        logging.logger.info("F-Measure: " + str(f_measure))
+        logging.logger.info("F-Score: " + str(f_measure))
 
     def _processing_outliers_in_batch(self, outliers_in_batch):
         """
@@ -733,11 +732,15 @@ class TextAnalyzer:
         self.occur_word_list = list()
 
         self.text_observations = dict()
+        self.text_observations["size_window"] = self.size_window
+        self.text_observations["score_type"] = self.trigger_score
         self.word_observations = {"score": dict(),
                                   "decision_frontier": dict(),
                                   "confidence": dict(),
                                   "expected_words": dict(),
-                                  "expected_window_words": dict()}
+                                  "expected_window_words": dict(),
+                                  "size_window": self.size_window,
+                                  "score_type": self.trigger_score}
 
     def extract_text_scores(self, score_type_to_text_idx_to_score):
         for score_type, text_idx_to_score in score_type_to_text_idx_to_score.items():
