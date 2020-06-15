@@ -675,7 +675,7 @@ More information available [here](CONFIG_OUTLIERS.md#usual-model-parameters).
 </table>
 
 #### Arbitrary parameters
-Any other parameters that are not used by the model will be automatically copy to the outlier parameter. 
+Any other parameters that are not used by the model will be automatically copied to the outlier parameter. 
 More information available [here](CONFIG_OUTLIERS.md#arbitrary-parameters).
 
 ### Metrics parameters
