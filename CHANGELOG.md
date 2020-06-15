@@ -1,6 +1,6 @@
 # Changelog
 ## Unreleased
-- Add Elasticsearch highlighting match option for Simplequery model
+- Add the option to highlight the part that matched the use case for simplequery models
 - Support for multiple use-cases in one configuration file
 
 ## [Version 0.2.13](https://github.com/NVISO-BE/ee-outliers/releases/tag/0.2.13) (April 8, 2020)
