@@ -334,37 +334,30 @@ Example use case: spot processes that are running in an unusual directory.
 # WORD2VEC - SUSPICIOUS PROCESS DIRECTORY
 ##############################
 [word2vec_suspicious_process_directory]
-es_query_filter=Image: *
+es_query_filter=_exists_:Image
 target=Image
 aggregator=User
 
-word2vec_batch_eval_size=6000
-min_target_buckets = 1000
-drop_duplicates=0
+word2vec_batch_eval_size = 10000
+min_target_buckets = 3000
 
 use_prob_model=0
-output_prob=1
-
-separators="\\\\"
-size_window=1
-min_uniq_word_occurrence=2
-
-num_epochs=2
-learning_rate=0.001
-embedding_size=40
 seed=43
 
-tensorboard=0
+separators="\\"
+size_window=2
+
+print_score_table=1
 
 trigger_focus=word
 trigger_score=center
 trigger_on=low
-trigger_method=z_score
-trigger_sensitivity=5.0
+trigger_method=stdev
+trigger_sensitivity=6
 
-outlier_type=suspicious process directory
+outlier_type=process execution
 outlier_reason=suspicious process directory
-outlier_summary=suspicious process directory
+outlier_summary=suspicious process directory: {Image}
 
 run_model=1
 test_model=0
