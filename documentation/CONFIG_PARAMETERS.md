@@ -306,7 +306,7 @@ Global parameters for all use cases of type word2vec.
   <tr>
     <td class="tg-0pky"><code>min_target_buckets</code></td>
     <td class="tg-0pky"><code>Int</code></td>
-    <td class="tg-0pky">Minimum number of events within an aggregation before processing word2vec analyzer.</td>
+    <td class="tg-0pky">Minimum number of events required within an aggregation before processing word2vec analyzer.</td>
   </tr>
   <tr>
     <td class="tg-0pky"><code>drop_duplicates</code></td>
@@ -314,7 +314,7 @@ Global parameters for all use cases of type word2vec.
     <td class="tg-0pky">If set to <code>1</code>, drops duplicate <code>target</code> elements within each 
     aggregation.
     If set to <code>0</code>, do nothing. Set to <code>0</code> by default.
-    Note that when activated, <code>dorp_duplicates</code> can increase the memory size. The reason is that it generally 
+    Note that when activated, <code>dorp_duplicates</code> can increases the memory size. The reason is that it generally 
     increase the size of the vocabulary and therefore the size of the word2vec model.</td>
   </tr>
   <tr>
@@ -331,7 +331,7 @@ Global parameters for all use cases of type word2vec.
   <tr>
     <td class="tg-0pky"><code>output_prob</code></td>
     <td class="tg-0pky"><code>0</code>, <code>1</code></td>
-    <td class="tg-0pky">If set to <codde>1</codde>, the models output the probability hat a context word appears, 
+    <td class="tg-0pky">If set to <code>1</codde>, the models output the probability that a context word appears, 
     given a certain center word.
     If set to <code>0</code>, and <code>use_prob_model=0</code> it outputs the raw value of word2vec 
     (layer before the softmax).
@@ -355,14 +355,14 @@ Global parameters for all use cases of type word2vec.
   <tr>
     <td class="tg-0pky"><code>min_uniq_word_occurrence</code></td>
     <td class="tg-0pky"><code>Int</code></td>
-    <td class="tg-0pky">If a word appears less than <code>min_uniq_word_occurrence</code> value, it will be replaced by 
+    <td class="tg-0pky">If a word appears less than <code>min_uniq_word_occurrence</code> times, it will be replaced by 
     the 'UNKNOWN' word. Set to <code>1</code> by default.
-    Note that as it reduces the vocabulary size of the model, it reduce the memory size.</td>
+    Note that as it reduces the vocabulary size of the model, it reduces the memory size.</td>
   </tr>
   <tr>
     <td class="tg-0pky"><code>num_epoch</code></td>
     <td class="tg-0pky"><code>Int</code></td>
-    <td class="tg-0pky">Number of times word2vec model train on all events within one aggregation.
+    <td class="tg-0pky">Number of times word2vec model trains on all events within one aggregation.
     Set to <code>1</code> by default.</td>
   </tr>
   <tr>
