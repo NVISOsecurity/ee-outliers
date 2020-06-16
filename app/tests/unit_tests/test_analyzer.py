@@ -10,6 +10,7 @@ from tests.unit_tests.utils.update_settings import UpdateSettings
 from helpers.outlier import Outlier
 from helpers.analyzerfactory import AnalyzerFactory
 import helpers.analyzerfactory
+import configparser
 
 # Monkey patch the test stub analyzer mapping in the AnalyzerFactory
 helpers.analyzerfactory.CLASS_MAPPING["analyzer"] = TestStubAnalyzer
@@ -70,3 +71,51 @@ class TestAnalyzer(unittest.TestCase):
 
         self.assertDictEqual(analyzer.extra_model_settings, {"test_arbitrary_key": "arbitrary_value",
                                                              "elasticsearch_filter": "es_valid_query"})
+
+    def test_create_multi_with_empty_config(self):
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/analyzer_test_01.conf")
+        analyzers = AnalyzerFactory.create_multi("/app/tests/unit_tests/files/analyzer_test_01.conf")
+
+        self.assertTrue(len(analyzers) == 0)
+    
+    def test_create_multi_with_single(self):
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/analyzer_test_01.conf")
+        analyzers = AnalyzerFactory.create_multi("/app/tests/unit_tests/files/use_cases/analyzer/analyzer_arbitrary_dummy_test.conf")
+
+        self.assertTrue(len(analyzers) == 1)
+    
+    def test_create_multi_with_malformed_duplicate_option(self):
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/analyzer_test_01.conf")
+        analyzers = AnalyzerFactory.create_multi("/app/tests/unit_tests/files/use_cases/analyzer/analyzer_multi_malformed_duplicate_option.conf", {'strict': False})
+
+        self.assertTrue(len(analyzers) == 3)
+
+    def test_create_multi_with_malformed_duplicate_section(self):
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/analyzer_test_01.conf")
+        analyzers = AnalyzerFactory.create_multi("/app/tests/unit_tests/files/use_cases/analyzer/analyzer_multi_malformed_duplicate_section.conf", {'strict': False})
+
+        self.assertTrue(len(analyzers) == 2)
+    
+    def test_create_multi_with_malformed_duplicate_option_strict(self):
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/analyzer_test_01.conf")
+
+        with self.assertRaises(configparser.DuplicateOptionError):
+            AnalyzerFactory.create_multi("/app/tests/unit_tests/files/use_cases/analyzer/analyzer_multi_malformed_duplicate_option.conf")
+
+    def test_create_multi_with_malformed_duplicate_section_strict(self):
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/analyzer_test_01.conf")
+
+        with self.assertRaises(configparser.DuplicateSectionError):
+            AnalyzerFactory.create_multi("/app/tests/unit_tests/files/use_cases/analyzer/analyzer_multi_malformed_duplicate_section.conf")
+
+    def test_create_multi_mixed_types(self):
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/analyzer_test_01.conf")
+        analyzers = AnalyzerFactory.create_multi("/app/tests/unit_tests/files/use_cases/analyzer/analyzer_multi_mixed_types.conf")
+
+        simplequery_analyzer = analyzers[0]
+        metrics_analyzer = analyzers[1]
+        terms_analyzer = analyzers[2]
+
+        self.assertTrue(simplequery_analyzer.model_type == 'simplequery')
+        self.assertTrue(metrics_analyzer.model_type == 'metrics')
+        self.assertTrue(terms_analyzer.model_type == 'terms')
