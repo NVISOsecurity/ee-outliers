@@ -1,5 +1,3 @@
-<p align="left"><a href="../README.md">&#8592; README</a></p>
-
 # All parameters in configurations
 
 **Table of contents**
@@ -8,6 +6,7 @@
     - [Assets](#assets)
     - [Notifier](#notifier)
     - [Daemon](#daemon)
+    - [Simple query](#simple-query)
     - [Terms](#terms)
     - [Metrics](#metrics)
     - [Word2vec](#word2vec)
@@ -16,6 +15,7 @@
 - [Analyzers parameters](#analyzers-parameters)
   - [Common analyzers parameters](#common-analyzers-parameters)
   - [Usual model parameters](#usual-model-parameters)
+  - [Simple query parameters](#simple-query-parameters)
   - [Metrics parameters](#metrics-parameters)
   - [Terms parameters](#terms-parameters)
   - [Word2vec parameters](#word2vec-parameters)
@@ -35,12 +35,12 @@ A default configuration file with all required configuration sections and parame
    <th colspan="3">General</th>
   </tr>
   <tr>
-    <th class="tg-0pky">Key parameters</th>
+    <th class="tg-0pky">Key parameters (<small>*Mandatory</small>)</th>
     <th class="tg-0pky">Values</th>
     <th class="tg-0pky">Notes</th>
   </tr>
   <tr>
-    <td class="tg-0pky"><code>es_url</code></td>
+    <td class="tg-0pky"><code>es_url</code>*</td>
     <td class="tg-0pky"><code>String</code></td>
     <td class="tg-0pky">URL to connect to Elasticsearch.</td>
   </tr>
@@ -55,32 +55,33 @@ A default configuration file with all required configuration sections and parame
     <td class="tg-0pky">Password if ES authentication is required.</td>
   </tr>
   <tr>
-    <td class="tg-0pky"><code>es_index_pattern</code></td>
+    <td class="tg-0pky"><code>es_index_pattern</code>*</td>
     <td class="tg-0pky"><code>String</code></td>
     <td class="tg-0pky">The name of the Elasticsearch index. Can be a glob pattern such as <code>my_indexes*</code>.</td>
   </tr>
   <tr>
-    <td class="tg-0pky"><code>es_scan_size</code></td>
+    <td class="tg-0pky"><code>es_scan_size</code>*</td>
     <td class="tg-0pky"><code>Int</code></td>
     <td class="tg-0pky">size of the batch used by Elasticsearch for each search request.</td>
   </tr>
   <tr>
-    <td class="tg-0pky"><code>es_scroll_time</code></td>
+    <td class="tg-0pky"><code>es_scroll_time</code>*</td>
     <td class="tg-0pky">[Integer][letter] where letter represents a duration (Hours, Minutes, Seconds)</td>
     <td class="tg-0pky">Specify how long a consistent view of the index should be maintained for scrolled Elasticsearch search.</td>
   </tr>
   <tr>
-    <td class="tg-0pky"><code>es_timeout</code></td>
+    <td class="tg-0pky"><code>es_timeout</code>*</td>
     <td class="tg-0pky"><code>Int</code></td>
     <td class="tg-0pky">Explicit timeout in seconds for each Elasticsearch request.</td>
   </tr>
   <tr>
     <td class="tg-0pky"><code>timestamp_field</code></td>
     <td class="tg-0pky"><code>String</code></td>
-    <td class="tg-0pky">The field name representing the event timestamp in Elasticsearch.</td>
+    <td class="tg-0pky">The field name representing the event timestamp in Elasticsearch. 
+    Default value: <code>timestamp</code>.</td>
   </tr>
   <tr>
-    <td class="tg-0pky"><code>es_save_results</code></td>
+    <td class="tg-0pky"><code>es_save_results</code>*</td>
     <td class="tg-0pky"><code>0</code>, <code>1</code></td>
     <td class="tg-0pky">If set to <code>1</code>, save outlier detection results to Elasticsearch.
     If set to <code>0</code>, do nothing.</td>
@@ -89,59 +90,59 @@ A default configuration file with all required configuration sections and parame
     <td class="tg-0pky"><code>print_outliers_to_console</code></td>
     <td class="tg-0pky"><code>0</code>, <code>1</code></td>
     <td class="tg-0pky">If set to <code>1</code>, print outlier matches to the console.
-    If set to <code>0</code>, do nothing.</td>
+    If set to <code>0</code>, do nothing. Default value: <code>0</code>.</td>
   </tr>
   <tr>
-    <td class="tg-0pky"><code>history_window_days</code></td>
+    <td class="tg-0pky"><code>history_window_days</code>*</td>
     <td class="tg-0pky"><code>Int</code></td>
     <td class="tg-0pky">Specify how many days back in time to process events and search for outliers. 
     This value is combine with <code>history_window_hours</code>.</td>
   </tr>
   <tr>
-    <td class="tg-0pky"><code>history_window_hours</code></td>
+    <td class="tg-0pky"><code>history_window_hours</code>*</td>
     <td class="tg-0pky"><code>Int</code></td>
     <td class="tg-0pky">Specify how many hours back in time to process events and search for outliers. 
     This value is combine with <code>history_window_days</code>.</td>
   </tr>
   <tr>
-    <td class="tg-0pky"><code>es_wipe_all_existing_outliers</code></td>
+    <td class="tg-0pky"><code>es_wipe_all_existing_outliers</code>*</td>
     <td class="tg-0pky"><code>0</code>, <code>1</code></td>
     <td class="tg-0pky">If set to <code>1</code>, wipe all existing outliers that fall in the history window upon first run.
     If set to <code>0</code>, do nothing.</td>
   </tr>
   <tr>
-    <td class="tg-0pky"><code>es_wipe_all_whitelisted_outliers</code></td>
+    <td class="tg-0pky"><code>es_wipe_all_whitelisted_outliers</code>*</td>
     <td class="tg-0pky"><code>0</code>, <code>1</code></td>
     <td class="tg-0pky">If set to <code>1</code>, existing outliers are checked and wiped if they match with the whitelisting.
     If set to <code>0</code>, do nothing.</td>
   </tr>
   <tr>
-    <td class="tg-0pky"><code>run_models</code></td>
+    <td class="tg-0pky"><code>run_models</code>*</td>
     <td class="tg-0pky"><code>0</code>, <code>1</code></td>
     <td class="tg-0pky">If set to <code>1</code>, run all use cases with key parameter <code>run_model</code> set to 1.
     If set to <code>0</code>, do nothing.</td>
   </tr>
   <tr>
-    <td class="tg-0pky"><code>test_models</code></td>
+    <td class="tg-0pky"><code>test_models</code>*</td>
     <td class="tg-0pky"><code>0</code>, <code>1</code></td>
     <td class="tg-0pky">If set to <code>1</code>, run all use cases with key parameter <code>test_model</code> set to 1.
     If set to <code>0</code>, do nothing.</td>
   </tr>
   <tr>
-    <td class="tg-0pky"><code>log_verbosity</code></td>
-    <td class="tg-0pky"><code>0-5</code></td>
+    <td class="tg-0pky"><code>log_verbosity</code>*</td>
+    <td class="tg-0pky"><code>0-5+</code></td>
     <td class="tg-0pky"><code>0</code> for no progress info,  <code>1</code>-<code>4</code> for progressively more 
     outputs, <code>5+</code> for all the log output.</td>
   </tr>
   <tr>
-    <td class="tg-0pky"><code>log_level</code></td>
+    <td class="tg-0pky"><code>log_level</code>*</td>
     <td class="tg-0pky"><code>CRITICAL</code>, <code>ERROR</code>, <code>WARNING</code>, <code>INFO</code>, 
     <code>DEBUG</code></td>
     <td class="tg-0pky">Sets the threshold for the logger. Logging messages which are less severe than level will be 
     ignored.</td>
   </tr>
   <tr>
-    <td class="tg-0pky"><code>log_file</code></td>
+    <td class="tg-0pky"><code>log_file</code>*</td>
     <td class="tg-0pky"><code>String</code></td>
     <td class="tg-0pky">File path where the log messages will be saved</td>
   </tr>
@@ -157,7 +158,7 @@ It allows to extract additional information within the outliers and save them in
    <th colspan="3">General</th>
   </tr>
   <tr>
-    <th class="tg-0pky">Key parameters</th>
+    <th class="tg-0pky">Key parameters (<small>*Mandatory</small>)</th>
     <th class="tg-0pky">Values</th>
     <th class="tg-0pky">Notes</th>
   </tr>
@@ -177,14 +178,15 @@ To have more information about the notification system, visit the page [Notifica
    <th colspan="3">Notifier</th>
   </tr>
   <tr>
-    <th class="tg-0pky">Key parameters</th>
+    <th class="tg-0pky">Key parameters (<small>*Mandatory</small>)</th>
     <th class="tg-0pky">Values</th>
     <th class="tg-0pky">Notes</th>
   </tr>
   <tr>
-    <td class="tg-0pky"><code>email_notifier</code></td>
+    <td class="tg-0pky"><code>email_notifier</code>*</td>
     <td class="tg-0pky"><code>0</code>, <code>1</code></td>
-    <td class="tg-0pky">If set to <code>1</code>, enable the notification system.
+    <td class="tg-0pky">If set to <code>1</code>, enable the notification system and the other key parameters from the 
+    section <code>[notifier]</code>, except <code>max_cache_ignore</code>, become mandatory.
     If set to <code>0</code>, do nothing.</td>
   </tr>
   <tr>
@@ -215,7 +217,8 @@ To have more information about the notification system, visit the page [Notifica
   <tr>
     <td class="tg-0pky"><code>max_cache_ignore</code></td>
     <td class="tg-0pky"><code>int</code></td>
-    <td class="tg-0pky">Number of element keep in memory to avoid twice alerts for same notification.</td>
+    <td class="tg-0pky">Number of element keep in memory to avoid twice alerts for same notification.
+    Default value: <code>1000</code>.</td>
   </tr>
 </table>
 
@@ -239,6 +242,49 @@ which is defined by the following <code>schedule</code> parameter.
     <td class="tg-0pky">Standard cron format</td>
     <td class="tg-0pky">Only used when running ee-outliers in daemon mode. 
     Example: <code>schedule=10 0 * * *</code> will run ee-outliers at 00:10 each night.</td>
+  </tr>
+</table>
+
+### Simple query
+
+Global parameters for all use cases of type simplequery.
+
+The only global parameter for simplequery use cases is <code>highlight_match</code>. 
+If set to <code>1</code>, ee-outliers will use the Elasticsearch highlight mechanism to find the fields and values
+that matched the search query. The matched fields and values are respectively added to new dictionary fields 
+<code>outliers.matched_fields</code> and <code>outliers.matched_values</code>.
+
+Example: If the search query is <code>es_query_filter=CurrentDirectory : sysmon AND Image: System32 AND Image: cmd.exe</code> and the log
+event contains the fields:
+```
+CurrentDirectory: C:\sysmon\
+Image: C:\Windows\System32\cmd.exe
+```
+It will add the fields:
+```
+outliers.matched_fields: {"CurrentDirectory": ["C:\\<value>sysmon</value>\\"],
+                         "Image": ["C:\\Windows\\<value>System32</value>\\<value>cmd.exe</value>"]}
+outliers.matched_values: {'CurrentDirectory': ['sysmon'], 'Image': ['System32', 'cmd.exe']}
+```
+Note that in the field <code>outliers.matched_fields</code>, the values that match the search query has been tagged as
+follow: `<value>MACHTED_VALUE</value>`.
+
+<table class="tg">
+  <tr>
+   <th colspan="3">General</th>
+  </tr>
+  <tr>
+    <th class="tg-0pky">Key parameters</th>
+    <th class="tg-0pky">Values</th>
+    <th class="tg-0pky">Notes</th>
+  </tr>
+  <tr>
+    <td class="tg-0pky"><code>highlight_match</code></td>
+    <td class="tg-0pky"><code>0</code>, <code>1</code></td>
+    <td class="tg-0pky">If set to <code>1</code>, it will use the Elasticsearch highlight mechanism to find the fields
+    and values that matched the search query. The matched fields and values are respectively added to new 
+    dictionary fields <code>outliers.matched_fields</code> and <code>outliers.matched_values</code>.
+    If set to <code>0</code>, do nothing. Default: <code>0</code>.</td>
   </tr>
 </table>
 
@@ -521,7 +567,7 @@ To have more information about the configuration of one analyzer, visit the page
   </tr>
   <tr>
     <td class="tg-0pky"><code>timestamp_field</code></td>
-    <td class="tg-0pky">String</td>
+    <td class="tg-0pky"><code>String</code></td>
     <td class="tg-0pky">Can be any document field. 
     It will override the general settings <code>timestamp_field</code>.</td>
   </tr>
@@ -581,7 +627,7 @@ To have more information about the configuration of one analyzer, visit the page
   </tr>
 </table>
 
-### Usual model parameters
+### Usual model paramaters
 
 The following parameters could be used for analyzers `terms`, `metrics` and `word2vec`.
 More information available [here](CONFIG_OUTLIERS.md#usual-model-parameters).
@@ -674,9 +720,29 @@ More information available [here](CONFIG_OUTLIERS.md#usual-model-parameters).
   </tr>
 </table>
 
+
 #### Arbitrary parameters
 Any other parameters that are not used by the model will be automatically copied to the outlier parameter. 
 More information available [here](CONFIG_OUTLIERS.md#arbitrary-parameters).
+
+### Simple query parameters
+
+<table>
+  <tr>
+    <th colspan="3">Simple query</th>
+  </tr>
+  <tr>
+    <th class="tg-0pky">Key parameters</th>
+    <th class="tg-0pky">Values</th>
+    <th class="tg-0pky">Notes</th>
+  </tr>
+  <tr>
+    <td class="tg-0pky">highlight_match</td>
+    <td class="tg-0pky"><code>0</code>, <code>1</code></td>
+    <td class="tg-0pky">Override <code>highlight_match</code> parameter in general simplequery settings.
+  </tr>
+</table>
+
 
 ### Metrics parameters
 

@@ -36,14 +36,33 @@ class AnalyzerFactory:
     def create(config_file):
         """
         Creates an analyzer based on a configuration file
+        Deprecated in favor of `create_multi`
         :param config_file: configuration file containing a single analyzer
         :return: returns the analyzer object
+        """
+        analyzers = AnalyzerFactory.create_multi(config_file)
+
+        # File should only contain 1 analyzer
+        if len(analyzers) != 1:
+            raise ValueError("Config file must contain exactly one use case (found %d)" % len(analyzers))
+
+        analyzer = analyzers[0]
+
+        return analyzer
+
+    @staticmethod
+    def create_multi(config_file, configparser_options={}):
+        """
+        Creates a list of analyzers based on a configuration file
+        :param config_file: configuration file containing one or multiple analyzers
+        :param configparser_options: Optional parameters to configparser.RawConfigParser(...)
+        :return: returns the analyzer objects in a list
         """
         if not os.path.isfile(config_file):
             raise ValueError("Use case file %s does not exist" % config_file)
 
         # Read the ini file from disk
-        config = configparser.RawConfigParser()
+        config = configparser.RawConfigParser(**configparser_options)
         config.read(config_file)
 
         logging.logger.debug(config)
@@ -53,19 +72,15 @@ class AnalyzerFactory:
                      for section_name, section in config.items()]
         analyzers = list(filter(None, analyzers))
 
-        # File should only contain 1 analyzer
-        if len(analyzers) != 1:
-            raise ValueError("Config file must contain exactly one use case (found %d)" % len(analyzers))
+        for analyzer in analyzers:
+            if "whitelist_literals" in config.sections():
+                for _, value in config["whitelist_literals"].items():
+                    analyzer.model_whitelist_literals.append(
+                        set([x.strip() for x in value.split(",")]))
 
-        analyzer = analyzers[0]
+            if "whitelist_regexps" in config.sections():
+                for _, value in config["whitelist_regexps"].items():
+                    analyzer.model_whitelist_regexps.append(
+                        (set([re.compile(x.strip(), re.IGNORECASE) for x in value.split(",")])))
 
-        if "whitelist_literals" in config.sections():
-            for _, value in config["whitelist_literals"].items():
-                analyzer.model_whitelist_literals.append(set([x.strip() for x in value.split(",")]))
-
-        if "whitelist_regexps" in config.sections():
-            for _, value in config["whitelist_regexps"].items():
-                analyzer.model_whitelist_regexps.append((set([re.compile(x.strip(), re.IGNORECASE)
-                                                              for x in value.split(",")])))
-
-        return analyzer
+        return analyzers

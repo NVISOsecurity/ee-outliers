@@ -14,7 +14,7 @@
 
 
 ## Existing detection models
-Each different detection use case lives in its own configuration file. In this section we discuss all the different detection mechanisms that are available, and the options they provide to the analyst.
+In this section we discuss all the different detection mechanisms that are available, and the options they provide to the analyst.
 
 The different types of detection models that can be configured are listed below.
 
@@ -29,7 +29,8 @@ the analyst to train a model based on a set of features that are expected to app
 training, the model is then able to spot anomalies in unexpected combinations of the trained features. 
 Example use case: train a model to spot usernames that doesn't respect the convention of your enterprise.
 
-
+The different use cases are defined in configuration files.
+Note that one or multiple different detection use cases can be specified in one configuration file.
 ## General model parameters
 **es_query_filter**
 
