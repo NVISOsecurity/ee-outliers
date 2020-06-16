@@ -406,6 +406,7 @@ class ES:
         derived_fields = self.extract_derived_fields(outlier.doc["_source"])
         for derived_field, derived_value in derived_fields.items():
             outlier.outlier_dict["derived_" + derived_field] = derived_value
+            del outlier.doc["_source"][derived_field]
 
         doc = add_outlier_to_document(outlier)
         self.add_update_bulk_action(doc)
