@@ -226,7 +226,9 @@ class Analyzer(abc.ABC):
             if settings.print_outliers_to_console:
                 logging.logger.debug("%s [whitelisted outlier]", outlier.outlier_dict["summary"])
         else:
-            es.process_outlier(outlier=outlier, should_notify=self.model_settings["should_notify"])
+            es.process_outlier(outlier=outlier,
+                               should_notify=self.model_settings["should_notify"],
+                               extract_derived_fields=self.model_settings["use_derived_fields"])
 
     def print_analysis_intro(self, event_type, total_events):
         """

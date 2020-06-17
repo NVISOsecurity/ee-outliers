@@ -258,7 +258,7 @@ class TestTermsAnalyzer(unittest.TestCase):
 
         self.assertEqual(nbr_outliers, len(all_doc))
 
-    def test_terms_use_derived_fields_in_doc(self):
+    def test_terms_use_derived_fields_check_not_in_doc(self):
         dummy_doc_generate = DummyDocumentsGenerate()
         self.test_es.add_doc(dummy_doc_generate.generate_document())
 
@@ -267,7 +267,7 @@ class TestTermsAnalyzer(unittest.TestCase):
         analyzer.evaluate_model()
 
         result = [elem for elem in es._scan()][0]
-        self.assertTrue("timestamp_year" in result['_source'])
+        self.assertFalse("timestamp_year" in result['_source'])
 
     def test_terms_use_derived_fields_in_outlier(self):
         dummy_doc_generate = DummyDocumentsGenerate()
