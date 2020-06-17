@@ -21,6 +21,9 @@ all_test_hex_values = ["not hex value", "12177014F73", "546869732069732061207465
 all_test_base64_values = ["QVlCQUJUVQ==", "VGhpcyBpcyBhIHRleHQ=", "not base"]
 all_test_url_values = ["http://google.be", "This is a test without URL", "Example: http://www.dance.com/",
                        "http://nviso.be", "http://long-url-example-to-test.brussels"]
+all_highlight = [{'ParentCommandLine': ['"C:\\Program Files (x86)\\e8dd2016d465ea0fbeed0c5578b527b7df32a745\\' +
+                                        'Eagle Eye\\<value>ee</value>-<value>host</value>-<value>hunter.exe</value>"']}
+                 ]
 all_outlier_summary = ["dummy summary"]
 all_outlier_observation = ["dummy observation"]
 all_outlier_model_name = ["dummy_test", "dummy_test_high_pct_of_med_value_within", "base64_encoded_cmdline"]
@@ -81,7 +84,8 @@ class DummyDocumentsGenerate:
             '_type': "doc",
             '_id': self.id,
             '_version': 2,
-            '_source': self._generate_source(doc_date_time, specific_value)
+            '_source': self._generate_source(doc_date_time, specific_value),
+            'highlight': all_highlight[0]
         }
         self.id += 1
         return doc

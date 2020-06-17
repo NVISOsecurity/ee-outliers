@@ -116,6 +116,8 @@ class ES:
         """
         preserve_order = False
 
+        highlight_settings = self._get_highlight_settings(model_settings)
+
         if model_settings is not None and model_settings["process_documents_chronologically"]:
             sort_clause = {"sort": [{model_settings["timestamp_field"]: "desc"}]}
             preserve_order = True
@@ -125,7 +127,8 @@ class ES:
                                                                     sort_clause=sort_clause,
                                                                     search_range=search_range,
                                                                     query_fields=query_fields,
-                                                                    search_query=search_query),
+                                                                    search_query=search_query,
+                                                                    highlight_settings=highlight_settings),
                               size=self.settings.config.getint("general", "es_scan_size"),
                               scroll=self.settings.config.get("general", "es_scroll_time"),
                               preserve_order=preserve_order, raise_on_error=False)
@@ -487,6 +490,28 @@ class ES:
         }
         return time_filter
 
+    @staticmethod
+    def _get_highlight_settings(model_settings):
+        """
+        Build the highlight settings to include into the Elasticsearch query body.
+        This settings will search in all the fields and return fields that contain query matches.
+        Each value inside the field that match the search query will be tag as follow:
+         <value>value_that_match_search_query</values>
+
+        :param model_settings: part of the configuration linked to the model
+        :return: highlight_settings: Highlight settings
+        """
+        highlight_settings = None
+        if model_settings["highlight_match"]:
+            highlight_settings = dict()
+            # Pre and post tag definition
+            highlight_settings["pre_tags"] = ["<value>"]
+            highlight_settings["post_tags"] = ["</value>"]
+            highlight_settings["fields"] = dict()
+            # Search in all the fields
+            highlight_settings["fields"]["*"] = dict()
+        return highlight_settings
+
 
 def add_outlier_to_document(outlier):
     """
@@ -562,7 +587,12 @@ def remove_tag_from_document(doc, tag):
     return doc
 
 
-def build_search_query(bool_clause=None, sort_clause=None, search_range=None, query_fields=None, search_query=None):
+def build_search_query(bool_clause=None,
+                       sort_clause=None,
+                       search_range=None,
+                       query_fields=None,
+                       search_query=None,
+                       highlight_settings=None):
     """
     Create a query for Elasticsearch
 
@@ -571,6 +601,7 @@ def build_search_query(bool_clause=None, sort_clause=None, search_range=None, qu
     :param search_range: search range
     :param query_fields: query fields
     :param search_query: search query
+    :param highlight_settings: highlight settings
     :return: the building query
     """
     query = dict()
@@ -598,5 +629,8 @@ def build_search_query(bool_clause=None, sort_clause=None, search_range=None, qu
 
     if search_query:
         query["query"]["bool"]["filter"].append(search_query["filter"].copy())
+
+    if highlight_settings:
+        query["highlight"] = highlight_settings
 
     return query
