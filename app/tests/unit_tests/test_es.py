@@ -12,8 +12,11 @@ import helpers.analyzerfactory
 from helpers.analyzerfactory import AnalyzerFactory
 
 test_file_whitelist_path_config = "/app/tests/unit_tests/files/whitelist_tests_01_with_general.conf"
+config_file_path = "/app/tests/unit_tests/files/"
+config_file_simplequery_test_01 = config_file_path + "simplequery_test_01.conf"
 
 helpers.analyzerfactory.CLASS_MAPPING["analyzer"] = TestStubAnalyzer
+
 
 class TestEs(unittest.TestCase):
 
@@ -75,3 +78,47 @@ class TestEs(unittest.TestCase):
         # Check that outlier is correctly remove
         result = [doc for doc in es._scan()][0]
         self.assertFalse("outliers" in result["_source"])
+
+    def test_get_highlight_settings_with_metrics_analyzer(self):
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/metrics_test_01.conf")
+        analyzer = AnalyzerFactory.create("/app/tests/unit_tests/files/use_cases/metrics/metrics_dummy_test.conf")
+        highlight_settings = es._get_highlight_settings(analyzer.model_settings)
+        self.assertTrue(highlight_settings is None)
+
+    def test_get_highlight_settings_with_terms_analyzer(self):
+        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/terms_test_01.conf")
+        analyzer = AnalyzerFactory.create("/app/tests/unit_tests/files/use_cases/terms/terms_dummy_test.conf")
+        highlight_settings = es._get_highlight_settings(analyzer.model_settings)
+        self.assertTrue(highlight_settings is None)
+
+    def test_get_highlight_settings_with_simplequery_analyzer_and_highlight_match_activated(self):
+        self.test_settings.change_configuration_path(config_file_simplequery_test_01)
+        use_case_file = "/app/tests/unit_tests/files/use_cases/simplequery/" \
+                        "simplequery_dummy_test_highlight_match_activated.conf"
+        analyzer = AnalyzerFactory.create(use_case_file)
+        highlight_settings = es._get_highlight_settings(analyzer.model_settings)
+        highlight_settings_test = dict()
+
+        highlight_settings_test["pre_tags"] = ["<value>"]
+        highlight_settings_test["post_tags"] = ["</value>"]
+        highlight_settings_test["fields"] = dict()
+        highlight_settings_test["fields"]["*"] = dict()
+
+        self.assertTrue(highlight_settings == highlight_settings_test)
+
+    def test_get_highlight_settings_with_simplequery_analyzer_and_highlight_match_unactivated(self):
+        self.test_settings.change_configuration_path(config_file_simplequery_test_01)
+        use_case_file = "/app/tests/unit_tests/files/use_cases/simplequery/" \
+                        "simplequery_dummy_test_highlight_match_unactivated.conf"
+        analyzer = AnalyzerFactory.create(use_case_file)
+        highlight_settings = es._get_highlight_settings(analyzer.model_settings)
+
+        self.assertTrue(highlight_settings is None)
+
+    def test_get_highlight_settings_with_simplequery_analyzer_without_highlight_parameter(self):
+        self.test_settings.change_configuration_path(config_file_simplequery_test_01)
+        use_case_file = "/app/tests/unit_tests/files/use_cases/simplequery/simplequery_dummy_test.conf"
+        analyzer = AnalyzerFactory.create(use_case_file)
+        highlight_settings = es._get_highlight_settings(analyzer.model_settings)
+
+        self.assertTrue(highlight_settings is None)

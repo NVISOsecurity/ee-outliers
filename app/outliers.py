@@ -69,7 +69,6 @@ def setup_logging():
     # Configuration for which we need access to both settings and logging singletons should happen here
     logging.verbosity = settings.config.getint("general", "log_verbosity")
     logging.logger.setLevel(settings.config.get("general", "log_level"))
-    os.environ['TF_CPP_MIN_LOG_LEVEL'] = settings.config.get("machine_learning", "tensorflow_log_level")
 
     # Log Handlers
     log_file = settings.config.get("general", "log_file")
