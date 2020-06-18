@@ -6,12 +6,14 @@ from analyzers.metrics import MetricsAnalyzer
 from analyzers.simplequery import SimplequeryAnalyzer
 from analyzers.terms import TermsAnalyzer
 from analyzers.word2vec import Word2VecAnalyzer
+from analyzers.sudden_appearance import SuddenAppearanceAnalyzer
 
 CLASS_MAPPING = {
     "simplequery": SimplequeryAnalyzer,
     "metrics": MetricsAnalyzer,
     "word2vec": Word2VecAnalyzer,
-    "terms": TermsAnalyzer
+    "terms": TermsAnalyzer,
+    "sudden_appearance": SuddenAppearanceAnalyzer
 }
 
 
