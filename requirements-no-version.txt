@@ -1,5 +1,7 @@
+tabulate
+Pillow
+torch
 scikit-learn
-tensorflow<2
 certifi
 chardet
 configparser

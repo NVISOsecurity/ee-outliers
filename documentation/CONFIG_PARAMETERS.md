@@ -9,7 +9,7 @@
     - [Simple query](#simple-query)
     - [Terms](#terms)
     - [Metrics](#metrics)
-    - [Machine Learning](#machine-learning)
+    - [Word2vec](#word2vec)
     - [Whitelist literals](#whitelist-literals)
     - [Whitelist regexps](#whitelist-regexps)
 - [Analyzers parameters](#analyzers-parameters)
@@ -18,6 +18,7 @@
   - [Simple query parameters](#simple-query-parameters)
   - [Metrics parameters](#metrics-parameters)
   - [Terms parameters](#terms-parameters)
+  - [Word2vec parameters](#word2vec-parameters)
 
 
 ## General configuration
@@ -329,9 +330,9 @@ Global parameters for all use cases of type metrics.
   </tr>
 </table>
 
-### Machine Learning
+### Word2vec
 
-TODO
+Global parameters for all use cases of type word2vec.
 
 <table class="tg">
   <tr>
@@ -343,9 +344,116 @@ TODO
     <th class="tg-0pky">Notes</th>
   </tr>
   <tr>
-    <td class="tg-0pky"><code>TODO</code></td>
-    <td class="tg-0pky"><code>TODO</code></td>
-    <td class="tg-0pky">TODO</td>
+    <td class="tg-0pky"><code>word2vec_batch_eval_size</code></td>
+    <td class="tg-0pky"><code>Int</code></td>
+    <td class="tg-0pky">Define how many events should be processed at the same time, before looking for outliers.
+    Bigger batch means better results, but increase the memory usage.</td>
+  </tr>
+  <tr>
+    <td class="tg-0pky"><code>min_target_buckets</code></td>
+    <td class="tg-0pky"><code>Int</code></td>
+    <td class="tg-0pky">Minimum number of events required within an aggregation before processing word2vec analyzer.</td>
+  </tr>
+  <tr>
+    <td class="tg-0pky"><code>drop_duplicates</code></td>
+    <td class="tg-0pky"><code>0</code>, <code>1</code></td>
+    <td class="tg-0pky">If set to <code>1</code>, drops duplicate <code>target</code> elements within each 
+    aggregation.
+    If set to <code>0</code>, do nothing. Set to <code>0</code> by default.
+    Note that when activated, <code>dorp_duplicates</code> can increases the memory size. The reason is that it generally 
+    increase the size of the vocabulary and therefore the size of the word2vec model.</td>
+  </tr>
+  <tr>
+    <td class="tg-0pky"><code>use_prob_model</code></td>
+    <td class="tg-0pky"><code>0</code>, <code>1</code></td>
+    <td class="tg-0pky">If set to <code>1</code>, use a probabilistic model instead of word2vec.
+    If set to <code>0</code>, use word2vec model. 
+    Used mainly to evaluate the performance of word2vec. 
+    The probabilistic model will compute the true probability that a context word to appear given a certain center word.
+    <code>P(context_word|center_word) = (num. of time the pair context_word-center_word appears)/(num. of time center_word appears)</code>.
+    Set to <code>0</code> by default.
+    </td>
+  </tr>
+  <tr>
+    <td class="tg-0pky"><code>output_prob</code></td>
+    <td class="tg-0pky"><code>0</code>, <code>1</code></td>
+    <td class="tg-0pky">If set to <code>1</codde>, the models output the probability that a context word appears, 
+    given a certain center word.
+    If set to <code>0</code>, and <code>use_prob_model=0</code> it outputs the raw value of word2vec 
+    (layer before the softmax).
+    If set to <code>0</code>, and <code>use_prob_model=1</code> it outputs the logarithmic of the probabilities.
+    Set to <code>1</code> by default.</td>
+  </tr>
+  <tr>
+    <td class="tg-0pky"><code>separators</code></td>
+    <td class="tg-0pky">regex format <b>between quotes</b></td>
+    <td class="tg-0pky">Will split <code>target</code> elements by the occurrence of the regex pattern. 
+    Example: If <code>separators="\.| "</code> and <code>target</code> of one event is <code>"Our website is nviso.eu"
+    </code>  the output tokens will became <code>["Our", "website", "is", "nviso", "eu"]</code>.</td>
+  </tr>
+  <tr>
+    <td class="tg-0pky"><code>size_window</code></td>
+    <td class="tg-0pky"><code>Int</code></td>
+    <td class="tg-0pky">Size of the context window.
+    Note that as you increase the size window, the number of center word - context word combination will increase. 
+    It will then result in a augmentation of memory size and computation time.</td>
+  </tr>
+  <tr>
+    <td class="tg-0pky"><code>min_uniq_word_occurrence</code></td>
+    <td class="tg-0pky"><code>Int</code></td>
+    <td class="tg-0pky">If a word appears less than <code>min_uniq_word_occurrence</code> times, it will be replaced by 
+    the 'UNKNOWN' word. Set to <code>1</code> by default.
+    Note that as it reduces the vocabulary size of the model, it reduces the memory size.</td>
+  </tr>
+  <tr>
+    <td class="tg-0pky"><code>num_epoch</code></td>
+    <td class="tg-0pky"><code>Int</code></td>
+    <td class="tg-0pky">Number of times word2vec model trains on all events within one aggregation.
+    Set to <code>1</code> by default.</td>
+  </tr>
+  <tr>
+    <td class="tg-0pky"><code>learning_rate</code></td>
+    <td class="tg-0pky"><code>Float</code></td>
+    <td class="tg-0pky">The learning rate of the word2vec model.
+    Set to <code>0.001</code> by default.</td>
+  </tr>
+  <tr>
+    <td class="tg-0pky"><code>embedding_size</code></td>
+    <td class="tg-0pky"><code>Int</code></td>
+    <td class="tg-0pky">Embedding size of the word2vec model.
+    Set to <code>40</code> by default.</td>
+  </tr>
+  <tr>
+    <td class="tg-0pky"><code>seed</code></td>
+    <td class="tg-0pky"><code>Int</code></td>
+    <td class="tg-0pky">The random seed to make word2vec deterministic. 
+    If set to <code>0</code> it make word2vec non deterministic.
+    If deterministic, it will also read documents chronologically and therefore reduce Elasticsearch scanning performance.
+    Set to <code>0</code> by default.</td>
+  </tr>
+  <tr>
+    <td class="tg-0pky"><code>print_score_table</code></td>
+    <td class="tg-0pky"><code>0</code>, <code>1</code></td>
+    <td class="tg-0pky">Print all outlier scores on a table. Set to <code>0</code> by default.</td>
+  </tr>
+  <tr>
+    <td class="tg-0pky"><code>print_confusion_matrix</code></td>
+    <td class="tg-0pky"><code>0</code>, <code>1</code></td>
+    <td class="tg-0pky">Print confusion matrix and precision, recall and F-Measure metrics.
+    Work only if the field "label" (equal to <code>0</code> or <code>1</code>) exist in Elasticsearch events.
+    Set to <code>0</code> by default.</td>
+  </tr>
+  <tr>
+    <td class="tg-0pky"><code>trigger_focus</code></td>
+    <td class="tg-0pky"><code>word</code>, <code>text</code></td>
+    <td class="tg-0pky">If set to <code>text</code>, it triggers events based on global text score.
+    If set to <code>word</code>, it triggers events based on word score. 
+    Set to <code>word</code> by default.</td>
+  </tr>
+  <tr>
+    <td class="tg-0pky"><code>trigger_score</code></td>
+    <td class="tg-0pky"><code>center</code>, <code>context</code>, <code>total</code>, <code>mean</code></td>
+    <td class="tg-0pky">Type of score the events are triggered on. Mean compatible only with <code>trigger_focus=text</code></td>
   </tr>
 </table>
 
@@ -519,13 +627,9 @@ To have more information about the configuration of one analyzer, visit the page
   </tr>
 </table>
 
-#### Arbitrary parameters
-Any other parameters that are not used by the model will be automatically copied to the outlier parameter. 
-More information available [here](CONFIG_OUTLIERS.md#arbitrary-parameters).
-
 ### Usual model paramaters
 
-The following parameters could be used for analyzers `terms` and `metrics`.
+The following parameters could be used for analyzers `terms`, `metrics` and `word2vec`.
 More information available [here](CONFIG_OUTLIERS.md#usual-model-parameters).
 <table>
   <tr>
@@ -616,6 +720,11 @@ More information available [here](CONFIG_OUTLIERS.md#usual-model-parameters).
   </tr>
 </table>
 
+
+#### Arbitrary parameters
+Any other parameters that are not used by the model will be automatically copied to the outlier parameter. 
+More information available [here](CONFIG_OUTLIERS.md#arbitrary-parameters).
+
 ### Simple query parameters
 
 <table>
@@ -633,6 +742,7 @@ More information available [here](CONFIG_OUTLIERS.md#usual-model-parameters).
     <td class="tg-0pky">Override <code>highlight_match</code> parameter in general simplequery settings.
   </tr>
 </table>
+
 
 ### Metrics parameters
 
@@ -705,8 +815,117 @@ More information available [here](CONFIG_OUTLIERS.md#usual-model-parameters).
   <tr>
     <td class="tg-0pky"><code>min_target_buckets</code></td>
     <td class="tg-0pky"><code>Int</code></td>
-    <td class="tg-0pky">Minimum number of events within an aggregator before processing terms analyzer. 
+    <td class="tg-0pky">Minimum number of events within an aggregation before processing terms analyzer. 
     Only with the <code>target_count_method</code> set on <code>within_aggregator</code>.
     </td>
+  </tr>
+</table>
+
+### Word2vec parameters
+
+<table>
+  <tr>
+    <th colspan="3">Word2vec</th>
+  </tr>
+  <tr>
+    <th class="tg-0pky">Key parameters</th>
+    <th class="tg-0pky">Values</th>
+    <th class="tg-0pky">Notes</th>
+  </tr>
+  <tr>
+    <td class="tg-0pky"><code>word2vec_batch_eval_size</code></td>
+    <td class="tg-0pky"><code>Int</code></td>
+    <td class="tg-0pky">Override <code>word2vec_batch_eval_size</code> parameter in 
+    <a href=#word2vec>word2vec general configuration</a>.</td>
+  </tr>
+  <tr>
+    <td class="tg-0pky"><code>min_target_buckets</code></td>
+    <td class="tg-0pky"><code>Int</code></td>
+    <td class="tg-0pky">Override <code>min_target_buckets</code> parameter in 
+    <a href=#word2vec>word2vec general configuration</a>.</td>
+  </tr>
+  <tr>
+    <td class="tg-0pky"><code>drop_duplicates</code></td>
+    <td class="tg-0pky"><code>0</code>, <code>1</code></td>
+    <td class="tg-0pky">Override <code>drop_duplicates</code> parameter in 
+    <a href=#word2vec>word2vec general configuration</a>.</td>
+  </tr>
+  <tr>
+    <td class="tg-0pky"><code>use_prob_model</code></td>
+    <td class="tg-0pky"><code>0</code>, <code>1</code></td>
+    <td class="tg-0pky">Override <code>use_prob_model</code> parameter in 
+    <a href=#word2vec>word2vec general configuration</a>.</td>
+  </tr>
+  <tr>
+    <td class="tg-0pky"><code>output_prob</code></td>
+    <td class="tg-0pky"><code>0</code>, <code>1</code></td>
+    <td class="tg-0pky">Override <code>output_prob</code> parameter in 
+    <a href=#word2vec>word2vec general configuration</a>.</td>
+  </tr>
+  <tr>
+    <td class="tg-0pky"><code>separators</code></td>
+    <td class="tg-0pky">regex format <b>between quotes</b></td>
+    <td class="tg-0pky">Override <code>drop_duplicates</code> parameter in 
+    <a href=#word2vec>word2vec general configuration</a>.</td>
+  </tr>
+  <tr>
+    <td class="tg-0pky"><code>size_window</code></td>
+    <td class="tg-0pky"><code>Int</code></td>
+    <td class="tg-0pky">Override <code>size_window</code> parameter in 
+    <a href=#word2vec>word2vec general configuration</a>.</td>
+  </tr>
+  <tr>
+    <td class="tg-0pky"><code>min_uniq_word_occurrence</code></td>
+    <td class="tg-0pky"><code>Int</code></td>
+    <td class="tg-0pky">Override <code>min_uniq_word_occurrence</code> parameter in 
+    <a href=#word2vec>word2vec general configuration</a>.</td>
+  </tr>
+  <tr>
+    <td class="tg-0pky"><code>num_epoch</code></td>
+    <td class="tg-0pky"><code>Int</code></td>
+    <td class="tg-0pky">Override <code>num_epoch</code> parameter in 
+    <a href=#word2vec>word2vec general configuration</a>.</td>
+  </tr>
+  <tr>
+    <td class="tg-0pky"><code>learning_rate</code></td>
+    <td class="tg-0pky"><code>Float</code></td>
+    <td class="tg-0pky">Override <code>learning_rate</code> parameter in 
+    <a href=#word2vec>word2vec general configuration</a>.</td>
+  </tr>
+  <tr>
+    <td class="tg-0pky"><code>embedding_size</code></td>
+    <td class="tg-0pky"><code>Int</code></td>
+    <td class="tg-0pky">Override <code>embedding_size</code> parameter in 
+    <a href=#word2vec>word2vec general configuration</a>.</td>
+  </tr>
+  <tr>
+    <td class="tg-0pky"><code>seed</code></td>
+    <td class="tg-0pky"><code>Int</code></td>
+    <td class="tg-0pky">Override <code>seed</code> parameter in 
+    <a href=#word2vec>word2vec general configuration</a>.</td>
+  </tr>
+  <tr>
+    <td class="tg-0pky"><code>print_score_table</code></td>
+    <td class="tg-0pky"><code>0</code>, <code>1</code></td>
+    <td class="tg-0pky">Override <code>print_score_table</code> parameter in 
+    <a href=#word2vec>word2vec general configuration</a>.</td>
+  </tr>
+  <tr>
+    <td class="tg-0pky"><code>print_confusion_matrix</code></td>
+    <td class="tg-0pky"><code>0</code>, <code>1</code></td>
+    <td class="tg-0pky">Override <code>print_confusion_matrix</code> parameter in 
+    <a href=#word2vec>word2vec general configuration</a>.</td>
+  </tr>
+  <tr>
+    <td class="tg-0pky"><code>trigger_focus</code></td>
+    <td class="tg-0pky"><code>word</code>, <code>text</code></td>
+    <td class="tg-0pky">Override <code>trigger_focus</code> parameter in 
+    <a href=#word2vec>word2vec general configuration</a>.</td>
+  </tr>
+  <tr>
+    <td class="tg-0pky"><code>trigger_score</code></td>
+    <td class="tg-0pky"><code>center</code>, <code>context</code>, <code>total</code>, <code>mean</code></td>
+    <td class="tg-0pky">Override <code>trigger_score</code> parameter in 
+    <a href=#word2vec>word2vec general configuration</a>.</td>
   </tr>
 </table>

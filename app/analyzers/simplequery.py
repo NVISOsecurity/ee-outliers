@@ -16,7 +16,7 @@ class SimplequeryAnalyzer(Analyzer):
         self.model_settings["highlight_match"] = self.config_section.getboolean("highlight_match")
         if self.model_settings["highlight_match"] is None:
             try:
-                self.model_settings["highlight_match"] = settings.config.get("simplequery", "highlight_match")
+                self.model_settings["highlight_match"] = settings.config.getboolean("simplequery", "highlight_match")
             except (NoSectionError, NoOptionError):
                 self.model_settings["highlight_match"] = False
 
