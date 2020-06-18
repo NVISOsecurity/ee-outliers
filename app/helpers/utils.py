@@ -157,7 +157,7 @@ def extract_outlier_asset_information(fields, settings):
 
 # Convert a sentence value into a flat string, if possible
 # If not, just return None
-def flatten_sentence(sentence=None):
+def flatten_sentence(sentence=None, sep_str=" - "):
     """
     Convert a sentence value into a flat string
 
@@ -174,7 +174,7 @@ def flatten_sentence(sentence=None):
             return None
         else:
             # We convert a list value such as [1,2,3] into a single string, so the model can use it: 1-2-3
-            field_value = " - ".join(str(x) for x in sentence)
+            field_value = sep_str.join(str(x) for x in sentence)
             return field_value
     elif type(sentence) is dict:
         return None
@@ -395,6 +395,15 @@ def get_stdev_decision_frontier(values_array, trigger_sensitivity, trigger_on):
     return decision_frontier
 
 
+def get_mean_and_stdev(values_array):
+    """
+    Compute the standard deviation and the mean of values_array
+    :param values_array: list of values used to make the computation
+    :return (mean, stdev): standard deviation and mean of values_array
+    """
+    return np.nanmean(values_array), np.std(values_array)
+
+
 def get_mad_decision_frontier(values_array, trigger_sensitivity, trigger_on):
     """
     Compute median decision frontier
@@ -509,3 +518,17 @@ def strfdelta(tdelta, fmt='{D:02}d {H:02}h {M:02}m {S:02}s', inputtype='timedelt
         if field in desired_fields and field in constants:
             values[field], remainder = divmod(remainder, constants[field])
     return f.format(fmt, **values)
+
+def split_text_by_separator(text, separators):
+    """
+    Split the text by separators.
+
+    :param text: text string
+    :param separators: separators in regex format
+    :return word_list: list of words
+    """
+    if separators == "":
+        word_list = list(text)
+    else:
+        word_list = re.split(separators, text)
+    return word_list
