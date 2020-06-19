@@ -95,6 +95,8 @@ class Analyzer(abc.ABC):
             model_settings["should_notify"] = False
 
         model_settings["use_derived_fields"] = self.config_section.getboolean("use_derived_fields")
+        if model_settings["use_derived_fields"] is None:
+            model_settings["use_derived_fields"] = False
 
         model_settings["es_index"] = self.config_section.get("es_index")
         if not model_settings["es_index"]:
