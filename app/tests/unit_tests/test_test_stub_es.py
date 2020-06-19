@@ -103,6 +103,8 @@ class TestTestStubEs(unittest.TestCase):
     def test_flush_bulk_actions_using_one_save_outlier(self):
         doc_with_outlier_with_derived_timestamp = copy.deepcopy(doc_with_outlier_with_derived_timestamp_test_file)
         doc_without_outlier = copy.deepcopy(doc_without_outlier_test_file)
+        doc_without_outlier["_source"] = es.extract_fields_from_document(doc_without_outlier,
+                                        extract_derived_fields=True)
         self.test_es.add_doc(doc_without_outlier)
 
         test_outlier = Outlier(outlier_type="dummy type", outlier_reason="dummy reason",
