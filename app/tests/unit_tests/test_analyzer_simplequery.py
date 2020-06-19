@@ -219,7 +219,7 @@ class TestSimplequeryAnalyzer(unittest.TestCase):
         result = [elem for elem in es._scan()][0]
         self.assertTrue("matched_values" in result['_source']['outliers'])
 
-    def test_simplequery_use_derived_fields_in_doc(self):
+    def test_simplequery_not_use_derived_fields_in_doc(self):
         dummy_doc_generate = DummyDocumentsGenerate()
         self.test_es.add_doc(dummy_doc_generate.generate_document())
 
@@ -228,7 +228,7 @@ class TestSimplequeryAnalyzer(unittest.TestCase):
         analyzer.evaluate_model()
 
         result = [elem for elem in es._scan()][0]
-        self.assertTrue("timestamp_year" in result['_source'])
+        self.assertFalse("timestamp_year" in result['_source'])
 
     def test_simplequery_use_derived_fields_in_outlier(self):
         dummy_doc_generate = DummyDocumentsGenerate()
@@ -252,7 +252,7 @@ class TestSimplequeryAnalyzer(unittest.TestCase):
         result = [elem for elem in es._scan()][0]
         self.assertFalse("timestamp_year" in result['_source'])
 
-    def test_simplequery_not_use_derived_fields_but_present_in_outlier(self):
+    def test_simplequery_not_use_derived_fields_not_present_in_outlier(self):
         dummy_doc_generate = DummyDocumentsGenerate()
         self.test_es.add_doc(dummy_doc_generate.generate_document())
 
@@ -261,7 +261,7 @@ class TestSimplequeryAnalyzer(unittest.TestCase):
         analyzer.evaluate_model()
 
         result = [elem for elem in es._scan()][0]
-        self.assertTrue("derived_timestamp_year" in result['_source']['outliers'])
+        self.assertFalse("derived_timestamp_year" in result['_source']['outliers'])
 
     def test_simplequery_default_outlier_infos(self):
         dummy_doc_generate = DummyDocumentsGenerate()

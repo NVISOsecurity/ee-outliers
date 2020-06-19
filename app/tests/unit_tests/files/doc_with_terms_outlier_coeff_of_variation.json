@@ -109,14 +109,7 @@
             "outlier"
         ],
         "timestamp": "2018-07-02T07:54:30.549523+00:00",
-        "type": "eagleeye",
-        "timestamp_year": "2018",
-        "timestamp_month": "07",
-        "timestamp_day": "02",
-        "timestamp_hour": "07",
-        "timestamp_minute": "54",
-        "timestamp_second": "30.549523",
-        "timestamp_timezone": "+00:00"
+        "type": "eagleeye"
     },
     "_type": "doc",
     "sort": [

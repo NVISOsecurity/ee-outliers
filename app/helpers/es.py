@@ -321,16 +321,17 @@ class ES:
         else:
             self.logging.logger.info("no existing outliers were found, so nothing was wiped")
 
-    def process_outlier(self, outlier=None, should_notify=False):
+    def process_outlier(self, outlier=None, should_notify=False, extract_derived_fields=False):
         """
         Save outlier (if configuration is setup for that), notify (also depending of configuration) and print.
 
         :param outlier: the detected outlier
         :param should_notify: True if notification need to be send
+        :param extract_derived_fields: True to save derived fields
         """
 
         if self.settings.es_save_results:
-            self.save_outlier(outlier=outlier)
+            self.save_outlier(outlier=outlier, extract_derived_fields=extract_derived_fields)
 
         if should_notify:
             self.notifier.notify_on_outlier(outlier=outlier)
@@ -399,16 +400,20 @@ class ES:
         eshelpers.bulk(self.conn, self.bulk_actions, stats_only=True, refresh=refresh)
         self.bulk_actions = []
 
-    def save_outlier(self, outlier=None):
+    def save_outlier(self, outlier=None, extract_derived_fields=False):
         """
         Complete (with derived fields) and save outlier to Elasticsearch (via bulk action)
 
         :param outlier: the outlier that need to be save
+        :param extract_derived_fields: True to save derived fields
         """
-        # add the derived fields as outlier observations
-        derived_fields = self.extract_derived_fields(outlier.doc["_source"])
-        for derived_field, derived_value in derived_fields.items():
-            outlier.outlier_dict["derived_" + derived_field] = derived_value
+        if extract_derived_fields:
+            # add the derived fields as outlier observations
+            derived_fields = self.extract_derived_fields(outlier.doc["_source"])
+            for derived_field, derived_value in derived_fields.items():
+                outlier.outlier_dict["derived_" + derived_field] = derived_value
+                # delete temporary derived fields
+                del outlier.doc["_source"][derived_field]
 
         doc = add_outlier_to_document(outlier)
         self.add_update_bulk_action(doc)
