@@ -1,5 +1,6 @@
 # Changelog
 ## Unreleased
+- Fix bugs related to derived fields 
 - Add new version of word2vec analyzer
 - Add the option to highlight the part that matched the use case for simplequery models
 - Support for multiple use-cases in one configuration file
