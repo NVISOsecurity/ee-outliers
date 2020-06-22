@@ -362,7 +362,8 @@ class Word2VecAnalyzer(Analyzer):
         word_id_to_decision_frontier, text_decision_frontier = self._find_decision_frontier(
             score_type_to_word_id_to_scores_list, score_type_to_text_idx_to_score)
 
-        for text_idx, text_str in enumerate(aggr_elem["targets"]):
+        for text_idx in score_type_to_text_idx_to_score[self.model_settings["trigger_score"]]:
+            text_str = aggr_elem["targets"][text_idx]
             # tokenize the text
             word_list = helpers.utils.split_text_by_separator(text_str, self.model_settings["separators"])
 
