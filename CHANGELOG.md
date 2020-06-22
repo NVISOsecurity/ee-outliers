@@ -1,5 +1,8 @@
 # Changelog
 ## Unreleased
+- Changed default behavior around the use of derived fields (through grok fields). The derived fields are now by default
+ not added as new fields in case an outlier event is found. To activated it, you have to set 
+ the `use_derived_fields` use case parameter to `1`.
 - Add new version of word2vec analyzer
 - Add the option to highlight the part that matched the use case for simplequery models
 - Support for multiple use-cases in one configuration file

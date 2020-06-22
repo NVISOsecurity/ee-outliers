@@ -66,7 +66,7 @@ class Analyzer(abc.ABC):
 
         # by default, we don't process documents chronologically when analyzing the model, as it
         # has a high impact on performance when scanning in Elasticsearch
-        model_settings["process_documents_chronologically"] = True
+        model_settings["process_documents_chronologically"] = False
 
         model_settings["es_query_filter"] = self.config_section.get("es_query_filter")
         if model_settings["es_query_filter"]:
@@ -94,7 +94,7 @@ class Analyzer(abc.ABC):
         except NoOptionError:
             model_settings["should_notify"] = False
 
-        model_settings["use_derived_fields"] = self.config_section.getboolean("use_derived_fields")
+        model_settings["use_derived_fields"] = self.config_section.getboolean("use_derived_fields", fallback=False)
 
         model_settings["es_index"] = self.config_section.get("es_index")
         if not model_settings["es_index"]:
@@ -226,7 +226,9 @@ class Analyzer(abc.ABC):
             if settings.print_outliers_to_console:
                 logging.logger.debug("%s [whitelisted outlier]", outlier.outlier_dict["summary"])
         else:
-            es.process_outlier(outlier=outlier, should_notify=self.model_settings["should_notify"])
+            es.process_outlier(outlier=outlier,
+                               should_notify=self.model_settings["should_notify"],
+                               extract_derived_fields=self.model_settings["use_derived_fields"])
 
     def print_analysis_intro(self, event_type, total_events):
         """

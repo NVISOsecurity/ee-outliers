@@ -32,8 +32,6 @@ class Word2VecAnalyzer(Analyzer):
 
         self.model_settings["aggregator"] = self.config_section["aggregator"].replace(' ', '').split(",")
 
-        self.model_settings["use_derived_fields"] = self.config_section.getboolean("use_derived_fields")
-
         # word2vec_batch_eval_size parameter
         self.model_settings["word2vec_batch_eval_size"] = self.extract_parameter("word2vec_batch_eval_size",
                                                                                  param_type="int")
