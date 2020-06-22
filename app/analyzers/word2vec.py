@@ -160,11 +160,6 @@ class Word2VecAnalyzer(Analyzer):
                         target_sentences=target_sentences,
                         aggr_sentences=aggr_sentences,
                         doc=doc)
-                    if num_doc_add > 1:
-                        logging.logger.debug("flag1")
-                        logging.logger.debug(num_doc_add)
-                        logging.logger.debug(target_sentences)
-                        logging.logger.debug(aggr_sentences)
 
                     total_docs_in_batch += num_doc_add
                     total_duplicates += num_duplicates
@@ -368,6 +363,10 @@ class Word2VecAnalyzer(Analyzer):
         # Compute the decision frontier
         word_id_to_decision_frontier, text_decision_frontier = self._find_decision_frontier(
             score_type_to_word_id_to_scores_list, score_type_to_text_idx_to_score)
+
+        logging.logger.debug("flag2")
+        logging.logger.debug(len(aggr_elem["targets"]))
+        logging.logger.debug(len(score_type_to_text_idx_to_score[self.model_settings["trigger_score"]]))
 
         for text_idx, text_str in enumerate(aggr_elem["targets"]):
             # tokenize the text
