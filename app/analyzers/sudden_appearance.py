@@ -32,11 +32,8 @@ class SuddenAppearanceAnalyzer(Analyzer):
         self.total_events, documents = es.count_and_scan_documents(index=self.model_settings["es_index"],
                                                                    search_query=self.search_query,
                                                                    model_settings=self.model_settings)
-        training_data_size_pct = settings.config.getint("machine_learning", "training_data_size_pct")
-        training_data_size = self.total_events / 100 * training_data_size_pct
 
-        self.print_analysis_intro(event_type="training " + self.model_name, total_events=self.total_events)
-        total_training_events = int(min(training_data_size, self.total_events))
+        total_training_events = int(self.total_events)
 
         logging.init_ticker(total_steps=total_training_events, desc=self.model_name + " - preparing training set")
         if self.total_events > 0:
