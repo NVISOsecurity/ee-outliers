@@ -368,11 +368,12 @@ class Word2VecAnalyzer(Analyzer):
         logging.logger.debug(len(aggr_elem["targets"]))
         logging.logger.debug(len(score_type_to_text_idx_to_score[self.model_settings["trigger_score"]]))
 
-        for text_idx, text_str in enumerate(aggr_elem["targets"]):
-            if len(aggr_elem["targets"]) != len(score_type_to_text_idx_to_score[self.model_settings["trigger_score"]]):
-                logging.logger.debug("flag3")
-                logging.logger.debug(text_idx)
-                logging.logger.debug(text_str)
+        for text_idx in score_type_to_text_idx_to_score[self.model_settings["trigger_score"]]:
+            text_str = aggr_elem["targets"][text_idx]
+            # if len(aggr_elem["targets"]) != len(score_type_to_text_idx_to_score[self.model_settings["trigger_score"]]):
+            #     logging.logger.debug("flag3")
+            #     logging.logger.debug(text_idx)
+            #     logging.logger.debug(text_str)
             # tokenize the text
             word_list = helpers.utils.split_text_by_separator(text_str, self.model_settings["separators"])
 
