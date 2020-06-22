@@ -153,6 +153,9 @@ class Word2VecAnalyzer(Analyzer):
                 target_sentences, aggr_sentences = self._extract_target_and_aggr_sentences(doc=doc,
                                                                                            target_fields=target_fields,
                                                                                            aggr_fields=aggr_fields)
+                logging.logger.debug("flag1")
+                logging.logger.debug(target_sentences)
+                logging.logger.debug(aggr_sentences)
                 if target_sentences is not None and aggr_sentences is not None:
                     batch, num_doc_add, num_duplicates = self._add_doc_and_target_sentences_to_batch(
                         current_batch=batch,
