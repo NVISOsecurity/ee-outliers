@@ -364,17 +364,9 @@ class Word2VecAnalyzer(Analyzer):
         word_id_to_decision_frontier, text_decision_frontier = self._find_decision_frontier(
             score_type_to_word_id_to_scores_list, score_type_to_text_idx_to_score)
 
-        logging.logger.debug("flag2")
-        logging.logger.debug(len(aggr_elem["targets"]))
-        logging.logger.debug(len(score_type_to_text_idx_to_score[self.model_settings["trigger_score"]]))
-
         for text_idx in score_type_to_text_idx_to_score[self.model_settings["trigger_score"]]:
             text_str = aggr_elem["targets"][text_idx]
-            # if len(aggr_elem["targets"]) != len(score_type_to_text_idx_to_score[self.model_settings["trigger_score"]]):
-            #     logging.logger.debug("flag3")
-            #     logging.logger.debug(text_idx)
-            #     logging.logger.debug(text_str)
-            # tokenize the text
+
             word_list = helpers.utils.split_text_by_separator(text_str, self.model_settings["separators"])
 
             text_analyzer = TextAnalyzer(text_idx,
