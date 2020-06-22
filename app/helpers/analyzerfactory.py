@@ -1,3 +1,4 @@
+from helpers.singletons import logging
 import configparser
 import os
 import re
@@ -65,6 +66,8 @@ class AnalyzerFactory:
         # Read the ini file from disk
         config = configparser.RawConfigParser(**configparser_options)
         config.read(config_file)
+
+        logging.logger.debug(config)
 
         # Create a list of all analyzers found in the config file
         analyzers = [AnalyzerFactory.section_to_analyzer(section_name, section)
