@@ -3,9 +3,9 @@ services:
   outliers:
     build: .
     container_name: outliers_dev_max
-    command: "python3 outliers.py interactive --config /mappedvolumes/config/outliers.conf --use-cases /use_cases/word2vec*.conf"
+    command: "python3 outliers.py interactive --config /mappedvolumes/config/outliers.conf --use-cases /use_cases/simplequery_use*.conf"
     volumes:
       - ./defaults/outliers_max.conf:/mappedvolumes/config/outliers.conf
-      - ./use_cases/examples:/use_cases
+      - ./use_cases/tests:/use_cases
       - ./app:/app
     network_mode: sensor_network

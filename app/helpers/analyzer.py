@@ -66,7 +66,7 @@ class Analyzer(abc.ABC):
 
         # by default, we don't process documents chronologically when analyzing the model, as it
         # has a high impact on performance when scanning in Elasticsearch
-        model_settings["process_documents_chronologically"] = False
+        model_settings["process_documents_chronologically"] = True
 
         model_settings["es_query_filter"] = self.config_section.get("es_query_filter")
         if model_settings["es_query_filter"]:
