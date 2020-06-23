@@ -153,14 +153,12 @@ class Word2VecAnalyzer(Analyzer):
                 target_sentences, aggr_sentences = self._extract_target_and_aggr_sentences(doc=doc,
                                                                                            target_fields=target_fields,
                                                                                            aggr_fields=aggr_fields)
-
                 if target_sentences is not None and aggr_sentences is not None:
                     batch, num_doc_add, num_duplicates = self._add_doc_and_target_sentences_to_batch(
                         current_batch=batch,
                         target_sentences=target_sentences,
                         aggr_sentences=aggr_sentences,
                         doc=doc)
-
                     total_docs_in_batch += num_doc_add
                     total_duplicates += num_duplicates
 
@@ -366,7 +364,7 @@ class Word2VecAnalyzer(Analyzer):
 
         for text_idx in score_type_to_text_idx_to_score[self.model_settings["trigger_score"]]:
             text_str = aggr_elem["targets"][text_idx]
-
+            # tokenize the text
             word_list = helpers.utils.split_text_by_separator(text_str, self.model_settings["separators"])
 
             text_analyzer = TextAnalyzer(text_idx,
