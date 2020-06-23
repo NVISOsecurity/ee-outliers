@@ -54,12 +54,27 @@ class SimplequeryAnalyzer(Analyzer):
             query["filter"].append(exclude_hits_filter)
         else:
             query["filter"] = [exclude_hits_filter]
+        # TEST 1
+        logging.logger.debug("process_documents_chronologically set to: "
+                             + str(self.model_settings["process_documents_chronologically"]))
         start_time = dt.datetime.today().timestamp()
         self.total_events, documents = es.count_and_scan_documents(index=self.model_settings["es_index"],
                                                                    search_query=query,
                                                                    model_settings=self.model_settings)
         diff_time = float(dt.datetime.today().timestamp() - start_time)
         logging.logger.debug("Time count_and_scan_documents: " + str(diff_time))
+
+        # TEST 2
+        self.model_settings["process_documents_chronologically"] = True
+        logging.logger.debug("process_documents_chronologically set to: "
+                             + str(self.model_settings["process_documents_chronologically"]))
+        start_time = dt.datetime.today().timestamp()
+        self.total_events, documents = es.count_and_scan_documents(index=self.model_settings["es_index"],
+                                                                   search_query=query,
+                                                                   model_settings=self.model_settings)
+        diff_time = float(dt.datetime.today().timestamp() - start_time)
+        logging.logger.debug("Time count_and_scan_documents: " + str(diff_time))
+
         self.print_analysis_intro(event_type="evaluating " + self.model_type + "_" + self.model_name,
                                   total_events=self.total_events)
 
