@@ -133,6 +133,28 @@ class ES:
                               scroll=self.settings.config.get("general", "es_scroll_time"),
                               preserve_order=preserve_order, raise_on_error=False)
 
+    def _scan_first_occur(self, index, search_range, bool_clause=None, sort_clause=None, query_fields=None,
+                          search_query=None, model_settings=None):
+        preserve_order = False
+
+        highlight_settings = self._get_highlight_settings(model_settings)
+
+        if model_settings is not None and model_settings["process_documents_chronologically"]:
+            sort_clause = {"sort": [{model_settings["timestamp_field"]: "desc"}]}
+            preserve_order = True
+
+        return eshelpers.scan(self.conn, request_timeout=self.settings.config.getint("general", "es_timeout"),
+                              index=index, query=build_search_query(bool_clause=bool_clause,# TODO
+                                                                    sort_clause=sort_clause,
+                                                                    search_range=search_range,
+                                                                    query_fields=query_fields,
+                                                                    search_query=search_query,
+                                                                    highlight_settings=highlight_settings),
+                              size=self.settings.config.getint("general", "es_scan_size"),
+                              scroll=self.settings.config.get("general", "es_scroll_time"),
+                              preserve_order=preserve_order, raise_on_error=False)
+
+
     def _count_documents(self, index, search_range, bool_clause=None, query_fields=None, search_query=None):
         """
         Count number of document in Elasticsearch that match the query
@@ -171,6 +193,31 @@ class ES:
             return total_events, self._scan(index, search_range, bool_clause, sort_clause, query_fields, search_query,
                                             model_settings)
         return total_events, []
+
+    def count_and_scan_first_occur_documents(self, index, bool_clause=None, sort_clause=None, query_fields=None, search_query=None,
+                                 model_settings=None):
+
+        """
+        Count the number of document and fetch the documents from Elasticsearch with the first occurrence of each target
+         field type.
+
+        :param index: on which index the request must be done
+        :param bool_clause: boolean condition
+        :param sort_clause: request to sort result
+        :param query_fields: the query field
+        :param search_query: the search query
+        :param model_settings: part of the configuration linked to the model
+        :return: the number of document and a generator/list of all documents
+        """
+        timestamp_field, history_window_days, history_window_hours = self._get_history_window(model_settings)
+        search_range = self.get_time_filter(days=history_window_days, hours=history_window_hours,
+                                            timestamp_field=timestamp_field)
+        total_events = self._count_documents(index, search_range, bool_clause, query_fields, search_query)
+        if total_events > 0:
+            return total_events, self._scan_first_occur(index, search_range, bool_clause, sort_clause, query_fields, search_query,
+                                            model_settings)
+        return total_events, []
+
 
     @staticmethod
     def filter_by_query_string(query_string=None):
