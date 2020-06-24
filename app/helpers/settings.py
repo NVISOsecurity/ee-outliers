@@ -111,6 +111,35 @@ def extract_whitelist_regex_from_value(value):
     return list_compile_regex_whitelist_value, failing_regular_expressions
 
 
+def extract_whitelist_regex_from_settings_section(whitelist_regexps_config_items):
+    list_whitelist_regexps = list()
+    failing_regular_expressions = set()
+
+    # Verify that all regular expressions in the whitelist are valid.
+    # If this is not the case, log an error to the user, as these will be ignored.
+    for each_whitelist_configuration_file_value in whitelist_regexps_config_items:
+        new_compile_regex_whitelist_value, value_failing_regular_expressions = \
+            extract_whitelist_regex_from_value(each_whitelist_configuration_file_value)
+
+        # Fixes bug #462
+        if len(new_compile_regex_whitelist_value) > 0:
+            list_whitelist_regexps.append(new_compile_regex_whitelist_value)
+
+        if len(value_failing_regular_expressions) > 0:
+            failing_regular_expressions.union(value_failing_regular_expressions)
+
+    return list_whitelist_regexps, failing_regular_expressions
+
+
+def extract_whitelist_literals_from_settings_section(fetch_whitelist_literals_elements):
+    list_whitelist_literals = list()
+
+    for each_whitelist_configuration_file_value in fetch_whitelist_literals_elements:
+        list_whitelist_literals.append(extract_whitelist_literal_from_value(str(
+            each_whitelist_configuration_file_value)))
+    return list_whitelist_literals
+
+
 @singleton
 class Settings:
     """
@@ -152,11 +181,22 @@ class Settings:
         # At this point we know all configuration files can be loaded - let's parse them!
         self.config = config
 
+        try:
+            fetch_whitelist_literals_elements = list(dict(self.config.items("whitelist_literals")).values())
+        except NoSectionError:
+            fetch_whitelist_literals_elements = list()
+
+        try:
+            whitelist_regexps_config_items = dict(self.config.items("whitelist_regexps")).values()
+        except NoSectionError:
+            whitelist_regexps_config_items = list()
+
         # Literal whitelist
-        self.whitelist_literals_config = self._extract_whitelist_literals_from_settings_section("whitelist_literals")
+        self.whitelist_literals_config = \
+            extract_whitelist_literals_from_settings_section(fetch_whitelist_literals_elements)
         # Regex whitelist
         self.whitelist_regexps_config, self.failing_regular_expressions = \
-            self._extract_whitelist_regex_from_settings_section("whitelist_regexps")
+            extract_whitelist_regex_from_settings_section(whitelist_regexps_config_items)
 
         try:
             self.print_outliers_to_console = self.config.getboolean("general", "print_outliers_to_console")
@@ -175,35 +215,6 @@ class Settings:
             self.list_assets = self.config.items("assets")
         except NoSectionError:
             self.list_assets = dict()
-
-    def _extract_whitelist_literals_from_settings_section(self, settings_section):
-        list_whitelist_literals = list()
-        fetch_whitelist_literals_elements = list(dict(self.config.items(settings_section)).values())
-
-        for each_whitelist_configuration_file_value in fetch_whitelist_literals_elements:
-            list_whitelist_literals.append(extract_whitelist_literal_from_value(str(
-                each_whitelist_configuration_file_value)))
-        return list_whitelist_literals
-
-    def _extract_whitelist_regex_from_settings_section(self, settings_section):
-        whitelist_regexps_config_items = list(dict(self.config.items(settings_section)).values())
-        list_whitelist_regexps = list()
-        failing_regular_expressions = set()
-
-        # Verify that all regular expressions in the whitelist are valid.
-        # If this is not the case, log an error to the user, as these will be ignored.
-        for each_whitelist_configuration_file_value in whitelist_regexps_config_items:
-            new_compile_regex_whitelist_value, value_failing_regular_expressions = \
-                extract_whitelist_regex_from_value(each_whitelist_configuration_file_value)
-
-            # Fixes bug #462
-            if len(new_compile_regex_whitelist_value) > 0:
-                list_whitelist_regexps.append(new_compile_regex_whitelist_value)
-
-            if len(value_failing_regular_expressions) > 0:
-                failing_regular_expressions.union(value_failing_regular_expressions)
-
-        return list_whitelist_regexps, failing_regular_expressions
 
     def check_no_duplicate_key(self):
         """
