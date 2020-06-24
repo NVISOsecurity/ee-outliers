@@ -42,7 +42,7 @@ class HousekeepingJob(threading.Thread):
             # should be processed!
             settings.process_configuration_files()
 
-            logging.logger.info("housekeeping - changes detected, process again housekeeping")
+            logging.logger.info("housekeeping - changes detected in configuration file, reprocessing")
             self.remove_all_whitelisted_outliers()
 
     def update_analyzer_list(self, list_analyzer):

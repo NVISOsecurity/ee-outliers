@@ -18,7 +18,7 @@ from helpers.singletons import settings, logging, es
 from helpers.watchers import FileModificationWatcher
 from helpers.housekeeping import HousekeepingJob
 from helpers.analyzerfactory import AnalyzerFactory
-from configparser import MissingSectionHeaderError
+from configparser import MissingSectionHeaderError, DuplicateSectionError, DuplicateOptionError
 
 def run_outliers():
     """
@@ -69,7 +69,6 @@ def setup_logging():
     # Configuration for which we need access to both settings and logging singletons should happen here
     logging.verbosity = settings.config.getint("general", "log_verbosity")
     logging.logger.setLevel(settings.config.get("general", "log_level"))
-    os.environ['TF_CPP_MIN_LOG_LEVEL'] = settings.config.get("machine_learning", "tensorflow_log_level")
 
     # Log Handlers
     log_file = settings.config.get("general", "log_file")
@@ -240,8 +239,8 @@ def load_analyzers():
             if not os.path.isdir(use_case_file):
                 logging.logger.debug("Loading use case %s" % use_case_file)
                 try:
-                    analyzers.append(AnalyzerFactory.create(use_case_file))
-                except (ValueError, MissingSectionHeaderError) as e:
+                    analyzers.extend(AnalyzerFactory.create_multi(use_case_file))
+                except (ValueError, MissingSectionHeaderError, DuplicateSectionError, DuplicateOptionError) as e:
                     logging.logger.error("An error occured when loading %s: %s" % (use_case_file, str(e)))
 
     return analyzers

@@ -4,10 +4,6 @@
 
 ## Table of contents
 - [Requirements](#requirements)
-- [Configuring ee-outliers](#configuring-ee-outliers)
-- [Running in interactive mode](#running-in-interactive-mode)
-- [Running in daemon mode](#running-in-daemon-mode)
-- [Customizing your Docker run parameters](#customizing-your-docker-run-parameters) 
 - [Running ee-outliers](#running-ee-outliers)
     - [Step 1: Configuring ee-outliers](#step-1-configuring-ee-outliers)
     - [Step 2: Define the outlier detection use cases](#step-2-define-the-outlier-detection-use-cases)
@@ -41,7 +37,7 @@ A full description of all configuration parameters can be found [here](CONFIG_PA
 
 ### Step 2: Define the outlier detection use cases
 
-Each detection use case has to be defined in a separate .conf file.
+Each detection use case can be defined in a shared or unique .conf file.
 
 We provided 4 examples of use cases available in the [use_cases/examples](../use_cases/examples) repository.
 A detailed description of these use case examples, along with information on how you can create your owns can be found 

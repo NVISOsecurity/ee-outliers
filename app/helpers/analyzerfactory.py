@@ -1,3 +1,4 @@
+from helpers.singletons import logging
 import configparser
 import os
 import re
@@ -35,20 +36,11 @@ class AnalyzerFactory:
     def create(config_file):
         """
         Creates an analyzer based on a configuration file
+        Deprecated in favor of `create_multi`
         :param config_file: configuration file containing a single analyzer
         :return: returns the analyzer object
         """
-        if not os.path.isfile(config_file):
-            raise ValueError("Use case file %s does not exist" % config_file)
-
-        # Read the ini file from disk
-        config = configparser.RawConfigParser()
-        config.read(config_file)
-
-        # Create a list of all analyzers found in the config file
-        analyzers = [AnalyzerFactory.section_to_analyzer(section_name, section)
-                     for section_name, section in config.items()]
-        analyzers = list(filter(None, analyzers))
+        analyzers = AnalyzerFactory.create_multi(config_file)
 
         # File should only contain 1 analyzer
         if len(analyzers) != 1:
@@ -56,13 +48,39 @@ class AnalyzerFactory:
 
         analyzer = analyzers[0]
 
-        if "whitelist_literals" in config.sections():
-            for _, value in config["whitelist_literals"].items():
-                analyzer.model_whitelist_literals.append(set([x.strip() for x in value.split(",")]))
-
-        if "whitelist_regexps" in config.sections():
-            for _, value in config["whitelist_regexps"].items():
-                analyzer.model_whitelist_regexps.append((set([re.compile(x.strip(), re.IGNORECASE)
-                                                              for x in value.split(",")])))
-
         return analyzer
+
+    @staticmethod
+    def create_multi(config_file, configparser_options={}):
+        """
+        Creates a list of analyzers based on a configuration file
+        :param config_file: configuration file containing one or multiple analyzers
+        :param configparser_options: Optional parameters to configparser.RawConfigParser(...)
+        :return: returns the analyzer objects in a list
+        """
+        if not os.path.isfile(config_file):
+            raise ValueError("Use case file %s does not exist" % config_file)
+
+        # Read the ini file from disk
+        config = configparser.RawConfigParser(**configparser_options)
+        config.read(config_file)
+
+        logging.logger.debug(config)
+
+        # Create a list of all analyzers found in the config file
+        analyzers = [AnalyzerFactory.section_to_analyzer(section_name, section)
+                     for section_name, section in config.items()]
+        analyzers = list(filter(None, analyzers))
+
+        for analyzer in analyzers:
+            if "whitelist_literals" in config.sections():
+                for _, value in config["whitelist_literals"].items():
+                    analyzer.model_whitelist_literals.append(
+                        set([x.strip() for x in value.split(",")]))
+
+            if "whitelist_regexps" in config.sections():
+                for _, value in config["whitelist_regexps"].items():
+                    analyzer.model_whitelist_regexps.append(
+                        (set([re.compile(x.strip(), re.IGNORECASE) for x in value.split(",")])))
+
+        return analyzers

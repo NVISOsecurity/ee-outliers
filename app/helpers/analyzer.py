@@ -1,7 +1,7 @@
 import abc
-import dateutil
+from dateutil import parser
 
-from configparser import NoOptionError
+from configparser import NoOptionError, NoSectionError
 
 from helpers.singletons import settings, es, logging
 import helpers.utils
@@ -66,7 +66,7 @@ class Analyzer(abc.ABC):
 
         # by default, we don't process documents chronologically when analyzing the model, as it
         # has a high impact on performance when scanning in Elasticsearch
-        model_settings["process_documents_chronologically"] = True
+        model_settings["process_documents_chronologically"] = False
 
         model_settings["es_query_filter"] = self.config_section.get("es_query_filter")
         if model_settings["es_query_filter"]:
@@ -94,7 +94,7 @@ class Analyzer(abc.ABC):
         except NoOptionError:
             model_settings["should_notify"] = False
 
-        model_settings["use_derived_fields"] = self.config_section.getboolean("use_derived_fields")
+        model_settings["use_derived_fields"] = self.config_section.getboolean("use_derived_fields", fallback=False)
 
         model_settings["es_index"] = self.config_section.get("es_index")
         if not model_settings["es_index"]:
@@ -226,7 +226,9 @@ class Analyzer(abc.ABC):
             if settings.print_outliers_to_console:
                 logging.logger.debug("%s [whitelisted outlier]", outlier.outlier_dict["summary"])
         else:
-            es.process_outlier(outlier=outlier, should_notify=self.model_settings["should_notify"])
+            es.process_outlier(outlier=outlier,
+                               should_notify=self.model_settings["should_notify"],
+                               extract_derived_fields=self.model_settings["use_derived_fields"])
 
     def print_analysis_intro(self, event_type, total_events):
         """
@@ -261,8 +263,8 @@ class Analyzer(abc.ABC):
         search_range_end = search_range["range"][str(settings.config.get("general", "timestamp_field",
                                                                          fallback="timestamp"))]["lte"]
 
-        search_start_range_printable = dateutil.parser.parse(search_range_start).strftime('%Y-%m-%d %H:%M:%S')
-        search_end_range_printable = dateutil.parser.parse(search_range_end).strftime('%Y-%m-%d %H:%M:%S')
+        search_start_range_printable = parser.parse(search_range_start).strftime('%Y-%m-%d %H:%M:%S')
+        search_end_range_printable = parser.parse(search_range_end).strftime('%Y-%m-%d %H:%M:%S')
         return "processing events between " + search_start_range_printable + " and " + search_end_range_printable
 
     @abc.abstractmethod
@@ -273,3 +275,38 @@ class Analyzer(abc.ABC):
         detection of outliers.
         """
         raise NotImplementedError()
+
+    def extract_parameter(self, param_name, param_type=None, default=None):
+        """
+        Extract parameter in general or use-case conf file.
+
+        :param param_name: Name of the parameter to extract in general or use-case conf file
+        :param param_type: Type of conversion of the parameter. string, int, float, boolean or None.
+        :param default: default value if parameter is not found.
+        :return: the parameter converted into param_type
+        """
+        config_section_get = {"string": self.config_section.get,
+                              "int": self.config_section.getint,
+                              "float": self.config_section.getfloat,
+                              "boolean": self.config_section.getboolean}
+
+        settings_config_get = {"string": settings.config.get,
+                               "int": settings.config.getint,
+                               "float": settings.config.getfloat,
+                               "boolean": settings.config.getboolean}
+        try:
+            if param_type is None:
+                param_value = config_section_get["string"](param_name)
+                if param_value is None:
+                    param_value = settings_config_get["string"](self.model_type, param_name)
+            else:
+                param_value = config_section_get[param_type](param_name)
+                if param_value is None:
+                    param_value = settings_config_get[param_type](self.model_type, param_name)
+        except (NoOptionError, NoSectionError) as e:
+            if default is not None:
+                param_value = default
+            else:
+                raise ValueError(e)
+
+        return param_value

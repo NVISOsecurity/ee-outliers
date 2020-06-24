@@ -7,6 +7,9 @@ from itertools import chain
 
 from pygrok import Grok
 from elasticsearch import helpers as eshelpers, Elasticsearch
+from elasticsearch.exceptions import AuthenticationException, ConnectionError
+
+from configparser import NoOptionError
 
 import helpers.utils
 import helpers.logging
@@ -52,15 +55,28 @@ class ES:
 
         :return: Connection object if connection with Elasticsearch succeeded, False otherwise
         """
-        self.conn = Elasticsearch([self.settings.config.get("general", "es_url")], use_ssl=False,
-                                  timeout=self.settings.config.getint("general", "es_timeout"),
-                                  verify_certs=False, retry_on_timeout=True)
+        try:
+            http_auth = (self.settings.config.get("general", "es_username"),
+                         self.settings.config.get("general", "es_password"))
+        except NoOptionError:
+            http_auth = ("", "")
 
-        if self.conn.ping():
+        self.conn = Elasticsearch([self.settings.config.get("general", "es_url")],
+                                  http_auth=http_auth,
+                                  use_ssl=False,
+                                  timeout=self.settings.config.getint("general", "es_timeout"),
+                                  verify_certs=False,
+                                  retry_on_timeout=True)
+        try:
+            self.conn.info()
             self.logging.logger.info("connected to Elasticsearch on host %s" %
                                      (self.settings.config.get("general", "es_url")))
             result = self.conn
-        else:
+        except AuthenticationException:
+            self.logging.logger.error("could not connect to Elasticsearch on host %s due to authentication error." %
+                                      (self.settings.config.get("general", "es_url")))
+            result = False
+        except ConnectionError:
             self.logging.logger.error("could not connect to Elasticsearch on host %s" %
                                       (self.settings.config.get("general", "es_url")))
             result = False
@@ -75,7 +91,7 @@ class ES:
         :return: timtestamp field name, number of recover day , number of recover hours (in addition to the days)
         """
         if model_settings is None:
-            timestamp_field = self.settings.config.get("general", "timestamp_field", fallback="timestamp")
+            timestamp_field = self.settings.config.get("general", "timestamp_field", fallback="@timestamp")
             history_window_days = self.settings.config.getint("general", "history_window_days")
             history_window_hours = self.settings.config.getint("general", "history_window_hours")
         else:
@@ -100,6 +116,8 @@ class ES:
         """
         preserve_order = False
 
+        highlight_settings = self._get_highlight_settings(model_settings)
+
         if model_settings is not None and model_settings["process_documents_chronologically"]:
             sort_clause = {"sort": [{model_settings["timestamp_field"]: "desc"}]}
             preserve_order = True
@@ -109,7 +127,8 @@ class ES:
                                                                     sort_clause=sort_clause,
                                                                     search_range=search_range,
                                                                     query_fields=query_fields,
-                                                                    search_query=search_query),
+                                                                    search_query=search_query,
+                                                                    highlight_settings=highlight_settings),
                               size=self.settings.config.getint("general", "es_scan_size"),
                               scroll=self.settings.config.get("general", "es_scroll_time"),
                               preserve_order=preserve_order, raise_on_error=False)
@@ -302,16 +321,17 @@ class ES:
         else:
             self.logging.logger.info("no existing outliers were found, so nothing was wiped")
 
-    def process_outlier(self, outlier=None, should_notify=False):
+    def process_outlier(self, outlier=None, should_notify=False, extract_derived_fields=False):
         """
         Save outlier (if configuration is setup for that), notify (also depending of configuration) and print.
 
         :param outlier: the detected outlier
         :param should_notify: True if notification need to be send
+        :param extract_derived_fields: True to save derived fields
         """
 
         if self.settings.es_save_results:
-            self.save_outlier(outlier=outlier)
+            self.save_outlier(outlier=outlier, extract_derived_fields=extract_derived_fields)
 
         if should_notify:
             self.notifier.notify_on_outlier(outlier=outlier)
@@ -380,16 +400,20 @@ class ES:
         eshelpers.bulk(self.conn, self.bulk_actions, stats_only=True, refresh=refresh)
         self.bulk_actions = []
 
-    def save_outlier(self, outlier=None):
+    def save_outlier(self, outlier=None, extract_derived_fields=False):
         """
         Complete (with derived fields) and save outlier to Elasticsearch (via bulk action)
 
         :param outlier: the outlier that need to be save
+        :param extract_derived_fields: True to save derived fields
         """
-        # add the derived fields as outlier observations
-        derived_fields = self.extract_derived_fields(outlier.doc["_source"])
-        for derived_field, derived_value in derived_fields.items():
-            outlier.outlier_dict["derived_" + derived_field] = derived_value
+        if extract_derived_fields:
+            # add the derived fields as outlier observations
+            derived_fields = self.extract_derived_fields(outlier.doc["_source"])
+            for derived_field, derived_value in derived_fields.items():
+                outlier.outlier_dict["derived_" + derived_field] = derived_value
+                # delete temporary derived fields
+                del outlier.doc["_source"][derived_field]
 
         doc = add_outlier_to_document(outlier)
         self.add_update_bulk_action(doc)
@@ -466,6 +490,28 @@ class ES:
         }
         return time_filter
 
+    @staticmethod
+    def _get_highlight_settings(model_settings):
+        """
+        Build the highlight settings to include into the Elasticsearch query body.
+        This settings will search in all the fields and return fields that contain query matches.
+        Each value inside the field that match the search query will be tag as follow:
+         <value>value_that_match_search_query</values>
+
+        :param model_settings: part of the configuration linked to the model
+        :return: highlight_settings: Highlight settings
+        """
+        highlight_settings = None
+        if "highlight_match" in model_settings and model_settings["highlight_match"]:
+            highlight_settings = dict()
+            # Pre and post tag definition
+            highlight_settings["pre_tags"] = ["<value>"]
+            highlight_settings["post_tags"] = ["</value>"]
+            highlight_settings["fields"] = dict()
+            # Search in all the fields
+            highlight_settings["fields"]["*"] = dict()
+        return highlight_settings
+
 
 def add_outlier_to_document(outlier):
     """
@@ -541,7 +587,12 @@ def remove_tag_from_document(doc, tag):
     return doc
 
 
-def build_search_query(bool_clause=None, sort_clause=None, search_range=None, query_fields=None, search_query=None):
+def build_search_query(bool_clause=None,
+                       sort_clause=None,
+                       search_range=None,
+                       query_fields=None,
+                       search_query=None,
+                       highlight_settings=None):
     """
     Create a query for Elasticsearch
 
@@ -550,6 +601,7 @@ def build_search_query(bool_clause=None, sort_clause=None, search_range=None, qu
     :param search_range: search range
     :param query_fields: query fields
     :param search_query: search query
+    :param highlight_settings: highlight settings
     :return: the building query
     """
     query = dict()
@@ -577,5 +629,8 @@ def build_search_query(bool_clause=None, sort_clause=None, search_range=None, qu
 
     if search_query:
         query["query"]["bool"]["filter"].append(search_query["filter"].copy())
+
+    if highlight_settings:
+        query["highlight"] = highlight_settings
 
     return query

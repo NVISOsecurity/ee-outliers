@@ -144,16 +144,6 @@ class TestMetricsAnalyzer(unittest.TestCase):
 
         self.assertEqual(analyzer.total_outliers, 1)
 
-    def test_metrics_use_derived_fields_in_doc(self):
-        dummy_doc_generate = DummyDocumentsGenerate()
-        self.test_es.add_doc(dummy_doc_generate.generate_document())
-
-        self.test_settings.change_configuration_path("/app/tests/unit_tests/files/metrics_test_01.conf")
-        analyzer = AnalyzerFactory.create("/app/tests/unit_tests/files/use_cases/metrics/metrics_dummy_test_derived.conf")
-        analyzer.evaluate_model()
-
-        result = [elem for elem in es._scan()][0]
-        self.assertTrue("timestamp_year" in result['_source'])
 
     def test_metrics_use_derived_fields_in_outlier(self):
         dummy_doc_generate = DummyDocumentsGenerate()
@@ -177,7 +167,7 @@ class TestMetricsAnalyzer(unittest.TestCase):
         result = [elem for elem in es._scan()][0]
         self.assertFalse("timestamp_year" in result['_source'])
 
-    def test_metrics_not_use_derived_fields_but_present_in_outlier(self):
+    def test_metrics_not_use_derived_fields_not_present_in_outlier(self):
         dummy_doc_generate = DummyDocumentsGenerate()
         self.test_es.add_doc(dummy_doc_generate.generate_document({"user_id": 11}))
 
@@ -187,7 +177,7 @@ class TestMetricsAnalyzer(unittest.TestCase):
 
         result = [elem for elem in es._scan()][0]
         # The parameter use_derived_fields haven't any impact on outliers keys
-        self.assertTrue("derived_timestamp_year" in result['_source']['outliers'])
+        self.assertFalse("derived_timestamp_year" in result['_source']['outliers'])
 
     def test_whitelist_batch_document_not_process_all(self):
         self.test_settings.change_configuration_path("/app/tests/unit_tests/files/metrics_test_with_whitelist.conf")
