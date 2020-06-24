@@ -226,7 +226,11 @@ class Word2VecAnalyzer(Analyzer):
             - number of document not added to batch
         """
         for target_sentence in target_sentences:
-            flattened_target_sentence = helpers.utils.flatten_sentence(target_sentence, sep_str='')
+            # Remove escape character '\' that escapes regex special characters.
+            # This escape character may be present into the regex expression contained in separators.
+            separators_without_special_char = re.sub(r'\\(.)', r'\1', self.model_settings["separators"])
+            flattened_target_sentence = helpers.utils.flatten_sentence(target_sentence,
+                                                                       sep_str=separators_without_special_char)
 
             for aggregator_sentence in aggr_sentences:
                 flattened_aggregator_sentence = helpers.utils.flatten_sentence(aggregator_sentence)
