@@ -1,21 +1,22 @@
 # Changelog
 ## [Version 0.2.14](https://github.com/NVISO-BE/ee-outliers/releases/tag/0.2.14) (June 24, 2020)
 ### New features
-- Enable Elasticsearch Authentication
+- Provide the option to authenticate to Elasticsearch using username/password in the configuration file
 - Add the option to highlight the part that matched the use case for simplequery models
 - Support for multiple use-cases in one configuration file
-- Add new version of word2vec analyzer
+- Add new version of word2vec model
 ### Minor changes
 - Documentation updated
-- Make whitelist_regexp and whitelist_literals sections non-required in the configuration file
-- Timestamp_field default parameter set to "@timestamp"
+- Make `whitelist_regexp` and `whitelist_literals` sections non-required in the configuration file
+- `timestamp_field` default parameter set to "@timestamp"
 - Changed default behavior around the use of derived fields (through grok fields). The derived fields are now by default
- not added as new fields in case an outlier event is found. To activated it, you have to set the use_derived_fields use 
- case parameter to 1
+ not added as new fields in case an outlier event is found. To activate it, you have to set the `use_derived_fields` use 
+ case parameter to `1`
 - Process documents non-chronologically by default in simplerequest use cases
 ### Bug fixes
-- In case an outlier event is found, avoid creating fields outside the outlier dictionary when use_derived_fields is 
+- In case an outlier event is found, avoid creating fields outside the outlier dictionary when `use_derived_fields` is 
 activated
+
 ## [Version 0.2.13](https://github.com/NVISO-BE/ee-outliers/releases/tag/0.2.13) (April 8, 2020)
 - Improved documentation (source code and user documentation)
 - Fixes an issue where DSL queries in use case configuration files would not be correctly parsed (issue #455)
