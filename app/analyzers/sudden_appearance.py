@@ -28,20 +28,24 @@ class SuddenAppearanceAnalyzer(Analyzer):
 
     def evaluate_model(self):
         train_data = list()
-
-        self.total_events, documents = es.count_and_scan_documents(index=self.model_settings["es_index"],
-                                                                   search_query=self.search_query,
-                                                                   model_settings=self.model_settings)
+        logging.logger.debug("flag1")
+        self.total_events, documents = es.count_and_scan_first_occur_documents(index=self.model_settings["es_index"],
+                                                                               search_query=self.search_query,
+                                                                               model_settings=self.model_settings)
 
         total_training_events = int(self.total_events)
 
         logging.init_ticker(total_steps=total_training_events, desc=self.model_name + " - preparing training set")
         if self.total_events > 0:
             for doc in documents:
-                if len(train_data) < total_training_events:
+                if len(train_data) < 1:
                     logging.tick()
                     fields = es.extract_fields_from_document(
-                                                doc, extract_derived_fields=self.model_settings["use_derived_fields"])
+                        doc, extract_derived_fields=self.model_settings["use_derived_fields"])
+                    logging.logger.debug(fields['host'])
+                    logging.logger.debug(doc["_id"])
+                    logging.logger.debug(fields["TimeCreated.SystemTime"])
+                    logging.logger.debug(fields["@timestamp"])
                     train_data.append(fields)
                 else:
                     # We have collected sufficient training data

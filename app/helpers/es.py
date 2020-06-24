@@ -138,22 +138,27 @@ class ES:
         preserve_order = False
 
         highlight_settings = self._get_highlight_settings(model_settings)
-
+        model_settings["process_documents_chronologically"] = True
         if model_settings is not None and model_settings["process_documents_chronologically"]:
-            sort_clause = {"sort": [{model_settings["timestamp_field"]: "desc"}]}
+            sort_clause = {"sort": [{model_settings["timestamp_field"]: "asc"}]}
             preserve_order = True
-
+            self.logging.logger.debug("chronological scan")
+        search_query = build_search_query(bool_clause=bool_clause,  # TODO
+                                          sort_clause=sort_clause,
+                                          search_range=search_range,
+                                          query_fields=query_fields,
+                                          search_query=search_query,
+                                          highlight_settings=highlight_settings,
+                                          get_first_occur=True)
+        count_test = self.conn.search(index=index, body=search_query, size=0)
+        self.logging.logger.debug("count_test: " + str(count_test))
+        self.logging.logger.debug("flag4")
+        self.logging.logger.debug(search_query)
         return eshelpers.scan(self.conn, request_timeout=self.settings.config.getint("general", "es_timeout"),
-                              index=index, query=build_search_query(bool_clause=bool_clause,# TODO
-                                                                    sort_clause=sort_clause,
-                                                                    search_range=search_range,
-                                                                    query_fields=query_fields,
-                                                                    search_query=search_query,
-                                                                    highlight_settings=highlight_settings),
+                              index=index, query=search_query,
                               size=self.settings.config.getint("general", "es_scan_size"),
                               scroll=self.settings.config.get("general", "es_scroll_time"),
                               preserve_order=preserve_order, raise_on_error=False)
-
 
     def _count_documents(self, index, search_range, bool_clause=None, query_fields=None, search_query=None):
         """
@@ -194,8 +199,9 @@ class ES:
                                             model_settings)
         return total_events, []
 
-    def count_and_scan_first_occur_documents(self, index, bool_clause=None, sort_clause=None, query_fields=None, search_query=None,
-                                 model_settings=None):
+    def count_and_scan_first_occur_documents(self, index, bool_clause=None, sort_clause=None, query_fields=None,
+                                             search_query=None,
+                                             model_settings=None):
 
         """
         Count the number of document and fetch the documents from Elasticsearch with the first occurrence of each target
@@ -214,10 +220,10 @@ class ES:
                                             timestamp_field=timestamp_field)
         total_events = self._count_documents(index, search_range, bool_clause, query_fields, search_query)
         if total_events > 0:
-            return total_events, self._scan_first_occur(index, search_range, bool_clause, sort_clause, query_fields, search_query,
-                                            model_settings)
+            return total_events, self._scan_first_occur(index, search_range, bool_clause, sort_clause, query_fields,
+                                                        search_query,
+                                                        model_settings)
         return total_events, []
-
 
     @staticmethod
     def filter_by_query_string(query_string=None):
@@ -639,7 +645,8 @@ def build_search_query(bool_clause=None,
                        search_range=None,
                        query_fields=None,
                        search_query=None,
-                       highlight_settings=None):
+                       highlight_settings=None,
+                       get_first_occur=False):
     """
     Create a query for Elasticsearch
 
@@ -679,5 +686,22 @@ def build_search_query(bool_clause=None,
 
     if highlight_settings:
         query["highlight"] = highlight_settings
+
+    target = "Company"
+    timestamp = "@timestamp"
+    if get_first_occur and not bool_clause:
+        order_dict = dict()
+        order_dict[timestamp] = dict()
+        order_dict[timestamp]["order"] = "asc"
+        query["size"] = 0
+        query["aggs"] = dict()
+        query["aggs"][target] = dict()
+        query["aggs"][target]["terms"] = dict()
+        query["aggs"][target]["terms"]["field"] = target + ".keyword"
+        query["aggs"][target]["aggs"] = dict()
+        query["aggs"][target]["aggs"]["top_doc"] = dict()
+        query["aggs"][target]["aggs"]["top_doc"]["top_hits"] = dict()
+        query["aggs"][target]["aggs"]["top_doc"]["top_hits"]["sort"] = [order_dict]
+        query["aggs"][target]["aggs"]["top_doc"]["top_hits"]["size"] = 1
 
     return query
