@@ -14,6 +14,8 @@ test_whitelist_multiple_literal_file = "/app/tests/unit_tests/files/whitelist_te
 test_whitelist_duplicate_option_file = "/app/tests/unit_tests/files/whitelist_tests_duplicate_keys.conf"
 test_whitelist_duplicate_section_file = "/app/tests/unit_tests/files/whitelist_tests_duplicate_section.conf"
 test_config_without_whitelist_file = "/app/tests/unit_tests/files/config_without_whitelist_tests.conf"
+test_config_without_whitelist_literals_file = "/app/tests/unit_tests/files/config_without_whitelist_literals.conf"
+test_config_without_whitelist_regexps_file = "/app/tests/unit_tests/files/config_without_whitelist_regexps.conf"
 test_config_that_does_not_exist = "/app/tests/unit_tests/files/this_file_does_not_exist.conf"
 test_config_that_is_a_directory = "/app/tests/unit_tests/files/"
 
@@ -51,9 +53,26 @@ class TestSettings(unittest.TestCase):
         self.test_settings.change_configuration_path(test_whitelist_duplicate_option_file)
         self.assertEqual(settings.config.get("whitelist_literals", "single_key"), "dummy_whitelist_item_two")
 
-    def test_error_when_forgot_whitelist_config(self):
-        with self.assertRaises(NoSectionError):
+    def test_no_error_when_forgot_whitelist_config(self):
+        # with self.assertRaises(NoSectionError):
+        try:
             self.test_settings.change_configuration_path(test_config_without_whitelist_file)
+        except Exception as ex:
+            self.fail("configuration file that does not contain whitelist raised the exception: %s" % ex)
+
+    def test_no_error_when_forgot_whitelist_literals_config(self):
+        # with self.assertRaises(NoSectionError):
+        try:
+            self.test_settings.change_configuration_path(test_config_without_whitelist_literals_file)
+        except Exception as ex:
+            self.fail("configuration file that does not contain whitelist_literals raised the exception: %s" % ex)
+
+    def test_no_error_when_forgot_whitelist_regexps_config(self):
+        # with self.assertRaises(NoSectionError):
+        try:
+            self.test_settings.change_configuration_path(test_config_without_whitelist_regexps_file)
+        except Exception as ex:
+            self.fail("configuration file that does not contain whitelist_regexps raised the exception: %s" % ex)
 
     def test_error_on_duplicate_key_check(self):
         self.test_settings.change_configuration_path(test_whitelist_duplicate_option_file)
