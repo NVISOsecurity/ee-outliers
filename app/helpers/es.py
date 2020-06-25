@@ -91,7 +91,7 @@ class ES:
         :return: timtestamp field name, number of recover day , number of recover hours (in addition to the days)
         """
         if model_settings is None:
-            timestamp_field = self.settings.config.get("general", "timestamp_field", fallback="timestamp")
+            timestamp_field = self.settings.config.get("general", "timestamp_field", fallback="@timestamp")
             history_window_days = self.settings.config.getint("general", "history_window_days")
             history_window_hours = self.settings.config.getint("general", "history_window_hours")
         else:
