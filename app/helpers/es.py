@@ -133,33 +133,6 @@ class ES:
                               scroll=self.settings.config.get("general", "es_scroll_time"),
                               preserve_order=preserve_order, raise_on_error=False)
 
-    def _scan_first_occur(self, index, search_range, bool_clause=None, sort_clause=None, query_fields=None,
-                          search_query=None, model_settings=None):
-        preserve_order = False
-
-        highlight_settings = self._get_highlight_settings(model_settings)
-        model_settings["process_documents_chronologically"] = True
-        if model_settings is not None and model_settings["process_documents_chronologically"]:
-            sort_clause = {"sort": [{model_settings["timestamp_field"]: "asc"}]}
-            preserve_order = True
-            self.logging.logger.debug("chronological scan")
-        search_query = build_search_query(bool_clause=bool_clause,  # TODO
-                                          sort_clause=sort_clause,
-                                          search_range=search_range,
-                                          query_fields=query_fields,
-                                          search_query=search_query,
-                                          highlight_settings=highlight_settings,
-                                          get_first_occur=True)
-        count_test = self.conn.search(index=index, body=search_query, size=0)
-        self.logging.logger.debug("count_test: " + str(count_test))
-        self.logging.logger.debug("flag4")
-        self.logging.logger.debug(search_query)
-        return eshelpers.scan(self.conn, request_timeout=self.settings.config.getint("general", "es_timeout"),
-                              index=index, query=search_query,
-                              size=self.settings.config.getint("general", "es_scan_size"),
-                              scroll=self.settings.config.get("general", "es_scroll_time"),
-                              preserve_order=preserve_order, raise_on_error=False)
-
     def _count_documents(self, index, search_range, bool_clause=None, query_fields=None, search_query=None):
         """
         Count number of document in Elasticsearch that match the query
@@ -199,31 +172,18 @@ class ES:
                                             model_settings)
         return total_events, []
 
-    def count_and_scan_first_occur_documents(self, index, bool_clause=None, sort_clause=None, query_fields=None,
-                                             search_query=None,
-                                             model_settings=None):
-
-        """
-        Count the number of document and fetch the documents from Elasticsearch with the first occurrence of each target
-         field type.
-
-        :param index: on which index the request must be done
-        :param bool_clause: boolean condition
-        :param sort_clause: request to sort result
-        :param query_fields: the query field
-        :param search_query: the search query
-        :param model_settings: part of the configuration linked to the model
-        :return: the number of document and a generator/list of all documents
-        """
-        timestamp_field, history_window_days, history_window_hours = self._get_history_window(model_settings)
-        search_range = self.get_time_filter(days=history_window_days, hours=history_window_hours,
-                                            timestamp_field=timestamp_field)
-        total_events = self._count_documents(index, search_range, bool_clause, query_fields, search_query)
-        if total_events > 0:
-            return total_events, self._scan_first_occur(index, search_range, bool_clause, sort_clause, query_fields,
-                                                        search_query,
-                                                        model_settings)
-        return total_events, []
+    def scan_first_occur_documents(self, search_query, start_time, end_time, model_settings):
+        search_range = self.get_time_filter(start_time=start_time,
+                                            end_time=end_time,
+                                            timestamp_field=model_settings["timestamp_field"])
+        search_query = build_first_occur_search_query(search_query=search_query,
+                                                      search_range=search_range,
+                                                      target_list=model_settings["target"],
+                                                      aggregator_list=model_settings["aggregator"],
+                                                      timestamp=model_settings["timestamp_field"])
+        results = self.conn.search(index=model_settings["es_index"], body=search_query)
+        aggregation_buckets = results["aggregations"]["aggregator"]["buckets"]
+        return aggregation_buckets
 
     @staticmethod
     def filter_by_query_string(query_string=None):
@@ -353,7 +313,8 @@ class ES:
 
         must_clause = {"filter": [{"term": {"tags": "outlier"}}]}
         timestamp_field, history_window_days, history_window_hours = self._get_history_window()
-        search_range = self.get_time_filter(days=history_window_days, hours=history_window_hours,
+        search_range = self.get_time_filter(days=history_window_days,
+                                            hours=history_window_hours,
                                             timestamp_field=timestamp_field)
         total_outliers = self._count_documents(index=idx, search_range=search_range, bool_clause=must_clause)
 
@@ -520,24 +481,30 @@ class ES:
         return doc_fields
 
     @staticmethod
-    def get_time_filter(days=None, hours=None, timestamp_field="timestamp"):
+    def get_time_filter(start_time=None, end_time=None, days=None, hours=None, timestamp_field="@timestamp"):
         """
         Create a filter to limit the time
 
+        :param start_time: start time
+        :param end_time: end time
         :param days: number of days of the filter
         :param hours: number of hours of the filter
         :param timestamp_field: the name of the timestamp field
         :return: the query
         """
-        time_start = (dt.datetime.now() - dt.timedelta(days=days, hours=hours)).isoformat()
-        time_stop = dt.datetime.now().isoformat()
+        if start_time is None or end_time is None:
+            start_time = (dt.datetime.now() - dt.timedelta(days=days, hours=hours))
+            end_time = dt.datetime.now()
+
+        start_time_iso = start_time.isoformat()
+        end_time_iso = end_time.isoformat()
 
         # Construct absolute time range filter, increases cacheability
         time_filter = {
             "range": {
                 str(timestamp_field): {
-                    "gte": time_start,
-                    "lte": time_stop
+                    "gte": start_time_iso,
+                    "lte": end_time_iso
                 }
             }
         }
@@ -645,8 +612,7 @@ def build_search_query(bool_clause=None,
                        search_range=None,
                        query_fields=None,
                        search_query=None,
-                       highlight_settings=None,
-                       get_first_occur=False):
+                       highlight_settings=None):
     """
     Create a query for Elasticsearch
 
@@ -687,21 +653,51 @@ def build_search_query(bool_clause=None,
     if highlight_settings:
         query["highlight"] = highlight_settings
 
-    target = "Company"
-    timestamp = "@timestamp"
-    if get_first_occur and not bool_clause:
-        order_dict = dict()
-        order_dict[timestamp] = dict()
-        order_dict[timestamp]["order"] = "asc"
-        query["size"] = 0
-        query["aggs"] = dict()
-        query["aggs"][target] = dict()
-        query["aggs"][target]["terms"] = dict()
-        query["aggs"][target]["terms"]["field"] = target + ".keyword"
-        query["aggs"][target]["aggs"] = dict()
-        query["aggs"][target]["aggs"]["top_doc"] = dict()
-        query["aggs"][target]["aggs"]["top_doc"]["top_hits"] = dict()
-        query["aggs"][target]["aggs"]["top_doc"]["top_hits"]["sort"] = [order_dict]
-        query["aggs"][target]["aggs"]["top_doc"]["top_hits"]["size"] = 1
+    return query
+
+
+def build_first_occur_search_query(search_query, search_range, target_list, aggregator_list, timestamp):
+
+    order_dict = dict()
+    order_dict[timestamp] = dict()
+    order_dict[timestamp]["order"] = "asc"
+
+    query = dict()
+
+    query["size"] = 0
+
+    query["query"] = dict()
+    query["query"]["bool"] = dict()
+    query["query"]["bool"]["filter"] = list()
+    query["query"]["bool"]["filter"].append(search_range)
+    query["query"]["bool"]["filter"].append(search_query["filter"])
+
+    query["aggs"] = dict()
+    query["aggs"]["aggregator"] = dict()
+    query["aggs"]["aggregator"]["terms"] = dict()
+    query["aggs"]["aggregator"]["terms"]["script"] = build_script(aggregator_list)
+
+    query["aggs"]["aggregator"]["aggs"] = dict()
+    query["aggs"]["aggregator"]["aggs"]["target"] = dict()
+    query["aggs"]["aggregator"]["aggs"]["target"]["terms"] = dict()
+    query["aggs"]["aggregator"]["aggs"]["target"]["terms"]["script"] = build_script(target_list)
+
+    query["aggs"]["aggregator"]["aggs"]["target"]["aggs"] = dict()
+    query["aggs"]["aggregator"]["aggs"]["target"]["aggs"]["top_doc"] = dict()
+    query["aggs"]["aggregator"]["aggs"]["target"]["aggs"]["top_doc"]["top_hits"] = dict()
+    query["aggs"]["aggregator"]["aggs"]["target"]["aggs"]["top_doc"]["top_hits"]["sort"] = [order_dict]
+    query["aggs"]["aggregator"]["aggs"]["target"]["aggs"]["top_doc"]["top_hits"]["size"] = 1
 
     return query
+
+
+def build_script(field_list):
+    """
+    Build painless script to create aggregation from multiple fields
+    :param field_list: list of event field
+    :return script:  painless format script
+    """
+    script = "doc['" + field_list[0] + ".keyword'].value"
+    for i in range(1, len(field_list)):
+        script += "+ ' - ' + doc['" + field_list[i] + ".keyword'].value"
+    return script
