@@ -18,6 +18,7 @@
   - [Simple query parameters](#simple-query-parameters)
   - [Metrics parameters](#metrics-parameters)
   - [Terms parameters](#terms-parameters)
+  - [Sudden Appearance parameters](#sudden-appearance-parameters)
   - [Word2vec parameters](#word2vec-parameters)
 
 
@@ -377,7 +378,7 @@ Global parameters for all use cases of type word2vec.
   <tr>
     <td class="tg-0pky"><code>output_prob</code></td>
     <td class="tg-0pky"><code>0</code>, <code>1</code></td>
-    <td class="tg-0pky">If set to <code>1</codde>, the models output the probability that a context word appears, 
+    <td class="tg-0pky">If set to <code>1</code>, the models output the probability that a context word appears, 
     given a certain center word.
     If set to <code>0</code>, and <code>use_prob_model=0</code> it outputs the raw value of word2vec 
     (layer before the softmax).
@@ -627,7 +628,7 @@ To have more information about the configuration of one analyzer, visit the page
   </tr>
 </table>
 
-### Usual model paramaters
+### Usual model parameters
 
 The following parameters could be used for analyzers `terms`, `metrics` and `word2vec`.
 More information available [here](CONFIG_OUTLIERS.md#usual-model-parameters).
@@ -817,6 +818,76 @@ More information available [here](CONFIG_OUTLIERS.md#arbitrary-parameters).
     <td class="tg-0pky"><code>Int</code></td>
     <td class="tg-0pky">Minimum number of events within an aggregation before processing terms analyzer. 
     Only with the <code>target_count_method</code> set on <code>within_aggregator</code>.
+    </td>
+  </tr>
+</table>
+
+### Sudden Appearance parameters
+
+<table>
+  <tr>
+    <th colspan="3">Sudden Appearance</th>
+  </tr>
+  <tr>
+    <th class="tg-0pky">Key parameters  <small>(*Mandatory)</small></th>
+    <th class="tg-0pky">Values</th>
+    <th class="tg-0pky">Notes</th>
+  </tr>
+  <tr>
+    <td class="tg-0pky"><code>target</code>*</td>
+    <td class="tg-0pky"><code>String</code> separated by <code>,</code></td>
+    <td class="tg-0pky">One or multiple document fields that will be analyzed for sudden appearance in group documents.
+    </td>
+  </tr>
+  <tr>
+    <td class="tg-0pky"><code>aggregator</code>*</td>
+    <td class="tg-0pky"><code>String</code> separated by <code>,</code></td>
+    <td class="tg-0pky">One or multiple document fields that will be used to group documents.
+    </td>
+  </tr>
+  <tr>
+    <td class="tg-0pky"><code>slide_window_days</code>*</td>
+    <td class="tg-0pky"><code>Int</code></td>
+    <td class="tg-0pky">Number of days of the slide window.
+    </td>
+  </tr>
+  <tr>
+    <td class="tg-0pky"><code>slide_window_hours</code>*</td>
+    <td class="tg-0pky"><code>Int</code></td>
+    <td class="tg-0pky">Number of hours of the slide window.
+    </td>
+  </tr>
+  <tr>
+    <td class="tg-0pky"><code>slide_window_mins</code></td>
+    <td class="tg-0pky"><code>Int</code></td>
+    <td class="tg-0pky">Number of minutes of the slide window. Set to <code>0</code> by default.
+    </td>
+  </tr>
+  <tr>
+    <td class="tg-0pky"><code>slide_jump_days</code>*</td>
+    <td class="tg-0pky"><code>Int</code></td>
+    <td class="tg-0pky">Lenght in days of the jump performed by the slide window after each iteration.
+    </td>
+  </tr>
+  <tr>
+    <td class="tg-0pky"><code>slide_jump_hours</code>*</td>
+    <td class="tg-0pky"><code>Int</code></td>
+    <td class="tg-0pky">Lenght in hours of the jump performed by the slide window after each iteration.
+    </td>
+  </tr>
+  <tr>
+    <td class="tg-0pky"><code>slide_jump_mins</code></td>
+    <td class="tg-0pky"><code>Int</code></td>
+    <td class="tg-0pky">Lenght in minutes of the jump performed by the slide window after each iteration.
+    Set by default to <code>0</code>.
+    </td>
+  </tr>
+  <tr>
+    <td class="tg-0pky"><code>trigger_slide_window_proportion</code>*</td>
+    <td class="tg-0pky"><code>Float</code> between <code>0</code> and <code>1</code></td>
+    <td class="tg-0pky">Proportion of the slide window where the first appearance of a event is not considered as an 
+    outlier. If set to <code>0</code>, all the first apparition of events are considered as outliers.
+    If set to <code>1</code>, none of the first apparition of events is considered as outliers.
     </td>
   </tr>
 </table>
