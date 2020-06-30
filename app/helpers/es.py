@@ -173,6 +173,17 @@ class ES:
         return total_events, []
 
     def scan_first_occur_documents(self, search_query, start_time, end_time, model_settings):
+        """
+        Retrieve from Elasticsearch in aggregation defined by model_settings["aggregator"], the first occurrence of a
+        term field defined by model_settings["target"], of events within the time window defined by start_time and
+        end_time.
+
+        :param search_query: the search query
+        :param start_time: start time of the time window
+        :param end_time: end time of the time window
+        :param model_settings: part of the configuration linked to the model
+        :return: list of aggregation buckets
+        """
         search_range = self.get_time_filter(start_time=start_time,
                                             end_time=end_time,
                                             timestamp_field=model_settings["timestamp_field"])
@@ -657,6 +668,17 @@ def build_search_query(bool_clause=None,
 
 
 def build_first_occur_search_query(search_query, search_range, target_list, aggregator_list, timestamp):
+    """
+    Build specific Elasticsearch query for retrieving aggregation of first occurrence of a term field in events matching
+    with the search_query.
+
+    :param search_query: search query
+    :param search_range: search range
+    :param target_list: list of target fields
+    :param aggregator_list: list of fields that we want to aggregate
+    :param timestamp: timestamp field name
+    :return: the build Elasticsearch query
+    """
 
     order_dict = dict()
     order_dict[timestamp] = dict()
@@ -694,6 +716,7 @@ def build_first_occur_search_query(search_query, search_range, target_list, aggr
 def build_script(field_list):
     """
     Build painless script to create aggregation from multiple fields
+
     :param field_list: list of event field
     :return script:  painless format script
     """
