@@ -92,7 +92,7 @@ class SuddenAppearanceAnalyzer(Analyzer):
         :param start_slide_win: start time of the time window
         :param end_slide_win: end time of the time window
         """
-        logging.logger.debug("Analyze time window from " + start_slide_win + " to " + end_slide_win)
+        logging.logger.debug("Analyze time window from " + str(start_slide_win) + " to " + str(end_slide_win))
         aggregation_buckets = es.scan_first_occur_documents(search_query=self.search_query,
                                                             start_time=start_slide_win,
                                                             end_time=end_slide_win,
