@@ -1,6 +1,30 @@
 from helpers.singletons import es
 import helpers.es
 
+import dateutil.parser
+
+
+def _convert_to_elastic_search_format(aggr_dict):
+    for aggr_key in aggr_dict:
+        tmp_list_target_buckets = list()
+        for target_key in aggr_dict[aggr_key]["target"]["buckets"]:
+            tmp_list_target_buckets.append(aggr_dict[aggr_key]["target"]["buckets"][target_key])
+        aggr_dict[aggr_key]["target"]["buckets"] = tmp_list_target_buckets
+    return list(aggr_dict.values())
+
+
+def _get_values_from_list_field(doc, list_field):
+    values = ""
+    for field_name in list_field:
+        doc_value = doc
+        for key_name in field_name.split("."):
+            doc_value = doc_value[key_name]
+        if values == "":
+            values = doc_value
+        else:
+            values += " - " + doc_value
+    return values
+
 
 class TestStubEs:
 
@@ -20,6 +44,7 @@ class TestStubEs:
                 "default_init_connection": es.init_connection,
                 "default_scan": es._scan,
                 "default_count_documents": es._count_documents,
+                "default_scan_first_occur_documents": es.scan_first_occur_documents,
                 "default_remove_all_outliers": es.remove_all_outliers,
                 "default_flush_bulk_actions": es.flush_bulk_actions
             }
@@ -30,6 +55,7 @@ class TestStubEs:
         es.init_connection = self.init_connection
         es._scan = self._scan
         es._count_documents = self._count_documents
+        es.scan_first_occur_documents = self.scan_first_occur_documents
         es.remove_all_outliers = self.remove_all_outliers
         es.flush_bulk_actions = self.flush_bulk_actions
 
@@ -39,6 +65,7 @@ class TestStubEs:
         es.init_connection = self.default_es_methods["default_init_connection"]
         es._scan = self.default_es_methods["default_scan"]
         es._count_documents = self.default_es_methods["default_count_documents"]
+        es.scan_first_occur_documents = self.default_es_methods["default_scan_first_occur_documents"]
         es.remove_all_outliers = self.default_es_methods["default_remove_all_outliers"]
         es.flush_bulk_actions = self.default_es_methods["default_flush_bulk_actions"]
         es.bulk_actions = list()
@@ -56,6 +83,45 @@ class TestStubEs:
 
     def _count_documents(self, index="", bool_clause=None, query_fields=None, search_query=None, model_settings=None):
         return len(self.list_data)
+
+    def scan_first_occur_documents(self, search_query, start_time, end_time, model_settings):
+        """
+        Function that imitate the helpers.es.scan_first_occur_documents() function behavior.
+        """
+        aggr_dict = dict()
+        aggregators = model_settings["aggregator"]
+        targets = model_settings["target"]
+        for raw_doc in self.list_data.values():
+            doc = raw_doc["_source"]
+            doc_timestamp = doc["@timestamp"]
+            doc_timestamp = dateutil.parser.parse(doc_timestamp, ignoretz=True)
+            if end_time >= doc_timestamp >= start_time:
+                aggr_value = _get_values_from_list_field(doc, aggregators)
+                target_value = _get_values_from_list_field(doc, targets)
+
+                if aggr_value not in aggr_dict:
+                    aggr_dict[aggr_value] = dict()
+                    aggr_dict[aggr_value]["key"] = aggr_value
+                    aggr_dict[aggr_value]["target"] = dict()
+                    aggr_dict[aggr_value]["target"]["buckets"] = dict()
+                if target_value not in aggr_dict[aggr_value]["target"]["buckets"]:
+                    aggr_dict[aggr_value]["target"]["buckets"][target_value] = dict()
+                    aggr_dict[aggr_value]["target"]["buckets"][target_value]["key"] = target_value
+                    aggr_dict[aggr_value]["target"]["buckets"][target_value]["doc_count"] = 1
+                    aggr_dict[aggr_value]["target"]["buckets"][target_value]["top_doc"] = dict()
+                    aggr_dict[aggr_value]["target"]["buckets"][target_value]["top_doc"]["hits"] = dict()
+                    aggr_dict[aggr_value]["target"]["buckets"][target_value]["top_doc"]["hits"]["hits"] = [raw_doc]
+                else:
+                    aggr_dict[aggr_value]["target"]["buckets"][target_value]["doc_count"] += 1
+
+                    previous_doc = aggr_dict[aggr_value]["target"]["buckets"][target_value]["top_doc"]["hits"]["hits"][0]
+                    previous_doc_timestamp = previous_doc["_source"]["@timestamp"]
+                    previous_doc_timestamp = dateutil.parser.parse(previous_doc_timestamp, ignoretz=True)
+
+                    if doc_timestamp < previous_doc_timestamp:
+                        aggr_dict[aggr_value]["target"]["buckets"][target_value]["top_doc"]["hits"]["hits"] = [raw_doc]
+
+        return _convert_to_elastic_search_format(aggr_dict)
 
     def remove_all_outliers(self):
         self.list_data = dict()

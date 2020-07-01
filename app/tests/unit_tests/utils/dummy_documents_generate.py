@@ -219,7 +219,7 @@ class DummyDocumentsGenerate:
         list_nbr_documents = np.random.randint(min_value, max_value + 1, size=min_number_element)
 
         # While current list doesn't have the minimum coef
-        while list_nbr_documents.std()/list_nbr_documents.mean() < coef_var_min:
+        while list_nbr_documents.std() / list_nbr_documents.mean() < coef_var_min:
             index = np.argmax(list_nbr_documents)
             if list_nbr_documents[index] < list_nbr_documents.mean():
                 list_nbr_documents[index] -= 1
@@ -234,7 +234,7 @@ class DummyDocumentsGenerate:
         list_nbr_documents = np.random.randint(min_value, max_value + 1, size=min_number_element)
 
         # While current list doesn't have the minimum coef
-        while list_nbr_documents.std()/list_nbr_documents.mean() > coef_var_max:
+        while list_nbr_documents.std() / list_nbr_documents.mean() > coef_var_max:
             index = np.argmax(list_nbr_documents)
             if list_nbr_documents[index] < list_nbr_documents.mean():
                 list_nbr_documents[index] += 1
@@ -253,6 +253,21 @@ class DummyDocumentsGenerate:
             self.start_timestamp += datetime.timedelta(hours=1)
             self.start_timestamp = self.start_timestamp.replace(minute=0, second=0)
 
+        return all_doc
+
+    def generate_doc_time_variable_witt_custom_fields(self,
+                                                      list_delta_hour,
+                                                      field_1_name,
+                                                      list_field_1_value,
+                                                      field_2_name,
+                                                      list_field_2_value):
+        all_doc = []
+        tmp_start_timestamp = self.start_timestamp
+        for i, delta_hour in enumerate(list_delta_hour):
+            self.start_timestamp = tmp_start_timestamp + datetime.timedelta(hours=delta_hour)
+            self.start_timestamp = self.start_timestamp.replace(minute=0, second=0)
+            all_doc.append(self.generate_document({field_1_name: list_field_1_value[i],
+                                                   field_2_name: list_field_2_value[i]}))
         return all_doc
 
     def create_doc_uniq_target_variable_at_least_specific_coef_variation(self, nbr_val, coef_var_min, max_difference,

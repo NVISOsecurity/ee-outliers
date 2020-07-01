@@ -91,7 +91,7 @@ class ES:
         :return: timtestamp field name, number of recover day , number of recover hours (in addition to the days)
         """
         if model_settings is None:
-            timestamp_field = self.settings.config.get("general", "timestamp_field", fallback="timestamp")
+            timestamp_field = self.settings.config.get("general", "timestamp_field", fallback="@timestamp")
             history_window_days = self.settings.config.getint("general", "history_window_days")
             history_window_hours = self.settings.config.getint("general", "history_window_hours")
         else:
@@ -173,6 +173,30 @@ class ES:
             return total_events, self._scan(index, search_range, bool_clause, sort_clause, query_fields, search_query,
                                             model_settings)
         return total_events, []
+
+    def scan_first_occur_documents(self, search_query, start_time, end_time, model_settings):
+        """
+        Retrieve from Elasticsearch in aggregation defined by model_settings["aggregator"], the first occurrence of a
+        term field defined by model_settings["target"], of events within the time window defined by start_time and
+        end_time.
+
+        :param search_query: the search query
+        :param start_time: start time of the time window
+        :param end_time: end time of the time window
+        :param model_settings: part of the configuration linked to the model
+        :return: list of aggregation buckets
+        """
+        search_range = self.get_time_filter(start_time=start_time,
+                                            end_time=end_time,
+                                            timestamp_field=model_settings["timestamp_field"])
+        search_query = build_first_occur_search_query(search_query=search_query,
+                                                      search_range=search_range,
+                                                      target_list=model_settings["target"],
+                                                      aggregator_list=model_settings["aggregator"],
+                                                      timestamp=model_settings["timestamp_field"])
+        results = self.conn.search(index=model_settings["es_index"], body=search_query)
+        aggregation_buckets = results["aggregations"]["aggregator"]["buckets"]
+        return aggregation_buckets
 
     @staticmethod
     def filter_by_query_string(query_string=None):
@@ -302,7 +326,8 @@ class ES:
 
         must_clause = {"filter": [{"term": {"tags": "outlier"}}]}
         timestamp_field, history_window_days, history_window_hours = self._get_history_window()
-        search_range = self.get_time_filter(days=history_window_days, hours=history_window_hours,
+        search_range = self.get_time_filter(days=history_window_days,
+                                            hours=history_window_hours,
                                             timestamp_field=timestamp_field)
         total_outliers = self._count_documents(index=idx, search_range=search_range, bool_clause=must_clause)
 
@@ -469,24 +494,30 @@ class ES:
         return doc_fields
 
     @staticmethod
-    def get_time_filter(days=None, hours=None, timestamp_field="timestamp"):
+    def get_time_filter(start_time=None, end_time=None, days=None, hours=None, timestamp_field="@timestamp"):
         """
         Create a filter to limit the time
 
+        :param start_time: start time
+        :param end_time: end time
         :param days: number of days of the filter
         :param hours: number of hours of the filter
         :param timestamp_field: the name of the timestamp field
         :return: the query
         """
-        time_start = (dt.datetime.now() - dt.timedelta(days=days, hours=hours)).isoformat()
-        time_stop = dt.datetime.now().isoformat()
+        if start_time is None or end_time is None:
+            start_time = (dt.datetime.now() - dt.timedelta(days=days, hours=hours))
+            end_time = dt.datetime.now()
+
+        start_time_iso = start_time.isoformat()
+        end_time_iso = end_time.isoformat()
 
         # Construct absolute time range filter, increases cacheability
         time_filter = {
             "range": {
                 str(timestamp_field): {
-                    "gte": time_start,
-                    "lte": time_stop
+                    "gte": start_time_iso,
+                    "lte": end_time_iso
                 }
             }
         }
@@ -636,3 +667,62 @@ def build_search_query(bool_clause=None,
         query["highlight"] = highlight_settings
 
     return query
+
+
+def build_first_occur_search_query(search_query, search_range, target_list, aggregator_list, timestamp):
+    """
+    Build specific Elasticsearch query for retrieving aggregation of first occurrence of a term field in events matching
+    with the search_query.
+
+    :param search_query: search query
+    :param search_range: search range
+    :param target_list: list of target fields
+    :param aggregator_list: list of fields that we want to aggregate
+    :param timestamp: timestamp field name
+    :return: the build Elasticsearch query
+    """
+
+    order_dict = dict()
+    order_dict[timestamp] = dict()
+    order_dict[timestamp]["order"] = "asc"
+
+    query = dict()
+
+    query["size"] = 0
+
+    query["query"] = dict()
+    query["query"]["bool"] = dict()
+    query["query"]["bool"]["filter"] = list()
+    query["query"]["bool"]["filter"].append(search_range)
+    query["query"]["bool"]["filter"].append(search_query["filter"])
+
+    query["aggs"] = dict()
+    query["aggs"]["aggregator"] = dict()
+    query["aggs"]["aggregator"]["terms"] = dict()
+    query["aggs"]["aggregator"]["terms"]["script"] = build_script(aggregator_list)
+
+    query["aggs"]["aggregator"]["aggs"] = dict()
+    query["aggs"]["aggregator"]["aggs"]["target"] = dict()
+    query["aggs"]["aggregator"]["aggs"]["target"]["terms"] = dict()
+    query["aggs"]["aggregator"]["aggs"]["target"]["terms"]["script"] = build_script(target_list)
+
+    query["aggs"]["aggregator"]["aggs"]["target"]["aggs"] = dict()
+    query["aggs"]["aggregator"]["aggs"]["target"]["aggs"]["top_doc"] = dict()
+    query["aggs"]["aggregator"]["aggs"]["target"]["aggs"]["top_doc"]["top_hits"] = dict()
+    query["aggs"]["aggregator"]["aggs"]["target"]["aggs"]["top_doc"]["top_hits"]["sort"] = [order_dict]
+    query["aggs"]["aggregator"]["aggs"]["target"]["aggs"]["top_doc"]["top_hits"]["size"] = 1
+
+    return query
+
+
+def build_script(field_list):
+    """
+    Build painless script to create aggregation from multiple fields
+
+    :param field_list: list of event field
+    :return script:  painless format script
+    """
+    script = "doc['" + field_list[0] + ".keyword'].value"
+    for i in range(1, len(field_list)):
+        script += "+ ' - ' + doc['" + field_list[i] + ".keyword'].value"
+    return script
