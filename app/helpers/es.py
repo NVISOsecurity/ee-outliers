@@ -700,11 +700,13 @@ def build_first_occur_search_query(search_query, search_range, target_list, aggr
     query["aggs"]["aggregator"] = dict()
     query["aggs"]["aggregator"]["terms"] = dict()
     query["aggs"]["aggregator"]["terms"]["script"] = build_script(aggregator_list)
+    query["aggs"]["aggregator"]["terms"]["size"] = 2000  # TODO
 
     query["aggs"]["aggregator"]["aggs"] = dict()
     query["aggs"]["aggregator"]["aggs"]["target"] = dict()
     query["aggs"]["aggregator"]["aggs"]["target"]["terms"] = dict()
     query["aggs"]["aggregator"]["aggs"]["target"]["terms"]["script"] = build_script(target_list)
+    query["aggs"]["aggregator"]["aggs"]["target"]["terms"]["size"] = 2000  # TODO
 
     query["aggs"]["aggregator"]["aggs"]["target"]["aggs"] = dict()
     query["aggs"]["aggregator"]["aggs"]["target"]["aggs"]["top_doc"] = dict()

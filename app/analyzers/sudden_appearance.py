@@ -62,6 +62,7 @@ class SuddenAppearanceAnalyzer(Analyzer):
             now = now.replace(hour=0, minute=0, second=0)
             now -= dt.timedelta(weeks=2, days=6, hours=0, minutes=0)
             end_time = now
+            end_time = dt.datetime(year=2020, month=4, day=23, hour=15, minute=30)
         else:
             end_time = dt.datetime.now()
         start_slide_win = end_time - self.delta_history_win
