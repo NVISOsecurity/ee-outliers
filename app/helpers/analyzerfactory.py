@@ -65,8 +65,6 @@ class AnalyzerFactory:
         config = configparser.RawConfigParser(**configparser_options)
         config.read(config_file)
 
-        logging.logger.debug(config)
-
         # Create a list of all analyzers found in the config file
         analyzers = [AnalyzerFactory.section_to_analyzer(section_name, section)
                      for section_name, section in config.items()]
