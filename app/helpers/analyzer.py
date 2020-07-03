@@ -7,6 +7,8 @@ from helpers.singletons import settings, es, logging
 import helpers.utils
 from helpers.outlier import Outlier
 
+DEFAULT_TIMESTAMP_FIELD = "@timestamp"
+
 
 # pylint: disable=too-many-instance-attributes
 class Analyzer(abc.ABC):
@@ -78,7 +80,9 @@ class Analyzer(abc.ABC):
 
         model_settings["timestamp_field"] = self.config_section.get("timestamp_field")
         if not model_settings["timestamp_field"]:
-            model_settings["timestamp_field"] = settings.config.get("general", "timestamp_field", fallback="timestamp")
+            model_settings["timestamp_field"] = settings.config.get("general",
+                                                                    "timestamp_field",
+                                                                    fallback=DEFAULT_TIMESTAMP_FIELD)
 
         model_settings["history_window_days"] = self.config_section.getint("history_window_days")
         if not model_settings["history_window_days"]:
@@ -256,12 +260,12 @@ class Analyzer(abc.ABC):
         """
         search_range = es.get_time_filter(days=history_days, hours=history_hours,
                                           timestamp_field=settings.config.get("general", "timestamp_field",
-                                                                              fallback="timestamp"))
+                                                                              fallback=DEFAULT_TIMESTAMP_FIELD))
 
         search_range_start = search_range["range"][str(settings.config.get("general", "timestamp_field",
-                                                                           fallback="timestamp"))]["gte"]
+                                                                           fallback=DEFAULT_TIMESTAMP_FIELD))]["gte"]
         search_range_end = search_range["range"][str(settings.config.get("general", "timestamp_field",
-                                                                         fallback="timestamp"))]["lte"]
+                                                                         fallback=DEFAULT_TIMESTAMP_FIELD))]["lte"]
 
         search_start_range_printable = parser.parse(search_range_start).strftime('%Y-%m-%d %H:%M:%S')
         search_end_range_printable = parser.parse(search_range_end).strftime('%Y-%m-%d %H:%M:%S')
