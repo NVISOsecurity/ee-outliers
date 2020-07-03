@@ -397,7 +397,12 @@ class ES:
         """
         if not self.bulk_actions:
             return
-        eshelpers.bulk(self.conn, self.bulk_actions, stats_only=True, refresh=refresh)
+        try:
+            eshelpers.bulk(self.conn, self.bulk_actions, stats_only=True, refresh=refresh)
+        except eshelpers.BulkIndexError:
+            self.logging.logger.warning("BulkIndexError: Unable to write on index " +
+                                        self.bulk_actions[0]["_index"])
+
         self.bulk_actions = []
 
     def save_outlier(self, outlier=None, extract_derived_fields=False):
