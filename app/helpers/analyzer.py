@@ -7,7 +7,7 @@ from helpers.singletons import settings, es, logging
 import helpers.utils
 from helpers.outlier import Outlier
 
-DEFAULT_TIMESTAMP_FIELD = "@timestamp"
+from helpers.es import DEFAULT_TIMESTAMP_FIELD
 
 
 # pylint: disable=too-many-instance-attributes
