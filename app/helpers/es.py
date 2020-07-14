@@ -494,7 +494,7 @@ class ES:
         return doc_fields
 
     @staticmethod
-    def get_time_filter(days=None, hours=None, timestamp_field=DEFAULT_TIMESTAMP_FIELD):
+    def get_time_filter(start_time=None, end_time=None, days=None, hours=None, timestamp_field=DEFAULT_TIMESTAMP_FIELD):
         """
         Create a filter to limit the time
 
