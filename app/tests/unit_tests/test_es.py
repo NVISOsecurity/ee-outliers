@@ -8,6 +8,7 @@ from tests.unit_tests.utils.update_settings import UpdateSettings
 from tests.unit_tests.utils.dummy_documents_generate import DummyDocumentsGenerate
 from helpers.singletons import es
 import helpers.es
+from helpers.es import build_search_query
 import helpers.analyzerfactory
 from helpers.analyzerfactory import AnalyzerFactory
 
@@ -122,3 +123,21 @@ class TestEs(unittest.TestCase):
         highlight_settings = es._get_highlight_settings(analyzer.model_settings)
 
         self.assertTrue(highlight_settings is None)
+
+    def test_build_search_query(self):
+        self.test_settings.change_configuration_path(config_file_simplequery_test_01)
+        use_case_file = "/app/tests/unit_tests/files/use_cases/simplequery/simplequery_dummy_test.conf"
+        analyzer = AnalyzerFactory.create(use_case_file)
+        timestamp_field, history_window_days, history_window_hours = es._get_history_window(analyzer.model_settings)
+        search_range = es.get_time_filter(days=history_window_days, hours=history_window_hours,
+                                          timestamp_field=timestamp_field)
+        dsl_search_query_1 = build_search_query(search_range=search_range,
+                                              search_query=analyzer.search_query)
+        dsl_search_query_2 = dict()
+        dsl_search_query_2['query'] = dict()
+        dsl_search_query_2['query']['bool'] = dict()
+        dsl_search_query_2['query']['bool']['filter'] = list()
+        dsl_search_query_2['query']['bool']['filter'].append(search_range)
+        dsl_search_query_2['query']['bool']['filter'].extend(analyzer.search_query["filter"].copy())
+
+        self.assertEquals(dsl_search_query_1, dsl_search_query_2)
