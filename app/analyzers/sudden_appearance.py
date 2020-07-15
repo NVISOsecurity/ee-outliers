@@ -1,4 +1,4 @@
-from helpers.singletons import settings, es
+from helpers.singletons import settings, es, logging
 from helpers.analyzer import Analyzer
 import datetime as dt
 import dateutil.parser
@@ -157,5 +157,7 @@ class SuddenAppearanceAnalyzer(Analyzer):
                     outlier = self.create_outlier(fields,
                                                   raw_doc,
                                                   extra_outlier_information=extra_outlier_information)
+
+                    logging.logger.debug(outlier)
 
                     self.process_outlier(outlier)
