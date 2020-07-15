@@ -634,7 +634,7 @@ def build_search_query(bool_clause=None,
         query["query"]["bool"]["filter"].append(search_range)
 
     if search_query:
-        query["query"]["bool"]["filter"].append(search_query["filter"].copy())
+        query["query"]["bool"]["filter"].extend(search_query["filter"].copy())
 
     if highlight_settings:
         query["highlight"] = highlight_settings
