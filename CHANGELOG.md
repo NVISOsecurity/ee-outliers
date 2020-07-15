@@ -1,8 +1,8 @@
 # Changelog
 ## Unreleased
 ### New features
-- New Sudden Appearance model: the sudden_appearance model looks for outliers by finding te sudden appearance of a 
-certain field(s)
+- New Sudden Appearance model: the sudden_appearance model looks for outliers by finding the sudden appearance of a 
+certain value of a specific field, or multiple fields
 ## [Version 0.2.14](https://github.com/NVISO-BE/ee-outliers/releases/tag/0.2.14) (June 24, 2020)
 ### New features
 - Provide the option to authenticate to Elasticsearch using username/password in the configuration file

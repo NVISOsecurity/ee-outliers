@@ -843,6 +843,7 @@ More information available [here](CONFIG_OUTLIERS.md#arbitrary-parameters).
     <td class="tg-0pky"><code>aggregator</code>*</td>
     <td class="tg-0pky"><code>String</code> separated by <code>,</code></td>
     <td class="tg-0pky">One or multiple document fields that will be used to group documents.
+    Each document that contains the same combination of field values will be assembled in the same group. 
     </td>
   </tr>
   <tr>

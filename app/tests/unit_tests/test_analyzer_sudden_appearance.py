@@ -7,6 +7,8 @@ from tests.unit_tests.utils.update_settings import UpdateSettings
 from tests.unit_tests.utils.dummy_documents_generate import DummyDocumentsGenerate
 from helpers.analyzerfactory import AnalyzerFactory
 
+import datetime as dt
+
 root_test_conf_files = "/app/tests/unit_tests/files/"
 test_conf_file_with_whitelist = root_test_conf_files + "sudden_appearance_test_with_whitelist.conf"
 test_conf_file_01 = root_test_conf_files + "sudden_appearance_test_01.conf"
@@ -18,6 +20,13 @@ DEFAULT_OUTLIERS_KEY_FIELDS = ["type", "reason", "summary", "model_name", "model
 EXTRA_OUTLIERS_KEY_FIELDS = ["prop_first_appear_in_time_window", "trigger_slide_window_proportion", "size_time_window",
                              "start_time_window", "end_time_window", "aggregator", "aggregator_value", "target",
                              "target_value", "num_target_value_in_window", "resume"]
+
+
+def set_new_current_date(analyzer):
+    now = dt.datetime.today()
+    now = now.replace(hour=0, minute=0, second=0)
+    now -= dt.timedelta(weeks=2, days=6, hours=0, minutes=0)
+    analyzer.end_time = now
 
 
 class TestSuddenAppearanceAnalyzer(unittest.TestCase):
@@ -55,6 +64,7 @@ class TestSuddenAppearanceAnalyzer(unittest.TestCase):
         # Run analyzer
         self.test_settings.change_configuration_path(test_conf_file_with_whitelist)
         analyzer = AnalyzerFactory.create(root_test_use_case_files + "sudden_appearance_dummy_test_01.conf")
+        set_new_current_date(analyzer)
         analyzer.evaluate_model()
 
         nbr_outliers = 0
@@ -84,6 +94,7 @@ class TestSuddenAppearanceAnalyzer(unittest.TestCase):
         # Run analyzer
         self.test_settings.change_configuration_path(test_conf_file_01)
         analyzer = AnalyzerFactory.create(root_test_use_case_files + "sudden_appearance_dummy_test_02.conf")
+        set_new_current_date(analyzer)
         analyzer.evaluate_model()
 
         nbr_outliers = 0
@@ -113,6 +124,7 @@ class TestSuddenAppearanceAnalyzer(unittest.TestCase):
         # Run analyzer
         self.test_settings.change_configuration_path(test_conf_file_01)
         analyzer = AnalyzerFactory.create(root_test_use_case_files + "sudden_appearance_dummy_test_02.conf")
+        set_new_current_date(analyzer)
         analyzer.evaluate_model()
 
         nbr_outliers = 0
@@ -142,6 +154,7 @@ class TestSuddenAppearanceAnalyzer(unittest.TestCase):
         # Run analyzer
         self.test_settings.change_configuration_path(test_conf_file_01)
         analyzer = AnalyzerFactory.create(root_test_use_case_files + "sudden_appearance_dummy_test_03.conf")
+        set_new_current_date(analyzer)
         analyzer.evaluate_model()
 
         nbr_outliers = 0
@@ -156,6 +169,7 @@ class TestSuddenAppearanceAnalyzer(unittest.TestCase):
 
         self.test_settings.change_configuration_path(test_conf_file_01)
         analyzer = AnalyzerFactory.create(root_test_use_case_files + "sudden_appearance_derived_fields.conf")
+        set_new_current_date(analyzer)
         analyzer.evaluate_model()
 
         result = [elem for elem in es._scan()][0]
@@ -168,6 +182,7 @@ class TestSuddenAppearanceAnalyzer(unittest.TestCase):
 
         self.test_settings.change_configuration_path(test_conf_file_01)
         analyzer = AnalyzerFactory.create(root_test_use_case_files + "sudden_appearance_no_derived_fields.conf")
+        set_new_current_date(analyzer)
         analyzer.evaluate_model()
 
         result = [elem for elem in es._scan()][0]
@@ -194,6 +209,7 @@ class TestSuddenAppearanceAnalyzer(unittest.TestCase):
 
         self.test_settings.change_configuration_path(test_conf_file_01)
         analyzer = AnalyzerFactory.create(root_test_use_case_files + "sudden_appearance_dummy_test_03.conf")
+        set_new_current_date(analyzer)
         analyzer.evaluate_model()
 
         list_outlier = list()
@@ -204,4 +220,3 @@ class TestSuddenAppearanceAnalyzer(unittest.TestCase):
         all_fields_exists = [elem in EXTRA_OUTLIERS_KEY_FIELDS + DEFAULT_OUTLIERS_KEY_FIELDS
                              for elem in list_outlier[0]['_source']['outliers']]
         self.assertTrue(all(all_fields_exists))
-

@@ -184,7 +184,7 @@ class ES:
         :param start_time: start time of the time window
         :param end_time: end time of the time window
         :param model_settings: part of the configuration linked to the model
-        :return: list of aggregation buckets
+        :return aggregator_buckets: list of aggregation buckets
         """
         search_range = self.get_time_filter(start_time=start_time,
                                             end_time=end_time,
@@ -195,8 +195,8 @@ class ES:
                                                       aggregator_list=model_settings["aggregator"],
                                                       timestamp=model_settings["timestamp_field"])
         results = self.conn.search(index=model_settings["es_index"], body=search_query)
-        aggregation_buckets = results["aggregations"]["aggregator"]["buckets"]
-        return aggregation_buckets
+        aggregator_buckets = results["aggregations"]["aggregator"]["buckets"]
+        return aggregator_buckets
 
     @staticmethod
     def filter_by_query_string(query_string=None):
@@ -686,31 +686,43 @@ def build_first_occur_search_query(search_query, search_range, target_list, aggr
     order_dict[timestamp] = dict()
     order_dict[timestamp]["order"] = "asc"
 
-    query = dict()
+    filter_list = list()
+    filter_list.append(search_range)
+    filter_list.extend(search_query["filter"].copy())
 
-    query["size"] = 0
+    max_num_aggregators = 10000
+    max_num_targets = 10000
 
-    query["query"] = dict()
-    query["query"]["bool"] = dict()
-    query["query"]["bool"]["filter"] = list()
-    query["query"]["bool"]["filter"].append(search_range)
-    query["query"]["bool"]["filter"].append(search_query["filter"])
-
-    query["aggs"] = dict()
-    query["aggs"]["aggregator"] = dict()
-    query["aggs"]["aggregator"]["terms"] = dict()
-    query["aggs"]["aggregator"]["terms"]["script"] = build_script(aggregator_list)
-
-    query["aggs"]["aggregator"]["aggs"] = dict()
-    query["aggs"]["aggregator"]["aggs"]["target"] = dict()
-    query["aggs"]["aggregator"]["aggs"]["target"]["terms"] = dict()
-    query["aggs"]["aggregator"]["aggs"]["target"]["terms"]["script"] = build_script(target_list)
-
-    query["aggs"]["aggregator"]["aggs"]["target"]["aggs"] = dict()
-    query["aggs"]["aggregator"]["aggs"]["target"]["aggs"]["top_doc"] = dict()
-    query["aggs"]["aggregator"]["aggs"]["target"]["aggs"]["top_doc"]["top_hits"] = dict()
-    query["aggs"]["aggregator"]["aggs"]["target"]["aggs"]["top_doc"]["top_hits"]["sort"] = [order_dict]
-    query["aggs"]["aggregator"]["aggs"]["target"]["aggs"]["top_doc"]["top_hits"]["size"] = 1
+    query = {"size": 0,
+             "query": {
+                 "bool": {
+                     "filter": filter_list
+                 }
+             },
+             "aggs": {
+                 "aggregator": {
+                     "terms": {
+                         "script": build_script(aggregator_list),
+                         "size": max_num_aggregators
+                     },
+                     "aggs": {
+                         "target": {
+                             "terms": {
+                                 "script": build_script(target_list),
+                                 "size": max_num_targets
+                             },
+                             "aggs": {
+                                 "top_doc": {
+                                     "top_hits": {
+                                         "sort": [order_dict],
+                                         "size": 1
+                                     }
+                                 }
+                             }
+                         }
+                     }
+                 }
+             }}
 
     return query
 
