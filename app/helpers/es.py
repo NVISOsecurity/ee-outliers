@@ -176,6 +176,22 @@ class ES:
                                             model_settings)
         return total_events, []
 
+    def count_documents(self, index, search_query, model_settings, bool_clause=None, query_fields=None):
+        """
+        Count the number of document
+
+        :param index: on which index the request must be done
+        :param search_query: the search query
+        :param model_settings: part of the configuration linked to the model
+        :param bool_clause: boolean condition
+        :param query_fields: the query field
+        :return: the number of document
+        """
+        timestamp_field, history_window_days, history_window_hours = self._get_history_window(model_settings)
+        search_range = self.get_time_filter(days=history_window_days, hours=history_window_hours,
+                                            timestamp_field=timestamp_field)
+        return self._count_documents(index, search_range, bool_clause, query_fields, search_query)
+
     def scan_first_occur_documents(self, search_query, start_time, end_time, model_settings):
         """
         Retrieve from Elasticsearch in aggregation defined by model_settings["aggregator"], the first occurrence of a
@@ -709,13 +725,15 @@ def build_first_occur_search_query(search_query, search_range, target_list, aggr
                  "aggregator": {
                      "terms": {
                          "script": build_script(aggregator_list),
-                         "size": max_num_aggregators
+                         "size": max_num_aggregators,
+                         "collect_mode": "breadth_first"
                      },
                      "aggs": {
                          "target": {
                              "terms": {
                                  "script": build_script(target_list),
-                                 "size": max_num_targets
+                                 "size": max_num_targets,
+                                 "collect_mode": "breadth_first"
                              },
                              "aggs": {
                                  "top_doc": {

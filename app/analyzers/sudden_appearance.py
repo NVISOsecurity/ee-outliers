@@ -2,12 +2,7 @@ from helpers.singletons import settings, es, logging
 from helpers.analyzer import Analyzer
 import datetime as dt
 import dateutil.parser
-
-
-def error_if_win1_smaller_than_win2(win1, win2, win1_name, win2_name):
-    if win1 < win2:
-        raise ValueError("%s of size %s is bigger than %s of size %s" %
-                         (win2_name, win2, win1_name, win1))
+import math
 
 
 class SuddenAppearanceAnalyzer(Analyzer):
@@ -15,6 +10,7 @@ class SuddenAppearanceAnalyzer(Analyzer):
     def __init__(self, model_name, config_section):
         super(SuddenAppearanceAnalyzer, self).__init__("sudden_appearance", model_name, config_section)
         self.end_time = dt.datetime.now()
+        self.num_event_proc = 0  # Current number of events processed
 
     def _extract_additional_model_settings(self):
         """
@@ -50,22 +46,27 @@ class SuddenAppearanceAnalyzer(Analyzer):
                                         win1_name="slide window",
                                         win2_name="jump window")
 
-    def _get_int_setting(self, parameter_name, fallback=None):
-        self.model_settings[parameter_name] = self.config_section.getint(parameter_name)
-        if self.model_settings[parameter_name] is None:
-            if fallback is not None:
-                self.model_settings[parameter_name] = settings.config.getint("general",
-                                                                             parameter_name,
-                                                                             fallback=fallback)
-            else:
-                self.model_settings[parameter_name] = settings.config.getint("general",
-                                                                             parameter_name)
-
     def _extract_delta_window(self, day_parameter_name, hour_parameter_name, min_parameter_name=None):
-        self._get_int_setting(day_parameter_name)
-        self._get_int_setting(hour_parameter_name)
+        """
+        Return the time window in datetime.timedelta format from the day, hour and minute parameter names.
+        Raise a error if time window is equal to 0
+
+        :param day_parameter_name: day parameter name
+        :param hour_parameter_name: hour parameter name
+        :param min_parameter_name: minute parameter name
+        :return: datetime.timedelta format of the time window
+        """
+        self.model_settings[day_parameter_name] = self.extract_parameter(day_parameter_name,
+                                                                         param_type="int",
+                                                                         section_name="general")
+        self.model_settings[hour_parameter_name] = self.extract_parameter(hour_parameter_name,
+                                                                          param_type="int",
+                                                                          section_name="general")
         if min_parameter_name is not None:
-            self._get_int_setting(min_parameter_name, fallback=0)
+            self.model_settings[min_parameter_name] = self.extract_parameter(min_parameter_name,
+                                                                             param_type="int",
+                                                                             section_name="general",
+                                                                             default=0)
             delta_win = dt.timedelta(days=self.model_settings[day_parameter_name],
                                      hours=self.model_settings[hour_parameter_name],
                                      minutes=self.model_settings[min_parameter_name])
@@ -81,7 +82,20 @@ class SuddenAppearanceAnalyzer(Analyzer):
         return delta_win
 
     def evaluate_model(self):
-        # used for the unit tests
+        self.total_events = es.count_documents(index=self.model_settings["es_index"],
+                                               search_query=self.search_query,
+                                               model_settings=self.model_settings)
+
+        self.print_analysis_intro(event_type="evaluating " + self.model_type + "_" + self.model_name,
+                                  total_events=self.total_events)
+
+        # Compute the number of times we will scan the slide window
+        num_jump = math.ceil((self.delta_history_win - self.delta_slide_win) / self.jump_win)
+        num_scan = num_jump + 1
+
+        logging.init_ticker(total_steps=num_scan,
+                            desc=self.model_name + " - evaluating " + self.model_type + " model")
+
         start_slide_win = self.end_time - self.delta_history_win
         end_slide_win = start_slide_win + self.delta_slide_win
 
@@ -119,6 +133,7 @@ class SuddenAppearanceAnalyzer(Analyzer):
             target_buckets = aggregator_bucket["target"]["buckets"]
             # Loop over the documents in aggregation
             for doc in target_buckets:
+                self.num_event_proc += doc["doc_count"]
                 raw_doc = doc["top_doc"]["hits"]["hits"][0]
                 fields = es.extract_fields_from_document(raw_doc,
                                                          extract_derived_fields=self.model_settings[
@@ -143,13 +158,14 @@ class SuddenAppearanceAnalyzer(Analyzer):
                     extra_outlier_information["target_value"] = doc["key"]
                     extra_outlier_information["num_target_value_in_window"] = doc["doc_count"]
                     extra_outlier_information["resume"] = "In aggregator '%s: %s', the field(s) '%s: %s' appear(s) " \
-                                                          "suddenly at %s/1 of the time window of size %s days, " \
+                                                          "suddenly at %s%%(%s) of the time window of size %s days, " \
                                                           "%s hours, %s minutes" % \
                                                           (", ".join(self.model_settings["aggregator"]),
                                                            aggregator_bucket["key"],
                                                            " ,".join(self.model_settings["target"]),
                                                            doc["key"],
                                                            "{:.2}".format(prop_time_win_event_appears),
+                                                           str(event_timestamp),
                                                            self.config_section["slide_window_days"],
                                                            self.config_section["slide_window_hours"],
                                                            self.config_section["slide_window_mins"])
@@ -157,7 +173,20 @@ class SuddenAppearanceAnalyzer(Analyzer):
                     outlier = self.create_outlier(fields,
                                                   raw_doc,
                                                   extra_outlier_information=extra_outlier_information)
-
-                    logging.logger.debug(outlier)
-
                     self.process_outlier(outlier)
+
+        logging.tick(self.num_event_proc)
+
+
+def error_if_win1_smaller_than_win2(win1, win2, win1_name, win2_name):
+    """
+    Print an error message if the size of the time window 1 is smaller than the size of the time window 2.
+
+    :param win1: Time window 1
+    :param win2: Time window 2
+    :param win1_name: String name of the time window 1
+    :param win2_name: String name of the time window 2
+    """
+    if win1 < win2:
+        raise ValueError("%s of size %s is bigger than %s of size %s" %
+                         (win2_name, win2, win1_name, win1))
