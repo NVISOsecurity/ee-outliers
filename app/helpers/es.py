@@ -13,6 +13,7 @@ from configparser import NoOptionError
 
 import helpers.utils
 import helpers.logging
+import json
 
 from helpers.singleton import singleton
 from helpers.notifier import Notifier
@@ -212,7 +213,7 @@ class ES:
                                                       target_list=model_settings["target"],
                                                       aggregator_list=model_settings["aggregator"],
                                                       timestamp=model_settings["timestamp_field"])
-        self.logging.logger.debug(search_query)
+        self.logging.logger.debug(json.dumps(search_query, indent=4))
         results = self.conn.search(index=model_settings["es_index"], body=search_query)
         aggregator_buckets = results["aggregations"]["aggregator"]["buckets"]
         return aggregator_buckets
