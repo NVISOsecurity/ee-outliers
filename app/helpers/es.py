@@ -212,6 +212,7 @@ class ES:
                                                       target_list=model_settings["target"],
                                                       aggregator_list=model_settings["aggregator"],
                                                       timestamp=model_settings["timestamp_field"])
+        self.logging.logger.debug(search_query)
         results = self.conn.search(index=model_settings["es_index"], body=search_query)
         aggregator_buckets = results["aggregations"]["aggregator"]["buckets"]
         return aggregator_buckets
