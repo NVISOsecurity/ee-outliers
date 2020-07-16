@@ -324,7 +324,7 @@ test_model=0
 ```
 
 ## Sudden Appearance models
-The sudden_appearance model looks for outliers by finding te sudden appearance of a certain field(s).
+The sudden_appearance model looks for outliers by finding the sudden appearance of a certain field(s).
 Example use case: tag sudden appearance of a new TLD DNS. 
 
 Each sudden_appearance model section in the configuration file should be prefixed by `sudden_appearance_`.
@@ -364,7 +364,7 @@ All required options are visible in the example. All possible options are listed
 
 **How it works**
 
-The sudden_appearance model looks for outliers by finding te sudden appearance of a certain field(s).
+The sudden_appearance model looks for outliers by finding the sudden appearance of a certain field(s).
 
 Let's define:
 - The **global window** determined by the parameters `history_window_days` and `history_window_hours`.
