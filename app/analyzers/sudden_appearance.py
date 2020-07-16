@@ -131,7 +131,7 @@ class SuddenAppearanceAnalyzer(Analyzer):
         # Loop over the aggregations
         for aggregator_bucket in aggregator_buckets:
             target_buckets = aggregator_bucket["target"]["buckets"]
-            logging.logger.debug(aggregator_bucket["key"])
+            # logging.logger.debug(aggregator_bucket["key"])
             # Loop over the documents in aggregation
             for doc in target_buckets:
                 self.num_event_proc += doc["doc_count"]
