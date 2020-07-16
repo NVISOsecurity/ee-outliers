@@ -760,7 +760,7 @@ def build_script(field_list):
     :param field_list: list of event field
     :return script:  painless format script
     """
-    script = "doc['" + field_list[0] + ".keyword'].value"
+    script = "doc['" + field_list[0] + "'].value"
     for i in range(1, len(field_list)):
-        script += "+ ' - ' + doc['" + field_list[i] + ".keyword'].value"
+        script += "+ ' - ' + doc['" + field_list[i] + "'].value"
     return script
