@@ -375,10 +375,18 @@ Let's define:
 
 The sudden_appearance model works as following:
 1. The **slide window** is first placed at the beginning of the **global window**.
-2. An analysis of the sudden appearance of a certain field(s) is done in the **slide window**.
-More especially, it will take the first occurrence of a certain field(s) in each group of aggregation. It then compute 
-in what proportion of the **slide window** it this first occurrence appears. If it appears at a proportion bigger than 
-`trigger_slide_window_proportion`, the event will be considered as an outlier.
+2. An analysis of the sudden appearance of (a) certain field value(s) is processed in the **slide window**.
+
+    More especially, it will take the first occurrences of each different values corresponding to the field defined by the 
+`target` parameter. 
+If multiple fields are defined in the `target` parameter, it will take the first occurrences of each unique combination 
+of values corresponding to the multiples fields.
+Note that this operation is done independently in each group of aggregation defined by the `aggregator` parameter. 
+
+    Then, it computes for each of these first appearances, in which proportion of the **slide window** they are 
+    appearing. 
+If a first appearance appears at a proportion bigger than `trigger_slide_window_proportion`, the event corresponding to
+ this first appearance will be considered as an outlier.
 3. After, the **slide window** slide/jump further in the **global window**, by a time distance defined by 
 **slide jump**. 
 4. The operation 2. and 3. are repeated until the **slide window** gets through all the **global window**.
