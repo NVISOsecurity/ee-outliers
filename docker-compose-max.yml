@@ -3,7 +3,7 @@ services:
   outliers:
     build: .
     container_name: outliers_dev_max
-    command: "python3 outliers.py interactive --config /mappedvolumes/config/outliers.conf --use-cases /use_cases/*.conf"
+    command: "python3 outliers.py interactive --config /mappedvolumes/config/outliers.conf --use-cases /use_cases/sudden_appearance_new_process*.conf"
     volumes:
       - ./defaults/outliers_max.conf:/mappedvolumes/config/outliers.conf
       - ./use_cases/tests:/use_cases
