@@ -100,6 +100,7 @@ class SuddenAppearanceAnalyzer(Analyzer):
         # Loop over the aggregations
         for aggregator_bucket in aggregator_buckets:
             target_buckets = aggregator_bucket["target"]["buckets"]
+            # logging.logger.debug(aggregator_bucket["key"])
             # Loop over the documents in aggregation
             for doc in target_buckets:
                 self.num_event_proc += doc["doc_count"]
@@ -134,6 +135,7 @@ class SuddenAppearanceAnalyzer(Analyzer):
                     outlier = self.create_outlier(fields,
                                                   raw_doc,
                                                   extra_outlier_information=extra_outlier_information)
+                    logging.logger.debug(outlier)
                     self.process_outlier(outlier)
 
         logging.tick(self.num_event_proc)
