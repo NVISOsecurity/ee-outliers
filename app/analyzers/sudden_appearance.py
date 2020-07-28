@@ -20,6 +20,13 @@ class SuddenAppearanceAnalyzer(Analyzer):
                                                                      "timestamp_field",
                                                                      fallback="@timestamp")
 
+        self.model_settings["max_num_aggs"] = settings.config.getint("sudden_appearance",
+                                                                     "max_num_aggregators",
+                                                                     fallback=100000)
+        self.model_settings["max_num_targets"] = settings.config.getint("sudden_appearance",
+                                                                        "max_num_targets",
+                                                                        fallback=100000)
+
         self.model_settings["target"] = self.config_section["target"].replace(' ', '').split(",")
         self.model_settings["aggregator"] = self.config_section["aggregator"].replace(' ', '').split(",")
 
@@ -88,7 +95,7 @@ class SuddenAppearanceAnalyzer(Analyzer):
         Find sudden apparition in aggregation defined by self.model_settings["aggregator"] of a term field defined by
         self.model_settings["target"] in events within the time window defined by start_slide_win and en_slide_win
         and create outliers. An event is considered as outlier when a term field appear for the first time after
-        a certain #TODO change comments
+        the (end_slide_win - self.jump_win)
 
         :param start_slide_win: start time of the time window
         :param end_slide_win: end time of the time window
@@ -100,7 +107,6 @@ class SuddenAppearanceAnalyzer(Analyzer):
         # Loop over the aggregations
         for aggregator_bucket in aggregator_buckets:
             target_buckets = aggregator_bucket["target"]["buckets"]
-            # logging.logger.debug(aggregator_bucket["key"])
             # Loop over the documents in aggregation
             for doc in target_buckets:
                 self.num_event_proc += doc["doc_count"]
@@ -135,7 +141,7 @@ class SuddenAppearanceAnalyzer(Analyzer):
                     outlier = self.create_outlier(fields,
                                                   raw_doc,
                                                   extra_outlier_information=extra_outlier_information)
-                    logging.logger.debug(outlier)
+                    # logging.logger.debug(outlier)
                     self.process_outlier(outlier)
 
         logging.tick(self.num_event_proc)

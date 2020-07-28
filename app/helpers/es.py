@@ -7,13 +7,12 @@ from itertools import chain
 
 from pygrok import Grok
 from elasticsearch import helpers as eshelpers, Elasticsearch
-from elasticsearch.exceptions import AuthenticationException, ConnectionError
+from elasticsearch.exceptions import AuthenticationException, ConnectionError, RequestError
 
 from configparser import NoOptionError
 
 import helpers.utils
 import helpers.logging
-import json
 
 from helpers.singleton import singleton
 from helpers.notifier import Notifier
@@ -125,7 +124,6 @@ class ES:
         if model_settings is not None and model_settings["process_documents_chronologically"]:
             sort_clause = {"sort": [{model_settings["timestamp_field"]: "asc"}]}
             preserve_order = True
-            self.logging.logger.debug("flag1")
 
         return eshelpers.scan(self.conn, request_timeout=self.settings.config.getint("general", "es_timeout"),
                               index=index, query=build_search_query(bool_clause=bool_clause,
@@ -208,13 +206,28 @@ class ES:
         search_range = self.get_time_filter(start_time=start_time,
                                             end_time=end_time,
                                             timestamp_field=model_settings["timestamp_field"])
-        search_query = build_first_occur_search_query(search_query=search_query,
-                                                      search_range=search_range,
-                                                      target_list=model_settings["target"],
-                                                      aggregator_list=model_settings["aggregator"],
-                                                      timestamp=model_settings["timestamp_field"])
-        results = self.conn.search(index=model_settings["es_index"], body=search_query)
-        # self.logging.logger.debug(json.dumps(results, indent=4))
+        first_occur_search_query = build_first_occur_search_query(search_query=search_query,
+                                                                  search_range=search_range,
+                                                                  target_list=model_settings["target"],
+                                                                  aggregator_list=model_settings["aggregator"],
+                                                                  timestamp=model_settings["timestamp_field"],
+                                                                  max_num_aggs=model_settings["max_num_aggs"],
+                                                                  max_num_targets=model_settings["max_num_targets"])
+        try:
+            results = self.conn.search(index=model_settings["es_index"], body=first_occur_search_query)
+        except RequestError as e:
+            self.logging.logger.error(e.error)
+            self.logging.logger.error(json.dumps(e.info, indent=4))
+            return []
+
+        if results["_shards"]["failed"] > 0:
+            self.logging.logger.warning("Search query failure(s): ")
+            for failure in results["_shards"]["failures"]:
+                self.logging.logger.warning("Failed script: %s caused by %s: %s" %
+                                            (failure["reason"]["script"],
+                                             failure["reason"]["caused_by"]["type"],
+                                             failure["reason"]["caused_by"]["reason"]))
+
         aggregator_buckets = results["aggregations"]["aggregator"]["buckets"]
         return aggregator_buckets
 
@@ -693,7 +706,13 @@ def build_search_query(bool_clause=None,
     return query
 
 
-def build_first_occur_search_query(search_query, search_range, target_list, aggregator_list, timestamp):
+def build_first_occur_search_query(search_query,
+                                   search_range,
+                                   target_list,
+                                   aggregator_list,
+                                   timestamp,
+                                   max_num_aggs,
+                                   max_num_targets):
     """
     Build specific Elasticsearch query for retrieving aggregation of first occurrence of a term field in events matching
     with the search_query.
@@ -703,21 +722,22 @@ def build_first_occur_search_query(search_query, search_range, target_list, aggr
     :param target_list: list of target fields
     :param aggregator_list: list of fields that we want to aggregate
     :param timestamp: timestamp field name
+    :param max_num_aggs: number maximum of estimate aggregation
+    :param max_num_targets: number maximum of estimate targets
     :return: the build Elasticsearch query
     """
-
     order_dict = dict()
     order_dict[timestamp] = dict()
     order_dict[timestamp]["order"] = "asc"
 
     filter_list = list()
     filter_list.append(search_range)
+
+    aggr_and_target_exists_query = build_aggr_and_target_exists_query(target_list, aggregator_list)
+    filter_list.append(aggr_and_target_exists_query)
+
     filter_list.extend(search_query["filter"].copy())
 
-    max_num_aggregators = 10000
-    max_num_targets = 10000
-
-    # TODO shoudl show a message when the query is badely cast (for example because the user forgot to put name_field.keyword)
     query = {"size": 0,
              "query": {
                  "bool": {
@@ -728,7 +748,7 @@ def build_first_occur_search_query(search_query, search_range, target_list, aggr
                  "aggregator": {
                      "terms": {
                          "script": build_script(aggregator_list),
-                         "size": max_num_aggregators,
+                         "size": max_num_aggs,
                          "collect_mode": "breadth_first"
                      },
                      "aggs": {
@@ -752,6 +772,23 @@ def build_first_occur_search_query(search_query, search_range, target_list, aggr
              }}
 
     return query
+
+
+def build_aggr_and_target_exists_query(target_list, aggregator_list):
+    """
+    Build query to select events where fields defined in target_list and aggregator_list exist.
+
+    :param target_list: list of target fields
+    :param aggregator_list: list of fields that we want to aggregate
+    :return aggr_and_target_exists_query: Elasticsearch query that select event where fields defined in target_list and
+    aggregator_list exist
+    """
+    aggr_and_target_exists_query = {"query_string": {"query": "_exists_: " + target_list[0]}}
+    for i in range(1, len(target_list)):
+        aggr_and_target_exists_query["query_string"]["query"] += " AND _exists_: " + target_list[i]
+    for aggregator in aggregator_list:
+        aggr_and_target_exists_query["query_string"]["query"] += " AND _exists_: " + aggregator
+    return aggr_and_target_exists_query
 
 
 def build_script(field_list):
