@@ -340,15 +340,14 @@ es_query_filter=tags:network AND type:dns AND direction:outbound
 aggregator=meta.deployment_name
 target= dns_request 
 
-slide_window_days=1
-slide_window_hours=0
-slide_window_mins=0
+history_window_days=7
+history_window_hours=0
 
-slide_jump_days=0
-slide_jump_hours=12
-slide_jump_mins=0
+# Size of the sliding window defined in DDD:HH:MM
+# Therefore, 20:13:20 will correspond to 20 days 13 hours and 20 minutes
+sliding_window_size=01:00:00
 
-trigger_slide_window_proportion = 0.8
+sliding_window_step_size=00:12:00
 
 outlier_type=first observation
 outlier_reason=sudden appearance of DNS domain in logs
@@ -368,14 +367,14 @@ The sudden_appearance model looks for outliers by finding the sudden appearance 
 
 Let's define:
 - The **global window** determined by the parameters `history_window_days` and `history_window_hours`.
-- The **slide window** where the size is determined by the parameters `slide_window_days`, `slide_window_hours` and 
-`slide_window_mins`. It has to be smaller than the **global window**.
-- The **slide jump** where the size is determined by the parameters `slide_jump_days`, `slide_jump_hours` and 
-`slide_jump_mins`. It represents the jump in time, the **slide window** will slide within the **global window**.
+- The **sliding window** where the size is determined by the parameter `sliding_window_size`. 
+It has to be smaller than the **global window**.
+- The **sliding step** where the size is determined by the parameter `sliding_window_step_size`. 
+It represents the jump step in time, the **sliding window** will slide within the **global window**.
 
 The sudden_appearance model works as following:
-1. The **slide window** is first placed at the beginning of the **global window**.
-2. An analysis of the sudden appearance of (a) certain field value(s) is processed in the **slide window**.
+1. The **sliding window** is first placed at the beginning of the **global window**.
+2. An analysis of the sudden appearance of (a) certain field value(s) is processed in the **sliding window**.
 
     More especially, it will take the first occurrences of each different values corresponding to the field defined by the 
 `target` parameter. 
@@ -383,13 +382,11 @@ If multiple fields are defined in the `target` parameter, it will take the first
 of values corresponding to the multiples fields.
 Note that this operation is done independently in each group of aggregation defined by the `aggregator` parameter. 
 
-    Then, it computes for each of these first appearances, in which proportion of the **slide window** they are 
-    appearing. 
-If a first appearance appears at a proportion bigger than `trigger_slide_window_proportion`, the event corresponding to
+    If a first appearance appears after the end of the **sliding window** minus the **sliding step**, the event corresponding to
  this first appearance will be considered as an outlier.
-3. After, the **slide window** slide/jump further in the **global window**, by a time distance defined by 
-**slide jump**. 
-4. The operation 2. and 3. are repeated until the **slide window** gets through all the **global window**.
+3. After, the **sliding window** slide/jump further in the **global window**, by a time distance defined by 
+**sliding step**. 
+4. The operation 2. and 3. are repeated until the **sliding window** gets through all the **global window**.
 
 
 ## Word2vec models
