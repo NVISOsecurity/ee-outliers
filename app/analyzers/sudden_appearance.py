@@ -128,19 +128,20 @@ class SuddenAppearanceAnalyzer(Analyzer):
                     extra_outlier_information["target"] = self.model_settings["target"]
                     extra_outlier_information["target_value"] = doc["key"]
                     extra_outlier_information["num_target_value_in_window"] = doc["doc_count"]
-                    extra_outlier_information["resume"] = "In aggregator '%s: %s', the field(s) '%s: %s' appear(s) " \
-                                                          "suddenly at %s of the time window of size %s" % \
-                                                          (", ".join(self.model_settings["aggregator"]),
-                                                           aggregator_bucket["key"],
-                                                           " ,".join(self.model_settings["target"]),
-                                                           doc["key"],
-                                                           str(event_timestamp),
-                                                           self.delta_slide_win)
 
                     outlier = self.create_outlier(fields,
                                                   raw_doc,
                                                   extra_outlier_information=extra_outlier_information)
-                    # logging.logger.debug(outlier)
                     self.process_outlier(outlier)
+
+                    summary = "In aggregator '%s: %s', the field(s) '%s: %s' appear(s) " \
+                              "suddenly at %s of the time window of size %s." % \
+                              (", ".join(self.model_settings["aggregator"]),
+                               aggregator_bucket["key"],
+                               " ,".join(self.model_settings["target"]),
+                               doc["key"],
+                               str(event_timestamp),
+                               self.delta_slide_win)
+                    logging.logger.debug(summary)
 
         logging.tick(self.num_event_proc)
