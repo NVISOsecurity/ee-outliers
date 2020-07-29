@@ -19,7 +19,7 @@ DEFAULT_OUTLIERS_KEY_FIELDS = ["type", "reason", "summary", "model_name", "model
                                "elasticsearch_filter"]
 EXTRA_OUTLIERS_KEY_FIELDS = ["prop_first_appear_in_time_window", "trigger_slide_window_proportion", "size_time_window",
                              "start_time_window", "end_time_window", "aggregator", "aggregator_value", "target",
-                             "target_value", "num_target_value_in_window", "resume"]
+                             "target_value", "num_target_value_in_window"]
 
 
 def set_new_current_date(analyzer):
