@@ -45,7 +45,6 @@ class SuddenAppearanceAnalyzer(Analyzer):
         days, hours, minutes = map(int, self.model_settings["sliding_window_step_size"].split(':'))
         if days + hours + minutes == 0:
             raise ValueError("The sliding_window_step_size should be bigger than 0")
-            # TOD
         self.jump_win = dt.timedelta(days=days,
                                      hours=hours,
                                      minutes=minutes)

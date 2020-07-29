@@ -1,6 +1,7 @@
 import json
 import datetime as dt
 import math
+import copy
 
 from collections import defaultdict
 from itertools import chain
@@ -684,7 +685,7 @@ def build_search_query(bool_clause=None,
 
     if bool_clause:
         # To avoid side effects (multiple search_range) when calling multiple times the function on the same bool_clause
-        query["query"]["bool"]["filter"] = bool_clause["filter"].copy()
+        query["query"]["bool"]["filter"] = copy.deepcopy(bool_clause["filter"])
 
     if sort_clause:
         query.update(sort_clause)
@@ -698,7 +699,7 @@ def build_search_query(bool_clause=None,
         query["query"]["bool"]["filter"].append(search_range)
 
     if search_query:
-        query["query"]["bool"]["filter"].extend(search_query["filter"].copy())
+        query["query"]["bool"]["filter"].extend(copy.deepcopy(search_query["filter"]))
 
     if highlight_settings:
         query["highlight"] = highlight_settings
@@ -736,7 +737,7 @@ def build_first_occur_search_query(search_query,
     aggr_and_target_exists_query = build_aggr_and_target_exists_query(target_list, aggregator_list)
     filter_list.append(aggr_and_target_exists_query)
 
-    filter_list.extend(search_query["filter"].copy())
+    filter_list.extend(copy.deepcopy(search_query["filter"]))
 
     query = {"size": 0,
              "query": {
@@ -783,11 +784,9 @@ def build_aggr_and_target_exists_query(target_list, aggregator_list):
     :return aggr_and_target_exists_query: Elasticsearch query that select event where fields defined in target_list and
     aggregator_list exist
     """
-    aggr_and_target_exists_query = {"query_string": {"query": "_exists_: " + target_list[0]}}
-    for i in range(1, len(target_list)):
-        aggr_and_target_exists_query["query_string"]["query"] += " AND _exists_: " + target_list[i]
-    for aggregator in aggregator_list:
-        aggr_and_target_exists_query["query_string"]["query"] += " AND _exists_: " + aggregator
+    field_list = target_list + aggregator_list
+    query = " AND ".join(["_exists_: " + field for field in field_list])
+    aggr_and_target_exists_query = {"query_string": {"query": query}}
     return aggr_and_target_exists_query
 
 
@@ -796,9 +795,6 @@ def build_script(field_list):
     Build painless script to create aggregation from multiple fields
 
     :param field_list: list of event field
-    :return script:  painless format script
+    :return:  painless script format
     """
-    script = "doc['" + field_list[0] + "'].value"
-    for i in range(1, len(field_list)):
-        script += "+ ' - ' + doc['" + field_list[i] + "'].value"
-    return script
+    return " + ' - ' + ".join(["doc['" + field + "'].value" for field in field_list])
