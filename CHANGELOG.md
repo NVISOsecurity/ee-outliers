@@ -1,4 +1,7 @@
 # Changelog
+## [Version 0.2.16](https://github.com/NVISO-BE/ee-outliers/releases/tag/0.2.16) (July 29, 2020)
+### Bug fixes
+- Fix issue provoked by an unnecessary debug log message while running _scan
 ## [Version 0.2.15](https://github.com/NVISO-BE/ee-outliers/releases/tag/0.2.15) (July 29, 2020)
 ### New features
 - New Sudden Appearance model: the sudden_appearance model looks for outliers by finding the sudden appearance of a 
@@ -8,7 +11,7 @@ certain value of a specific field, or multiple fields
 - When ee-outliers is unable to write on an index, it returns an error log message instead of stopping the program
 - Set "@timestamp" instead of "timestamp" as default timestamps field
 ### Bug fixes
-- Fix and issue where generated Elasticsearch DSL queries were not compatible with Elasticsearch version 7.7 and above
+- Fix issue where generated Elasticsearch DSL queries were not compatible with Elasticsearch version 7.7 and above
 
 ## [Version 0.2.14](https://github.com/NVISO-BE/ee-outliers/releases/tag/0.2.14) (June 24, 2020)
 ### New features
