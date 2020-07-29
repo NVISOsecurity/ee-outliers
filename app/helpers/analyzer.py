@@ -1,11 +1,13 @@
 import abc
 from dateutil import parser
 
-from configparser import NoOptionError, NoSectionError
+from configparser import NoOptionError
 
 from helpers.singletons import settings, es, logging
 import helpers.utils
 from helpers.outlier import Outlier
+
+from helpers.es import DEFAULT_TIMESTAMP_FIELD
 
 
 # pylint: disable=too-many-instance-attributes
@@ -78,7 +80,9 @@ class Analyzer(abc.ABC):
 
         model_settings["timestamp_field"] = self.config_section.get("timestamp_field")
         if not model_settings["timestamp_field"]:
-            model_settings["timestamp_field"] = settings.config.get("general", "timestamp_field", fallback="timestamp")
+            model_settings["timestamp_field"] = settings.config.get("general",
+                                                                    "timestamp_field",
+                                                                    fallback=DEFAULT_TIMESTAMP_FIELD)
 
         model_settings["history_window_days"] = self.config_section.getint("history_window_days")
         if not model_settings["history_window_days"]:
@@ -256,12 +260,12 @@ class Analyzer(abc.ABC):
         """
         search_range = es.get_time_filter(days=history_days, hours=history_hours,
                                           timestamp_field=settings.config.get("general", "timestamp_field",
-                                                                              fallback="timestamp"))
+                                                                              fallback=DEFAULT_TIMESTAMP_FIELD))
 
         search_range_start = search_range["range"][str(settings.config.get("general", "timestamp_field",
-                                                                           fallback="timestamp"))]["gte"]
+                                                                           fallback=DEFAULT_TIMESTAMP_FIELD))]["gte"]
         search_range_end = search_range["range"][str(settings.config.get("general", "timestamp_field",
-                                                                         fallback="timestamp"))]["lte"]
+                                                                         fallback=DEFAULT_TIMESTAMP_FIELD))]["lte"]
 
         search_start_range_printable = parser.parse(search_range_start).strftime('%Y-%m-%d %H:%M:%S')
         search_end_range_printable = parser.parse(search_range_end).strftime('%Y-%m-%d %H:%M:%S')
@@ -276,12 +280,13 @@ class Analyzer(abc.ABC):
         """
         raise NotImplementedError()
 
-    def extract_parameter(self, param_name, param_type=None, default=None):
+    def extract_parameter(self, param_name, param_type="string", section_name=None, default=None):
         """
         Extract parameter in general or use-case conf file.
 
         :param param_name: Name of the parameter to extract in general or use-case conf file
         :param param_type: Type of conversion of the parameter. string, int, float, boolean or None.
+        :param section_name: Name of the section in configuration file where the parameter has to be extracted.
         :param default: default value if parameter is not found.
         :return: the parameter converted into param_type
         """
@@ -294,19 +299,11 @@ class Analyzer(abc.ABC):
                                "int": settings.config.getint,
                                "float": settings.config.getfloat,
                                "boolean": settings.config.getboolean}
-        try:
-            if param_type is None:
-                param_value = config_section_get["string"](param_name)
-                if param_value is None:
-                    param_value = settings_config_get["string"](self.model_type, param_name)
-            else:
-                param_value = config_section_get[param_type](param_name)
-                if param_value is None:
-                    param_value = settings_config_get[param_type](self.model_type, param_name)
-        except (NoOptionError, NoSectionError) as e:
-            if default is not None:
-                param_value = default
-            else:
-                raise ValueError(e)
 
+        param_value = config_section_get[param_type](param_name)
+        if param_value is None:
+            if section_name is None:
+                param_value = settings_config_get[param_type](self.model_type, param_name, fallback=default)
+            else:
+                param_value = settings_config_get[param_type](section_name, param_name, fallback=default)
         return param_value

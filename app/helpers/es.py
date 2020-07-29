@@ -1,13 +1,14 @@
 import json
 import datetime as dt
 import math
+import copy
 
 from collections import defaultdict
 from itertools import chain
 
 from pygrok import Grok
 from elasticsearch import helpers as eshelpers, Elasticsearch
-from elasticsearch.exceptions import AuthenticationException, ConnectionError
+from elasticsearch.exceptions import AuthenticationException, ConnectionError, RequestError
 
 from configparser import NoOptionError
 
@@ -17,6 +18,8 @@ import helpers.logging
 from helpers.singleton import singleton
 from helpers.notifier import Notifier
 from helpers.outlier import Outlier
+
+DEFAULT_TIMESTAMP_FIELD = "@timestamp"
 
 
 @singleton
@@ -91,7 +94,7 @@ class ES:
         :return: timtestamp field name, number of recover day , number of recover hours (in addition to the days)
         """
         if model_settings is None:
-            timestamp_field = self.settings.config.get("general", "timestamp_field", fallback="@timestamp")
+            timestamp_field = self.settings.config.get("general", "timestamp_field", fallback=DEFAULT_TIMESTAMP_FIELD)
             history_window_days = self.settings.config.getint("general", "history_window_days")
             history_window_hours = self.settings.config.getint("general", "history_window_hours")
         else:
@@ -117,9 +120,10 @@ class ES:
         preserve_order = False
 
         highlight_settings = self._get_highlight_settings(model_settings)
-
+        self.logging.logger.debug("process_documents_chronologically set to: "
+                                  + str(model_settings["process_documents_chronologically"]))
         if model_settings is not None and model_settings["process_documents_chronologically"]:
-            sort_clause = {"sort": [{model_settings["timestamp_field"]: "desc"}]}
+            sort_clause = {"sort": [{model_settings["timestamp_field"]: "asc"}]}
             preserve_order = True
 
         return eshelpers.scan(self.conn, request_timeout=self.settings.config.getint("general", "es_timeout"),
@@ -171,6 +175,62 @@ class ES:
             return total_events, self._scan(index, search_range, bool_clause, sort_clause, query_fields, search_query,
                                             model_settings)
         return total_events, []
+
+    def count_documents(self, index, search_query, model_settings, bool_clause=None, query_fields=None):
+        """
+        Count the number of document
+
+        :param index: on which index the request must be done
+        :param search_query: the search query
+        :param model_settings: part of the configuration linked to the model
+        :param bool_clause: boolean condition
+        :param query_fields: the query field
+        :return: the number of document
+        """
+        timestamp_field, history_window_days, history_window_hours = self._get_history_window(model_settings)
+        search_range = self.get_time_filter(days=history_window_days, hours=history_window_hours,
+                                            timestamp_field=timestamp_field)
+        return self._count_documents(index, search_range, bool_clause, query_fields, search_query)
+
+    def scan_first_occur_documents(self, search_query, start_time, end_time, model_settings):
+        """
+        Retrieve from Elasticsearch in aggregation defined by model_settings["aggregator"], the first occurrence of a
+        term field defined by model_settings["target"], of events within the time window defined by start_time and
+        end_time.
+
+        :param search_query: the search query
+        :param start_time: start time of the time window
+        :param end_time: end time of the time window
+        :param model_settings: part of the configuration linked to the model
+        :return aggregator_buckets: list of aggregation buckets
+        """
+        search_range = self.get_time_filter(start_time=start_time,
+                                            end_time=end_time,
+                                            timestamp_field=model_settings["timestamp_field"])
+        first_occur_search_query = build_first_occur_search_query(search_query=search_query,
+                                                                  search_range=search_range,
+                                                                  target_list=model_settings["target"],
+                                                                  aggregator_list=model_settings["aggregator"],
+                                                                  timestamp=model_settings["timestamp_field"],
+                                                                  max_num_aggs=model_settings["max_num_aggs"],
+                                                                  max_num_targets=model_settings["max_num_targets"])
+        try:
+            results = self.conn.search(index=model_settings["es_index"], body=first_occur_search_query)
+        except RequestError as e:
+            self.logging.logger.error(e.error)
+            self.logging.logger.error(json.dumps(e.info, indent=4))
+            return []
+
+        if results["_shards"]["failed"] > 0:
+            self.logging.logger.warning("Search query failure(s): ")
+            for failure in results["_shards"]["failures"]:
+                self.logging.logger.warning("Failed script: %s caused by %s: %s" %
+                                            (failure["reason"]["script"],
+                                             failure["reason"]["caused_by"]["type"],
+                                             failure["reason"]["caused_by"]["reason"]))
+
+        aggregator_buckets = results["aggregations"]["aggregator"]["buckets"]
+        return aggregator_buckets
 
     @staticmethod
     def filter_by_query_string(query_string=None):
@@ -300,7 +360,8 @@ class ES:
 
         must_clause = {"filter": [{"term": {"tags": "outlier"}}]}
         timestamp_field, history_window_days, history_window_hours = self._get_history_window()
-        search_range = self.get_time_filter(days=history_window_days, hours=history_window_hours,
+        search_range = self.get_time_filter(days=history_window_days,
+                                            hours=history_window_hours,
                                             timestamp_field=timestamp_field)
         total_outliers = self._count_documents(index=idx, search_range=search_range, bool_clause=must_clause)
 
@@ -397,7 +458,11 @@ class ES:
         """
         if not self.bulk_actions:
             return
-        eshelpers.bulk(self.conn, self.bulk_actions, stats_only=True, refresh=refresh)
+        try:
+            eshelpers.bulk(self.conn, self.bulk_actions, stats_only=True, refresh=refresh)
+        except eshelpers.BulkIndexError:
+            self.logging.logger.error("BulkIndexError: Unable to write on index %s" % self.bulk_actions[0]["_index"])
+
         self.bulk_actions = []
 
     def save_outlier(self, outlier=None, extract_derived_fields=False):
@@ -467,24 +532,30 @@ class ES:
         return doc_fields
 
     @staticmethod
-    def get_time_filter(days=None, hours=None, timestamp_field="timestamp"):
+    def get_time_filter(start_time=None, end_time=None, days=None, hours=None, timestamp_field=DEFAULT_TIMESTAMP_FIELD):
         """
         Create a filter to limit the time
 
+        :param start_time: start time
+        :param end_time: end time
         :param days: number of days of the filter
         :param hours: number of hours of the filter
         :param timestamp_field: the name of the timestamp field
         :return: the query
         """
-        time_start = (dt.datetime.now() - dt.timedelta(days=days, hours=hours)).isoformat()
-        time_stop = dt.datetime.now().isoformat()
+        if start_time is None or end_time is None:
+            start_time = (dt.datetime.now() - dt.timedelta(days=days, hours=hours))
+            end_time = dt.datetime.now()
+
+        start_time_iso = start_time.isoformat()
+        end_time_iso = end_time.isoformat()
 
         # Construct absolute time range filter, increases cacheability
         time_filter = {
             "range": {
                 str(timestamp_field): {
-                    "gte": time_start,
-                    "lte": time_stop
+                    "gte": start_time_iso,
+                    "lte": end_time_iso
                 }
             }
         }
@@ -502,7 +573,7 @@ class ES:
         :return: highlight_settings: Highlight settings
         """
         highlight_settings = None
-        if "highlight_match" in model_settings and model_settings["highlight_match"]:
+        if model_settings is not None and "highlight_match" in model_settings and model_settings["highlight_match"]:
             highlight_settings = dict()
             # Pre and post tag definition
             highlight_settings["pre_tags"] = ["<value>"]
@@ -614,7 +685,7 @@ def build_search_query(bool_clause=None,
 
     if bool_clause:
         # To avoid side effects (multiple search_range) when calling multiple times the function on the same bool_clause
-        query["query"]["bool"]["filter"] = bool_clause["filter"].copy()
+        query["query"]["bool"]["filter"] = copy.deepcopy(bool_clause["filter"])
 
     if sort_clause:
         query.update(sort_clause)
@@ -628,9 +699,102 @@ def build_search_query(bool_clause=None,
         query["query"]["bool"]["filter"].append(search_range)
 
     if search_query:
-        query["query"]["bool"]["filter"].append(search_query["filter"].copy())
+        query["query"]["bool"]["filter"].extend(copy.deepcopy(search_query["filter"]))
 
     if highlight_settings:
         query["highlight"] = highlight_settings
 
     return query
+
+
+def build_first_occur_search_query(search_query,
+                                   search_range,
+                                   target_list,
+                                   aggregator_list,
+                                   timestamp,
+                                   max_num_aggs,
+                                   max_num_targets):
+    """
+    Build specific Elasticsearch query for retrieving aggregation of first occurrence of a term field in events matching
+    with the search_query.
+
+    :param search_query: search query
+    :param search_range: search range
+    :param target_list: list of target fields
+    :param aggregator_list: list of fields that we want to aggregate
+    :param timestamp: timestamp field name
+    :param max_num_aggs: number maximum of estimate aggregation
+    :param max_num_targets: number maximum of estimate targets
+    :return: the build Elasticsearch query
+    """
+    order_dict = dict()
+    order_dict[timestamp] = dict()
+    order_dict[timestamp]["order"] = "asc"
+
+    filter_list = list()
+    filter_list.append(search_range)
+
+    aggr_and_target_exists_query = build_aggr_and_target_exists_query(target_list, aggregator_list)
+    filter_list.append(aggr_and_target_exists_query)
+
+    filter_list.extend(copy.deepcopy(search_query["filter"]))
+
+    query = {"size": 0,
+             "query": {
+                 "bool": {
+                     "filter": filter_list
+                 }
+             },
+             "aggs": {
+                 "aggregator": {
+                     "terms": {
+                         "script": build_script(aggregator_list),
+                         "size": max_num_aggs,
+                         "collect_mode": "breadth_first"
+                     },
+                     "aggs": {
+                         "target": {
+                             "terms": {
+                                 "script": build_script(target_list),
+                                 "size": max_num_targets,
+                                 "collect_mode": "breadth_first"
+                             },
+                             "aggs": {
+                                 "top_doc": {
+                                     "top_hits": {
+                                         "sort": [order_dict],
+                                         "size": 1
+                                     }
+                                 }
+                             }
+                         }
+                     }
+                 }
+             }}
+
+    return query
+
+
+def build_aggr_and_target_exists_query(target_list, aggregator_list):
+    """
+    Build query to select events where fields defined in target_list and aggregator_list exist.
+
+    :param target_list: list of target fields
+    :param aggregator_list: list of fields that we want to aggregate
+    :return aggr_and_target_exists_query: Elasticsearch query that select event where fields defined in target_list and
+    aggregator_list exist
+    """
+    field_list = target_list + aggregator_list
+    query = " AND ".join(["_exists_: " + field for field in field_list])
+    aggr_and_target_exists_query = {"query_string": {"query": query}}
+    return aggr_and_target_exists_query
+
+
+def build_script(field_list):
+    """
+    Build painless script to create aggregation from multiple fields
+
+    :param field_list: list of event field
+    :return:  painless script format
+    """
+    return " + ' - ' + ".join(["doc['" + field + "'].value" for field in field_list])

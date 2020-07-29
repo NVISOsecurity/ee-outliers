@@ -7,12 +7,14 @@ from analyzers.metrics import MetricsAnalyzer
 from analyzers.simplequery import SimplequeryAnalyzer
 from analyzers.terms import TermsAnalyzer
 from analyzers.word2vec import Word2VecAnalyzer
+from analyzers.sudden_appearance import SuddenAppearanceAnalyzer
 
 CLASS_MAPPING = {
     "simplequery": SimplequeryAnalyzer,
     "metrics": MetricsAnalyzer,
     "word2vec": Word2VecAnalyzer,
-    "terms": TermsAnalyzer
+    "terms": TermsAnalyzer,
+    "sudden_appearance": SuddenAppearanceAnalyzer
 }
 
 
@@ -64,8 +66,6 @@ class AnalyzerFactory:
         # Read the ini file from disk
         config = configparser.RawConfigParser(**configparser_options)
         config.read(config_file)
-
-        logging.logger.debug(config)
 
         # Create a list of all analyzers found in the config file
         analyzers = [AnalyzerFactory.section_to_analyzer(section_name, section)
