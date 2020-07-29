@@ -27,6 +27,7 @@ The different types of detection models that can be configured are listed below.
 
 - **sudden_appearance models**: the sudden_appearance model looks for outliers by finding te sudden appearance of a 
 certain field(s).
+Example use case: detect the sudden appearance of a new type of network traffic, or the sudden appearance of a Downloads directory from which processes are being executed.
 
 - **word2vec models (BETA)**: the word2vec model is the first Machine Learning model defined in ee-outliers. It allows 
 the analyst to train a model based on a set of features that are expected to appear in the same context. After initial 
@@ -325,20 +326,21 @@ test_model=0
 
 ## Sudden Appearance models
 The sudden_appearance model looks for outliers by finding the sudden appearance of a certain field(s).
-Example use case: tag sudden appearance of a new TLD DNS. 
+Example use case: tag the sudden appearance of a website that has never been visited in the 
+past by a specific user or computer.
 
 Each sudden_appearance model section in the configuration file should be prefixed by `sudden_appearance_`.
 
 **Example model**
 ```ini
 ##############################
-# SUDDEN APPEARANCE - NEW DNS DOMAIN
+# SUDDEN APPEARANCE - NEW PROCESS LOCATION
 ##############################
-[sudden_appearance_new_dns_domain]
-es_query_filter=tags:network AND type:dns AND direction:outbound
+[sudden_appearance_winlog_new_process_location]
+es_query_filter=_exists_:winlog.event_id AND winlog.event_id:1
 
-aggregator=meta.deployment_name
-target= dns_request 
+aggregator=meta.deployment_name.keyword, process.name
+target=process.executable
 
 history_window_days=7
 history_window_hours=0
@@ -347,11 +349,11 @@ history_window_hours=0
 # Therefore, 20:13:20 will correspond to 20 days 13 hours and 20 minutes
 sliding_window_size=01:00:00
 
-sliding_window_step_size=00:12:00
+sliding_window_step_size=00:01:00
 
 outlier_type=first observation
-outlier_reason=sudden appearance of DNS domain in logs
-outlier_summary=sudden appearance of DNS domain {dns_request} in logs
+outlier_reason=sudden appearance of new process location
+outlier_summary=sudden appearance of new process location {process.executable}
 
 run_model=1
 test_model=0
