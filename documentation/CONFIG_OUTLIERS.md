@@ -9,6 +9,7 @@
 - [simplequery models](#simplequery-models)
 - [metrics models](#metrics-models)
 - [terms models](#terms-models)
+- [sudden_appearance models](#sudden-appearance-models)
 - [word2vec models](#word2vec-models)
 - [Derived fields](#derived-fields)
 
@@ -23,6 +24,10 @@ The different types of detection models that can be configured are listed below.
 - **metrics models**: the metrics model looks for outliers based on a calculated metric of a specific field of events. These metrics include the length of a field, its entropy, and more. Example use case: tag all events that represent Windows processes that were launched using a high number of base64 encoded parameters in order to detect obfuscated fileless malware.
 
 - **terms models**:  the terms model looks for outliers by calculating rare combinations of a certain field(s) in combination with other field(s). Example use case: tag all events that represent Windows network processes that are rarely observed across all reporting endpoints in order to detect C2 phone home activity.
+
+- **sudden_appearance models**: the sudden_appearance model looks for outliers by finding te sudden appearance of a 
+certain field(s).
+Example use case: detect the sudden appearance of a new type of network traffic, or the sudden appearance of a Downloads directory from which processes are being executed.
 
 - **word2vec models (BETA)**: the word2vec model is the first Machine Learning model defined in ee-outliers. It allows 
 the analyst to train a model based on a set of features that are expected to appear in the same context. After initial 
@@ -239,7 +244,7 @@ The metrics model works as following:
 
 The terms model looks for outliers by calculting rare combinations of a certain field(s) in combination with other field(s). Example use case: tag all events that represent Windows network processes that are rarely observed across all reporting endpoints in order to detect C2 phone home activity.
 
-Each metrics model section in the configuration file should be prefixed by ``terms_``.
+Each terms model section in the configuration file should be prefixed by ``terms_``.
 
 **Example model**
 ```ini
@@ -270,7 +275,7 @@ All required options are visible in the example. All possible options are listed
 
 **How it works**
 
-The terms model looks for outliers by calculting rare combinations of a certain field(s) in combination with other field(s). It works as following:
+The terms model looks for outliers by calculating rare combinations of a certain field(s) in combination with other field(s). It works as following:
 
 1. The model starts by taking into account all the events defined in the ``es_query_filter`` parameter. This should be a valid Elasticsearch query. The best way of testing if the query is valid is by copy-pasting it from a working Kibana query.
  
@@ -284,7 +289,7 @@ The ``target_count_method`` parameter can be used to define if the analysis shou
 
 If `trigger_method` is set on `coeff_of_variation`, the process is not completely the same. Indeed, the coefficient of variation is compute like other metrics, based on the number of document for a specific `target` and `aggregator`. But this coefficient of variation is then compare to the `trigger_sensitivity`. Based on `trigger_on`, all the group is mark as outlier or not.
 
-This method could be used for detecting an occurance in events. Example use case: look for signs of a piece of malware sending out beacons to a Command & Control server at fixed time intervals each minute, hour or day.
+This method could be used for detecting an occurrence in events. Example use case: look for signs of a piece of malware sending out beacons to a Command & Control server at fixed time intervals each minute, hour or day.
 
 **Example model**
 
@@ -319,15 +324,84 @@ run_model=1
 test_model=0
 ```
 
+## Sudden Appearance models
+The sudden_appearance model looks for outliers by finding the sudden appearance of a certain field(s).
+Example use case: tag the sudden appearance of a website that has never been visited in the 
+past by a specific user or computer.
+
+Each sudden_appearance model section in the configuration file should be prefixed by `sudden_appearance_`.
+
+**Example model**
+```ini
+##############################
+# SUDDEN APPEARANCE - NEW PROCESS LOCATION
+##############################
+[sudden_appearance_winlog_new_process_location]
+es_query_filter=_exists_:winlog.event_id AND winlog.event_id:1
+
+aggregator=meta.deployment_name.keyword, process.name
+target=process.executable
+
+history_window_days=7
+history_window_hours=0
+
+# Size of the sliding window defined in DDD:HH:MM
+# Therefore, 20:13:20 will correspond to 20 days 13 hours and 20 minutes
+sliding_window_size=01:00:00
+
+sliding_window_step_size=00:01:00
+
+outlier_type=first observation
+outlier_reason=sudden appearance of new process location
+outlier_summary=sudden appearance of new process location {process.executable}
+
+run_model=1
+test_model=0
+```
+
+**Parameters**
+
+All required options are visible in the example. All possible options are listed [here](CONFIG_PARAMETERS.md#analyzers-parameters).
+
+**How it works**
+
+The sudden_appearance model looks for outliers by finding the sudden appearance of a certain field(s).
+
+Let's define:
+- The **global window** determined by the parameters `history_window_days` and `history_window_hours`.
+- The **sliding window** where the size is determined by the parameter `sliding_window_size`. 
+It has to be smaller than the **global window**.
+- The **sliding step** where the size is determined by the parameter `sliding_window_step_size`. 
+It represents the jump step in time, the **sliding window** will slide within the **global window**.
+
+The sudden_appearance model works as following:
+1. The **sliding window** is first placed at the beginning of the **global window**.
+2. An analysis of the sudden appearance of (a) certain field value(s) is processed in the **sliding window**.
+
+    More especially, it will take the first occurrences of each different values corresponding to the field defined by the 
+`target` parameter. 
+If multiple fields are defined in the `target` parameter, it will take the first occurrences of each unique combination 
+of values corresponding to the multiples fields.
+Note that this operation is done independently in each group of aggregation defined by the `aggregator` parameter. 
+
+    If a first appearance appears after the end of the **sliding window** minus the **sliding step**, the event corresponding to
+ this first appearance will be considered as an outlier.
+3. After, the **sliding window** slide/jump further in the **global window**, by a time distance defined by 
+**sliding step**. 
+4. The operation 2. and 3. are repeated until the **sliding window** gets through all the **global window**.
+
+
 ## Word2vec models
 The word2vec model looks for outliers by analysing weird syntactic and semantic arrangement in an event text field(s).
-More precisely, in each evnet, it will take the text of a certain field(s). 
+More precisely, in each event, it will take the text of a certain field(s). 
 Then, these texts will be separated into tokens/words which will be used as input to train a Skip-Gram word2vec model.
 During evaluation time, word2vec will output for each word, a score that is dependent to his neighborhood words. 
 More the word score is low and more the word or his neighborhood words can be seen as anomalies.
 Word2vec can also return a general score around the entire text.
 
 Example use case: spot processes that are running in an unusual directory.
+
+Each word2vec model section in the configuration file should be prefixed by ``word2vec_``.
 
 **Example model**
 ```ini
