@@ -18,6 +18,7 @@
   - [Simple query parameters](#simple-query-parameters)
   - [Metrics parameters](#metrics-parameters)
   - [Terms parameters](#terms-parameters)
+  - [Sudden Appearance parameters](#sudden-appearance-parameters)
   - [Word2vec parameters](#word2vec-parameters)
 
 
@@ -330,6 +331,35 @@ Global parameters for all use cases of type metrics.
   </tr>
 </table>
 
+### Sudden Appearance
+
+Global parameters for all use cases of type sudden_appearance.
+
+<table class="tg">
+  <tr>
+   <th colspan="3">General</th>
+  </tr>
+  <tr>
+    <th class="tg-0pky">Key parameters</th>
+    <th class="tg-0pky">Values</th>
+    <th class="tg-0pky">Notes</th>
+  </tr>
+  <tr>
+    <td class="tg-0pky"><code>max_num_aggregators</code></td>
+    <td class="tg-0pky"><code>Int</code></td>
+    <td class="tg-0pky">Maximum number of estimated aggregation. 
+    If the number of aggregation defined in <code>aggregator</code> is bigger than <code>max_num_aggregators</code>, the returned results will not be accurate.
+     Default: <code>100000</code>.</td>
+  </tr>
+  <tr>
+    <td class="tg-0pky"><code>max_num_targets</code></td>
+    <td class="tg-0pky"><code>Int</code></td>
+    <td class="tg-0pky">Maximum number of estimated targets.
+    If the number of terms defined in <code>target</code> is bigger than <code>max_num_targets</code>, the 
+    returned results will not be accurate. Default: <code>100000</code>.</td>
+  </tr>
+</table>
+
 ### Word2vec
 
 Global parameters for all use cases of type word2vec.
@@ -377,7 +407,7 @@ Global parameters for all use cases of type word2vec.
   <tr>
     <td class="tg-0pky"><code>output_prob</code></td>
     <td class="tg-0pky"><code>0</code>, <code>1</code></td>
-    <td class="tg-0pky">If set to <code>1</codde>, the models output the probability that a context word appears, 
+    <td class="tg-0pky">If set to <code>1</code>, the models output the probability that a context word appears, 
     given a certain center word.
     If set to <code>0</code>, and <code>use_prob_model=0</code> it outputs the raw value of word2vec 
     (layer before the softmax).
@@ -627,7 +657,7 @@ To have more information about the configuration of one analyzer, visit the page
   </tr>
 </table>
 
-### Usual model paramaters
+### Usual model parameters
 
 The following parameters could be used for analyzers `terms`, `metrics` and `word2vec`.
 More information available [here](CONFIG_OUTLIERS.md#usual-model-parameters).
@@ -817,6 +847,61 @@ More information available [here](CONFIG_OUTLIERS.md#arbitrary-parameters).
     <td class="tg-0pky"><code>Int</code></td>
     <td class="tg-0pky">Minimum number of events within an aggregation before processing terms analyzer. 
     Only with the <code>target_count_method</code> set on <code>within_aggregator</code>.
+    </td>
+  </tr>
+</table>
+
+### Sudden Appearance parameters
+
+<table>
+  <tr>
+    <th colspan="3">Sudden Appearance</th>
+  </tr>
+  <tr>
+    <th class="tg-0pky">Key parameters  <small>(*Mandatory)</small></th>
+    <th class="tg-0pky">Values</th>
+    <th class="tg-0pky">Notes</th>
+  </tr>
+  <tr>
+    <td class="tg-0pky"><code>target</code>*</td>
+    <td class="tg-0pky"><code>String</code> separated by <code>,</code></td>
+    <td class="tg-0pky">One or multiple document fields that will be analyzed for sudden appearance in group documents.
+    </td>
+  </tr>
+  <tr>
+    <td class="tg-0pky"><code>aggregator</code>*</td>
+    <td class="tg-0pky"><code>String</code> separated by <code>,</code></td>
+    <td class="tg-0pky">One or multiple document fields that will be used to group documents.
+    Each document that contains the same combination of field values will be assembled in the same group. 
+    </td>
+  </tr>
+  <tr>
+    <td class="tg-0pky"><code>history_window_days</code></td>
+    <td class="tg-0pky"><code>Int</code></td>
+    <td class="tg-0pky">Override <code>history_window_days</code> parameter in general settings.</td>
+  </tr>
+  <tr>
+    <td class="tg-0pky"><code>history_window_hours</code></td>
+    <td class="tg-0pky"><code>Int</code></td>
+    <td class="tg-0pky">Override <code>history_window_hours</code> parameter in general settings.</td>
+  </tr>
+  <tr>
+    <td class="tg-0pky"><code>sliding_window_size</code>*</td>
+    <td class="tg-0pky"><code>DDD</code>:<code>HH</code>:<code>MM</code></td>
+    <td class="tg-0pky">Size of the sliding window where <code>DDD</code> define the number of days, 
+    <code>HH</code> the number of hours and <code>MM</code> the number of minutes.
+    Example: <code>20</code>:<code>13</code>:<code>20</code> will correspond to a sliding window of size 20 days, 13
+    hours and 20 minutes.
+    </td>
+  </tr>
+  <tr>
+    <td class="tg-0pky"><code>sliding_window_step_size</code>*</td>
+    <td class="tg-0pky"><code>DDD</code>:<code>HH</code>:<code>MM</code></td>
+    <td class="tg-0pky">Size of the sliding step where <code>DDD</code> define the number of days, 
+    <code>HH</code> the number of hours and <code>MM</code> the number of minutes. The sliding step represents the
+    jump step in time, the sliding window will slide withing the global window.
+    Example: <code>10</code>:<code>01</code>:<code>02</code> will correspond to a sliding step of size 10 days, 1
+    hours and 2 minutes.
     </td>
   </tr>
 </table>

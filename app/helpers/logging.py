@@ -62,9 +62,11 @@ class Logging:
         self.desc = desc
         self.current_step = 0
 
-    def tick(self):
+    def tick(self, num_event_proc=None):
         """
         Increment the number of tick
+
+        :param num_event_proc: number of event already processed
         """
         self.current_step += 1
 
@@ -77,7 +79,10 @@ class Logging:
         if should_log:
             # avoid a division by zero
             time_diff = max(float(1), float(dt.datetime.today().timestamp() - self.start_time))
-            ticks_per_second = "{:,}".format(round(float(self.current_step) / time_diff))
+            if num_event_proc is None:
+                ticks_per_second = "{:,}".format(round(float(self.current_step) / time_diff))
+            else:
+                ticks_per_second = "{:,}".format(round(float(num_event_proc) / time_diff))
 
             self.logger.info(self.desc + " [" + ticks_per_second + " eps. - " + '{:.2f}'
                              .format(round(float(self.current_step) / float(self.total_steps) * 100, 2)) +
