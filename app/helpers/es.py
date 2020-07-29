@@ -18,6 +18,8 @@ from helpers.singleton import singleton
 from helpers.notifier import Notifier
 from helpers.outlier import Outlier
 
+DEFAULT_TIMESTAMP_FIELD = "@timestamp"
+
 
 @singleton
 class ES:
@@ -91,7 +93,7 @@ class ES:
         :return: timtestamp field name, number of recover day , number of recover hours (in addition to the days)
         """
         if model_settings is None:
-            timestamp_field = self.settings.config.get("general", "timestamp_field", fallback="@timestamp")
+            timestamp_field = self.settings.config.get("general", "timestamp_field", fallback=DEFAULT_TIMESTAMP_FIELD)
             history_window_days = self.settings.config.getint("general", "history_window_days")
             history_window_hours = self.settings.config.getint("general", "history_window_hours")
         else:
@@ -397,7 +399,11 @@ class ES:
         """
         if not self.bulk_actions:
             return
-        eshelpers.bulk(self.conn, self.bulk_actions, stats_only=True, refresh=refresh)
+        try:
+            eshelpers.bulk(self.conn, self.bulk_actions, stats_only=True, refresh=refresh)
+        except eshelpers.BulkIndexError:
+            self.logging.logger.error("BulkIndexError: Unable to write on index %s" % self.bulk_actions[0]["_index"])
+
         self.bulk_actions = []
 
     def save_outlier(self, outlier=None, extract_derived_fields=False):
@@ -467,7 +473,7 @@ class ES:
         return doc_fields
 
     @staticmethod
-    def get_time_filter(days=None, hours=None, timestamp_field="timestamp"):
+    def get_time_filter(days=None, hours=None, timestamp_field=DEFAULT_TIMESTAMP_FIELD):
         """
         Create a filter to limit the time
 
@@ -502,7 +508,7 @@ class ES:
         :return: highlight_settings: Highlight settings
         """
         highlight_settings = None
-        if "highlight_match" in model_settings and model_settings["highlight_match"]:
+        if model_settings is not None and "highlight_match" in model_settings and model_settings["highlight_match"]:
             highlight_settings = dict()
             # Pre and post tag definition
             highlight_settings["pre_tags"] = ["<value>"]
@@ -628,7 +634,7 @@ def build_search_query(bool_clause=None,
         query["query"]["bool"]["filter"].append(search_range)
 
     if search_query:
-        query["query"]["bool"]["filter"].append(search_query["filter"].copy())
+        query["query"]["bool"]["filter"].extend(search_query["filter"].copy())
 
     if highlight_settings:
         query["highlight"] = highlight_settings

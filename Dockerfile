@@ -1,4 +1,4 @@
-FROM python:3.6
+FROM python:3.6.11-slim
 ARG timezone=Europe/Brussels
 
 RUN apt-get update --fix-missing && \
@@ -8,7 +8,8 @@ RUN apt-get update --fix-missing && \
     dpkg-reconfigure --frontend noninteractive tzdata
 
 # Change locale to UTF-8
-RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y locales
+# Install gcc to resolve issue that appears with python-slim and installation of regex
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y locales gcc
 RUN sed -i -e 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen && \
     dpkg-reconfigure --frontend=noninteractive locales && \
     update-locale LANG=en_US.UTF-8
@@ -16,24 +17,16 @@ RUN sed -i -e 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen && \
 ENV LANG en_US.UTF-8
 
 ENV TZ=$timezone
-RUN apt-get -y install sudo
 
-RUN useradd -ms /bin/bash docker
-RUN echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
+# Install all Python requirements.
+COPY ./requirements.txt /app/requirements.txt
+RUN pip3 install -r /app/requirements.txt
 
-RUN adduser docker sudo
-USER docker
+COPY ./defaults /defaults
+COPY ./use_cases /use_cases
+COPY ./app/ /app
 
-# Install all Python requirements. Also see the remark above with all the RUN sudo pip commands.
-USER root
-ADD ./requirements.txt /app/requirements.txt
-RUN sudo pip3 install -r /app/requirements.txt
-
-ADD ./defaults /defaults
-ADD ./use_cases /use_cases
-ADD ./app/ /app
-
-ADD ./VERSION /VERSION
+COPY ./VERSION /VERSION
 
 # Let world write to unit test files so Jenkins and other tools can run and manipulate them
 RUN chmod a+w -R /app/tests/unit_tests/files
