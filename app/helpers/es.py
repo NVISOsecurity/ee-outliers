@@ -120,8 +120,7 @@ class ES:
         preserve_order = False
 
         highlight_settings = self._get_highlight_settings(model_settings)
-        self.logging.logger.debug("process_documents_chronologically set to: "
-                                  + str(model_settings["process_documents_chronologically"]))
+
         if model_settings is not None and model_settings["process_documents_chronologically"]:
             sort_clause = {"sort": [{model_settings["timestamp_field"]: "asc"}]}
             preserve_order = True
