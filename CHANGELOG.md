@@ -4,11 +4,11 @@
 - New Sudden Appearance model: the sudden_appearance model looks for outliers by finding the sudden appearance of a 
 certain value of a specific field, or multiple fields
 ### Minor changes
-- Updates on dockerfile to enforce security
-- When ee-outliers is unable to write on an index, it return an error log message instead of stopping the program
+- Security improvements in Dockerfile
+- When ee-outliers is unable to write on an index, it returns an error log message instead of stopping the program
 - Set "@timestamp" instead of "timestamp" as default timestamps field
 ### Bug fixes
-- Fix issue where generated ES dsl queries were not compatible with 7.7.+ version of ES
+- Fix and issue where generated Elasticsearch DSL queries were not compatible with Elasticsearch version 7.7 and above
 
 ## [Version 0.2.14](https://github.com/NVISO-BE/ee-outliers/releases/tag/0.2.14) (June 24, 2020)
 ### New features
