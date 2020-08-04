@@ -1,6 +1,7 @@
 # All parameters in configurations
 
 **Table of contents**
+- [Environment variables](#environment-variable)
 - [General configuration](#general-configuration)
     - [General](#general)
     - [Assets](#assets)
@@ -21,6 +22,42 @@
   - [Sudden Appearance parameters](#sudden-appearance-parameters)
   - [Word2vec parameters](#word2vec-parameters)
 
+## Environment variables
+
+The environment variables are mainly used to store sensitive information like credentials or other TLS parameters. All these environment variables are optional.
+
+<table class="tg">
+  <tr>
+    <th class="tg-0pky">Variable</th>
+    <th class="tg-0pky">Values</th>
+    <th class="tg-0pky">Default</th>
+    <th class="tg-0pky">Notes</th>
+  </tr>
+  <tr>
+    <td class="tg-0pky">es_username</td>
+    <td class="tg-0pky"><code>String</code></td>
+    <td class="tg-0pky">""</td>
+    <td class="tg-0pky">Username to connect to Elasticsearch</td>
+  </tr>
+  <tr>
+    <td class="tg-0pky">es_password</td>
+    <td class="tg-0pky"><code>String</code></td>
+    <td class="tg-0pky">""</td>
+    <td class="tg-0pky">Password to connect to Elasticsearch</td>
+  </tr>
+  <tr>
+    <td class="tg-0pky">verify_certs</td>
+    <td class="tg-0pky"><code>Boolean</code></td>
+    <td class="tg-0pky">true</td>
+    <td class="tg-0pky">Whether the Elasticsearch certificate must be validated or not</td>
+  </tr>
+  <tr>
+    <td class="tg-0pky">ca_certs</td>
+    <td class="tg-0pky"><code>String</code></td>
+    <td class="tg-0pky">None</td>
+    <td class="tg-0pky">A path to a valid CA to validate the Elasticsearch server certificate</td>
+  </tr>
+</table>
 
 ## General configuration
 
@@ -43,7 +80,7 @@ A default configuration file with all required configuration sections and parame
   <tr>
     <td class="tg-0pky"><code>es_url</code>*</td>
     <td class="tg-0pky"><code>String</code></td>
-    <td class="tg-0pky">URL to connect to Elasticsearch.</td>
+    <td class="tg-0pky">URL to connect to Elasticsearch. It supports https schema for TLS</td>
   </tr>
   <tr>
     <td class="tg-0pky"><code>es_username</code></td>
