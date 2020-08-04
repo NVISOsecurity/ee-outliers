@@ -83,16 +83,6 @@ A default configuration file with all required configuration sections and parame
     <td class="tg-0pky">URL to connect to Elasticsearch. It supports https schema for TLS</td>
   </tr>
   <tr>
-    <td class="tg-0pky"><code>es_username</code></td>
-    <td class="tg-0pky"><code>String</code></td>
-    <td class="tg-0pky">Username if ES authentication is required.</td>
-  </tr>
-   <tr>
-    <td class="tg-0pky"><code>es_password</code></td>
-    <td class="tg-0pky"><code>String</code></td>
-    <td class="tg-0pky">Password if ES authentication is required.</td>
-  </tr>
-  <tr>
     <td class="tg-0pky"><code>es_index_pattern</code>*</td>
     <td class="tg-0pky"><code>String</code></td>
     <td class="tg-0pky">The name of the Elasticsearch index. Can be a glob pattern such as <code>my_indexes*</code>.</td>
