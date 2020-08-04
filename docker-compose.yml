@@ -4,7 +4,12 @@ services:
     build: .
     container_name: outliers_dev
     command: "python3 outliers.py interactive --config /mappedvolumes/config/outliers.conf --use-cases /use_cases/*.conf"
+#    environment:
+#      - es_username=outliers
+#      - es_password=outliersw
+#      - ca_certs=/certs/ca.crt
     volumes:
       - ./defaults/outliers.conf:/mappedvolumes/config/outliers.conf
       - ./use_cases/examples:/use_cases
+#      - /opt/nviso/smoky/dockervolumes/certs/ca/ca.crt:/certs/ca.crt
     network_mode: sensor_network
