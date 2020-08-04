@@ -2,6 +2,7 @@ import json
 import datetime as dt
 import math
 import copy
+import os
 
 from collections import defaultdict
 from itertools import chain
@@ -58,33 +59,36 @@ class ES:
 
         :return: Connection object if connection with Elasticsearch succeeded, False otherwise
         """
-        try:
-            http_auth = (self.settings.config.get("general", "es_username"),
-                         self.settings.config.get("general", "es_password"))
-        except NoOptionError:
-            http_auth = ("", "")
 
-        self.conn = Elasticsearch([self.settings.config.get("general", "es_url")],
+        http_auth = (os.getenv("es_username",""),os.getenv("es_password",""))
+        verify_certs = os.getenv("verify_certs", "true").lower() in ["yes", "true", "1"]
+        ca_certs = os.getenv("ca_certs", None)
+        url = self.settings.config.get("general", "es_url")
+
+        self.logging.logger.debug(f"url: {url}, username: {http_auth[0]}, verify_certs: {verify_certs}, ca_certs: {ca_certs}")
+
+        self.conn = Elasticsearch([url],
                                   http_auth=http_auth,
-                                  use_ssl=False,
                                   timeout=self.settings.config.getint("general", "es_timeout"),
-                                  verify_certs=False,
+                                  verify_certs=verify_certs,
+                                  ca_certs=ca_certs,
                                   retry_on_timeout=True)
+
         try:
             self.conn.info()
             self.logging.logger.info("connected to Elasticsearch on host %s" %
                                      (self.settings.config.get("general", "es_url")))
-            result = self.conn
-        except AuthenticationException:
+            return self.conn
+        except AuthenticationException as e:
             self.logging.logger.error("could not connect to Elasticsearch on host %s due to authentication error." %
                                       (self.settings.config.get("general", "es_url")))
-            result = False
-        except ConnectionError:
+            self.logging.logger.debug(str(e))
+            return False
+        except ConnectionError as e:
             self.logging.logger.error("could not connect to Elasticsearch on host %s" %
                                       (self.settings.config.get("general", "es_url")))
-            result = False
-
-        return result
+            self.logging.logger.debug(str(e))
+            return False
 
     def _get_history_window(self, model_settings=None):
         """
