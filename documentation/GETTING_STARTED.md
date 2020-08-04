@@ -105,7 +105,6 @@ The environment variables used by outliers to connect to Elasticsearch. If you h
     - `verify_certs`: whether the Elasticsearch certificate must be validated or not.
     - `ca_certs`: a path to a valid CA to check to server's certificate.
 
-
 - [`volumes`](https://docs.docker.com/compose/compose-file/#volumes):
 The mapped volumes so that your configuration  and use case files can be found. In this example, the default 
 configuration file in ``/defaults`` is mapped to ``/mappedvolumes/config`` and the ``/use_cases/examples`` is mapped to 

@@ -34,27 +34,27 @@ The environment variables are mainly used to store sensitive information like cr
     <th class="tg-0pky">Notes</th>
   </tr>
   <tr>
-    <td class="tg-0pky">es_username</td>
+    <td class="tg-0pky"><code>es_username</code></td>
     <td class="tg-0pky"><code>String</code></td>
-    <td class="tg-0pky">""</td>
+    <td class="tg-0pky"><code>""</code></td>
     <td class="tg-0pky">Username to connect to Elasticsearch</td>
   </tr>
   <tr>
-    <td class="tg-0pky">es_password</td>
+    <td class="tg-0pky"><code>es_password</code></td>
     <td class="tg-0pky"><code>String</code></td>
-    <td class="tg-0pky">""</td>
+    <td class="tg-0pky"><code>""</code></td>
     <td class="tg-0pky">Password to connect to Elasticsearch</td>
   </tr>
   <tr>
-    <td class="tg-0pky">verify_certs</td>
+    <td class="tg-0pky"><code>verify_certs</code></td>
     <td class="tg-0pky"><code>Boolean</code></td>
-    <td class="tg-0pky">true</td>
+    <td class="tg-0pky"><code>True</code></td>
     <td class="tg-0pky">Whether the Elasticsearch certificate must be validated or not</td>
   </tr>
   <tr>
-    <td class="tg-0pky">ca_certs</td>
+    <td class="tg-0pky"><code>ca_certs</code></td>
     <td class="tg-0pky"><code>String</code></td>
-    <td class="tg-0pky">None</td>
+    <td class="tg-0pky"><code>None</code></td>
     <td class="tg-0pky">A path to a valid CA to validate the Elasticsearch server certificate</td>
   </tr>
 </table>
