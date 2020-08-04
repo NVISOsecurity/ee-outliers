@@ -5,8 +5,8 @@ services:
     container_name: outliers_dev
     command: "python3 outliers.py interactive --config /mappedvolumes/config/outliers.conf --use-cases /use_cases/*.conf"
 #    environment:
-#      - es_username=outliers
-#      - es_password=outliersw
+#      - es_username=username
+#      - es_password=password
 #      - ca_certs=/certs/ca.crt
     volumes:
       - ./defaults/outliers.conf:/mappedvolumes/config/outliers.conf
