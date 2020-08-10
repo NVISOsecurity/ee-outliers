@@ -4,7 +4,7 @@ Framework to easily detect outliers in Elasticsearch events.
 
 *Developed in Python and fully dockerized!*
 
-![version badge](https://img.shields.io/badge/version-0.2.16-blue "verion 0.2.16")
+![version badge](https://img.shields.io/badge/version-0.2.17-blue "verion 0.2.17")
 ![tests badge](https://img.shields.io/badge/unit_tests-254-orange "254 unit tests")
 
 ## Documentation
