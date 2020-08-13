@@ -11,5 +11,6 @@ services:
     volumes:
       - ./defaults/outliers_max.conf:/mappedvolumes/config/outliers.conf
       - ./use_cases/tests:/use_cases
+      - ./app:/app
 #      - /certs/ca.crt:/certs/ca.crt
     network_mode: sensor_network
