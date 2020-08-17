@@ -134,15 +134,16 @@ class SuddenAppearanceAnalyzer(Analyzer):
                                                   extra_outlier_information=extra_outlier_information)
                     self.process_outlier(outlier)
 
-                    summary = "\nIn aggregator '%s: %s',\nthe field(s) '%s: %s',\nappear(s) " \
-                              "suddenly the %s,\nin a time window of size %s,\nwith %s other events." % \
+                    summary = "\nIn aggregator '%s: %s' of %s events,\nthe field(s) '%s: %s',\nsuddenly appear(s) %s " \
+                              "times starting the %s,\nin a time window of size %s." % \
                               (", ".join(self.model_settings["aggregator"]),
                                aggregator_bucket["key"],
+                               aggregator_bucket["doc_count"],
                                " ,".join(self.model_settings["target"]),
                                doc["key"],
+                               doc["doc_count"],
                                str(event_timestamp),
-                               self.delta_slide_win,
-                               aggregator_bucket["doc_count"])
+                               self.delta_slide_win)
                     logging.logger.debug(summary)
                     # logging.logger.debug(outlier)
 
