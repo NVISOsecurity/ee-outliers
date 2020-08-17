@@ -225,8 +225,6 @@ class Analyzer(abc.ABC):
         """
         self.total_outliers += 1
         self.outlier_summaries.add(outlier.outlier_dict["summary"])
-        logging.logger.debug("regerxps withelist")
-        logging.logger.debug(self.model_whitelist_regexps)
         if outlier.is_whitelisted(self.model_whitelist_literals, self.model_whitelist_regexps):
             logging.logger.debug("outlier is white listed!")
             if settings.print_outliers_to_console:
