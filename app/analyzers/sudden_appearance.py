@@ -142,7 +142,7 @@ class SuddenAppearanceAnalyzer(Analyzer):
                                doc["key"],
                                str(event_timestamp),
                                self.delta_slide_win,
-                               doc["doc_count"])
+                               aggregator_bucket["doc_count"])
                     logging.logger.debug(summary)
                     # logging.logger.debug(outlier)
 
