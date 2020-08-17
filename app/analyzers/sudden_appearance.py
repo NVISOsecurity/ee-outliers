@@ -135,7 +135,7 @@ class SuddenAppearanceAnalyzer(Analyzer):
                     self.process_outlier(outlier)
 
                     summary = "In aggregator '%s: %s', the field(s) '%s: %s' appear(s) " \
-                              "suddenly at %s of the time window of size %s." % \
+                              "suddenly the %s in a time window of size %s." % \
                               (", ".join(self.model_settings["aggregator"]),
                                aggregator_bucket["key"],
                                " ,".join(self.model_settings["target"]),
