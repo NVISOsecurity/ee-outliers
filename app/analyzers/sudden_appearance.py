@@ -158,5 +158,6 @@ class SuddenAppearanceAnalyzer(Analyzer):
             self.nr_whitelisted_elements += 1
             logging.logger.debug("FLAG WHITELIST")
         else:
+            logging.logger.info("I AM OUTLIER")
             self.process_outlier(outlier)
             logging.logger.debug(outlier)
