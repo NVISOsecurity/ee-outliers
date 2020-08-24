@@ -132,13 +132,10 @@ class SuddenAppearanceAnalyzer(Analyzer):
                         extra_outlier_information["target_value"] = doc["key"]
                         extra_outlier_information["num_target_value_in_window"] = doc["doc_count"]
 
-                        outlier = self.create_outlier(fields,
-                                                      raw_doc,
-                                                      extra_outlier_information=extra_outlier_information)
-                        self.process_outlier(outlier)
+                        self.create_and_process_outlier(extra_outlier_information, fields, raw_doc)
 
-                        summary = "\nIn aggregator '%s: %s' of %s events,\nthe field(s) '%s: %s',\nsuddenly appear(s)" \
-                                  " %s times starting the %s,\nin a time window of size %s." % \
+                        summary = "\nIn aggregator '%s: %s' of %s events,\nthe field(s) '%s: %s',\nsuddenly " \
+                                  "appear(s) %s times starting the %s,\nin a time window of size %s." % \
                                   (", ".join(self.model_settings["aggregator"]),
                                    aggregator_bucket["key"],
                                    aggregator_bucket["doc_count"],
@@ -148,6 +145,18 @@ class SuddenAppearanceAnalyzer(Analyzer):
                                    str(event_timestamp),
                                    self.delta_slide_win)
                         logging.logger.debug(summary)
-                        logging.logger.debug(outlier)
+                        logging.logger.debug("\n")
 
         logging.tick(self.num_event_proc)
+
+    def create_and_process_outlier(self, extra_outlier_information, fields, raw_doc):
+
+        outlier = self.create_outlier(fields,
+                                      raw_doc,
+                                      extra_outlier_information=extra_outlier_information)
+        if outlier.is_whitelisted(self.model_whitelist_literals, self.model_whitelist_regexps):
+            self.nr_whitelisted_elements += 1
+            logging.logger.debug("FLAG WHITELIST")
+        else:
+            self.process_outlier(outlier)
+            logging.logger.debug(outlier)
