@@ -148,5 +148,6 @@ class SuddenAppearanceAnalyzer(Analyzer):
                                    str(event_timestamp),
                                    self.delta_slide_win)
                         logging.logger.debug(summary)
+                        logging.logger.debug(outlier)
 
         logging.tick(self.num_event_proc)
