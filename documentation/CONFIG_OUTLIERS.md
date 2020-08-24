@@ -25,8 +25,8 @@ The different types of detection models that can be configured are listed below.
 
 - **terms models**:  the terms model looks for outliers by calculating rare combinations of a certain field(s) in combination with other field(s). Example use case: tag all events that represent Windows network processes that are rarely observed across all reporting endpoints in order to detect C2 phone home activity.
 
-- **sudden_appearance models**: the sudden_appearance model looks for outliers by finding te sudden appearance of a 
-certain field(s).
+- **sudden_appearance models**: the sudden_appearance model looks for outliers by finding the sudden appearance of a 
+certain value of a specific field or multiple fields.
 Example use case: detect the sudden appearance of a new type of network traffic, or the sudden appearance of a Downloads directory from which processes are being executed.
 
 - **word2vec models (BETA)**: the word2vec model is the first Machine Learning model defined in ee-outliers. It allows 
@@ -325,7 +325,8 @@ test_model=0
 ```
 
 ## Sudden Appearance models
-The sudden_appearance model looks for outliers by finding the sudden appearance of a certain field(s).
+The sudden_appearance model looks for outliers by finding the sudden appearance of a certain value of a specific field,
+or multiple fields.
 Example use case: tag the sudden appearance of a website that has never been visited in the 
 past by a specific user or computer.
 

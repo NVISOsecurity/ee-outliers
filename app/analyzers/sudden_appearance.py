@@ -27,6 +27,8 @@ class SuddenAppearanceAnalyzer(Analyzer):
                                                                         "max_num_targets",
                                                                         fallback=100000)
 
+        self.model_settings["min_aggr_buckets"] = self.config_section.getint("min_aggregator_buckets", 1)
+
         self.model_settings["target"] = self.config_section["target"].replace(' ', '').split(",")
         self.model_settings["aggregator"] = self.config_section["aggregator"].replace(' ', '').split(",")
 
@@ -105,43 +107,46 @@ class SuddenAppearanceAnalyzer(Analyzer):
                                                            model_settings=self.model_settings)
         # Loop over the aggregations
         for aggregator_bucket in aggregator_buckets:
-            target_buckets = aggregator_bucket["target"]["buckets"]
-            # Loop over the documents in aggregation
-            for doc in target_buckets:
-                self.num_event_proc += doc["doc_count"]
-                raw_doc = doc["top_doc"]["hits"]["hits"][0]
-                fields = es.extract_fields_from_document(raw_doc,
-                                                         extract_derived_fields=self.model_settings[
-                                                             "use_derived_fields"])
-                # convert the event timestamp in the right format
-                event_timestamp = dateutil.parser.parse(fields[self.model_settings["timestamp_field"]],
-                                                        ignoretz=True)
+            if aggregator_bucket["doc_count"] >= self.model_settings["min_aggr_buckets"]:
+                target_buckets = aggregator_bucket["target"]["buckets"]
+                # Loop over the documents in aggregation
+                for doc in target_buckets:
+                    self.num_event_proc += doc["doc_count"]
+                    raw_doc = doc["top_doc"]["hits"]["hits"][0]
+                    fields = es.extract_fields_from_document(raw_doc,
+                                                             extract_derived_fields=self.model_settings[
+                                                                 "use_derived_fields"])
+                    # convert the event timestamp in the right format
+                    event_timestamp = dateutil.parser.parse(fields[self.model_settings["timestamp_field"]],
+                                                            ignoretz=True)
 
-                if event_timestamp > (end_slide_win - self.jump_win):
-                    # retrieve extra information
-                    extra_outlier_information = dict()
-                    extra_outlier_information["size_time_window"] = str(self.delta_slide_win)
-                    extra_outlier_information["start_time_window"] = str(start_slide_win)
-                    extra_outlier_information["end_time_window"] = str(end_slide_win)
-                    extra_outlier_information["aggregator"] = self.model_settings["aggregator"]
-                    extra_outlier_information["aggregator_value"] = aggregator_bucket["key"]
-                    extra_outlier_information["target"] = self.model_settings["target"]
-                    extra_outlier_information["target_value"] = doc["key"]
-                    extra_outlier_information["num_target_value_in_window"] = doc["doc_count"]
+                    if event_timestamp > (end_slide_win - self.jump_win):
+                        # retrieve extra information
+                        extra_outlier_information = dict()
+                        extra_outlier_information["size_time_window"] = str(self.delta_slide_win)
+                        extra_outlier_information["start_time_window"] = str(start_slide_win)
+                        extra_outlier_information["end_time_window"] = str(end_slide_win)
+                        extra_outlier_information["aggregator"] = self.model_settings["aggregator"]
+                        extra_outlier_information["aggregator_value"] = aggregator_bucket["key"]
+                        extra_outlier_information["target"] = self.model_settings["target"]
+                        extra_outlier_information["target_value"] = doc["key"]
+                        extra_outlier_information["num_target_value_in_window"] = doc["doc_count"]
 
-                    outlier = self.create_outlier(fields,
-                                                  raw_doc,
-                                                  extra_outlier_information=extra_outlier_information)
-                    self.process_outlier(outlier)
+                        outlier = self.create_outlier(fields,
+                                                      raw_doc,
+                                                      extra_outlier_information=extra_outlier_information)
+                        self.process_outlier(outlier)
 
-                    summary = "In aggregator '%s: %s', the field(s) '%s: %s' appear(s) " \
-                              "suddenly at %s of the time window of size %s." % \
-                              (", ".join(self.model_settings["aggregator"]),
-                               aggregator_bucket["key"],
-                               " ,".join(self.model_settings["target"]),
-                               doc["key"],
-                               str(event_timestamp),
-                               self.delta_slide_win)
-                    logging.logger.debug(summary)
+                        summary = "\nIn aggregator '%s: %s' of %s events,\nthe field(s) '%s: %s',\nsuddenly appear(s)" \
+                                  " %s times starting the %s,\nin a time window of size %s." % \
+                                  (", ".join(self.model_settings["aggregator"]),
+                                   aggregator_bucket["key"],
+                                   aggregator_bucket["doc_count"],
+                                   " ,".join(self.model_settings["target"]),
+                                   doc["key"],
+                                   doc["doc_count"],
+                                   str(event_timestamp),
+                                   self.delta_slide_win)
+                        logging.logger.debug(summary)
 
         logging.tick(self.num_event_proc)

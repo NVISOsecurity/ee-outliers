@@ -10,6 +10,7 @@
     - [Simple query](#simple-query)
     - [Terms](#terms)
     - [Metrics](#metrics)
+    - [Sudden Appearance](#sudden-appearance)
     - [Word2vec](#word2vec)
     - [Whitelist literals](#whitelist-literals)
     - [Whitelist regexps](#whitelist-regexps)
@@ -900,6 +901,14 @@ More information available [here](CONFIG_OUTLIERS.md#arbitrary-parameters).
     <td class="tg-0pky"><code>String</code> separated by <code>,</code></td>
     <td class="tg-0pky">One or multiple document fields that will be used to group documents.
     Each document that contains the same combination of field values will be assembled in the same group. 
+    </td>
+  </tr>
+  <tr>
+    <td class="tg-0pky"><code>min_aggregator_buckets</code></td>
+    <td class="tg-0pky"><code>Int</code></td>
+    <td class="tg-0pky">If the number of events contained in an aggregator bucket is inferior to that number, none of his
+     event will be considered as outlier. 
+     Set to <code>1</code> by default. 
     </td>
   </tr>
   <tr>

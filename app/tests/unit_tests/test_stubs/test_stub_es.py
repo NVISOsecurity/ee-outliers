@@ -102,6 +102,7 @@ class TestStubEs:
                 if aggr_value not in aggr_dict:
                     aggr_dict[aggr_value] = dict()
                     aggr_dict[aggr_value]["key"] = aggr_value
+                    aggr_dict[aggr_value]["doc_count"] = 1
                     aggr_dict[aggr_value]["target"] = dict()
                     aggr_dict[aggr_value]["target"]["buckets"] = dict()
                 if target_value not in aggr_dict[aggr_value]["target"]["buckets"]:
@@ -112,6 +113,8 @@ class TestStubEs:
                     aggr_dict[aggr_value]["target"]["buckets"][target_value]["top_doc"]["hits"] = dict()
                     aggr_dict[aggr_value]["target"]["buckets"][target_value]["top_doc"]["hits"]["hits"] = [raw_doc]
                 else:
+                    aggr_dict[aggr_value]["doc_count"] += 1
+
                     aggr_dict[aggr_value]["target"]["buckets"][target_value]["doc_count"] += 1
 
                     previous_doc = aggr_dict[aggr_value]["target"]["buckets"][target_value]["top_doc"]["hits"]["hits"][0]
