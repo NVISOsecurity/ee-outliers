@@ -54,9 +54,13 @@ services:
     build: .
     container_name: your_outliers_container_name
     command: "python3 outliers.py RUN_MODE --config /mappedvolumes/config/outliers.conf --use-cases /use_cases/*.conf"
+    environment:
+      - es_username:elastic
+      - es_password:password
     volumes:
       - ./defaults/outliers.conf:/mappedvolumes/config/outliers.conf
       - ./use_cases/examples:/use_cases
+      - /certs/ca.crt:/certs/ca.crt
     network_mode: network_name
 ```
 It allows you to define the docker container and the ee-outliers parameters for then build and run the ee-outliers image
@@ -94,10 +98,17 @@ The command line that will execute `outliers.py`.
     [developer-oriented](https://github.com/NVISO-BE/ee-outliers/blob/master/documentation/DEVELOPMENT.md), is useful for 
     developing and debugging purposes.
 
+- [`environment`](https://docs.docker.com/compose/compose-file/#environment)
+The environment variables used by outliers to connect to Elasticsearch. If you haven't setup security in your elasticsearch cluster, you don't need to specify these environment variables.
+    - `es_username`: username to connect.
+    - `es_password`: password to connect.
+    - `verify_certs`: whether the Elasticsearch certificate must be validated or not.
+    - `ca_certs`: a path to a valid CA to check to server's certificate.
+
 - [`volumes`](https://docs.docker.com/compose/compose-file/#volumes):
 The mapped volumes so that your configuration  and use case files can be found. In this example, the default 
 configuration file in ``/defaults`` is mapped to ``/mappedvolumes/config`` and the ``/use_cases/examples`` is mapped to 
-``/use_cases``.
+``/use_cases``. Moreover, we also map a valid CA certificate ``/certs/ca.crt`` used to trust the TLS connection with Elasticsearch.
 
 - [`network_mode`](https://docs.docker.com/compose/compose-file/#network_mode):
 The name of the docker network through which the Elasticsearch cluster is reachable.
