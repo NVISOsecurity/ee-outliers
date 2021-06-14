@@ -1,4 +1,7 @@
 # Changelog
+## [Version 0.2.18](https://github.com/NVISO-BE/ee-outliers/releases/tag/0.2.19) (June 14, 2021)
+### Bug fixes
+- Fix vulnerability issues found on pillow dependency
 ## [Version 0.2.18](https://github.com/NVISO-BE/ee-outliers/releases/tag/0.2.18) (May 31, 2021)
 ### Bug fixes
 - Fix vulnerability issues found on dependencies lxml & pillow
