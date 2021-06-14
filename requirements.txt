@@ -1,5 +1,5 @@
 tabulate==0.8.7
-Pillow==7.1.1
+Pillow==8.1.1
 torch==1.4.0
 scikit-learn==0.19.1
 certifi==2017.7.27.1
@@ -25,10 +25,10 @@ ruamel.yaml==0.15.34
 SecretStorage==2.3.1
 six==1.11.0
 tzlocal==1.4
-urllib3==1.24.2
+urllib3==1.26.5
 pandas==0.22.0
 netaddr==0.7.19
-lxml==4.2.1
+lxml==4.6.3
 croniter==0.3.20
 millify==0.1.1
 tld==0.9.1

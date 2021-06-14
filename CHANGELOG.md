@@ -1,9 +1,10 @@
 # Changelog
-
-## [Version 0.2.17](https://github.com/NVISO-BE/ee-outliers/releases/tag/0.2.17)(August 10, 2020)
+## [Version 0.2.18](https://github.com/NVISO-BE/ee-outliers/releases/tag/0.2.18) (May 31, 2021)
+### Bug fixes
+- Fix vulnerability issues found on dependencies lxml & pillow
+## [Version 0.2.17](https://github.com/NVISO-BE/ee-outliers/releases/tag/0.2.17) (August 10, 2020)
 ### New features
 - Enable secured connection to Elasticsearch: TLS encryption + credentials authentication
-
 ## [Version 0.2.16](https://github.com/NVISO-BE/ee-outliers/releases/tag/0.2.16) (July 29, 2020)
 ### Bug fixes
 - Fix issue provoked by an unnecessary debug log message while running _scan
