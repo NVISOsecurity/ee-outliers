@@ -8,6 +8,7 @@ configparser
 dateparser
 docopt
 elasticsearch
+opensearch-py
 idna
 iso8601
 keyring

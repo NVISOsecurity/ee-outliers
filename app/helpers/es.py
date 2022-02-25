@@ -10,6 +10,8 @@ from itertools import chain
 from pygrok import Grok
 from elasticsearch import helpers as eshelpers, Elasticsearch
 from elasticsearch.exceptions import AuthenticationException, ConnectionError, RequestError
+from opensearchpy import helpers as oshelpers, OpenSearch
+from opensearchpy.exceptions import AuthenticationException, ConnectionError, RequestError
 
 from configparser import NoOptionError
 
@@ -59,7 +61,8 @@ class ES:
 
         :return: Connection object if connection with Elasticsearch succeeded, False otherwise
         """
-
+        
+        is_opensearch = self.settings.config.get("general", "is_opensearch")
         http_auth = (os.getenv("es_username",""),os.getenv("es_password",""))
         verify_certs = os.getenv("verify_certs", "true").lower() in ["yes", "true", "1"]
         ca_certs = os.getenv("ca_certs", None)
@@ -67,28 +70,64 @@ class ES:
 
         self.logging.logger.debug(f"url: {url}, username: {http_auth[0]}, verify_certs: {verify_certs}, ca_certs: {ca_certs}")
 
-        self.conn = Elasticsearch([url],
-                                  http_auth=http_auth,
-                                  timeout=self.settings.config.getint("general", "es_timeout"),
-                                  verify_certs=verify_certs,
-                                  ca_certs=ca_certs,
-                                  retry_on_timeout=True)
+        if is_opensearch:
+
+            self.conn = OpenSearch(
+                hosts=[url],
+                http_compress=True,  # enables gzip compression for request bodies
+                http_auth=http_auth,
+                timeout=self.settings.config.getint("general", "es_timeout"),
+                use_ssl=True,
+                verify_certs=False,
+                ssl_assert_hostname=True,
+                ssl_show_warn=False,
+                ca_certs=ca_certs,
+                retry_on_timeout=True
+            )
+        
+        else:
+
+            self.conn = Elasticsearch([url],
+                                        http_auth=http_auth,
+                                        timeout=self.settings.config.getint("general", "es_timeout"),
+                                        verify_certs=verify_certs,
+                                        ca_certs=ca_certs,
+                                        retry_on_timeout=True)
 
         try:
             self.conn.info()
-            self.logging.logger.info("connected to Elasticsearch on host %s" %
+            if is_opensearch:
+                self.logging.logger.info("connected to OpenSearch on host %s" %
                                      (self.settings.config.get("general", "es_url")))
+            else:
+                self.logging.logger.info("connected to Elasticsearch on host %s" %
+                                     (self.settings.config.get("general", "es_url")))
+
             return self.conn
+        
         except AuthenticationException as e:
-            self.logging.logger.error("could not connect to Elasticsearch on host %s due to authentication error." %
-                                      (self.settings.config.get("general", "es_url")))
-            self.logging.logger.debug(str(e))
-            return False
+            if is_opensearch:
+                self.logging.logger.error("could not connect to OpenSearch on host %s due to authentication error." %
+                                        (self.settings.config.get("general", "es_url")))
+                self.logging.logger.debug(str(e))
+                return False
+            else:
+                self.logging.logger.error("could not connect to Elasticsearch on host %s due to authentication error." %
+                                        (self.settings.config.get("general", "es_url")))
+                self.logging.logger.debug(str(e))
+                return False
+        
         except ConnectionError as e:
-            self.logging.logger.error("could not connect to Elasticsearch on host %s" %
-                                      (self.settings.config.get("general", "es_url")))
-            self.logging.logger.debug(str(e))
-            return False
+            if is_opensearch:
+                self.logging.logger.error("could not connect to OpenSearch on host %s" %
+                                        (self.settings.config.get("general", "es_url")))
+                self.logging.logger.debug(str(e))
+                return False
+            else:
+                self.logging.logger.error("could not connect to Elasticsearch on host %s" %
+                                        (self.settings.config.get("general", "es_url")))
+                self.logging.logger.debug(str(e))
+                return False
 
     def _get_history_window(self, model_settings=None):
         """

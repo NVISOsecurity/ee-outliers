@@ -8,8 +8,9 @@ services:
 #      - es_username=username
 #      - es_password=password
 #      - ca_certs=/certs/ca.crt
+#      - verify_certs=False
     volumes:
       - ./defaults/outliers.conf:/mappedvolumes/config/outliers.conf
       - ./use_cases/examples:/use_cases
-#      - /certs/ca.crt:/certs/ca.crt
+      # - /certs/ca.crt:/certs/ca.crt
     network_mode: sensor_network
