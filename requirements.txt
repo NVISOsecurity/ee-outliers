@@ -2,7 +2,7 @@ tabulate==0.8.7
 Pillow==9.0.1
 torch==1.4.0
 scikit-learn==0.19.1
-certifi==2017.7.27.1
+certifi==2022.12.7
 chardet==3.0.4
 configparser==3.5.0
 dateparser==0.6.0
